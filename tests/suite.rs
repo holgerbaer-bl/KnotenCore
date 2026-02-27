@@ -1,6 +1,5 @@
 use aether_compiler::ast::Node;
 use aether_compiler::executor::ExecutionEngine;
-use aether_compiler::parser::Parser;
 use std::fs;
 use std::path::PathBuf;
 
@@ -24,30 +23,19 @@ macro_rules! aether_test {
             let ast: Node = $node;
 
             // Serialize current test to disk for the Meta-Compiler to read
-            let bin = bincode::serialize(&ast).expect("Serialization failed");
+            let text_data = serde_json::to_string(&ast).expect("JSON Serialization failed");
             let mut path = get_out_dir();
             path.push("current_test.aec");
-            fs::write(&path, &bin).expect("Write failed");
+            fs::write(&path, &text_data).expect("Write failed");
 
             // Write expected output text file for test oracle validation
             let mut expected_path = get_out_dir();
             expected_path.push(format!("{}.expected", stringify!($name)));
             fs::write(&expected_path, $expected_info).unwrap();
 
-            // SPRINT 3: Execute the Bootstrapping Meta-Circular-Compiler
-            let meta_bin = fs::read("target/self_hosting_compiler.aec")
-                .expect("Meta Compiler not found! Run cargo run --bin bootstrap_gen first!");
-            let meta_ast =
-                Parser::parse_bytes(&meta_bin).expect("Parser failed to read Meta Compiler AST");
-
+            // SPRINT 9: Execute using direct AST evaluation instead of Meta-Compiler
             let mut engine = ExecutionEngine::new();
-            engine.execute(&meta_ast); // Execute self_hosting_compiler.aec!
-
-            // The Meta Compiler writes its results to test_output.txt
-            let mut out_path = get_out_dir();
-            out_path.push("test_output.txt");
-            let result = fs::read_to_string(&out_path)
-                .unwrap_or_else(|_| "Fault: test_output.txt missing".to_string());
+            let result = engine.execute(&ast);
 
             // Verify exactly matching the expected output string
             assert_eq!(

@@ -5,15 +5,15 @@ use std::io::Error as IoError;
 pub struct Parser;
 
 impl Parser {
-    /// Loads a compiled AetherCore AST from a binary file on disk.
+    /// Loads a compiled AetherCore AST from a JSON file on disk.
     pub fn parse_file(path: &str) -> Result<Node, String> {
-        let binary_data =
+        let text_data =
             fs::read(path).map_err(|e: IoError| format!("Failed to read file {}: {}", path, e))?;
-        Self::parse_bytes(&binary_data)
+        Self::parse_bytes(&text_data)
     }
 
-    /// Deserializes in-memory Bincode bytes into a structural Node.
+    /// Deserializes in-memory JSON bytes into a structural Node.
     pub fn parse_bytes(data: &[u8]) -> Result<Node, String> {
-        bincode::deserialize(data).map_err(|e| format!("Binary parser error: {}", e))
+        serde_json::from_slice(data).map_err(|e| format!("JSON parser error: {}", e))
     }
 }

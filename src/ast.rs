@@ -43,7 +43,7 @@ pub enum Node {
     FileWrite(Box<Node>, Box<Node>),
 
     // FFI / Reflection
-    EvalBincodeNative(Box<Node>),
+    EvalJSONNative(Box<Node>),
     ToString(Box<Node>),
 
     // 3D Graphics (WGPU FFI)

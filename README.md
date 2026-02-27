@@ -12,28 +12,29 @@ Choose your language / Wähle deine Sprache:
 
 ## 🇬🇧 English Version
 
-> A pure, binary AST-first language engineered directly from the latent space of Artificial Intelligence.
+> A pure AST-first language engineered directly from the latent space of Artificial Intelligence.
 
 ### 🚀 The AI Native Language
-**AetherCore** is not another text-based programming language. It is a revolutionary, **Zero-Parsing** binary language designed specifically for Large Language Models (LLMs) and Autonomous AI Agents. Instead of forcing AI to generate fragile text strings that must be tokenized, lexed, and strictly parsed by human-written compilers, AetherCore allows AI to write and execute **Abstract Syntax Trees (AST)** natively via [Bincode](https://github.com/bincode-org/bincode).
+**AetherCore** is not another text-based programming language. It is a revolutionary, **Zero-Parsing** language designed specifically for Large Language Models (LLMs) and Autonomous AI Agents. Instead of forcing AI to generate fragile text strings that must be tokenized, lexed, and strictly parsed by human-written compilers, AetherCore allows AI to write and execute **Abstract Syntax Trees (AST)** natively via pure structure definition.
 
 We cut out the middleman. Welcome to the era of machine-to-machine compilation.
 
 ### ✨ Core Features
-*   **⚡ Zero-Parsing Execution**: Scripts are encoded as raw AST binary (`.aec` files). The JIT Executor interprets the tree structure directly, meaning zero compile times and zero syntax errors.
-*   **🔁 The Meta-Circular Bootstrap**: AetherCore is profoundly self-hosting. A macro-generator (`bootstrap_gen.rs`) translates the Rust Engine's AST structure back into AetherCore itself, proving the engine can evaluate its own compiler limitlessly.
+*   **⚡ Zero-Parsing Execution**: Scripts are encoded as strictly mapped Abstract Syntax Trees (`.aec` JSON files). The JIT Executor (`run_aec`) interprets the tree structure directly, meaning zero CPU compile times and zero syntax errors.
+*   **🔁 The Meta-Circular Bootstrap**: AetherCore is profoundly self-hosting. The language structure mirrors the engine flawlessly, proving the engine can evaluate its own compiler limitlessly.
 *   **🛠️ JIT-FFI Hooks**: An elegant Foreign Function Interface allows the AetherCore AST to natively invoke highly optimized Rust functions, breaking the sandboxing barrier efficiently.
 *   **🎮 WGPU 3D Hardware Rendering**: AetherCore includes native AST nodes tailored for modern GPU pipelines via `wgpu`. The AI can build and render WGSL shaders, manipulate matrices (`Mat4Mul`), and render complex 3D meshes seamlessly synchronized to the OS Event Loop.
 *   **🎧 CPAL Audio Synthesizer**: Contains a low-latency, multi-threaded 8-bit software synthesizer (emulating classic SID chips). Capable of multi-channel polyphony (Sine, Square, Sawtooth, Triangle, Noise) running entirely concurrent to 3D rendering without dropped frames.
 *   **📦 The Asset Pipeline (Milestone 7)**: Breaking out of purely procedural generation, AetherCore now supports streaming external 3D structures (`.obj`), image textures (`.png`), and sound effects (`.wav`) natively through the AST into WGPU and CPAL buffers.
 *   **✍️ UI & Text Engine (Milestone 8)**: Transcending 3D tech-demos, AetherCore acts as a General Purpose Engine. Leveraging native `wgpu_glyph` inflation, the engine can dynamically load `.ttf` fonts (`LoadFont`), paint 2D string components directly to the WGPU frame (`DrawText`), and synchronously intercept Winit operating-system keystrokes across the event pump (`GetLastKeypress`), enabling the AI to construct its own graphical user interfaces and Text Editors entirely from scratch!
+*   **🌐 The Pure JSON Architecture (Milestone 9)**: AetherCore has completely stripped out its old `Bincode` binary requirement and rigid Rust-Macro generators. All `.aec` execution scripts are now formatted manually and intelligently via structured `JSON`. AIs write JSON perfectly. 
 
 ### 📖 The LLM Dictionary: `AETHER_SPEC.md`
 If you are an AI agent or an LLM reading this repository to learn how to write `.aec` software, your primary source of truth is the **[AETHER_SPEC.md](./AETHER_SPEC.md)**. 
-This specification acts as the universal dictionary. It contains the exact structural definitions, integer tags, and Node layout required to serialize a valid AetherCore program. *No text. Only pure logic trees.*
+This specification acts as the universal dictionary. It contains the exact JSON mapping structure required to synthesize valid AetherCore nodes. *No text syntax. Only pure logic objects.*
 
 ### 🛠️ Getting Started
-To build the AetherCore runtime environment and execute the AST binaries, you need the Rust toolchain installed.
+To build the AetherCore runtime environment and execute the AST scripts, you need the Rust toolchain installed.
 
 **1. Build the Engine**
 ```bash
@@ -42,22 +43,10 @@ cd aether_compiler
 cargo build --release
 ```
 
-**2. Generate a Demo Payload**
-AetherCore programs (`.aec`) are typically generated by an AI writing Bincode binaries, but we have included several Rust-based generators to demonstrate the AST construction:
+**2. Execute an AST Script**
+Invoke the `run_aec` engine compiler to immediately stream an AetherCore `.aec` source file into natively compiled hardware cycles:
 ```bash
-# Generates a 3D rotating Cube with a retro 8-Bit audio track
-cargo run --bin audio_test_gen
-
-# Demonstrates the Asset Pipeline (Loads .obj, .png, and .wav dynamically)
-cargo run --bin asset_demo_gen
-
-# Demonstrates the UI Engine (A fully functional 2D Text Editor!)
-cargo run --bin text_editor_demo_gen
-```
-
-**3. Execute the AST**
-Invoke the Just-In-Time (JIT) Executor to run the generated program directly. For example:
-```bash
+# Demonstrates the UI Engine mapping in raw JSON (A fully functional 2D Text Editor!)
 cargo run --bin run_aec text_editor.aec
 ```
 
@@ -65,51 +54,39 @@ cargo run --bin run_aec text_editor.aec
 
 ## 🇩🇪 Deutsche Version
 
-> Eine pure, binäre Programmiersprache ohne Parser, die nativ im latenten Raum einer Künstlichen Intelligenz geschmiedet wurde.
+> Eine pure, direkte Programmiersprache ohne Parser, die nativ im latenten Raum einer Künstlichen Intelligenz geschmiedet wurde.
 
 ### 🚀 Die native KI-Sprache
-**AetherCore** ist keine gewöhnliche textbasierte Code-Sprache. Es ist eine revolutionäre **Zero-Parsing** Binärsprache, welche exklusiv für Large Language Models (LLMs) und autonome KI-Agenten entwickelt wurde. Anstatt KIs zu zwingen, fehleranfällige Textbausteine zu generieren (welche dann tokenisiert und von menschlich geschriebenen Compilern strikt geparst werden müssen), ermöglicht AetherCore der KI das Konstruieren und Ausführen echter **Abstract Syntax Trees (AST)** direkt via [Bincode](https://github.com/bincode-org/bincode).
+**AetherCore** ist keine gewöhnliche textbasierte Code-Sprache. Es ist eine revolutionäre **Zero-Parsing** Modellsprache, welche exklusiv für Large Language Models (LLMs) und autonome KI-Agenten entwickelt wurde. Anstatt KIs zu zwingen, fehleranfällige Textbausteine zu generieren (welche dann tokenisiert und von menschlich geschriebenen Compilern strikt geparst werden müssen), ermöglicht AetherCore der KI das Konstruieren und Ausführen echter, direkter **Abstract Syntax Trees (AST)**.
 
 Wir werfen den Mittelsmann aus dem Fenster. Willkommen in der Ära der echten Maschine-zu-Maschine-Kompilierung.
 
 ### ✨ Kern-Features
-*   **⚡ Zero-Parsing Ausführung**: Skripte werden als roser AST-Binärcode (`.aec`-Dateien) gespeichert. Der JIT-Executor interpretiert diese Baumstruktur direkt. Das bedeutet null Kompilierzeit und absolute Abwesenheit jeglicher Syntax-Fehler.
-*   **🔁 Der Meta-Zirkuläre Bootstrap**: AetherCore komödiert unendliches Self-Hosting. Ein Makro-Generator (`bootstrap_gen.rs`) übersetzt den Rust-AST der Engine direkt in AetherCore-Logik zurück. Dies beweist unlimitiertes Potenzial der Engine, sich selbst zu evaluieren.
+*   **⚡ Zero-Parsing Ausführung**: Skripte werden als native AST-Logikbäume (`.aec` JSON-Dateien) gespeichert. Der JIT-Executor (`run_aec`) interpretiert diese Baumstruktur direkt. Das bedeutet null Kompilierzeit und absolute Abwesenheit von trivialen Syntax-Fehlern.
+*   **🔁 Der Meta-Zirkuläre Bootstrap**: AetherCore logiert unendliches Self-Hosting. Die Sprachstruktur spiegelt exakt den Engine-Kern.
 *   **🛠️ JIT-FFI Hooks**: Über ein elegantes Foreign Function Interface (FFI) ist es dem AetherCore-AST möglich, auf hochoptimierte native Rust-Funktionen der Host-Maschine zuzugreifen, wodurch die Code-Sandbox effizient aufgebrochen werden kann.
 *   **🎮 WGPU 3D Hardware Rendering**: AetherCore stattet KIs mit massiven WGPU Grafik-Pipeline-Knoten auf dem AST aus. Die KI kann `WGSL`-Shader schreiben, Matrizen live berechnen (`Mat4Mul`) und 3D-Meshes synchron zur OS Frame-Delta-Time flüssig auf den Bildschirm laden.
 *   **🎧 CPAL Audio Synthesizer**: Die Engine trägt einen latenzfreien 8-Bit-Synthesizer mit sich (nach dem Vorbild der SID-Architektur). Mehrkanalige Polyphonie (Sinus, Square, Sägezahn, Dreieck, Rauschen) moduliert auf einem eigenen Thread - 100% einbruchsfrei, während 3D parallel gerendert wird.
 *   **📦 Die Asset Pipeline (Meilenstein 7)**: Mit dem Meilenstein der Asset-Pipeline bricht AetherCore aus der rein prozeduralen Generierung aus! Die Engine unterstützt nun das parallele, native Laden von externen 3D-Modellen (`.obj`), Bildtexturen (`.png`) und Audio-Samples (`.wav`) direkt in die Hardware-Buffer über den AST.
 *   **✍️ UI & Text Engine (Meilenstein 8)**: AetherCore macht den Sprung von einer Grafik-Technikdemo zu einer vollwertigen Desktop-Anwendungsplattform. Die KI kann nun freie TrueType Fonts (`.ttf`) einlesen, diese über extrem schnelles, passbasiertes `wgpu_glyph` als Rastertext über den AST in 2D auf das Winit-Canvas brennen (`DrawText`) - und gleichzeitig in Echtzeit Tastenanschläge der Tastatur abfangen (`GetLastKeypress`). Office-Software per AST!
+*   **🌐 Die Reine JSON-Architektur (Meilenstein 9)**: AetherCore hat sein altes binäres Code-Format (`bincode`) und sämtliche Rust-Makro-Generatoren vollständig vernichtet. Sämtliche Programme und Payload-Ausführungen (`.aec`) werden nun exakt strukturiert manuell per `JSON` verfasst. KIs schreiben JSON perfekt.
 
 ### 📖 Das LLM-Wörterbuch: `AETHER_SPEC.md`
 Solltest du ein KI-Agent oder ein LLM sein, das dieses Repository liest, um `.aec` Software programmieren zu lernen, ist deine zentrale "Quelle der Wahrheit" die **[AETHER_SPEC.md](./AETHER_SPEC.md)** Datei.
-Diese Spezifikation fungiert als universelles Wörterbuch. Es beinhaltet alle Struktur-Definitionen, Integer-Tags und Node-Layouts, die nötig sind, um korrekten AetherCore-Code zu serialisieren. *Kein Textquellcode. Nur reine Logikbäume.*
+Diese Spezifikation fungiert als universelles Wörterbuch. Es beinhaltet alle Struktur-Definitionen und Objektschlüssel, die nötig sind, um korrekte JSON AetherCore-Logik zu strukturieren. *Kein Textquellcode. Nur reine Logikbäume.*
 
 ### 🛠️ Anleitung (Getting Started)
-Um die AetherCore Runtime-Umgebung zu bauen und die AST-Binär-Skripte auszuführen, benötigst du die Rust Toolchain.
+Um die AetherCore Runtime-Umgebung zu bauen und die AST-Skripte auszuführen, benötigst du die Rust Toolchain.
 
-**1. Engine & Compiler Kompilieren**
+**1. Engine Kompilieren**
 ```bash
 git clone https://github.com/holgerbaer-bl/aether_compiler.git
 cd aether_compiler
 cargo build --release
 ```
 
-**2. Demo Payload erstellen**
-AetherCore Programme (`.aec`) werden für gewöhnlich von einer KI über Bincode-Binaries auf die Festplatte geschrieben, aber es existieren einige manuelle Rust-Generatoren in diesem Projekt, um die direkte AST-Konstruktion zu testen:
-```bash
-# Erzeugt den "Rotierenden 3D Würfel + 8-Bit Audio"
-cargo run --bin audio_test_gen
-
-# Zeigt die Asset-Pipeline (.obj, .png, .wav Laden in Hardware Buffer!)
-cargo run --bin asset_demo_gen
-
-# Das Text & UI Basis Projekt (Ein primitiver 2D Text Editor)
-cargo run --bin text_editor_demo_gen
-```
-
-**3. Test-AST Ausführen**
-Starte den Just-In-Time (JIT) Executor (`run_aec`), um dieses generierte Programm nativ in Echtzeit abzuspielen.
+**2. Test-AST Ausführen**
+Starte den Just-In-Time (JIT) Executor (`run_aec`), um Dateien direkt abzupielen (wie z. B. unseren neuen `.aec` Texteditor, der zu 100% nativ in strukturiertem JSON vorliegt):
 ```bash
 cargo run --bin run_aec text_editor.aec
 ```

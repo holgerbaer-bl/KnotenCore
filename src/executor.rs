@@ -505,23 +505,15 @@ impl ExecutionEngine {
             }
 
             // FFI / Reflection
-            Node::EvalBincodeNative(bytes_node) => match self.evaluate(bytes_node) {
-                ExecResult::Value(RelType::Array(arr)) => {
-                    let bytes: Vec<u8> = arr
-                        .into_iter()
-                        .map(|v| match v {
-                            RelType::Int(i) => i as u8,
-                            _ => 0,
-                        })
-                        .collect();
-
-                    match bincode::deserialize::<Node>(&bytes) {
+            Node::EvalJSONNative(json_node) => match self.evaluate(json_node) {
+                ExecResult::Value(RelType::Str(json)) => {
+                    match serde_json::from_str::<Node>(&json) {
                         Ok(parsed) => {
                             let mut sub_engine = ExecutionEngine::new();
                             let output = sub_engine.execute(&parsed);
                             ExecResult::Value(RelType::Str(output))
                         }
-                        Err(e) => ExecResult::Fault(format!("Bincode Native Eval Fault: {}", e)),
+                        Err(e) => ExecResult::Fault(format!("JSON Native Eval Fault: {}", e)),
                     }
                 }
                 fault => fault,
