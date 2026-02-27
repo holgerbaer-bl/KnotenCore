@@ -80,6 +80,11 @@ pub struct ExecutionEngine {
         wgpu::BindGroupLayout,
     )>,
 
+    // UI & Text state
+    pub glyph_brush: Option<wgpu_glyph::GlyphBrush<()>>,
+    pub staging_belt: Option<wgpu::util::StagingBelt>,
+    pub keyboard_buffer: Arc<Mutex<String>>,
+
     // Audio backend state
     pub voices: Option<Arc<Mutex<[VoiceState; 4]>>>,
     pub stream_samples: Option<Arc<Mutex<Vec<f32>>>>,
@@ -107,6 +112,9 @@ impl ExecutionEngine {
             render_pipelines: HashMap::new(),
             meshes: Vec::new(),
             textures: Vec::new(),
+            glyph_brush: None,
+            staging_belt: None,
+            keyboard_buffer: Arc::new(Mutex::new(String::new())),
             voices: None,
             stream_samples: None,
             stream_pos: None,
@@ -660,14 +668,14 @@ impl ExecutionEngine {
                                         layout: Some(&pipeline_layout),
                                         vertex: wgpu::VertexState {
                                             module: shader,
-                                            entry_point: "vs_main",
+                                            entry_point: Some("vs_main"),
                                             buffers: &[],
                                             compilation_options:
                                                 wgpu::PipelineCompilationOptions::default(),
                                         },
                                         fragment: Some(wgpu::FragmentState {
                                             module: shader,
-                                            entry_point: "fs_main",
+                                            entry_point: Some("fs_main"),
                                             targets: &[Some(wgpu::ColorTargetState {
                                                 format: config.format,
                                                 blend: Some(wgpu::BlendState::REPLACE),
@@ -680,6 +688,7 @@ impl ExecutionEngine {
                                         depth_stencil: None,
                                         multisample: wgpu::MultisampleState::default(),
                                         multiview: None,
+                                        cache: None,
                                     })
                                 });
 
@@ -966,6 +975,156 @@ impl ExecutionEngine {
                     ExecResult::Fault("LoadTexture expects String path".to_string())
                 }
             }
+            Node::LoadFont(path_node) => {
+                if let ExecResult::Value(RelType::Str(path)) = self.evaluate(path_node) {
+                    if let (Some(device), Some(config)) = (&self.device, &self.config) {
+                        match std::fs::read(&path) {
+                            Ok(bytes) => {
+                                let font =
+                                    wgpu_glyph::ab_glyph::FontArc::try_from_vec(bytes).unwrap();
+                                let brush = wgpu_glyph::GlyphBrushBuilder::using_font(font)
+                                    .build(device, config.format);
+                                self.glyph_brush = Some(brush);
+                                self.staging_belt = Some(wgpu::util::StagingBelt::new(1024));
+                                ExecResult::Value(RelType::Void)
+                            }
+                            Err(e) => ExecResult::Fault(format!("LoadFont Failed: {}", e)),
+                        }
+                    } else {
+                        ExecResult::Fault("LoadFont requires InitGraphics".to_string())
+                    }
+                } else {
+                    ExecResult::Fault("LoadFont expects String path".to_string())
+                }
+            }
+            Node::DrawText(text_n, x_n, y_n, size_n, color_n) => {
+                let text_val = self.evaluate(text_n);
+                let x_val = self.evaluate(x_n);
+                let y_val = self.evaluate(y_n);
+                let size_val = self.evaluate(size_n);
+                let color_val = self.evaluate(color_n);
+
+                if let (
+                    ExecResult::Value(RelType::Str(text)),
+                    ExecResult::Value(RelType::Float(x)),
+                    ExecResult::Value(RelType::Float(y)),
+                    ExecResult::Value(RelType::Float(size)),
+                    ExecResult::Value(RelType::Array(color_arr)),
+                ) = (text_val, x_val, y_val, size_val, color_val)
+                {
+                    if let (
+                        Some(device),
+                        Some(queue),
+                        Some(surface),
+                        Some(config),
+                        Some(glyph_brush),
+                        Some(staging_belt),
+                    ) = (
+                        &self.device,
+                        &self.queue,
+                        &self.surface,
+                        &self.config,
+                        &mut self.glyph_brush,
+                        &mut self.staging_belt,
+                    ) {
+                        let c = [
+                            match &color_arr.get(0) {
+                                Some(RelType::Float(f)) => *f as f32,
+                                Some(RelType::Int(i)) => *i as f32,
+                                _ => 0.0,
+                            },
+                            match &color_arr.get(1) {
+                                Some(RelType::Float(f)) => *f as f32,
+                                Some(RelType::Int(i)) => *i as f32,
+                                _ => 0.0,
+                            },
+                            match &color_arr.get(2) {
+                                Some(RelType::Float(f)) => *f as f32,
+                                Some(RelType::Int(i)) => *i as f32,
+                                _ => 0.0,
+                            },
+                            match &color_arr.get(3) {
+                                Some(RelType::Float(f)) => *f as f32,
+                                Some(RelType::Int(i)) => *i as f32,
+                                _ => 1.0,
+                            },
+                        ];
+                        glyph_brush.queue(wgpu_glyph::Section {
+                            screen_position: (x as f32, y as f32),
+                            bounds: (config.width as f32, config.height as f32),
+                            text: vec![
+                                wgpu_glyph::Text::new(&text)
+                                    .with_color(c)
+                                    .with_scale(size as f32),
+                            ],
+                            ..wgpu_glyph::Section::default()
+                        });
+
+                        match surface.get_current_texture() {
+                            Ok(frame) => {
+                                let view = frame
+                                    .texture
+                                    .create_view(&wgpu::TextureViewDescriptor::default());
+                                let mut encoder = device.create_command_encoder(
+                                    &wgpu::CommandEncoderDescriptor::default(),
+                                );
+                                {
+                                    let _rpass =
+                                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                            label: Some("DrawText Pass"),
+                                            color_attachments: &[Some(
+                                                wgpu::RenderPassColorAttachment {
+                                                    view: &view,
+                                                    resolve_target: None,
+                                                    ops: wgpu::Operations {
+                                                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                                                            r: 0.1,
+                                                            g: 0.1,
+                                                            b: 0.1,
+                                                            a: 1.0,
+                                                        }),
+                                                        store: wgpu::StoreOp::Store,
+                                                    },
+                                                },
+                                            )],
+                                            depth_stencil_attachment: None,
+                                            timestamp_writes: None,
+                                            occlusion_query_set: None,
+                                        });
+                                }
+                                glyph_brush
+                                    .draw_queued(
+                                        device,
+                                        staging_belt,
+                                        &mut encoder,
+                                        &view,
+                                        config.width,
+                                        config.height,
+                                    )
+                                    .unwrap();
+                                staging_belt.finish();
+                                queue.submit(Some(encoder.finish()));
+                                frame.present();
+                                staging_belt.recall();
+                                ExecResult::Value(RelType::Void)
+                            }
+                            Err(e) => ExecResult::Fault(format!("DrawText surface error: {:?}", e)),
+                        }
+                    } else {
+                        ExecResult::Fault("DrawText requires LoadFont and graphics".to_string())
+                    }
+                } else {
+                    ExecResult::Fault(
+                        "DrawText expects (Str, Float, Float, Float, Array)".to_string(),
+                    )
+                }
+            }
+            Node::GetLastKeypress => {
+                let mut kb = self.keyboard_buffer.lock().unwrap();
+                let txt = kb.clone();
+                kb.clear();
+                ExecResult::Value(RelType::Str(txt))
+            }
             Node::PlayAudioFile(path_node) => {
                 if let ExecResult::Value(RelType::Str(path)) = self.evaluate(path_node) {
                     if let Ok(mut reader) = hound::WavReader::open(path) {
@@ -1052,7 +1211,7 @@ impl ExecutionEngine {
                                 layout: Some(&pipeline_layout),
                                 vertex: wgpu::VertexState {
                                     module: shader,
-                                    entry_point: "vs_main",
+                                    entry_point: Some("vs_main"),
                                     buffers: &[wgpu::VertexBufferLayout {
                                         array_stride: 32 as wgpu::BufferAddress,
                                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -1079,7 +1238,7 @@ impl ExecutionEngine {
                                 },
                                 fragment: Some(wgpu::FragmentState {
                                     module: shader,
-                                    entry_point: "fs_main",
+                                    entry_point: Some("fs_main"),
                                     targets: &[Some(wgpu::ColorTargetState {
                                         format: config.format,
                                         blend: Some(wgpu::BlendState::REPLACE),
@@ -1100,6 +1259,7 @@ impl ExecutionEngine {
                                 depth_stencil: None, // Simplified for now, relies on ordering or simple scenes
                                 multisample: wgpu::MultisampleState::default(),
                                 multiview: None,
+                                cache: None,
                             });
 
                         let mut active_bind_group = None;
@@ -1208,6 +1368,24 @@ impl ExecutionEngine {
                             } => {
                                 elwt.exit();
                                 exit = true;
+                            }
+                            winit::event::Event::WindowEvent {
+                                event:
+                                    winit::event::WindowEvent::KeyboardInput { event: key_ev, .. },
+                                ..
+                            } => {
+                                if key_ev.state == winit::event::ElementState::Pressed {
+                                    if let winit::keyboard::Key::Named(
+                                        winit::keyboard::NamedKey::Backspace,
+                                    ) = key_ev.logical_key
+                                    {
+                                        let mut kb = self.keyboard_buffer.lock().unwrap();
+                                        kb.pop();
+                                    } else if let Some(text) = key_ev.text {
+                                        let mut kb = self.keyboard_buffer.lock().unwrap();
+                                        kb.push_str(&text);
+                                    }
+                                }
                             }
                             winit::event::Event::AboutToWait => {
                                 let res = self.evaluate(body);
@@ -1643,6 +1821,13 @@ impl ExecutionEngine {
                         }
                     }
                     _ => unreachable!(),
+                }
+            }
+            (ExecResult::Value(RelType::Str(ls)), ExecResult::Value(RelType::Str(rs))) => {
+                if op == '+' {
+                    ExecResult::Value(RelType::Str(format!("{}{}", ls, rs)))
+                } else {
+                    ExecResult::Fault("Invalid string operation".to_string())
                 }
             }
             (ExecResult::Fault(err), _) | (_, ExecResult::Fault(err)) => ExecResult::Fault(err),

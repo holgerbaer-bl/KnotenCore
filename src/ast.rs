@@ -64,6 +64,11 @@ pub enum Node {
     PlayAudioFile(Box<Node>),                                // Path String
     RenderAsset(Box<Node>, Box<Node>, Box<Node>, Box<Node>), // Shader ID, Mesh ID, Texture ID, Uniform Matrix
 
+    // UI & Text Engine (Sprint 8)
+    LoadFont(Box<Node>), // Path String
+    DrawText(Box<Node>, Box<Node>, Box<Node>, Box<Node>, Box<Node>), // Text String, X Float, Y Float, Size Float, Color Array[R,G,B,A]
+    GetLastKeypress,                                                 // Returns String buffer
+
     // Control Flow
     If(Box<Node>, Box<Node>, Option<Box<Node>>),
     While(Box<Node>, Box<Node>),

@@ -79,7 +79,12 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 *   **`PlayAudioFile(Box<Node>)`**: Loads a `.wav` file and streams it dynamically into the active CPAL audio buffer.
 *   **`RenderAsset(Box<Node>, Box<Node>, Box<Node>, Box<Node>)`**: Takes `ShaderID`, `MeshID`, `TextureID`, and `UniformArray`. Renders textured models over WGPU.
 
-### 4.11. Control Flow
+### 4.11. UI & Text Engine (Office/2D Canvas)
+*   **`LoadFont(Box<Node>)`**: Takes a Path String to a `.ttf` file. Inflates it into the WGPU Glyph structure.
+*   **`DrawText(Box<Node>, Box<Node>, Box<Node>, Box<Node>, Box<Node>)`**: Takes `Text` (String), `X` (Float), `Y` (Float), `Size` (Float), and `Color` (Array of 4 Floats: R,G,B,A). Queues 2D text onto the screen for the current Frame.
+*   **`GetLastKeypress()`**: Retrieves and clears the engine's internal keyboard buffer, returning a `String` containing the characters typed since the last check.
+
+### 4.12. Control Flow
 *   **`If(Box<Node>, Box<Node>, Option<Box<Node>>)`**: Evaluates the first `Node` (Condition). If true, executes the second `Node` (Then Branch). Otherwise executes the third optional `Node` (Else Branch).
 *   **`While(Box<Node>, Box<Node>)`**: Evaluates the first `Node`. While true, repeatedly executes the second `Node` (Body block).
 *   **`Block(Vec<Node>)`**: Unconditionally executes a sequence of nodes in order. The block returns the value of its last node, or implicit void if empty.
