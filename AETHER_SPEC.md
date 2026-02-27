@@ -57,7 +57,14 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 *   **`FileRead(Box<Node>)`**: Reads a file by path. Returns file contents as an Array of Int bytes.
 *   **`FileWrite(Box<Node>, Box<Node>)`**: Writes an Array of Int bytes (arg 2) to a file path (arg 1).
 
-### 4.8. Control Flow
+### 4.8. 3D Graphics (Vulkan/Metal/DX12 via WGPU)
+*   **`InitWindow(Box<Node>, Box<Node>, Box<Node>)`**: Initializes an OS Window (Width, Height, Title). Opens the window on the system.
+*   **`InitGraphics()`**: Initializes the GPU Adapter and Device.
+*   **`LoadShader(Box<Node>)`**: Compiles a WGSL Shader from a String. Returns a Shader Identifier.
+*   **`RenderMesh(Box<Node>, Box<Node>)`**: Executes a RenderPass draw call to the screen (Shader Identifier, Vertex Buffer Array).
+*   **`PollEvents(Box<Node>)`**: Submits a block of nodes to run inside the Window Event Loop, intercepting close requests.
+
+### 4.9. Control Flow
 *   **`If(Box<Node>, Box<Node>, Option<Box<Node>>)`**: Evaluates the first `Node` (Condition). If true, executes the second `Node` (Then Branch). Otherwise executes the third optional `Node` (Else Branch).
 *   **`While(Box<Node>, Box<Node>)`**: Evaluates the first `Node`. While true, repeatedly executes the second `Node` (Body block).
 *   **`Block(Vec<Node>)`**: Unconditionally executes a sequence of nodes in order. The block returns the value of its last node, or implicit void if empty.

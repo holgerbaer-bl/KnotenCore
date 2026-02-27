@@ -29,8 +29,20 @@ impl std::fmt::Display for RelType {
     }
 }
 
+use std::sync::Arc;
+use winit::event_loop::EventLoop;
+use winit::window::{Window, WindowBuilder};
+
 pub struct ExecutionEngine {
     pub memory: HashMap<String, RelType>,
+    pub event_loop: Option<EventLoop<()>>,
+    pub window: Option<Arc<Window>>,
+    pub surface: Option<wgpu::Surface<'static>>,
+    pub device: Option<wgpu::Device>,
+    pub queue: Option<wgpu::Queue>,
+    pub config: Option<wgpu::SurfaceConfiguration>,
+    pub shaders: Vec<wgpu::ShaderModule>,
+    pub render_pipelines: HashMap<usize, wgpu::RenderPipeline>,
 }
 
 pub enum ExecResult {
@@ -43,6 +55,14 @@ impl ExecutionEngine {
     pub fn new() -> Self {
         Self {
             memory: HashMap::new(),
+            event_loop: None,
+            window: None,
+            surface: None,
+            device: None,
+            queue: None,
+            config: None,
+            shaders: Vec::new(),
+            render_pipelines: HashMap::new(),
         }
     }
 
@@ -393,6 +413,225 @@ impl ExecutionEngine {
                         ExecResult::Value(RelType::Str(s))
                     }
                     fault => fault,
+                }
+            }
+
+            // 3D Graphics (WGPU FFI)
+            Node::InitWindow(w_node, h_node, t_node) => {
+                let w_val = self.evaluate(w_node);
+                let h_val = self.evaluate(h_node);
+                let t_val = self.evaluate(t_node);
+                if let (
+                    ExecResult::Value(RelType::Int(w)),
+                    ExecResult::Value(RelType::Int(h)),
+                    ExecResult::Value(RelType::Str(t)),
+                ) = (w_val, h_val, t_val)
+                {
+                    let event_loop = EventLoop::new().unwrap();
+                    let window = WindowBuilder::new()
+                        .with_inner_size(winit::dpi::LogicalSize::new(w as f64, h as f64))
+                        .with_title(t)
+                        .build(&event_loop)
+                        .unwrap();
+                    self.window = Some(Arc::new(window));
+                    self.event_loop = Some(event_loop);
+                    ExecResult::Value(RelType::Void)
+                } else {
+                    ExecResult::Fault("InitWindow expects (Int, Int, String)".to_string())
+                }
+            }
+            Node::InitGraphics => {
+                if let Some(window) = &self.window {
+                    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
+                    let w_ptr = Arc::clone(window);
+
+                    let surface = instance.create_surface(w_ptr.clone()).unwrap();
+                    let adapter = pollster::block_on(instance.request_adapter(
+                        &wgpu::RequestAdapterOptions {
+                            power_preference: wgpu::PowerPreference::default(),
+                            compatible_surface: Some(&surface),
+                            force_fallback_adapter: false,
+                        },
+                    ))
+                    .unwrap();
+
+                    let (device, queue) = pollster::block_on(
+                        adapter.request_device(&wgpu::DeviceDescriptor::default(), None),
+                    )
+                    .unwrap();
+                    let size = window.inner_size();
+                    let caps = surface.get_capabilities(&adapter);
+                    let config = wgpu::SurfaceConfiguration {
+                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                        format: caps.formats[0],
+                        width: size.width.max(1),
+                        height: size.height.max(1),
+                        present_mode: wgpu::PresentMode::Fifo,
+                        alpha_mode: caps.alpha_modes[0],
+                        view_formats: vec![],
+                        desired_maximum_frame_latency: 2,
+                    };
+                    surface.configure(&device, &config);
+
+                    let static_surface = unsafe {
+                        std::mem::transmute::<wgpu::Surface<'_>, wgpu::Surface<'static>>(surface)
+                    };
+                    self.surface = Some(static_surface);
+                    self.device = Some(device);
+                    self.queue = Some(queue);
+                    self.config = Some(config);
+                    ExecResult::Value(RelType::Void)
+                } else {
+                    ExecResult::Fault("InitGraphics requires InitWindow first".to_string())
+                }
+            }
+            Node::LoadShader(code_node) => {
+                if let ExecResult::Value(RelType::Str(code)) = self.evaluate(code_node) {
+                    if let Some(device) = &self.device {
+                        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                            label: Some("AetherShader"),
+                            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Owned(code)),
+                        });
+                        let id = self.shaders.len();
+                        self.shaders.push(shader);
+                        ExecResult::Value(RelType::Int(id as i64))
+                    } else {
+                        ExecResult::Fault("LoadShader requires InitGraphics".to_string())
+                    }
+                } else {
+                    ExecResult::Fault("LoadShader expects String".to_string())
+                }
+            }
+            Node::RenderMesh(shader_id_node, _verts) => {
+                let shader_val = self.evaluate(shader_id_node);
+                if let ExecResult::Value(RelType::Int(s_id)) = shader_val {
+                    if let (Some(device), Some(queue), Some(surface), Some(config)) =
+                        (&self.device, &self.queue, &self.surface, &self.config)
+                    {
+                        let shader = &self.shaders[s_id as usize];
+
+                        let pipeline_layout =
+                            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                                label: None,
+                                bind_group_layouts: &[],
+                                push_constant_ranges: &[],
+                            });
+
+                        let pipeline =
+                            self.render_pipelines
+                                .entry(s_id as usize)
+                                .or_insert_with(|| {
+                                    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                                        label: Some("Demo Pipeline"),
+                                        layout: Some(&pipeline_layout),
+                                        vertex: wgpu::VertexState {
+                                            module: shader,
+                                            entry_point: "vs_main",
+                                            buffers: &[],
+                                            compilation_options:
+                                                wgpu::PipelineCompilationOptions::default(),
+                                        },
+                                        fragment: Some(wgpu::FragmentState {
+                                            module: shader,
+                                            entry_point: "fs_main",
+                                            targets: &[Some(wgpu::ColorTargetState {
+                                                format: config.format,
+                                                blend: Some(wgpu::BlendState::REPLACE),
+                                                write_mask: wgpu::ColorWrites::ALL,
+                                            })],
+                                            compilation_options:
+                                                wgpu::PipelineCompilationOptions::default(),
+                                        }),
+                                        primitive: wgpu::PrimitiveState::default(),
+                                        depth_stencil: None,
+                                        multisample: wgpu::MultisampleState::default(),
+                                        multiview: None,
+                                    })
+                                });
+
+                        match surface.get_current_texture() {
+                            Ok(frame) => {
+                                let view = frame
+                                    .texture
+                                    .create_view(&wgpu::TextureViewDescriptor::default());
+                                let mut encoder = device.create_command_encoder(
+                                    &wgpu::CommandEncoderDescriptor::default(),
+                                );
+                                {
+                                    let mut rpass =
+                                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                            label: Some("Render Pass"),
+                                            color_attachments: &[Some(
+                                                wgpu::RenderPassColorAttachment {
+                                                    view: &view,
+                                                    resolve_target: None,
+                                                    ops: wgpu::Operations {
+                                                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                                                            r: 0.1,
+                                                            g: 0.2,
+                                                            b: 0.3,
+                                                            a: 1.0,
+                                                        }),
+                                                        store: wgpu::StoreOp::Store,
+                                                    },
+                                                },
+                                            )],
+                                            depth_stencil_attachment: None,
+                                            timestamp_writes: None,
+                                            occlusion_query_set: None,
+                                        });
+                                    rpass.set_pipeline(pipeline);
+                                    rpass.draw(0..3, 0..1);
+                                }
+                                queue.submit(Some(encoder.finish()));
+                                frame.present();
+                                ExecResult::Value(RelType::Void)
+                            }
+                            Err(e) => ExecResult::Fault(format!(
+                                "RenderMesh failed to acquire frame: {:?}",
+                                e
+                            )),
+                        }
+                    } else {
+                        ExecResult::Fault("Graphics context not initialized".to_string())
+                    }
+                } else {
+                    ExecResult::Fault("RenderMesh expects (Int, Array)".to_string())
+                }
+            }
+            Node::PollEvents(body) => {
+                if let Some(mut event_loop) = self.event_loop.take() {
+                    use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
+                    let mut exit = false;
+                    let _ = event_loop.run_on_demand(|event, elwt| {
+                        elwt.set_control_flow(winit::event_loop::ControlFlow::Poll);
+                        match event {
+                            winit::event::Event::WindowEvent {
+                                event: winit::event::WindowEvent::CloseRequested,
+                                ..
+                            } => {
+                                elwt.exit();
+                                exit = true;
+                            }
+                            winit::event::Event::AboutToWait => {
+                                let res = self.evaluate(body);
+                                if let ExecResult::ReturnBlockInfo(_) | ExecResult::Fault(_) = res {
+                                    elwt.exit();
+                                }
+                            }
+                            _ => {}
+                        }
+                    });
+
+                    self.event_loop = Some(event_loop);
+
+                    if exit {
+                        ExecResult::ReturnBlockInfo(RelType::Void)
+                    } else {
+                        ExecResult::Value(RelType::Void)
+                    }
+                } else {
+                    ExecResult::Fault("PollEvents requires an active Window".to_string())
                 }
             }
 

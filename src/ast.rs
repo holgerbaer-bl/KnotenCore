@@ -42,6 +42,13 @@ pub enum Node {
     EvalBincodeNative(Box<Node>),
     ToString(Box<Node>),
 
+    // 3D Graphics (WGPU FFI)
+    InitWindow(Box<Node>, Box<Node>, Box<Node>), // W, H, Title
+    InitGraphics,                                // Bootstraps WGPU context
+    LoadShader(Box<Node>),                       // WGSL string
+    RenderMesh(Box<Node>, Box<Node>),            // Shader ID, Vertices
+    PollEvents(Box<Node>),                       // Execution loop intercept
+
     // Control Flow
     If(Box<Node>, Box<Node>, Option<Box<Node>>),
     While(Box<Node>, Box<Node>),
