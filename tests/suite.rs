@@ -1,4 +1,7 @@
 use aether_compiler::ast::Node;
+use aether_compiler::executor::ExecutionEngine;
+use aether_compiler::llvm_codegen::LLVMGenerator;
+use aether_compiler::parser::Parser;
 use std::fs;
 use std::path::PathBuf;
 
@@ -25,15 +28,33 @@ macro_rules! aether_test {
             let bin = bincode::serialize(&ast).expect("Serialization failed");
             let mut path = get_out_dir();
             path.push(format!("{}.aec", stringify!($name)));
-            fs::write(&path, bin).expect("Write failed");
+            fs::write(&path, &bin).expect("Write failed");
 
             // Write expected output text file for test oracle validation
             let mut expected_path = path.clone();
             expected_path.set_extension("expected");
             fs::write(&expected_path, $expected_info).unwrap();
 
-            // Fail with "Compiler missing" as explicitly requested by specification
-            unimplemented!("Compiler missing to execute '{}'", stringify!($name));
+            // SPRINT 2: Read binary, Parse AST, Generate LLVM, Execute JIT, Verify Expectation.
+            let parsed_ast = Parser::parse_bytes(&bin).expect("Parser failed to read AST");
+
+            // 1. Generate LLVM IR
+            let ir_text = LLVMGenerator::generate_ir(&parsed_ast);
+            let mut ll_path = path.clone();
+            ll_path.set_extension("ll");
+            fs::write(&ll_path, ir_text).unwrap();
+
+            // 2. Execute JIT Simulation via Engine
+            let mut engine = ExecutionEngine::new();
+            let result = engine.execute(&parsed_ast);
+
+            // 3. Verify exactly matching the expected output string
+            assert_eq!(
+                result,
+                $expected_info,
+                "Mismatched Execution Output for '{}'",
+                stringify!($name)
+            );
         }
     };
 }
@@ -139,7 +160,7 @@ aether_test!(
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(42))),
         Node::Identifier("x".to_string()),
     ]),
-    "Return: 42 (i64)"
+    "Return: 42 (i64), Memory: x = 42"
 );
 aether_test!(
     test_18_assign_from_identifier,
@@ -418,7 +439,7 @@ aether_test!(
             Box::new(Node::Identifier("inner".to_string()))
         )
     ]),
-    "Return: 3 (i64), Memory: outer = 1, inner = 2"
+    "Return: 3 (i64), Memory: inner = 2, outer = 1"
 );
 aether_test!(
     test_48_nested_if,
@@ -478,7 +499,7 @@ aether_test!(
         ),
         Node::Identifier("sum".to_string())
     ]),
-    "Return: 4 (i64), Memory: i = 2, sum = 4, j = 2"
+    "Return: 4 (i64), Memory: i = 2, j = 2, sum = 4"
 );
 aether_test!(
     test_50_complex_combination,
@@ -509,5 +530,5 @@ aether_test!(
         ),
         Node::Identifier("fact".to_string())
     ]),
-    "Return: 120 (i64), Memory: n = 0, fact = 120"
+    "Return: 120 (i64), Memory: fact = 120, n = 0"
 );
