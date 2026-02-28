@@ -33,7 +33,7 @@ impl std::fmt::Display for RelType {
 use std::sync::{Arc, Mutex};
 use wgpu::util::DeviceExt;
 use winit::event_loop::EventLoop;
-use winit::window::{Window, WindowBuilder};
+use winit::window::Window;
 
 #[derive(Clone, Copy)]
 pub struct VoiceState {
@@ -85,6 +85,12 @@ pub struct ExecutionEngine {
     pub staging_belt: Option<wgpu::util::StagingBelt>,
     pub keyboard_buffer: Arc<Mutex<String>>,
 
+    // Modern UI state (egui)
+    pub egui_ctx: Option<egui::Context>,
+    pub egui_state: Option<egui_winit::State>,
+    pub egui_renderer: Option<egui_wgpu::Renderer>,
+    pub egui_ui_ptr: Option<*mut egui::Ui>,
+
     // Audio backend state
     pub voices: Option<Arc<Mutex<[VoiceState; 4]>>>,
     pub stream_samples: Option<Arc<Mutex<Vec<f32>>>>,
@@ -115,6 +121,10 @@ impl ExecutionEngine {
             glyph_brush: None,
             staging_belt: None,
             keyboard_buffer: Arc::new(Mutex::new(String::new())),
+            egui_ctx: None,
+            egui_state: None,
+            egui_renderer: None,
+            egui_ui_ptr: None,
             voices: None,
             stream_samples: None,
             stream_pos: None,
@@ -292,6 +302,69 @@ impl ExecutionEngine {
                     }
                     _ => ExecResult::Fault("Invalid Eq semantics".to_string()),
                 }
+            }
+            // Egui UI (Sprint 10)
+            Node::UIWindow(title, body) => {
+                let title_val = self.evaluate(title);
+                let title_str = match title_val {
+                    ExecResult::Value(RelType::Str(s)) => s,
+                    _ => "Aether Window".to_string(),
+                };
+                if let Some(ctx) = self.egui_ctx.clone() {
+                    egui::Window::new(title_str).show(&ctx, |ui| {
+                        self.egui_ui_ptr = Some(ui as *mut egui::Ui);
+                        self.evaluate(body);
+                        self.egui_ui_ptr = None;
+                    });
+                }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::UILabel(text) => {
+                let text_val = self.evaluate(text);
+                let text_str = match text_val {
+                    ExecResult::Value(RelType::Str(s)) => s,
+                    _ => "".to_string(),
+                };
+                if let Some(ui_ptr) = self.egui_ui_ptr {
+                    unsafe {
+                        (*ui_ptr).label(text_str);
+                    }
+                }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::UIButton(text) => {
+                let text_val = self.evaluate(text);
+                let text_str = match text_val {
+                    ExecResult::Value(RelType::Str(s)) => s,
+                    _ => "".to_string(),
+                };
+                let mut clicked = 0;
+                if let Some(ui_ptr) = self.egui_ui_ptr {
+                    unsafe {
+                        if (*ui_ptr).button(text_str).clicked() {
+                            clicked = 1;
+                        }
+                    }
+                }
+                ExecResult::Value(RelType::Int(clicked))
+            }
+            Node::UITextInput(var_name_node) => {
+                let var_val = self.evaluate(var_name_node);
+                if let ExecResult::Value(RelType::Str(var_name)) = var_val {
+                    let mut current_text = match self.memory.get(&var_name) {
+                        Some(RelType::Str(s)) => s.clone(),
+                        _ => String::new(),
+                    };
+                    if let Some(ui_ptr) = self.egui_ui_ptr {
+                        unsafe {
+                            if (*ui_ptr).text_edit_singleline(&mut current_text).changed() {
+                                self.memory
+                                    .insert(var_name.clone(), RelType::Str(current_text));
+                            }
+                        }
+                    }
+                }
+                ExecResult::Value(RelType::Void)
             }
             Node::Lt(l, r) => {
                 let lv = self.evaluate(l);
@@ -543,13 +616,55 @@ impl ExecutionEngine {
                     ExecResult::Value(RelType::Str(t)),
                 ) = (w_val, h_val, t_val)
                 {
-                    let event_loop = EventLoop::new().unwrap();
-                    let window = WindowBuilder::new()
-                        .with_inner_size(winit::dpi::LogicalSize::new(w as f64, h as f64))
-                        .with_title(t)
-                        .build(&event_loop)
-                        .unwrap();
-                    self.window = Some(Arc::new(window));
+                    use winit::application::ApplicationHandler;
+                    use winit::platform::pump_events::EventLoopExtPumpEvents;
+
+                    struct WindowPump {
+                        window: Option<Arc<Window>>,
+                        width: i32,
+                        height: i32,
+                        title: String,
+                    }
+
+                    impl ApplicationHandler for WindowPump {
+                        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+                            if self.window.is_none() {
+                                let attrs = winit::window::Window::default_attributes()
+                                    .with_inner_size(winit::dpi::LogicalSize::new(
+                                        self.width as f64,
+                                        self.height as f64,
+                                    ))
+                                    .with_title(&self.title);
+                                let win = event_loop.create_window(attrs).unwrap();
+                                self.window = Some(Arc::new(win));
+                            }
+                        }
+                        fn window_event(
+                            &mut self,
+                            _: &winit::event_loop::ActiveEventLoop,
+                            _: winit::window::WindowId,
+                            _: winit::event::WindowEvent,
+                        ) {
+                        }
+                    }
+
+                    let mut event_loop = EventLoop::new().unwrap();
+                    let mut pump = WindowPump {
+                        window: None,
+                        width: w as i32,
+                        height: h as i32,
+                        title: t,
+                    };
+                    // pump events once to trigger resumed and create the window
+                    let _ = event_loop
+                        .pump_app_events(Some(std::time::Duration::from_millis(50)), &mut pump);
+
+                    if pump.window.is_none() {
+                        return ExecResult::Fault(
+                            "InitWindow failed to create window via resumed()".to_string(),
+                        );
+                    }
+                    self.window = pump.window;
                     self.event_loop = Some(event_loop);
                     ExecResult::Value(RelType::Void)
                 } else {
@@ -572,7 +687,14 @@ impl ExecutionEngine {
                     .unwrap();
 
                     let (device, queue) = pollster::block_on(
-                        adapter.request_device(&wgpu::DeviceDescriptor::default(), None),
+                        adapter.request_device(
+                            &wgpu::DeviceDescriptor {
+                                required_limits: wgpu::Limits::downlevel_webgl2_defaults()
+                                    .using_resolution(adapter.limits()),
+                                ..Default::default()
+                            },
+                            None,
+                        ),
                     )
                     .unwrap();
                     let size = window.inner_size();
@@ -593,6 +715,23 @@ impl ExecutionEngine {
                         std::mem::transmute::<wgpu::Surface<'_>, wgpu::Surface<'static>>(surface)
                     };
                     self.surface = Some(static_surface);
+
+                    let ctx = egui::Context::default();
+                    let viewport_id = egui::ViewportId::ROOT;
+                    let egui_state = egui_winit::State::new(
+                        ctx.clone(),
+                        viewport_id,
+                        window.as_ref(),
+                        Some(window.scale_factor() as f32),
+                        None,
+                        Some(2 * 1024 * 1024),
+                    );
+                    let egui_renderer =
+                        egui_wgpu::Renderer::new(&device, config.format, None, 1, false);
+                    self.egui_ctx = Some(ctx);
+                    self.egui_state = Some(egui_state);
+                    self.egui_renderer = Some(egui_renderer);
+
                     self.device = Some(device);
                     self.queue = Some(queue);
                     self.config = Some(config);
@@ -1349,45 +1488,190 @@ impl ExecutionEngine {
             }
             Node::PollEvents(body) => {
                 if let Some(mut event_loop) = self.event_loop.take() {
+                    use winit::application::ApplicationHandler;
+                    use winit::event::WindowEvent;
+                    use winit::event_loop::ActiveEventLoop;
                     use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
-                    let mut exit = false;
-                    let _ = event_loop.run_on_demand(|event, elwt| {
-                        elwt.set_control_flow(winit::event_loop::ControlFlow::Poll);
-                        match event {
-                            winit::event::Event::WindowEvent {
-                                event: winit::event::WindowEvent::CloseRequested,
-                                ..
-                            } => {
-                                elwt.exit();
-                                exit = true;
+                    use winit::window::WindowId;
+
+                    struct AetherApp<'a> {
+                        engine: &'a mut ExecutionEngine,
+                        body: &'a Node,
+                        exit: bool,
+                    }
+
+                    impl<'a> ApplicationHandler for AetherApp<'a> {
+                        fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
+
+                        fn window_event(
+                            &mut self,
+                            event_loop: &ActiveEventLoop,
+                            _id: WindowId,
+                            event: WindowEvent,
+                        ) {
+                            if let (Some(state), Some(window)) =
+                                (&mut self.engine.egui_state, &self.engine.window)
+                            {
+                                let _ = state.on_window_event(window.as_ref(), &event);
                             }
-                            winit::event::Event::WindowEvent {
-                                event:
-                                    winit::event::WindowEvent::KeyboardInput { event: key_ev, .. },
-                                ..
-                            } => {
-                                if key_ev.state == winit::event::ElementState::Pressed {
-                                    if let winit::keyboard::Key::Named(
-                                        winit::keyboard::NamedKey::Backspace,
-                                    ) = key_ev.logical_key
-                                    {
-                                        let mut kb = self.keyboard_buffer.lock().unwrap();
-                                        kb.pop();
-                                    } else if let Some(text) = key_ev.text {
-                                        let mut kb = self.keyboard_buffer.lock().unwrap();
-                                        kb.push_str(&text);
+                            match event {
+                                WindowEvent::CloseRequested => {
+                                    event_loop.exit();
+                                    self.exit = true;
+                                }
+                                WindowEvent::KeyboardInput { event: key_ev, .. } => {
+                                    if key_ev.state == winit::event::ElementState::Pressed {
+                                        if let winit::keyboard::Key::Named(
+                                            winit::keyboard::NamedKey::Backspace,
+                                        ) = key_ev.logical_key
+                                        {
+                                            let mut kb =
+                                                self.engine.keyboard_buffer.lock().unwrap();
+                                            kb.pop();
+                                        } else if let Some(text) = &key_ev.text {
+                                            let mut kb =
+                                                self.engine.keyboard_buffer.lock().unwrap();
+                                            kb.push_str(text);
+                                        }
                                     }
                                 }
+                                WindowEvent::Resized(physical_size) => {
+                                    if let (Some(surface), Some(device), Some(config)) = (
+                                        &self.engine.surface,
+                                        &self.engine.device,
+                                        &mut self.engine.config,
+                                    ) {
+                                        config.width = physical_size.width.max(1);
+                                        config.height = physical_size.height.max(1);
+                                        surface.configure(device, config);
+                                    }
+                                }
+                                _ => {}
                             }
-                            winit::event::Event::AboutToWait => {
-                                let res = self.evaluate(body);
-                                if let ExecResult::ReturnBlockInfo(_) | ExecResult::Fault(_) = res {
-                                    elwt.exit();
+                        }
+
+                        fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+                            let egui_ctx = self.engine.egui_ctx.clone();
+                            if let (Some(ctx), Some(state), Some(window)) =
+                                (&egui_ctx, &mut self.engine.egui_state, &self.engine.window)
+                            {
+                                let raw_input = state.take_egui_input(window.as_ref());
+                                ctx.begin_pass(raw_input);
+                            }
+
+                            let res = self.engine.evaluate(self.body);
+
+                            if let (
+                                Some(ctx),
+                                Some(state),
+                                Some(renderer),
+                                Some(device),
+                                Some(queue),
+                                Some(surface),
+                                Some(window),
+                                Some(config),
+                            ) = (
+                                &self.engine.egui_ctx,
+                                &mut self.engine.egui_state,
+                                &mut self.engine.egui_renderer,
+                                &self.engine.device,
+                                &self.engine.queue,
+                                &self.engine.surface,
+                                &self.engine.window,
+                                &self.engine.config,
+                            ) {
+                                let full_output = ctx.end_pass();
+                                state.handle_platform_output(
+                                    window.as_ref(),
+                                    full_output.platform_output,
+                                );
+                                let paint_jobs = ctx
+                                    .tessellate(full_output.shapes, full_output.pixels_per_point);
+
+                                let screen_descriptor = egui_wgpu::ScreenDescriptor {
+                                    size_in_pixels: [config.width, config.height],
+                                    pixels_per_point: window.scale_factor() as f32,
+                                };
+
+                                for (id, image_delta) in &full_output.textures_delta.set {
+                                    renderer.update_texture(device, queue, *id, image_delta);
+                                }
+
+                                if let Ok(frame) = surface.get_current_texture() {
+                                    let view = frame
+                                        .texture
+                                        .create_view(&wgpu::TextureViewDescriptor::default());
+                                    let mut encoder = device.create_command_encoder(
+                                        &wgpu::CommandEncoderDescriptor::default(),
+                                    );
+
+                                    renderer.update_buffers(
+                                        device,
+                                        queue,
+                                        &mut encoder,
+                                        &paint_jobs,
+                                        &screen_descriptor,
+                                    );
+
+                                    {
+                                        {
+                                            let mut rpass = encoder
+                                                .begin_render_pass(&wgpu::RenderPassDescriptor {
+                                                    color_attachments: &[Some(
+                                                        wgpu::RenderPassColorAttachment {
+                                                            view: &view,
+                                                            resolve_target: None,
+                                                            ops: wgpu::Operations {
+                                                                load: wgpu::LoadOp::Clear(
+                                                                    wgpu::Color {
+                                                                        r: 0.05,
+                                                                        g: 0.05,
+                                                                        b: 0.05,
+                                                                        a: 1.0,
+                                                                    },
+                                                                ),
+                                                                store: wgpu::StoreOp::Store,
+                                                            },
+                                                        },
+                                                    )],
+                                                    depth_stencil_attachment: None,
+                                                    timestamp_writes: None,
+                                                    occlusion_query_set: None,
+                                                    label: Some("egui render pass"),
+                                                })
+                                                .forget_lifetime();
+
+                                            renderer.render(
+                                                &mut rpass,
+                                                &paint_jobs,
+                                                &screen_descriptor,
+                                            );
+                                        }
+                                    }
+
+                                    queue.submit(Some(encoder.finish()));
+                                    frame.present();
+                                }
+
+                                for id in &full_output.textures_delta.free {
+                                    renderer.free_texture(id);
                                 }
                             }
-                            _ => {}
+
+                            if let ExecResult::ReturnBlockInfo(_) | ExecResult::Fault(_) = res {
+                                event_loop.exit();
+                            }
                         }
-                    });
+                    }
+
+                    let mut app = AetherApp {
+                        engine: self,
+                        body,
+                        exit: false,
+                    };
+                    let _ = event_loop.run_app_on_demand(&mut app);
+
+                    let exit = app.exit;
 
                     self.event_loop = Some(event_loop);
 

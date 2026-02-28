@@ -69,6 +69,12 @@ pub enum Node {
     DrawText(Box<Node>, Box<Node>, Box<Node>, Box<Node>, Box<Node>), // Text String, X Float, Y Float, Size Float, Color Array[R,G,B,A]
     GetLastKeypress,                                                 // Returns String buffer
 
+    // Egui UI
+    UIWindow(Box<Node>, Box<Node>), // Title (String), Children (Block)
+    UILabel(Box<Node>),             // Text (String)
+    UIButton(Box<Node>),            // Text (String). Evaluates to Boolean (Clicked)
+    UITextInput(Box<Node>),         // Variable Name to bind to (String)
+
     // Control Flow
     If(Box<Node>, Box<Node>, Option<Box<Node>>),
     While(Box<Node>, Box<Node>),

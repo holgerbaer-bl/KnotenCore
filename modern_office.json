@@ -1,0 +1,42 @@
+{
+  "Block": [
+    {
+      "InitWindow": [
+        { "IntLiteral": 800 },
+        { "IntLiteral": 600 },
+        { "StringLiteral": "Modern Office Suite" }
+      ]
+    },
+    "InitGraphics",
+    {
+      "Assign": [
+        "input_text",
+        { "StringLiteral": "Hello Architect!" }
+      ]
+    },
+    {
+      "PollEvents": {
+        "Block": [
+          {
+            "UIWindow": [
+              { "StringLiteral": "Text Editor" },
+              {
+                "Block": [
+                  { "UILabel": { "StringLiteral": "Enter your notes below:" } },
+                  { "UITextInput": { "StringLiteral": "input_text" } },
+                  {
+                    "If": [
+                      { "Eq": [ { "UIButton": { "StringLiteral": "Clear" } }, { "IntLiteral": 1 } ] },
+                      { "Assign": [ "input_text", { "StringLiteral": "" } ] },
+                      null
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

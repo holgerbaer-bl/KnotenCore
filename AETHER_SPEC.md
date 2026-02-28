@@ -84,7 +84,13 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 *   **`DrawText(Box<Node>, Box<Node>, Box<Node>, Box<Node>, Box<Node>)`**: Takes `Text` (String), `X` (Float), `Y` (Float), `Size` (Float), and `Color` (Array of 4 Floats: R,G,B,A). Queues 2D text onto the screen for the current Frame.
 *   **`GetLastKeypress()`**: Retrieves and clears the engine's internal keyboard buffer, returning a `String` containing the characters typed since the last check.
 
-### 4.12. Control Flow
+### 4.12. Desktop GUIs (Egui Immediate Mode)
+*   **`UIWindow(Box<Node>, Box<Node>)`**: Takes a Title (String) and a Body (Block Node). Spawns an interactive, draggable OS-styled window within the WGPU canvas and evaluates the inner Body block to populate its contents.
+*   **`UILabel(Box<Node>)`**: Takes Text (String) and renders a formatted text label within the current UI context.
+*   **`UIButton(Box<Node>)`**: Takes Text (String). Renders a clickable button in the UI context. Returns `Int` 1 if clicked this frame, 0 otherwise.
+*   **`UITextInput(Box<Node>)`**: Takes a Variable Name (String). Instantiates a single-line text input field inextricably linked to that variable in the ambient memory store, reacting to keyboard polling and cursor selection automatically.
+
+### 4.13. Control Flow
 *   **`If(Box<Node>, Box<Node>, Option<Box<Node>>)`**: Evaluates the first `Node` (Condition). If true, executes the second `Node` (Then Branch). Otherwise executes the third optional `Node` (Else Branch).
 *   **`While(Box<Node>, Box<Node>)`**: Evaluates the first `Node`. While true, repeatedly executes the second `Node` (Body block).
 *   **`Block(Vec<Node>)`**: Unconditionally executes a sequence of nodes in order. The block returns the value of its last node, or implicit void if empty.
