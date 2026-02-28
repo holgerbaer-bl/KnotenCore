@@ -1,0 +1,34 @@
+{
+    "FnDef": [
+        "Log",
+        ["message"],
+        {
+            "Block": [
+                {
+                    "Assign": [
+                        "timestamp",
+                        { "ToString": { "Time": null } }
+                    ]
+                },
+                {
+                    "Assign": [
+                        "logLine",
+                        { "Concat": [
+                            { "Concat": [ { "StringLiteral": "[" }, { "Identifier": "timestamp" } ] },
+                            { "Concat": [ { "StringLiteral": "] " }, { "Concat": [ { "Identifier": "message" }, { "StringLiteral": "\n" } ] } ] }
+                        ] }
+                    ]
+                },
+                {
+                    "NativeCall": [
+                        "IO.AppendFile",
+                        [
+                            { "StringLiteral": "app.log" },
+                            { "Identifier": "logLine" }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ]
+}

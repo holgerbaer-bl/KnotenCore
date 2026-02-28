@@ -71,6 +71,10 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
     - `Math.Sin`, `Math.Cos`: Standard trigonometric functions.
     - `Math.Floor`, `Math.Ceil`: Standard rounding functions.
     - `Math.Perlin2D`: Returns a Perlin noise float based on `(x, y)` coordinates.
+    - `IO.WriteFile(path, content)`: Writes `content` (String) to `path` (String). Returns a Boolean.
+    - `IO.ReadFile(path)`: Reads the file at `path` (String) and returns its contents as a String.
+    - `IO.AppendFile(path, content)`: Appends `content` (String) to the file at `path` (String). Returns a Boolean.
+    - `IO.FileExists(path)`: Returns `true` if the file at `path` (String) exists on disk, `false` otherwise.
 
 ### 4.8. 3D Graphics (Vulkan/Metal/DX12 via WGPU)
 *   **`InitWindow(Box<Node>, Box<Node>, Box<Node>)`**: Initializes an OS Window (Width, Height, Title). Opens the window on the system.

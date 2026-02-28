@@ -1,0 +1,37 @@
+{
+    "Block": [
+        { "Import": "examples/io_test/logger.aec" },
+        {
+            "Call": [
+                "Log",
+                [{ "StringLiteral": "System booted." }]
+            ]
+        },
+        {
+            "If": [
+                {
+                    "NativeCall": [
+                        "IO.FileExists",
+                        [{ "StringLiteral": "app.log" }]
+                    ]
+                },
+                {
+                    "Block": [
+                        { "Print": { "StringLiteral": "Log file verified. Contents:" } },
+                        {
+                            "Print": {
+                                "NativeCall": [
+                                    "IO.ReadFile",
+                                    [{ "StringLiteral": "app.log" }]
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Print": { "StringLiteral": "Error: Log file not found after writing." }
+                }
+            ]
+        }
+    ]
+}

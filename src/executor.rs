@@ -1155,6 +1155,76 @@ impl ExecutionEngine {
                         let val = perlin.get([x, y]);
                         ExecResult::Value(RelType::Float(val))
                     }
+                    "IO.WriteFile" => {
+                        if evaluated_args.len() != 2 {
+                            return ExecResult::Fault(
+                                "IO.WriteFile expects 2 arguments (path, content)".to_string(),
+                            );
+                        }
+                        if let (RelType::Str(path), RelType::Str(content)) =
+                            (&evaluated_args[0], &evaluated_args[1])
+                        {
+                            match std::fs::write(path, content) {
+                                Ok(_) => ExecResult::Value(RelType::Bool(true)),
+                                Err(_) => ExecResult::Value(RelType::Bool(false)),
+                            }
+                        } else {
+                            ExecResult::Fault("IO.WriteFile expects (String, String)".to_string())
+                        }
+                    }
+                    "IO.ReadFile" => {
+                        if evaluated_args.len() != 1 {
+                            return ExecResult::Fault(
+                                "IO.ReadFile expects 1 argument (path)".to_string(),
+                            );
+                        }
+                        if let RelType::Str(path) = &evaluated_args[0] {
+                            match std::fs::read_to_string(path) {
+                                Ok(content) => ExecResult::Value(RelType::Str(content)),
+                                Err(_) => ExecResult::Value(RelType::Str("".to_string())),
+                            }
+                        } else {
+                            ExecResult::Fault("IO.ReadFile expects a String".to_string())
+                        }
+                    }
+                    "IO.AppendFile" => {
+                        if evaluated_args.len() != 2 {
+                            return ExecResult::Fault(
+                                "IO.AppendFile expects 2 arguments (path, content)".to_string(),
+                            );
+                        }
+                        if let (RelType::Str(path), RelType::Str(content)) =
+                            (&evaluated_args[0], &evaluated_args[1])
+                        {
+                            use std::io::Write;
+                            let mut file = match std::fs::OpenOptions::new()
+                                .append(true)
+                                .create(true)
+                                .open(path)
+                            {
+                                Ok(f) => f,
+                                Err(_) => return ExecResult::Value(RelType::Bool(false)),
+                            };
+                            match write!(file, "{}", content) {
+                                Ok(_) => ExecResult::Value(RelType::Bool(true)),
+                                Err(_) => ExecResult::Value(RelType::Bool(false)),
+                            }
+                        } else {
+                            ExecResult::Fault("IO.AppendFile expects (String, String)".to_string())
+                        }
+                    }
+                    "IO.FileExists" => {
+                        if evaluated_args.len() != 1 {
+                            return ExecResult::Fault(
+                                "IO.FileExists expects 1 argument (path)".to_string(),
+                            );
+                        }
+                        if let RelType::Str(path) = &evaluated_args[0] {
+                            ExecResult::Value(RelType::Bool(std::path::Path::new(path).exists()))
+                        } else {
+                            ExecResult::Fault("IO.FileExists expects a String".to_string())
+                        }
+                    }
                     _ => ExecResult::Fault(format!("Unknown native function '{}'", func_name)),
                 }
             }
