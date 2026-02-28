@@ -1,0 +1,18 @@
+{
+    "FnDef": [
+        "Square",
+        [
+            "x"
+        ],
+        {
+            "Mul": [
+                {
+                    "Identifier": "x"
+                },
+                {
+                    "Identifier": "x"
+                }
+            ]
+        }
+    ]
+}

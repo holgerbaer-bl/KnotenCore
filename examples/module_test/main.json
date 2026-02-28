@@ -1,0 +1,19 @@
+{
+    "Block": [
+        {
+            "Import": "examples/module_test/math_lib.json"
+        },
+        {
+            "Print": {
+                "Call": [
+                    "Square",
+                    [
+                        {
+                            "IntLiteral": 5
+                        }
+                    ]
+                ]
+            }
+        }
+    ]
+}

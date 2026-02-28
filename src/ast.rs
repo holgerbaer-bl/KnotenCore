@@ -96,4 +96,5 @@ pub enum Node {
     While(Box<Node>, Box<Node>),
     Block(Vec<Node>),
     Return(Box<Node>),
+    Import(String),
 }

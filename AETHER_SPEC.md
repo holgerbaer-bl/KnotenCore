@@ -143,6 +143,7 @@ Triggers an asynchronous, polyphonic audio stream natively out of the thread loo
 *   **`UITextInput(Box<Node>)`**: Takes a Variable Name (String). Instantiates a single-line text input field inextricably linked to that variable in the ambient memory store, reacting to keyboard polling and cursor selection automatically.
 
 ### 4.13. Control Flow
+*   **`Import(String)`**: Imports another AetherCore executable JSON file by path, making its top-level definitions and variable assignments available in the current global scope.
 *   **`If(Box<Node>, Box<Node>, Option<Box<Node>>)`**: Evaluates the first `Node` (Condition). If true, executes the second `Node` (Then Branch). Otherwise executes the third optional `Node` (Else Branch).
 *   **`While(Box<Node>, Box<Node>)`**: Evaluates the first `Node`. While true, repeatedly executes the second `Node` (Body block).
 *   **`Block(Vec<Node>)`**: Unconditionally executes a sequence of nodes in order. The block returns the value of its last node, or implicit void if empty.

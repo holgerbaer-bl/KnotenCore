@@ -1244,6 +1244,15 @@ impl ExecutionEngine {
                     fault => fault,
                 }
             }
+            Node::Import(path) => match std::fs::read_to_string(path) {
+                Ok(json) => match serde_json::from_str::<Node>(&json) {
+                    Ok(parsed) => self.evaluate(&parsed),
+                    Err(e) => {
+                        ExecResult::Fault(format!("Import JSON Parse Fault ({}): {}", path, e))
+                    }
+                },
+                Err(e) => ExecResult::Fault(format!("Import File Read Fault ({}): {}", path, e)),
+            },
 
             // 3D Graphics (WGPU FFI)
             Node::InitWindow(w_node, h_node, t_node) => {
