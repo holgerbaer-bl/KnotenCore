@@ -567,6 +567,25 @@ impl ExecutionEngine {
         out
     }
 
+    pub fn get_var(&self, name: &str) -> Option<RelType> {
+        // Search Call Stack first (Local Scopes)
+        if let Some(frame) = self.call_stack.last() {
+            if let Some(val) = frame.locals.get(name) {
+                return Some(val.clone());
+            }
+        }
+        // Fallback to Global Memory
+        self.memory.get(name).cloned()
+    }
+
+    pub fn set_var(&mut self, name: String, val: RelType) {
+        if let Some(frame) = self.call_stack.last_mut() {
+            frame.locals.insert(name, val);
+        } else {
+            self.memory.insert(name, val);
+        }
+    }
+
     fn evaluate(&mut self, node: &Node) -> ExecResult {
         match node {
             // Literals
@@ -577,39 +596,26 @@ impl ExecutionEngine {
 
             // Mem
             Node::Identifier(name) => {
-                // Search Call Stack first (Local Scopes)
-                if let Some(frame) = self.call_stack.last() {
-                    if let Some(val) = frame.locals.get(name) {
-                        return ExecResult::Value(val.clone());
-                    }
-                }
-
-                // Fallback to Global Memory
-                if let Some(val) = self.memory.get(name) {
-                    ExecResult::Value(val.clone())
+                if let Some(val) = self.get_var(name) {
+                    ExecResult::Value(val)
                 } else {
                     ExecResult::Fault(format!("Undefined identifier: {}", name))
                 }
             }
-            Node::Assign(name, expr_node) => match self.evaluate(expr_node) {
-                ExecResult::Value(val) => {
-                    if let Some(frame) = self.call_stack.last_mut() {
-                        frame.locals.insert(name.clone(), val.clone());
-                    } else {
-                        self.memory.insert(name.clone(), val.clone());
+            Node::Assign(name, expr_node) => {
+                let res = self.evaluate(expr_node);
+                match res {
+                    ExecResult::Value(val) => {
+                        self.set_var(name.clone(), val.clone());
+                        ExecResult::Value(val)
                     }
-                    ExecResult::Value(val)
-                }
-                ExecResult::ReturnBlockInfo(val) => {
-                    if let Some(frame) = self.call_stack.last_mut() {
-                        frame.locals.insert(name.clone(), val.clone());
-                    } else {
-                        self.memory.insert(name.clone(), val.clone());
+                    ExecResult::ReturnBlockInfo(val) => {
+                        self.set_var(name.clone(), val.clone());
+                        ExecResult::Value(val)
                     }
-                    ExecResult::Value(val)
+                    fault => fault,
                 }
-                fault => fault,
-            },
+            }
 
             // Math
             Node::Add(l, r) => self.do_math(l, r, '+'),
@@ -791,6 +797,112 @@ impl ExecutionEngine {
                 }
                 ExecResult::Value(RelType::Array(vals))
             }
+            Node::ArrayGet(var_name, index_node) => {
+                let val = match self.get_var(&var_name) {
+                    Some(v) => v,
+                    None => {
+                        return ExecResult::Fault(format!(
+                            "Undefined array variable '{}'",
+                            var_name
+                        ));
+                    }
+                };
+                if let RelType::Array(arr) = val {
+                    match self.evaluate(index_node) {
+                        ExecResult::Value(RelType::Int(idx)) => {
+                            if idx >= 0 && (idx as usize) < arr.len() {
+                                ExecResult::Value(arr[idx as usize].clone())
+                            } else {
+                                ExecResult::Fault(format!(
+                                    "Array index {} out of bounds for '{}'",
+                                    idx, var_name
+                                ))
+                            }
+                        }
+                        ExecResult::Value(_) => {
+                            ExecResult::Fault("Array index must be an Integer".to_string())
+                        }
+                        fault => fault,
+                    }
+                } else {
+                    ExecResult::Fault(format!("Variable '{}' is not an array", var_name))
+                }
+            }
+            Node::ArraySet(var_name, index_node, val_node) => {
+                let val = match self.get_var(&var_name) {
+                    Some(v) => v,
+                    None => {
+                        return ExecResult::Fault(format!(
+                            "Undefined array variable '{}'",
+                            var_name
+                        ));
+                    }
+                };
+                if let RelType::Array(mut arr) = val {
+                    let idx_res = self.evaluate(index_node);
+                    let val_res = self.evaluate(val_node);
+                    match (idx_res, val_res) {
+                        (ExecResult::Value(RelType::Int(idx)), ExecResult::Value(new_val)) => {
+                            if idx >= 0 && (idx as usize) < arr.len() {
+                                arr[idx as usize] = new_val;
+                                self.set_var(var_name.clone(), RelType::Array(arr));
+                                ExecResult::Value(RelType::Void)
+                            } else {
+                                ExecResult::Fault(format!(
+                                    "Array index {} out of bounds for '{}'",
+                                    idx, var_name
+                                ))
+                            }
+                        }
+                        (ExecResult::Value(_), _) => {
+                            ExecResult::Fault("Array index must be an Integer".to_string())
+                        }
+                        (fault, _) => fault,
+                        (_, fault) => fault,
+                    }
+                } else {
+                    ExecResult::Fault(format!("Variable '{}' is not an array", var_name))
+                }
+            }
+            Node::ArrayPush(var_name, val_node) => {
+                let val = match self.get_var(&var_name) {
+                    Some(v) => v,
+                    None => {
+                        return ExecResult::Fault(format!(
+                            "Undefined array variable '{}'",
+                            var_name
+                        ));
+                    }
+                };
+                if let RelType::Array(mut arr) = val {
+                    match self.evaluate(val_node) {
+                        ExecResult::Value(new_val) => {
+                            arr.push(new_val);
+                            self.set_var(var_name.clone(), RelType::Array(arr));
+                            ExecResult::Value(RelType::Void)
+                        }
+                        fault => fault,
+                    }
+                } else {
+                    ExecResult::Fault(format!("Variable '{}' is not an array", var_name))
+                }
+            }
+            Node::ArrayLen(var_name) => {
+                let val = match self.get_var(&var_name) {
+                    Some(v) => v,
+                    None => {
+                        return ExecResult::Fault(format!(
+                            "Undefined array variable '{}'",
+                            var_name
+                        ));
+                    }
+                };
+                match val {
+                    RelType::Array(arr) => ExecResult::Value(RelType::Int(arr.len() as i64)),
+                    RelType::Str(s) => ExecResult::Value(RelType::Int(s.len() as i64)),
+                    _ => ExecResult::Fault(format!("Variable '{}' has no length", var_name)),
+                }
+            }
             Node::Index(container, index) => {
                 let cv = self.evaluate(container);
                 let iv = self.evaluate(index);
@@ -934,6 +1046,60 @@ impl ExecutionEngine {
                         call_res
                     }
                     _ => ExecResult::Fault(format!("Identifier '{}' is not a function", name)),
+                }
+            }
+            Node::NativeCall(func_name, args) => {
+                let mut evaluated_args = Vec::new();
+                for arg in args {
+                    match self.evaluate(arg) {
+                        ExecResult::Value(v) => evaluated_args.push(v),
+                        fault => return fault,
+                    }
+                }
+
+                match func_name.as_str() {
+                    "Math.Random" => ExecResult::Value(RelType::Float(rand::random::<f64>())),
+                    "Math.Sin" => {
+                        if evaluated_args.len() != 1 {
+                            return ExecResult::Fault("Math.Sin expects 1 argument".to_string());
+                        }
+                        match evaluated_args[0] {
+                            RelType::Float(f) => ExecResult::Value(RelType::Float(f.sin())),
+                            RelType::Int(i) => ExecResult::Value(RelType::Float((i as f64).sin())),
+                            _ => ExecResult::Fault("Math.Sin expects a Number".to_string()),
+                        }
+                    }
+                    "Math.Cos" => {
+                        if evaluated_args.len() != 1 {
+                            return ExecResult::Fault("Math.Cos expects 1 argument".to_string());
+                        }
+                        match evaluated_args[0] {
+                            RelType::Float(f) => ExecResult::Value(RelType::Float(f.cos())),
+                            RelType::Int(i) => ExecResult::Value(RelType::Float((i as f64).cos())),
+                            _ => ExecResult::Fault("Math.Cos expects a Number".to_string()),
+                        }
+                    }
+                    "Math.Floor" => {
+                        if evaluated_args.len() != 1 {
+                            return ExecResult::Fault("Math.Floor expects 1 argument".to_string());
+                        }
+                        match evaluated_args[0] {
+                            RelType::Float(f) => ExecResult::Value(RelType::Float(f.floor())),
+                            RelType::Int(i) => ExecResult::Value(RelType::Int(i)),
+                            _ => ExecResult::Fault("Math.Floor expects a Number".to_string()),
+                        }
+                    }
+                    "Math.Ceil" => {
+                        if evaluated_args.len() != 1 {
+                            return ExecResult::Fault("Math.Ceil expects 1 argument".to_string());
+                        }
+                        match evaluated_args[0] {
+                            RelType::Float(f) => ExecResult::Value(RelType::Float(f.ceil())),
+                            RelType::Int(i) => ExecResult::Value(RelType::Int(i)),
+                            _ => ExecResult::Fault("Math.Ceil expects a Number".to_string()),
+                        }
+                    }
+                    _ => ExecResult::Fault(format!("Unknown native function '{}'", func_name)),
                 }
             }
 

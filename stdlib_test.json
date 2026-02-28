@@ -1,0 +1,108 @@
+{
+    "Block": [
+        {
+            "Assign": [
+                "MyList",
+                {
+                    "ArrayLiteral": []
+                }
+            ]
+        },
+        {
+            "ArrayPush": [
+                "MyList",
+                {
+                    "NativeCall": [
+                        "Math.Random",
+                        []
+                    ]
+                }
+            ]
+        },
+        {
+            "ArrayPush": [
+                "MyList",
+                {
+                    "NativeCall": [
+                        "Math.Random",
+                        []
+                    ]
+                }
+            ]
+        },
+        {
+            "ArrayPush": [
+                "MyList",
+                {
+                    "NativeCall": [
+                        "Math.Random",
+                        []
+                    ]
+                }
+            ]
+        },
+        {
+            "Print": {
+                "StringLiteral": "Array Length:"
+            }
+        },
+        {
+            "Print": {
+                "ArrayLen": "MyList"
+            }
+        },
+        {
+            "Print": {
+                "StringLiteral": "Value at Index 1:"
+            }
+        },
+        {
+            "Print": {
+                "ArrayGet": [
+                    "MyList",
+                    {
+                        "IntLiteral": 1
+                    }
+                ]
+            }
+        },
+        {
+            "Assign": [
+                "RandVal",
+                {
+                    "NativeCall": [
+                        "Math.Random",
+                        []
+                    ]
+                }
+            ]
+        },
+        {
+            "Print": {
+                "StringLiteral": "Random Value:"
+            }
+        },
+        {
+            "Print": {
+                "Identifier": "RandVal"
+            }
+        },
+        {
+            "Print": {
+                "StringLiteral": "Floored Value:"
+            }
+        },
+        {
+            "Print": {
+                "NativeCall": [
+                    "Math.Floor",
+                    [
+                        {
+                            "Identifier": "RandVal"
+                        }
+                    ]
+                ]
+            }
+        }
+    ]
+}

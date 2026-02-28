@@ -49,8 +49,11 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 *   **`FnDef(String, Vec<String>, Box<Node>)`**: Defines a function. Identifier, parameter names, and body Block.
 *   **`Call(String, Vec<Node>)`**: Calls a function by identifier with arguments.
 
-### 4.5. Array & String Operations
 *   **`ArrayLiteral(Vec<Node>)`**: Instantiates a new array.
+*   **`ArrayGet(String, Box<Node>)`**: Retrieves an element from a variable at the given index.
+*   **`ArraySet(String, Box<Node>, Box<Node>)`**: Sets an element in a variable at the given index.
+*   **`ArrayPush(String, Box<Node>)`**: Appends an evaluated value to the end of the specified array.
+*   **`ArrayLen(String)`**: Returns the length of an array or string as an `Int`.
 *   **`Index(Box<Node>, Box<Node>)`**: Accesses an element in an array or string at a given index.
 *   **`Concat(Box<Node>, Box<Node>)`**: Concatenates two strings or two arrays.
 
@@ -63,6 +66,10 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 *   **`FileRead(Box<Node>)`**: Reads a file by path. Returns file contents as an Array of Int bytes.
 *   **`FileWrite(Box<Node>, Box<Node>)`**: Writes an Array of Int bytes (arg 2) to a file path (arg 1).
 *   **`Print(Box<Node>)`**: Evaluates the node and prints the resulting value to the system terminal (stdout).
+*   **`NativeCall(String, Vec<Node>)`**: Invokes a built-in "Native" function.
+    - `Math.Random`: Returns a float between 0.0 and 1.0.
+    - `Math.Sin`, `Math.Cos`: Standard trigonometric functions.
+    - `Math.Floor`, `Math.Ceil`: Standard rounding functions.
 
 ### 4.8. 3D Graphics (Vulkan/Metal/DX12 via WGPU)
 *   **`InitWindow(Box<Node>, Box<Node>, Box<Node>)`**: Initializes an OS Window (Width, Height, Title). Opens the window on the system.

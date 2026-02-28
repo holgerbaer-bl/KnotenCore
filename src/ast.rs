@@ -26,7 +26,11 @@ pub enum Node {
 
     // Arrays & Strings
     ArrayLiteral(Vec<Node>),
-    Index(Box<Node>, Box<Node>),
+    ArrayGet(String, Box<Node>),            // Variable, Index
+    ArraySet(String, Box<Node>, Box<Node>), // Variable, Index, Value
+    ArrayPush(String, Box<Node>),           // Variable, Value
+    ArrayLen(String),                       // Variable
+    Index(Box<Node>, Box<Node>),            // General index (Expression based)
     Concat(Box<Node>, Box<Node>),
 
     // Bitwise
@@ -46,6 +50,7 @@ pub enum Node {
     // FFI / Reflection
     EvalJSONNative(Box<Node>),
     ToString(Box<Node>),
+    NativeCall(String, Vec<Node>), // Function Name, Args
 
     // 3D Graphics (WGPU FFI)
     InitWindow(Box<Node>, Box<Node>, Box<Node>), // W, H, Title

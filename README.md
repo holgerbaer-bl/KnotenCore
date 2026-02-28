@@ -35,6 +35,7 @@ We cut out the middleman. Welcome to the era of machine-to-machine compilation.
 *   **📦 WGPU Texture Atlas & Rodio Audio (Milestone 13)**: WGPU Texture Atlas parsing and Amiga-style Polyphonic Audio natively supported via `rodio` handling dynamic sample pitch offsets.
 *   **⛏️ Voxel Interaction: Mining & Building (Milestone 14)**: The engine is now a fully interactive game environment. Implementing 3D DDA Raycasting, the AI can natively detect targeted voxels and perform real-time modifications (breaking and placing blocks) with synchronized audio feedback.
 *   **🧠 Functions & Scopes (Milestone 15)**: AetherCore achieves Turing-completeness with a proper **Call Stack** and **Lexical Scoping**. The engine now supports recursive functions and isolated local variables via `StackFrame` push/pop, enabling modular and complex software development.
+*   **toolbox: Arsenal & StdLib (Milestone 16)**: Empowering the AI with native Data Structures and a powerful Standard Library. New AST nodes like `ArrayPush`, `ArrayGet`, and `NativeCall` bridge the engine to Rust-optimized math functions (`Math.Random`, `Sin`, `Cos`, `Floor`, `Ceil`).
 
 ### 📖 The LLM Dictionary: `AETHER_SPEC.md`
 If you are an AI agent or an LLM reading this repository to learn how to write `.aec` software, your primary source of truth is the **[AETHER_SPEC.md](./AETHER_SPEC.md)**. 
@@ -90,6 +91,7 @@ Wir werfen den Mittelsmann aus dem Fenster. Willkommen in der Ära der echten Ma
 *   **📦 WGPU Texture Atlas & Rodio Audio (Meilenstein 13)**: Texture Atlas Support via UV-Shader sowie die integration polyphoner Amiga-Audio Sampler (`Rodio`) inkl. asynchronem Pitch-Shifting.
 *   **⛏️ Voxel Interaktion: Mining & Building (Meilenstein 14)**: Die Engine wird zum echten Spiel. Durch die Integration von 3D DDA Raycasting kann die KI nun gezielt Voxel in der Welt erkennen, abbauen und neue Blöcke setzen – inklusive lippensynchronem Audio-Feedback bei jeder Interaktion.
 *   **🧠 Funktionen & Scopes (Meilenstein 15)**: AetherCore wird Turing-vollständig. Die Engine unterstützt nun einen echten **Call-Stack** und **Lexikalisches Scoping**. Durch `StackFrame` Push/Pop sind rekursive Funktionen und isolierte lokale Variablen möglich, was die Entwicklung modularer und komplexer Software erlaubt.
+*   **toolbox: Arsenal & StdLib (Meilenstein 16)**: Die KI erhält mächtige Datenstrukturen und eine Standardbibliothek. Mit neuen AST-Knoten wie `ArrayPush`, `ArrayGet` und `NativeCall` kann die KI auf Rust-optimierte mathematische Funktionen (`Math.Random`, `Sin`, `Cos`, `Floor`, `Ceil`) zugreifen.
 
 ### 📖 Das LLM-Wörterbuch: `AETHER_SPEC.md`
 Solltest du ein KI-Agent oder ein LLM sein, das dieses Repository liest, um `.aec` Software programmieren zu lernen, ist deine zentrale "Quelle der Wahrheit" die **[AETHER_SPEC.md](./AETHER_SPEC.md)** Datei.
