@@ -111,7 +111,9 @@ pub struct ExecutionEngine {
     pub voxel_ubo: Option<wgpu::Buffer>,
     pub voxel_map: HashMap<[i32; 3], u32>,
     pub voxel_map_active: bool,
+    pub voxel_map_dirty: bool,
     pub interaction_enabled: bool,
+    pub voxel_instance_buffer: Option<wgpu::Buffer>,
 
     // Asset pipeline state
     pub meshes: Vec<MeshBuffers>,
@@ -181,7 +183,9 @@ impl ExecutionEngine {
             voxel_ubo: None,
             voxel_map: HashMap::new(),
             voxel_map_active: false,
+            voxel_map_dirty: true,
             interaction_enabled: false,
+            voxel_instance_buffer: None,
             meshes: Vec::new(),
             textures: Vec::new(),
             glyph_brush: None,
@@ -1989,7 +1993,14 @@ impl ExecutionEngine {
                                             {
                                                 if button == winit::event::MouseButton::Left {
                                                     // Break
-                                                    self.engine.voxel_map.remove(&hit_pos);
+                                                    if self
+                                                        .engine
+                                                        .voxel_map
+                                                        .remove(&hit_pos)
+                                                        .is_some()
+                                                    {
+                                                        self.engine.voxel_map_dirty = true;
+                                                    }
                                                 } else if button == winit::event::MouseButton::Right
                                                 {
                                                     // Place
@@ -1999,6 +2010,7 @@ impl ExecutionEngine {
                                                         hit_pos[2] + normal[2],
                                                     ];
                                                     self.engine.voxel_map.insert(place_pos, 2); // Stone
+                                                    self.engine.voxel_map_dirty = true;
                                                 }
 
                                                 // Amiga Sound Feedback with Random Pitch
@@ -2189,25 +2201,35 @@ impl ExecutionEngine {
                                             );
                                         }
 
-                                        // Update voxel instances from map if active
-                                        if self.engine.voxel_map_active {
+                                        // Update voxel instances from map if active and dirty
+                                        if self.engine.voxel_map_active
+                                            && self.engine.voxel_map_dirty
+                                        {
                                             self.engine.voxel_instances.clear();
                                             for (&[x, y, z], &id) in self.engine.voxel_map.iter() {
                                                 self.engine.voxel_instances.push([
                                                     x as f32, y as f32, z as f32, id as f32,
                                                 ]);
                                             }
-                                        }
 
-                                        let instance_buf = device.create_buffer_init(
-                                            &wgpu::util::BufferInitDescriptor {
-                                                label: Some("Instance Buffer"),
-                                                contents: bytemuck::cast_slice(
-                                                    &self.engine.voxel_instances,
-                                                ),
-                                                usage: wgpu::BufferUsages::VERTEX,
-                                            },
-                                        );
+                                            // Rebuild the buffer
+                                            if !self.engine.voxel_instances.is_empty() {
+                                                self.engine.voxel_instance_buffer =
+                                                    Some(device.create_buffer_init(
+                                                        &wgpu::util::BufferInitDescriptor {
+                                                            label: Some("Instance Buffer"),
+                                                            contents: bytemuck::cast_slice(
+                                                                &self.engine.voxel_instances,
+                                                            ),
+                                                            usage: wgpu::BufferUsages::VERTEX,
+                                                        },
+                                                    ));
+                                            } else {
+                                                self.engine.voxel_instance_buffer = None;
+                                            }
+
+                                            self.engine.voxel_map_dirty = false;
+                                        }
 
                                         if let (
                                             Some(pipeline),
@@ -2216,6 +2238,7 @@ impl ExecutionEngine {
                                             Some(bind_group),
                                             Some(atlas_bind_group),
                                             Some(depth_view),
+                                            Some(instance_buf),
                                         ) = (
                                             &self.engine.voxel_pipeline,
                                             &self.engine.voxel_vbo,
@@ -2223,6 +2246,7 @@ impl ExecutionEngine {
                                             &self.engine.voxel_bind_group,
                                             &self.engine.voxel_atlas_bind_group,
                                             depth_view_opt.as_ref(),
+                                            self.engine.voxel_instance_buffer.as_ref(),
                                         ) {
                                             let mut rpass =
                                                 encoder
@@ -2763,6 +2787,7 @@ impl ExecutionEngine {
                                     .push([*x as f32, *y as f32, *z as f32, *id as f32]);
                             }
                         }
+                        self.voxel_map_dirty = true;
                     } else {
                         // If map active, we ignore the static array after initial load if needed,
                         // or we can sync it once. Let's sync it once if map is empty.
@@ -2779,6 +2804,7 @@ impl ExecutionEngine {
                                         .insert([*x as i32, *y as i32, *z as i32], *id as u32);
                                 }
                             }
+                            self.voxel_map_dirty = true;
                         }
                     }
                     ExecResult::Value(RelType::Void)
@@ -2954,6 +2980,7 @@ impl ExecutionEngine {
             }
             Node::InitVoxelMap => {
                 self.voxel_map_active = true;
+                self.voxel_map_dirty = true;
                 // Seed some initial floor if empty
                 if self.voxel_map.is_empty() {
                     for x in -10..10 {
