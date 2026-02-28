@@ -1,0 +1,206 @@
+{
+  "Block": [
+    { "Import": "stdlib/ui.nod" },
+
+    { "Print": { "StringLiteral": "KnotenCore Calculator — Starting UI via FFI Bridge..." } },
+
+    { "Assign": ["win_ok", { "Call": ["ui_init_window", [{ "IntLiteral": 320 }, { "IntLiteral": 400 }, { "StringLiteral": "KnotenCore Calculator" }]] }] },
+
+    { "Assign": ["display", { "StringLiteral": "0" }] },
+    { "Assign": ["accumulator", { "IntLiteral": 0 }] },
+    { "Assign": ["current", { "IntLiteral": 0 }] },
+    { "Assign": ["operator", { "StringLiteral": "" }] },
+    { "Assign": ["new_input", { "BoolLiteral": true }] },
+    { "Assign": ["running", { "BoolLiteral": true }] },
+
+    { "While": [
+      { "Identifier": "running" },
+      { "Block": [
+
+        { "Call": ["ui_clear", [{ "IntLiteral": 2236962 }]] },
+
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 10 }, { "IntLiteral": 10 }, { "IntLiteral": 300 }, { "IntLiteral": 40 }, { "IntLiteral": 1118481 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 20 }, { "IntLiteral": 22 }, { "Identifier": "display" }, { "IntLiteral": 16777215 }]] },
+
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 10 },  { "IntLiteral": 60 },  { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 38 },  { "IntLiteral": 76 },  { "StringLiteral": "7" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 85 },  { "IntLiteral": 60 },  { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 113 }, { "IntLiteral": 76 },  { "StringLiteral": "8" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 160 }, { "IntLiteral": 60 },  { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 188 }, { "IntLiteral": 76 },  { "StringLiteral": "9" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 240 }, { "IntLiteral": 60 },  { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 16744448 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 268 }, { "IntLiteral": 76 },  { "StringLiteral": "/" }, { "IntLiteral": 16777215 }]] },
+
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 10 },  { "IntLiteral": 110 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 38 },  { "IntLiteral": 126 }, { "StringLiteral": "4" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 85 },  { "IntLiteral": 110 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 113 }, { "IntLiteral": 126 }, { "StringLiteral": "5" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 160 }, { "IntLiteral": 110 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 188 }, { "IntLiteral": 126 }, { "StringLiteral": "6" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 240 }, { "IntLiteral": 110 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 16744448 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 268 }, { "IntLiteral": 126 }, { "StringLiteral": "*" }, { "IntLiteral": 16777215 }]] },
+
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 10 },  { "IntLiteral": 160 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 38 },  { "IntLiteral": 176 }, { "StringLiteral": "1" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 85 },  { "IntLiteral": 160 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 113 }, { "IntLiteral": 176 }, { "StringLiteral": "2" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 160 }, { "IntLiteral": 160 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 188 }, { "IntLiteral": 176 }, { "StringLiteral": "3" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 240 }, { "IntLiteral": 160 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 16744448 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 268 }, { "IntLiteral": 176 }, { "StringLiteral": "-" }, { "IntLiteral": 16777215 }]] },
+
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 10 },  { "IntLiteral": 210 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 4473924 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 38 },  { "IntLiteral": 226 }, { "StringLiteral": "0" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 85 },  { "IntLiteral": 210 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 6710886 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 113 }, { "IntLiteral": 226 }, { "StringLiteral": "C" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 160 }, { "IntLiteral": 210 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 65280 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 188 }, { "IntLiteral": 226 }, { "StringLiteral": "=" }, { "IntLiteral": 16777215 }]] },
+        { "Call": ["ui_draw_rect", [{ "IntLiteral": 240 }, { "IntLiteral": 210 }, { "IntLiteral": 70 }, { "IntLiteral": 40 }, { "IntLiteral": 16744448 }]] },
+        { "Call": ["ui_draw_text", [{ "IntLiteral": 268 }, { "IntLiteral": 226 }, { "StringLiteral": "+" }, { "IntLiteral": 16777215 }]] },
+
+        { "Assign": ["key", { "Call": ["ui_get_key_pressed", []] }] },
+
+        { "If": [
+          { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "" }] },
+          { "Block": [] },
+          { "Block": [
+
+            { "If": [
+              { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "C" }] },
+              { "Block": [
+                { "Assign": ["display", { "StringLiteral": "0" }] },
+                { "Assign": ["accumulator", { "IntLiteral": 0 }] },
+                { "Assign": ["current", { "IntLiteral": 0 }] },
+                { "Assign": ["operator", { "StringLiteral": "" }] },
+                { "Assign": ["new_input", { "BoolLiteral": true }] }
+              ]},
+              { "Block": [
+
+                { "If": [
+                  { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "Enter" }] },
+                  { "Block": [
+                    { "If": [
+                      { "Eq": [{ "Identifier": "operator" }, { "StringLiteral": "Plus" }] },
+                      { "Assign": ["accumulator", { "Add": [{ "Identifier": "accumulator" }, { "Identifier": "current" }] }] },
+                      { "If": [
+                        { "Eq": [{ "Identifier": "operator" }, { "StringLiteral": "Minus" }] },
+                        { "Assign": ["accumulator", { "Sub": [{ "Identifier": "accumulator" }, { "Identifier": "current" }] }] },
+                        { "If": [
+                          { "Eq": [{ "Identifier": "operator" }, { "StringLiteral": "Asterisk" }] },
+                          { "Assign": ["accumulator", { "Mul": [{ "Identifier": "accumulator" }, { "Identifier": "current" }] }] },
+                          { "If": [
+                            { "Eq": [{ "Identifier": "operator" }, { "StringLiteral": "Slash" }] },
+                            { "Assign": ["accumulator", { "Div": [{ "Identifier": "accumulator" }, { "Identifier": "current" }] }] },
+                            { "Block": [] }
+                          ]}
+                        ]}
+                      ]}
+                    ]},
+                    { "Assign": ["display", { "ToString": { "Identifier": "accumulator" } }] },
+                    { "Assign": ["operator", { "StringLiteral": "" }] },
+                    { "Assign": ["new_input", { "BoolLiteral": true }] }
+                  ]},
+                  { "Block": [
+
+                    { "If": [
+                      { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "Plus" }] },
+                      { "Block": [
+                        { "Assign": ["accumulator", { "Identifier": "current" }] },
+                        { "Assign": ["operator", { "StringLiteral": "Plus" }] },
+                        { "Assign": ["new_input", { "BoolLiteral": true }] }
+                      ]},
+                      { "If": [
+                        { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "Minus" }] },
+                        { "Block": [
+                          { "Assign": ["accumulator", { "Identifier": "current" }] },
+                          { "Assign": ["operator", { "StringLiteral": "Minus" }] },
+                          { "Assign": ["new_input", { "BoolLiteral": true }] }
+                        ]},
+                        { "If": [
+                          { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "Asterisk" }] },
+                          { "Block": [
+                            { "Assign": ["accumulator", { "Identifier": "current" }] },
+                            { "Assign": ["operator", { "StringLiteral": "Asterisk" }] },
+                            { "Assign": ["new_input", { "BoolLiteral": true }] }
+                          ]},
+                          { "If": [
+                            { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "Slash" }] },
+                            { "Block": [
+                              { "Assign": ["accumulator", { "Identifier": "current" }] },
+                              { "Assign": ["operator", { "StringLiteral": "Slash" }] },
+                              { "Assign": ["new_input", { "BoolLiteral": true }] }
+                            ]},
+                            { "Block": [
+                              { "If": [
+                                { "Identifier": "new_input" },
+                                { "Block": [
+                                  { "Assign": ["current", { "IntLiteral": 0 }] },
+                                  { "Assign": ["new_input", { "BoolLiteral": false }] }
+                                ]},
+                                { "Block": [] }
+                              ]},
+
+                              { "If": [
+                                { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "0" }] },
+                                { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 0 }] }] },
+                                { "If": [
+                                  { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "1" }] },
+                                  { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 1 }] }] },
+                                  { "If": [
+                                    { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "2" }] },
+                                    { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 2 }] }] },
+                                    { "If": [
+                                      { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "3" }] },
+                                      { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 3 }] }] },
+                                      { "If": [
+                                        { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "4" }] },
+                                        { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 4 }] }] },
+                                        { "If": [
+                                          { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "5" }] },
+                                          { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 5 }] }] },
+                                          { "If": [
+                                            { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "6" }] },
+                                            { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 6 }] }] },
+                                            { "If": [
+                                              { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "7" }] },
+                                              { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 7 }] }] },
+                                              { "If": [
+                                                { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "8" }] },
+                                                { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 8 }] }] },
+                                                { "If": [
+                                                  { "Eq": [{ "Identifier": "key" }, { "StringLiteral": "9" }] },
+                                                  { "Assign": ["current", { "Add": [{ "Mul": [{ "Identifier": "current" }, { "IntLiteral": 10 }] }, { "IntLiteral": 9 }] }] },
+                                                  { "Block": [] }
+                                                ]}
+                                              ]}
+                                            ]}
+                                          ]}
+                                        ]}
+                                      ]}
+                                    ]}
+                                  ]}
+                                ]}
+                              ]},
+                              { "Assign": ["display", { "ToString": { "Identifier": "current" } }] }
+                            ]}
+                          ]}
+                        ]}
+                      ]}
+                    ]}
+                  ]}
+                ]}
+
+              ]}
+            ]}
+
+          ]}
+        ]},
+
+        { "Assign": ["running", { "Call": ["ui_present", []] }] }
+
+      ]}
+    ]},
+
+    { "Print": { "StringLiteral": "Calculator closed." } }
+  ]
+}

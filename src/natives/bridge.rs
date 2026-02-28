@@ -77,6 +77,168 @@ impl BridgeModule for CoreBridge {
                 }
                 _ => None,
             }
+        } else if module == "ui" {
+            match function {
+                "ui_init_window" => {
+                    if args.len() == 3 {
+                        let w = match &args[0] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_init_window: arg 1 must be Int (width)".to_string(),
+                                ));
+                            }
+                        };
+                        let h = match &args[1] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_init_window: arg 2 must be Int (height)".to_string(),
+                                ));
+                            }
+                        };
+                        let title = match &args[2] {
+                            RelType::Str(v) => v.clone(),
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_init_window: arg 3 must be String (title)"
+                                        .to_string(),
+                                ));
+                            }
+                        };
+                        let ok = crate::natives::ui::ui_init_window(w, h, title);
+                        Some(ExecResult::Value(RelType::Bool(ok)))
+                    } else {
+                        Some(ExecResult::Fault(
+                            "[FFI] ui_init_window expects 3 args (width, height, title)"
+                                .to_string(),
+                        ))
+                    }
+                }
+                "ui_clear" => {
+                    if args.len() == 1 {
+                        if let RelType::Int(c) = &args[0] {
+                            crate::natives::ui::ui_clear(*c);
+                            return Some(ExecResult::Value(RelType::Void));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] ui_clear expects 1 Int arg (color)".to_string(),
+                    ))
+                }
+                "ui_draw_rect" => {
+                    if args.len() == 5 {
+                        let x = match &args[0] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_rect: x must be Int".to_string(),
+                                ));
+                            }
+                        };
+                        let y = match &args[1] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_rect: y must be Int".to_string(),
+                                ));
+                            }
+                        };
+                        let w = match &args[2] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_rect: w must be Int".to_string(),
+                                ));
+                            }
+                        };
+                        let h = match &args[3] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_rect: h must be Int".to_string(),
+                                ));
+                            }
+                        };
+                        let c = match &args[4] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_rect: color must be Int".to_string(),
+                                ));
+                            }
+                        };
+                        crate::natives::ui::ui_draw_rect(x, y, w, h, c);
+                        Some(ExecResult::Value(RelType::Void))
+                    } else {
+                        Some(ExecResult::Fault(
+                            "[FFI] ui_draw_rect expects 5 args (x, y, w, h, color)".to_string(),
+                        ))
+                    }
+                }
+                "ui_draw_text" => {
+                    if args.len() == 4 {
+                        let x = match &args[0] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_text: x must be Int".to_string(),
+                                ));
+                            }
+                        };
+                        let y = match &args[1] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_text: y must be Int".to_string(),
+                                ));
+                            }
+                        };
+                        let text = match &args[2] {
+                            RelType::Str(v) => v.clone(),
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_text: text must be String".to_string(),
+                                ));
+                            }
+                        };
+                        let c = match &args[3] {
+                            RelType::Int(v) => *v,
+                            _ => {
+                                return Some(ExecResult::Fault(
+                                    "[FFI] ui_draw_text: color must be Int".to_string(),
+                                ));
+                            }
+                        };
+                        crate::natives::ui::ui_draw_text(x, y, text, c);
+                        Some(ExecResult::Value(RelType::Void))
+                    } else {
+                        Some(ExecResult::Fault(
+                            "[FFI] ui_draw_text expects 4 args (x, y, text, color)".to_string(),
+                        ))
+                    }
+                }
+                "ui_present" => {
+                    let open = crate::natives::ui::ui_present();
+                    Some(ExecResult::Value(RelType::Bool(open)))
+                }
+                "ui_is_key_down" => {
+                    if args.len() == 1 {
+                        if let RelType::Str(key) = &args[0] {
+                            let down = crate::natives::ui::ui_is_key_down(key.clone());
+                            return Some(ExecResult::Value(RelType::Bool(down)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] ui_is_key_down expects 1 String arg".to_string(),
+                    ))
+                }
+                "ui_get_key_pressed" => {
+                    let key = crate::natives::ui::ui_get_key_pressed();
+                    Some(ExecResult::Value(RelType::Str(key)))
+                }
+                _ => None,
+            }
         } else {
             None
         }

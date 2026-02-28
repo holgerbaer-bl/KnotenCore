@@ -1,0 +1,203 @@
+{
+  "Block": [
+    {
+      "FnDef": [
+        "ui_init_window",
+        [
+          "width",
+          "height",
+          "title"
+        ],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "ui",
+                  "function": "ui_init_window",
+                  "args": [
+                    {
+                      "Identifier": "width"
+                    },
+                    {
+                      "Identifier": "height"
+                    },
+                    {
+                      "Identifier": "title"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "ui_clear",
+        [
+          "color"
+        ],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "ui",
+                  "function": "ui_clear",
+                  "args": [
+                    {
+                      "Identifier": "color"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "ui_draw_rect",
+        [
+          "x",
+          "y",
+          "w",
+          "h",
+          "color"
+        ],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "ui",
+                  "function": "ui_draw_rect",
+                  "args": [
+                    {
+                      "Identifier": "x"
+                    },
+                    {
+                      "Identifier": "y"
+                    },
+                    {
+                      "Identifier": "w"
+                    },
+                    {
+                      "Identifier": "h"
+                    },
+                    {
+                      "Identifier": "color"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "ui_draw_text",
+        [
+          "x",
+          "y",
+          "text",
+          "color"
+        ],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "ui",
+                  "function": "ui_draw_text",
+                  "args": [
+                    {
+                      "Identifier": "x"
+                    },
+                    {
+                      "Identifier": "y"
+                    },
+                    {
+                      "Identifier": "text"
+                    },
+                    {
+                      "Identifier": "color"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "ui_present",
+        [],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "ui",
+                  "function": "ui_present",
+                  "args": []
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "ui_is_key_down",
+        [
+          "key_name"
+        ],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "ui",
+                  "function": "ui_is_key_down",
+                  "args": [
+                    {
+                      "Identifier": "key_name"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "ui_get_key_pressed",
+        [],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "ui",
+                  "function": "ui_get_key_pressed",
+                  "args": []
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
