@@ -33,10 +33,10 @@
         {
             "LoadTextureAtlas": [
                 {
-                    "StringLiteral": "assets/texture.png"
+                    "StringLiteral": "assets/texture_atlas.png"
                 },
                 {
-                    "FloatLiteral": 16.0
+                    "FloatLiteral": 4.0
                 }
             ]
         },

@@ -103,7 +103,13 @@ Activates real-time player physics, including gravity, AABB collision against th
 
 #### `SetVoxel`
 Directly modifies the persistent Voxel Map at the specified coordinates.
-*   **Standard Block IDs:** 1: Grass, 2: Stone, 3: Sand, 4: Water, 5: Wood, 6: Leaves.
+*   **Standard Block IDs & Atlas Layout (4x4 tiles):**
+    - 1: **Grass** (Top: Tile 0, Side: Tile 1, Bottom: Tile 2/Dirt)
+    - 2: **Stone** (All: Tile 3)
+    - 3: **Sand** (All: Tile 4)
+    - 4: **Water** (All: Tile 5)
+    - 5: **Wood** (Top/Bottom: Tile 7, Side: Tile 6)
+    - 6: **Leaves** (All: Tile 8)
 *   **Structure:** `{"SetVoxel": [<X>, <Y>, <Z>, <BlockID>]}`
 
 #### `LoadSample`

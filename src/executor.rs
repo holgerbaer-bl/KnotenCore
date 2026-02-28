@@ -238,7 +238,7 @@ impl ExecutionEngine {
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -497,9 +497,9 @@ impl ExecutionEngine {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let c_matrix = [0.0f32; 16];
+        let c_matrix = [0.0f32; 16 + 4 + 4]; // Matrix (16) + CamPos (3+1pad) + SkyColor (3+1pad)
         let ubo = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Camera UBO"),
+            label: Some("Voxel Uniform UBO"),
             contents: bytemuck::cast_slice(&c_matrix),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
@@ -2562,6 +2562,15 @@ impl ExecutionEngine {
                                                 0,
                                                 bytemuck::cast_slice(matrix_ref),
                                             );
+                                            let cp = [
+                                                self.engine.camera_pos[0] as f32,
+                                                self.engine.camera_pos[1] as f32,
+                                                self.engine.camera_pos[2] as f32,
+                                                1.0f32,
+                                            ];
+                                            queue.write_buffer(ubo, 64, bytemuck::cast_slice(&cp));
+                                            let sc = [0.5f32, 0.8f32, 1.0f32, 1.0f32];
+                                            queue.write_buffer(ubo, 80, bytemuck::cast_slice(&sc));
                                         }
 
                                         // Update voxel instances from map if active and dirty
@@ -2624,7 +2633,7 @@ impl ExecutionEngine {
                                                                     wgpu::Color {
                                                                         r: 0.5,
                                                                         g: 0.8,
-                                                                        b: 0.9,
+                                                                        b: 1.0,
                                                                         a: 1.0,
                                                                     },
                                                                 ),
