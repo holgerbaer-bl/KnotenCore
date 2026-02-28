@@ -81,6 +81,8 @@ pub enum Node {
     LoadTextureAtlas(Box<Node>, Box<Node>), // Path (String), TileSize (Float)
     LoadSample(Box<Node>, Box<Node>), // ID (Int), Path (String)
     PlaySample(Box<Node>, Box<Node>, Box<Node>), // ID (Int), Volume (Float), Pitch (Float)
+    InitVoxelMap,             // Transfers Voxel control to a mutable HashMap
+    EnableInteraction(Box<Node>), // Boolean (True): Activates Raycasting & Mouse Mapping
 
     // Control Flow
     If(Box<Node>, Box<Node>, Option<Box<Node>>),

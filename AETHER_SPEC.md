@@ -76,9 +76,15 @@ Initializes a First-Person 3D Camera mapping keyboard `WASD` inputs to matrix pr
 Receives an array of voxel positions defining chunks of blocks in 3-dimensional space (instanced geometry).
 *   **Structure:** `{"DrawVoxelGrid": [{"ArrayLiteral": [X, Y, Z, BlockID, X, Y, Z, BlockID, ...]}]}`
 
-#### `LoadTextureAtlas`
-Loads an image texture from the disk into the WGPU graphics engine, generating tile-mapped UV regions implicitly.
 *   **Structure:** `{"LoadTextureAtlas": [{"StringLiteral": "<Filepath>"}, {"FloatLiteral": <TileSize (e.g. 16.0)>}]}`
+
+#### `InitVoxelMap`
+Switches the voxel renderer from static instance arrays to a persistent, mutable internal `HashMap` state. This is required for real-time mining and building.
+*   **Structure:** `"InitVoxelMap"`
+
+#### `EnableInteraction`
+Activates 3D raycasting (DDA algorithm) and mouse input listeners. Left-click breaks blocks (Mining), Right-click places blocks (Building).
+*   **Structure:** `{"EnableInteraction": [{"BoolLiteral": <true/false>}]}`
 
 #### `LoadSample`
 Reads an audio file into system RAM buffering bytes natively using the Rodio CPAL interface (Amiga Paula mapping).

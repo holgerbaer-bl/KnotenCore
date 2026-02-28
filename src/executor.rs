@@ -1,4 +1,5 @@
 use crate::ast::Node;
+use cgmath::InnerSpace;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::collections::HashMap;
 
@@ -108,6 +109,9 @@ pub struct ExecutionEngine {
     pub voxel_bind_group: Option<wgpu::BindGroup>,
     pub voxel_atlas_bind_group: Option<wgpu::BindGroup>,
     pub voxel_ubo: Option<wgpu::Buffer>,
+    pub voxel_map: HashMap<[i32; 3], u32>,
+    pub voxel_map_active: bool,
+    pub interaction_enabled: bool,
 
     // Asset pipeline state
     pub meshes: Vec<MeshBuffers>,
@@ -175,6 +179,9 @@ impl ExecutionEngine {
             voxel_bind_group: None,
             voxel_atlas_bind_group: None,
             voxel_ubo: None,
+            voxel_map: HashMap::new(),
+            voxel_map_active: false,
+            interaction_enabled: false,
             meshes: Vec::new(),
             textures: Vec::new(),
             glyph_brush: None,
@@ -1959,6 +1966,70 @@ impl ExecutionEngine {
                                             ));
                                     }
                                 }
+                                WindowEvent::MouseInput { state, button, .. } => {
+                                    if self.engine.interaction_enabled {
+                                        let is_pressed =
+                                            state == winit::event::ElementState::Pressed;
+                                        if is_pressed {
+                                            let yaw = self.engine.camera_yaw;
+                                            let pitch = self.engine.camera_pitch;
+                                            let (sy, cy) = yaw.sin_cos();
+                                            let (sp, cp) = pitch.sin_cos();
+                                            let forward =
+                                                cgmath::Vector3::new(sy * cp, sp, cy * cp)
+                                                    .normalize();
+                                            let origin = cgmath::Point3::new(
+                                                self.engine.camera_pos[0],
+                                                self.engine.camera_pos[1],
+                                                self.engine.camera_pos[2],
+                                            );
+
+                                            if let Some((hit_pos, normal)) =
+                                                self.engine.raycast_voxels(origin, forward, 5.0)
+                                            {
+                                                if button == winit::event::MouseButton::Left {
+                                                    // Break
+                                                    self.engine.voxel_map.remove(&hit_pos);
+                                                } else if button == winit::event::MouseButton::Right
+                                                {
+                                                    // Place
+                                                    let place_pos = [
+                                                        hit_pos[0] + normal[0],
+                                                        hit_pos[1] + normal[1],
+                                                        hit_pos[2] + normal[2],
+                                                    ];
+                                                    self.engine.voxel_map.insert(place_pos, 2); // Stone
+                                                }
+
+                                                // Amiga Sound Feedback with Random Pitch
+                                                if let Some((_stream, handle)) =
+                                                    &self.engine.audio_stream_handle
+                                                {
+                                                    if let Some(sample_bytes) =
+                                                        self.engine.samples.get(&1)
+                                                    {
+                                                        // Assume 1 is jump/break
+                                                        let cursor = std::io::Cursor::new(
+                                                            sample_bytes.clone(),
+                                                        );
+                                                        if let Ok(source) =
+                                                            rodio::Decoder::new(cursor)
+                                                        {
+                                                            use rodio::Source;
+                                                            let random_pitch =
+                                                                0.9 + (rand::random::<f32>() * 0.2);
+                                                            let source = source
+                                                                .amplify(1.0)
+                                                                .speed(random_pitch);
+                                                            let _ = handle
+                                                                .play_raw(source.convert_samples());
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 _ => {}
                             }
                         }
@@ -2023,7 +2094,8 @@ impl ExecutionEngine {
                             let res = self.engine.evaluate(self.body);
 
                             let has_voxels = self.engine.camera_active
-                                && !self.engine.voxel_instances.is_empty();
+                                && (!self.engine.voxel_instances.is_empty()
+                                    || self.engine.voxel_map_active);
                             if has_voxels {
                                 self.engine.ensure_voxel_pipeline();
                             }
@@ -2075,7 +2147,8 @@ impl ExecutionEngine {
                                     );
 
                                     let has_voxels = self.engine.camera_active
-                                        && !self.engine.voxel_instances.is_empty();
+                                        && (!self.engine.voxel_instances.is_empty()
+                                            || self.engine.voxel_map_active);
 
                                     if has_voxels {
                                         let aspect = config.width as f32 / config.height as f32;
@@ -2114,6 +2187,16 @@ impl ExecutionEngine {
                                                 0,
                                                 bytemuck::cast_slice(matrix_ref),
                                             );
+                                        }
+
+                                        // Update voxel instances from map if active
+                                        if self.engine.voxel_map_active {
+                                            self.engine.voxel_instances.clear();
+                                            for (&[x, y, z], &id) in self.engine.voxel_map.iter() {
+                                                self.engine.voxel_instances.push([
+                                                    x as f32, y as f32, z as f32, id as f32,
+                                                ]);
+                                            }
                                         }
 
                                         let instance_buf = device.create_buffer_init(
@@ -2666,45 +2749,42 @@ impl ExecutionEngine {
             Node::DrawVoxelGrid(positions_node) => {
                 let pos_res = self.evaluate(positions_node);
                 if let ExecResult::Value(RelType::Array(positions)) = pos_res {
-                    self.voxel_instances.clear();
-                    let mut i = 0;
-                    while i + 3 < positions.len() {
-                        let mut x_f = 0.0;
-                        let mut y_f = 0.0;
-                        let mut z_f = 0.0;
-                        let mut id_f = 0.0;
-
-                        if let RelType::Float(f) = positions[i] {
-                            x_f = f as f32;
-                        } else if let RelType::Int(f) = positions[i] {
-                            x_f = f as f32;
+                    if !self.voxel_map_active {
+                        self.voxel_instances.clear();
+                        for chunk in positions.chunks_exact(4) {
+                            if let (
+                                RelType::Float(x),
+                                RelType::Float(y),
+                                RelType::Float(z),
+                                RelType::Int(id),
+                            ) = (&chunk[0], &chunk[1], &chunk[2], &chunk[3])
+                            {
+                                self.voxel_instances
+                                    .push([*x as f32, *y as f32, *z as f32, *id as f32]);
+                            }
                         }
-
-                        if let RelType::Float(f) = positions[i + 1] {
-                            y_f = f as f32;
-                        } else if let RelType::Int(f) = positions[i + 1] {
-                            y_f = f as f32;
+                    } else {
+                        // If map active, we ignore the static array after initial load if needed,
+                        // or we can sync it once. Let's sync it once if map is empty.
+                        if self.voxel_map.is_empty() {
+                            for chunk in positions.chunks_exact(4) {
+                                if let (
+                                    RelType::Float(x),
+                                    RelType::Float(y),
+                                    RelType::Float(z),
+                                    RelType::Int(id),
+                                ) = (&chunk[0], &chunk[1], &chunk[2], &chunk[3])
+                                {
+                                    self.voxel_map
+                                        .insert([*x as i32, *y as i32, *z as i32], *id as u32);
+                                }
+                            }
                         }
-
-                        if let RelType::Float(f) = positions[i + 2] {
-                            z_f = f as f32;
-                        } else if let RelType::Int(f) = positions[i + 2] {
-                            z_f = f as f32;
-                        }
-
-                        if let RelType::Float(f) = positions[i + 3] {
-                            id_f = f as f32;
-                        } else if let RelType::Int(f) = positions[i + 3] {
-                            id_f = f as f32;
-                        }
-
-                        self.voxel_instances.push([x_f, y_f, z_f, id_f]);
-                        i += 4;
                     }
                     ExecResult::Value(RelType::Void)
                 } else {
                     ExecResult::Fault(
-                        "DrawVoxelGrid expects a flat Array of XYZId floats".to_string(),
+                        "DrawVoxelGrid requires an array of floats (X,Y,Z,ID)".to_string(),
                     )
                 }
             }
@@ -2851,29 +2931,46 @@ impl ExecutionEngine {
                     ExecResult::Value(RelType::Float(pitch)),
                 ) = (id_res, vol_res, pitch_res)
                 {
-                    if let Some(bytes) = self.samples.get(&id) {
-                        if self.audio_stream_handle.is_none() {
-                            if let Ok((_stream, handle)) = rodio::OutputStream::try_default() {
-                                self.audio_stream_handle = Some((_stream, handle));
+                    if let Some((_, handle)) = &self.audio_stream_handle {
+                        if let Some(sample_bytes) = self.samples.get(&id) {
+                            let cursor = std::io::Cursor::new(sample_bytes.clone());
+                            if let Ok(source) = rodio::Decoder::new(cursor) {
+                                use rodio::Source;
+                                let source = source.amplify(vol as f32).speed(pitch as f32);
+                                let _ = handle.play_raw(source.convert_samples());
+                                ExecResult::Value(RelType::Void)
+                            } else {
+                                ExecResult::Fault("Failed to decode sample".to_string())
                             }
+                        } else {
+                            ExecResult::Fault(format!("Sample ID {} not found", id))
                         }
-
-                        if let Some((_, handle)) = &self.audio_stream_handle {
-                            use std::io::Cursor;
-                            let cursor = Cursor::new(Vec::from(&**bytes));
-                            if let Ok(decoder) = rodio::Decoder::new(cursor) {
-                                if let Ok(sink) = rodio::Sink::try_new(handle) {
-                                    sink.set_volume(vol as f32);
-                                    sink.set_speed(pitch as f32);
-                                    sink.append(decoder);
-                                    sink.detach();
-                                }
-                            }
-                        }
+                    } else {
+                        ExecResult::Fault("Audio stream not initialized".to_string())
                     }
-                    ExecResult::Value(RelType::Void)
                 } else {
                     ExecResult::Fault("PlaySample expects (Int, Float, Float)".to_string())
+                }
+            }
+            Node::InitVoxelMap => {
+                self.voxel_map_active = true;
+                // Seed some initial floor if empty
+                if self.voxel_map.is_empty() {
+                    for x in -10..10 {
+                        for z in -10..10 {
+                            self.voxel_map.insert([x, -1, z], 1);
+                        }
+                    }
+                }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::EnableInteraction(enabled_n) => {
+                let res = self.evaluate(enabled_n);
+                if let ExecResult::Value(RelType::Bool(b)) = res {
+                    self.interaction_enabled = b;
+                    ExecResult::Value(RelType::Void)
+                } else {
+                    ExecResult::Fault("EnableInteraction expects Boolean".to_string())
                 }
             }
             Node::Block(nodes) => {
@@ -2896,6 +2993,79 @@ impl ExecutionEngine {
                 fault => fault,
             },
         }
+    }
+
+    pub fn raycast_voxels(
+        &self,
+        origin: cgmath::Point3<f32>,
+        direction: cgmath::Vector3<f32>,
+        max_dist: f32,
+    ) -> Option<([i32; 3], [i32; 3])> {
+        let mut x = origin.x.floor() as i32;
+        let mut y = origin.y.floor() as i32;
+        let mut z = origin.z.floor() as i32;
+
+        let step_x = if direction.x > 0.0 { 1 } else { -1 };
+        let step_y = if direction.y > 0.0 { 1 } else { -1 };
+        let step_z = if direction.z > 0.0 { 1 } else { -1 };
+
+        let t_delta_x = (1.0 / direction.x).abs();
+        let t_delta_y = (1.0 / direction.y).abs();
+        let t_delta_z = (1.0 / direction.z).abs();
+
+        let mut t_max_x = if direction.x > 0.0 {
+            (x as f32 + 1.0 - origin.x) * t_delta_x
+        } else {
+            (origin.x - x as f32) * t_delta_x
+        };
+        let mut t_max_y = if direction.y > 0.0 {
+            (y as f32 + 1.0 - origin.y) * t_delta_y
+        } else {
+            (origin.y - y as f32) * t_delta_y
+        };
+        let mut t_max_z = if direction.z > 0.0 {
+            (z as f32 + 1.0 - origin.z) * t_delta_z
+        } else {
+            (origin.z - z as f32) * t_delta_z
+        };
+
+        let mut face_normal = [0, 0, 0];
+        let mut dist = 0.0;
+
+        while dist < max_dist {
+            if let Some(&id) = self.voxel_map.get(&[x, y, z]) {
+                if id > 0 {
+                    return Some(([x, y, z], face_normal));
+                }
+            }
+
+            if t_max_x < t_max_y {
+                if t_max_x < t_max_z {
+                    dist = t_max_x;
+                    t_max_x += t_delta_x;
+                    x += step_x;
+                    face_normal = [-step_x, 0, 0];
+                } else {
+                    dist = t_max_z;
+                    t_max_z += t_delta_z;
+                    z += step_z;
+                    face_normal = [0, 0, -step_z];
+                }
+            } else {
+                if t_max_y < t_max_z {
+                    dist = t_max_y;
+                    t_max_y += t_delta_y;
+                    y += step_y;
+                    face_normal = [0, -step_y, 0];
+                } else {
+                    dist = t_max_z;
+                    t_max_z += t_delta_z;
+                    z += step_z;
+                    face_normal = [0, 0, -step_z];
+                }
+            }
+        }
+        None
     }
 
     fn do_math(&mut self, l: &Node, r: &Node, op: char) -> ExecResult {

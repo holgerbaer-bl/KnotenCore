@@ -281,6 +281,32 @@
             ]
         },
         {
+            "LoadTextureAtlas": [
+                {
+                    "StringLiteral": "assets/atlas.png"
+                },
+                {
+                    "FloatLiteral": 16.0
+                }
+            ]
+        },
+        {
+            "LoadSample": [
+                {
+                    "IntLiteral": 1
+                },
+                {
+                    "StringLiteral": "assets/jump.wav"
+                }
+            ]
+        },
+        "InitVoxelMap",
+        {
+            "EnableInteraction": {
+                "BoolLiteral": true
+            }
+        },
+        {
             "PollEvents": {
                 "Block": [
                     {
