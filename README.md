@@ -29,6 +29,7 @@ We cut out the middleman. Welcome to the era of machine-to-machine compilation.
 *   **✍️ UI & Text Engine (Milestone 8)**: Transcending 3D tech-demos, AetherCore acts as a General Purpose Engine. Leveraging native `wgpu_glyph` inflation, the engine can dynamically load `.ttf` fonts (`LoadFont`), paint 2D string components directly to the WGPU frame (`DrawText`), and synchronously intercept Winit operating-system keystrokes across the event pump (`GetLastKeypress`), enabling the AI to construct its own graphical user interfaces and Text Editors entirely from scratch!
 *   **🌐 The Pure JSON Architecture (Milestone 9)**: AetherCore has completely stripped out its old `Bincode` binary requirement and rigid Rust-Macro generators. All `.aec` execution scripts are now formatted manually and intelligently via structured `JSON`. AIs write JSON perfectly. 
 *   **🖥️ High-End egui Desktop GUIs (Milestone 10)**: Upgrading the engine to professional software standards, AetherCore integrates the `egui` immediate mode graphical framework. The AST now natively supports OS-styled interactive windows, buttons, text inputs, and labels seamlessly rendered over the WGPU canvas and deeply bound to the engine's memory stack.
+*   **📦 The Release Bundler (Milestone 11)**: AetherCore programs are no longer confined to the terminal. Utilizing the new `aether_build` CLI utility, `.aec` JSON structures can be seamlessly baked statically into self-contained Native Executables (`.exe`). The AI can now distribute real, double-clickable desktop applications instantly without requiring users to install Rust or any runtime environment.
 
 ### 📖 The LLM Dictionary: `AETHER_SPEC.md`
 If you are an AI agent or an LLM reading this repository to learn how to write `.aec` software, your primary source of truth is the **[AETHER_SPEC.md](./AETHER_SPEC.md)**. 
@@ -44,11 +45,18 @@ cd aether_compiler
 cargo build --release
 ```
 
-**2. Execute an AST Script**
+**2. Execute an AST Script (JIT)**
 Invoke the `run_aec` engine compiler to immediately stream an AetherCore `.aec` source file into natively compiled hardware cycles:
 ```bash
 # Demonstrates the UI Engine mapping in raw JSON (A fully functional 2D Text Editor!)
-cargo run --bin run_aec text_editor.aec
+cargo run --bin run_aec modern_office.json
+```
+
+**3. Build a Standalone Executable**
+Compile your JSON script into a self-contained, native OS application using the Release Bundler:
+```bash
+cargo run --bin aether_build modern_office.json
+# Spits out 'modern_office.exe' in the root folder!
 ```
 
 ---
@@ -72,6 +80,7 @@ Wir werfen den Mittelsmann aus dem Fenster. Willkommen in der Ära der echten Ma
 *   **✍️ UI & Text Engine (Meilenstein 8)**: AetherCore macht den Sprung von einer Grafik-Technikdemo zu einer vollwertigen Desktop-Anwendungsplattform. Die KI kann nun freie TrueType Fonts (`.ttf`) einlesen, diese über extrem schnelles, passbasiertes `wgpu_glyph` als Rastertext über den AST in 2D auf das Winit-Canvas brennen (`DrawText`) - und gleichzeitig in Echtzeit Tastenanschläge der Tastatur abfangen (`GetLastKeypress`). Office-Software per AST!
 *   **🌐 Die Reine JSON-Architektur (Meilenstein 9)**: AetherCore hat sein altes binäres Code-Format (`bincode`) und sämtliche Rust-Makro-Generatoren vollständig vernichtet. Sämtliche Programme und Payload-Ausführungen (`.aec`) werden nun exakt strukturiert manuell per `JSON` verfasst. KIs schreiben JSON perfekt.
 *   **🖥️ High-End egui Desktop GUIs (Meilenstein 10)**: Um das Engine-Niveau auf professionelle Softwarestandards zu heben, integriert AetherCore das `egui` Framework für grafische Benutzeroberflächen. Der AST unterstützt nun nativ interaktive Fenster, Buttons, Texteingabefelder und Labels im OS-Stil, welche nahtlos über das WGPU-Canvas gerendert und tief mit dem Memory-Stack der Engine verbunden sind.
+*   **📦 Der Release-Bundler (Meilenstein 11)**: AetherCore Programme sind nicht länger im Terminal gefangen. Mit dem neuen `aether_build` CLI-Tool lassen sich `.aec` JSON-Strukturen nahtlos und statisch in eigenständige, native Executables (`.exe`) bündeln. Die KI kann nun echte, doppelklickbare Desktop-Apps ausliefern, ohne dass Endnutzer Rust oder Laufzeitumgebungen installieren müssen.
 
 ### 📖 Das LLM-Wörterbuch: `AETHER_SPEC.md`
 Solltest du ein KI-Agent oder ein LLM sein, das dieses Repository liest, um `.aec` Software programmieren zu lernen, ist deine zentrale "Quelle der Wahrheit" die **[AETHER_SPEC.md](./AETHER_SPEC.md)** Datei.
@@ -87,10 +96,17 @@ cd aether_compiler
 cargo build --release
 ```
 
-**2. Test-AST Ausführen**
-Starte den Just-In-Time (JIT) Executor (`run_aec`), um Dateien direkt abzupielen (wie z. B. unseren neuen `.aec` Texteditor, der zu 100% nativ in strukturiertem JSON vorliegt):
+**2. Test-AST Ausführen (JIT)**
+Starte den Just-In-Time (JIT) Executor (`run_aec`), um Dateien direkt abzuspielen (wie z. B. unseren neuen `.aec` Texteditor, der zu 100% nativ in strukturiertem JSON vorliegt):
 ```bash
-cargo run --bin run_aec text_editor.aec
+cargo run --bin run_aec modern_office.json
+```
+
+**3. Standalone Applikation Bauen**
+Kompiliere dein JSON-Skript mit dem Release-Bundler in eine autarke, native OS-Anwendung:
+```bash
+cargo run --bin aether_build modern_office.json
+# Erzeugt 'modern_office.exe' direkt im Hauptverzeichnis!
 ```
 
 ---

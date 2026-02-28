@@ -9,6 +9,14 @@ edition = "2024"
 name = "run_aec"
 path = "src/bin/run_aec.rs"
 
+[[bin]]
+name = "aether_build"
+path = "src/bin/aether_build.rs"
+
+[[bin]]
+name = "_aether_temp_launcher"
+path = "src/bin/_aether_temp_launcher.rs"
+
 [dependencies]
 bytemuck = { version = "1.25.0", features = ["derive"] }
 cpal = "0.17.3"

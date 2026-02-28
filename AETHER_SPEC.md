@@ -100,5 +100,5 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 Upon execution of a `.aec` structure, the engine evaluates nodes from root to leaf. 
 The program's outcome is the value of the explicit root `Return` node, or the value of the last node in the top-level block.
 
-## 6. Binary Footprint (Bincode Enum tags)
-The `bincode` deserializer maps Rust Enums linearly starting from index `0u32`. Thus, the binary header for a `Node` identifies its enum variant as a 32-bit integer, followed by the flattened representation of its inner fields.
+## 6. Binary Footprint & Bundling
+The `run_aec` executor actively checks for the `AETHER_BUNDLE` environment flag during execution routines. The local toolchain exposes the `aether_build <file.json>` build command which evaluates custom memory directives hooking the AST natively within machine code. This outputs standalone `.exe` packages for zero-dependency execution.
