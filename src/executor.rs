@@ -9,7 +9,11 @@ pub enum RelType {
     Bool(bool),
     Str(String),
     Array(Vec<RelType>),
-    Function(Vec<String>, Box<Node>), // Parameters, Body Block
+    // Functions
+    FnDef(String, Vec<String>, Box<Node>),
+    Call(String, Vec<Node>),
+
+    // I/OParameters, Body Block
     Void,
 }
 
@@ -24,7 +28,8 @@ impl std::fmt::Display for RelType {
                 let s: Vec<String> = v.iter().map(|i| i.to_string()).collect();
                 write!(f, "[{}] (Array)", s.join(", "))
             }
-            RelType::Function(_, _) => write!(f, "<Function>"),
+            RelType::FnDef(_, _, _) => write!(f, "<Function>"),
+            RelType::Call(_, _) => write!(f, "<Function Call>"),
             RelType::Void => write!(f, "void"),
         }
     }
@@ -65,12 +70,13 @@ pub struct MeshBuffers {
 pub struct VoxelVertex {
     pub position: [f32; 3],
     pub normal: [f32; 3],
+    pub uv: [f32; 2],
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct VoxelInstance {
-    pub instance_pos: [f32; 3],
+    pub instance_pos_and_id: [f32; 4],
 }
 
 pub struct ExecutionEngine {
@@ -98,8 +104,9 @@ pub struct ExecutionEngine {
     pub voxel_pipeline: Option<wgpu::RenderPipeline>,
     pub voxel_vbo: Option<wgpu::Buffer>,
     pub voxel_ibo: Option<wgpu::Buffer>,
-    pub voxel_instances: Vec<[f32; 3]>,
+    pub voxel_instances: Vec<[f32; 4]>,
     pub voxel_bind_group: Option<wgpu::BindGroup>,
+    pub voxel_atlas_bind_group: Option<wgpu::BindGroup>,
     pub voxel_ubo: Option<wgpu::Buffer>,
 
     // Asset pipeline state
@@ -127,6 +134,10 @@ pub struct ExecutionEngine {
     pub stream_samples: Option<Arc<Mutex<Vec<f32>>>>,
     pub stream_pos: Option<Arc<Mutex<usize>>>,
     pub audio_stream: Option<cpal::Stream>,
+
+    // Rodio Audio State
+    pub audio_stream_handle: Option<(rodio::OutputStream, rodio::OutputStreamHandle)>,
+    pub samples: HashMap<i64, std::sync::Arc<[u8]>>,
 }
 
 pub enum ExecResult {
@@ -162,6 +173,7 @@ impl ExecutionEngine {
             voxel_ibo: None,
             voxel_instances: Vec::new(),
             voxel_bind_group: None,
+            voxel_atlas_bind_group: None,
             voxel_ubo: None,
             meshes: Vec::new(),
             textures: Vec::new(),
@@ -176,6 +188,8 @@ impl ExecutionEngine {
             stream_samples: None,
             stream_pos: None,
             audio_stream: None,
+            audio_stream_handle: None,
+            samples: HashMap::new(),
         }
     }
 
@@ -208,9 +222,32 @@ impl ExecutionEngine {
             label: Some("voxel_bind_group_layout"),
         });
 
+        let atlas_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+                label: Some("atlas_bind_group_layout_template"),
+            });
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Voxel Pipeline Layout"),
-            bind_group_layouts: &[&bind_group_layout],
+            bind_group_layouts: &[&bind_group_layout, &atlas_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -235,15 +272,20 @@ impl ExecutionEngine {
                                 shader_location: 1,
                                 format: wgpu::VertexFormat::Float32x3,
                             },
+                            wgpu::VertexAttribute {
+                                offset: 24,
+                                shader_location: 2,
+                                format: wgpu::VertexFormat::Float32x2,
+                            },
                         ],
                     },
                     wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<VoxelInstance>() as wgpu::BufferAddress,
+                        array_stride: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &[wgpu::VertexAttribute {
                             offset: 0,
-                            shader_location: 2,
-                            format: wgpu::VertexFormat::Float32x3,
+                            shader_location: 3,
+                            format: wgpu::VertexFormat::Float32x4,
                         }],
                     },
                 ],
@@ -292,98 +334,122 @@ impl ExecutionEngine {
             VoxelVertex {
                 position: [-v, v, -v],
                 normal: ny,
+                uv: [0.0, 0.0],
             },
             VoxelVertex {
                 position: [v, v, -v],
                 normal: ny,
+                uv: [1.0, 0.0],
             },
             VoxelVertex {
                 position: [v, v, v],
                 normal: ny,
+                uv: [1.0, 1.0],
             },
             VoxelVertex {
                 position: [-v, v, v],
                 normal: ny,
+                uv: [0.0, 1.0],
             },
             VoxelVertex {
                 position: [-v, -v, v],
                 normal: any,
+                uv: [0.0, 0.0],
             },
             VoxelVertex {
                 position: [v, -v, v],
                 normal: any,
+                uv: [1.0, 0.0],
             },
             VoxelVertex {
                 position: [v, -v, -v],
                 normal: any,
+                uv: [1.0, 1.0],
             },
             VoxelVertex {
                 position: [-v, -v, -v],
                 normal: any,
+                uv: [0.0, 1.0],
             },
             VoxelVertex {
                 position: [v, -v, -v],
                 normal: nx,
+                uv: [0.0, 0.0],
             },
             VoxelVertex {
                 position: [v, v, -v],
                 normal: nx,
+                uv: [1.0, 0.0],
             },
             VoxelVertex {
                 position: [v, v, v],
                 normal: nx,
+                uv: [1.0, 1.0],
             },
             VoxelVertex {
                 position: [v, -v, v],
                 normal: nx,
+                uv: [0.0, 1.0],
             },
             VoxelVertex {
                 position: [-v, -v, v],
                 normal: anx,
+                uv: [0.0, 0.0],
             },
             VoxelVertex {
                 position: [-v, v, v],
                 normal: anx,
+                uv: [1.0, 0.0],
             },
             VoxelVertex {
                 position: [-v, v, -v],
                 normal: anx,
+                uv: [1.0, 1.0],
             },
             VoxelVertex {
                 position: [-v, -v, -v],
                 normal: anx,
+                uv: [0.0, 1.0],
             },
             VoxelVertex {
                 position: [-v, -v, v],
                 normal: nz,
+                uv: [0.0, 0.0],
             },
             VoxelVertex {
                 position: [v, -v, v],
                 normal: nz,
+                uv: [1.0, 0.0],
             },
             VoxelVertex {
                 position: [v, v, v],
                 normal: nz,
+                uv: [1.0, 1.0],
             },
             VoxelVertex {
                 position: [-v, v, v],
                 normal: nz,
+                uv: [0.0, 1.0],
             },
             VoxelVertex {
                 position: [v, -v, -v],
                 normal: anz,
+                uv: [0.0, 0.0],
             },
             VoxelVertex {
                 position: [-v, -v, -v],
                 normal: anz,
+                uv: [1.0, 0.0],
             },
             VoxelVertex {
                 position: [-v, v, -v],
                 normal: anz,
+                uv: [1.0, 1.0],
             },
             VoxelVertex {
                 position: [v, v, -v],
                 normal: anz,
+                uv: [0.0, 1.0],
             },
         ];
 
@@ -462,7 +528,8 @@ impl ExecutionEngine {
                         RelType::Str(s) => format!("{} = \"{}\"", k, s),
                         RelType::Float(f) => format!("{} = {:?}", k, f),
                         RelType::Array(_) => format!("{} = [...]", k),
-                        RelType::Function(_, _) => format!("{} = <fn>", k),
+                        RelType::FnDef(_, _, _) => format!("{} = <fn>", k),
+                        RelType::Call(_, _) => format!("{} = <fn call>", k),
                         _ => format!(
                             "{} = {}",
                             k,
@@ -782,7 +849,7 @@ impl ExecutionEngine {
 
             // Functions
             Node::FnDef(name, params, body) => {
-                let func = RelType::Function(params.clone(), body.clone());
+                let func = RelType::FnDef(name.clone(), params.clone(), body.clone());
                 self.memory.insert(name.clone(), func.clone());
                 ExecResult::Value(func)
             }
@@ -793,7 +860,7 @@ impl ExecutionEngine {
                 };
 
                 match func_val {
-                    RelType::Function(params, body) => {
+                    RelType::FnDef(_, params, body) => {
                         if args.len() != params.len() {
                             return ExecResult::Fault("Argument count mismatch".to_string());
                         }
@@ -2064,12 +2131,14 @@ impl ExecutionEngine {
                                             Some(vbo),
                                             Some(ibo),
                                             Some(bind_group),
+                                            Some(atlas_bind_group),
                                             Some(depth_view),
                                         ) = (
                                             &self.engine.voxel_pipeline,
                                             &self.engine.voxel_vbo,
                                             &self.engine.voxel_ibo,
                                             &self.engine.voxel_bind_group,
+                                            &self.engine.voxel_atlas_bind_group,
                                             depth_view_opt.as_ref(),
                                         ) {
                                             let mut rpass =
@@ -2109,6 +2178,7 @@ impl ExecutionEngine {
 
                                             rpass.set_pipeline(pipeline);
                                             rpass.set_bind_group(0, bind_group, &[]);
+                                            rpass.set_bind_group(1, atlas_bind_group, &[]);
                                             rpass.set_vertex_buffer(0, vbo.slice(..));
                                             rpass.set_vertex_buffer(1, instance_buf.slice(..));
                                             rpass.set_index_buffer(
@@ -2231,7 +2301,7 @@ impl ExecutionEngine {
                         .next()
                         .unwrap()
                         .with_max_sample_rate();
-                    let sample_rate = supported_config.sample_rate() as f32; // wait, if cpal changed this to u32, this will work.
+                    let sample_rate = supported_config.sample_rate().0 as f32; // wait, if cpal changed this to u32, this will work.
                     let config = supported_config.config();
                     let channels = config.channels as usize;
 
@@ -2598,10 +2668,11 @@ impl ExecutionEngine {
                 if let ExecResult::Value(RelType::Array(positions)) = pos_res {
                     self.voxel_instances.clear();
                     let mut i = 0;
-                    while i + 2 < positions.len() {
+                    while i + 3 < positions.len() {
                         let mut x_f = 0.0;
                         let mut y_f = 0.0;
                         let mut z_f = 0.0;
+                        let mut id_f = 0.0;
 
                         if let RelType::Float(f) = positions[i] {
                             x_f = f as f32;
@@ -2621,14 +2692,188 @@ impl ExecutionEngine {
                             z_f = f as f32;
                         }
 
-                        self.voxel_instances.push([x_f, y_f, z_f]);
-                        i += 3;
+                        if let RelType::Float(f) = positions[i + 3] {
+                            id_f = f as f32;
+                        } else if let RelType::Int(f) = positions[i + 3] {
+                            id_f = f as f32;
+                        }
+
+                        self.voxel_instances.push([x_f, y_f, z_f, id_f]);
+                        i += 4;
                     }
                     ExecResult::Value(RelType::Void)
                 } else {
                     ExecResult::Fault(
-                        "DrawVoxelGrid expects a flat Array of XYZ floats".to_string(),
+                        "DrawVoxelGrid expects a flat Array of XYZId floats".to_string(),
                     )
+                }
+            }
+            Node::LoadTextureAtlas(path_n, tile_size_n) => {
+                let path_res = self.evaluate(path_n);
+                let tile_size_res = self.evaluate(tile_size_n);
+
+                if let (
+                    ExecResult::Value(RelType::Str(path)),
+                    ExecResult::Value(RelType::Float(_tile_size)), // Passing to shader logic eventually if dynamic
+                ) = (path_res, tile_size_res)
+                {
+                    if let (Some(device), Some(queue)) = (&self.device, &self.queue) {
+                        if let Ok(img) = image::open(&path) {
+                            let rgba = img.to_rgba8();
+                            let dimensions = rgba.dimensions();
+
+                            let texture_size = wgpu::Extent3d {
+                                width: dimensions.0,
+                                height: dimensions.1,
+                                depth_or_array_layers: 1,
+                            };
+
+                            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                                size: texture_size,
+                                mip_level_count: 1,
+                                sample_count: 1,
+                                dimension: wgpu::TextureDimension::D2,
+                                format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                                usage: wgpu::TextureUsages::TEXTURE_BINDING
+                                    | wgpu::TextureUsages::COPY_DST,
+                                label: Some("Atlas Texture"),
+                                view_formats: &[],
+                            });
+
+                            queue.write_texture(
+                                wgpu::ImageCopyTexture {
+                                    texture: &texture,
+                                    mip_level: 0,
+                                    origin: wgpu::Origin3d::ZERO,
+                                    aspect: wgpu::TextureAspect::All,
+                                },
+                                &rgba,
+                                wgpu::ImageDataLayout {
+                                    offset: 0,
+                                    bytes_per_row: Some(4 * dimensions.0),
+                                    rows_per_image: Some(dimensions.1),
+                                },
+                                texture_size,
+                            );
+
+                            let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+                            let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+                                address_mode_u: wgpu::AddressMode::ClampToEdge,
+                                address_mode_v: wgpu::AddressMode::ClampToEdge,
+                                address_mode_w: wgpu::AddressMode::ClampToEdge,
+                                mag_filter: wgpu::FilterMode::Nearest, // CRISP PIXELS!
+                                min_filter: wgpu::FilterMode::Nearest,
+                                mipmap_filter: wgpu::FilterMode::Nearest,
+                                ..Default::default()
+                            });
+
+                            let layout =
+                                device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                                    entries: &[
+                                        wgpu::BindGroupLayoutEntry {
+                                            binding: 0,
+                                            visibility: wgpu::ShaderStages::FRAGMENT,
+                                            ty: wgpu::BindingType::Texture {
+                                                multisampled: false,
+                                                view_dimension: wgpu::TextureViewDimension::D2,
+                                                sample_type: wgpu::TextureSampleType::Float {
+                                                    filterable: true,
+                                                },
+                                            },
+                                            count: None,
+                                        },
+                                        wgpu::BindGroupLayoutEntry {
+                                            binding: 1,
+                                            visibility: wgpu::ShaderStages::FRAGMENT,
+                                            ty: wgpu::BindingType::Sampler(
+                                                wgpu::SamplerBindingType::Filtering,
+                                            ),
+                                            count: None,
+                                        },
+                                    ],
+                                    label: Some("atlas_bind_group_layout"),
+                                });
+
+                            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                                layout: &layout,
+                                entries: &[
+                                    wgpu::BindGroupEntry {
+                                        binding: 0,
+                                        resource: wgpu::BindingResource::TextureView(&view),
+                                    },
+                                    wgpu::BindGroupEntry {
+                                        binding: 1,
+                                        resource: wgpu::BindingResource::Sampler(&sampler),
+                                    },
+                                ],
+                                label: Some("atlas_bind_group"),
+                            });
+
+                            self.voxel_atlas_bind_group = Some(bind_group);
+                            ExecResult::Value(RelType::Void)
+                        } else {
+                            ExecResult::Fault(format!("Failed to open atlas {}", path))
+                        }
+                    } else {
+                        ExecResult::Fault("WGPU Device missing for Atlas Loading".to_string())
+                    }
+                } else {
+                    ExecResult::Fault("LoadTextureAtlas expects (String, Float)".to_string())
+                }
+            }
+            Node::LoadSample(id_n, path_n) => {
+                let id_res = self.evaluate(id_n);
+                let path_res = self.evaluate(path_n);
+
+                if let (
+                    ExecResult::Value(RelType::Int(id)),
+                    ExecResult::Value(RelType::Str(path)),
+                ) = (id_res, path_res)
+                {
+                    if let Ok(bytes) = std::fs::read(&path) {
+                        self.samples.insert(id, bytes.into());
+                        ExecResult::Value(RelType::Void)
+                    } else {
+                        ExecResult::Fault(format!("Failed to read sample {:?}", path))
+                    }
+                } else {
+                    ExecResult::Fault("LoadSample expects (Int, String)".to_string())
+                }
+            }
+            Node::PlaySample(id_n, vol_n, pitch_n) => {
+                let id_res = self.evaluate(id_n);
+                let vol_res = self.evaluate(vol_n);
+                let pitch_res = self.evaluate(pitch_n);
+
+                if let (
+                    ExecResult::Value(RelType::Int(id)),
+                    ExecResult::Value(RelType::Float(vol)),
+                    ExecResult::Value(RelType::Float(pitch)),
+                ) = (id_res, vol_res, pitch_res)
+                {
+                    if let Some(bytes) = self.samples.get(&id) {
+                        if self.audio_stream_handle.is_none() {
+                            if let Ok((_stream, handle)) = rodio::OutputStream::try_default() {
+                                self.audio_stream_handle = Some((_stream, handle));
+                            }
+                        }
+
+                        if let Some((_, handle)) = &self.audio_stream_handle {
+                            use std::io::Cursor;
+                            let cursor = Cursor::new(Vec::from(&**bytes));
+                            if let Ok(decoder) = rodio::Decoder::new(cursor) {
+                                if let Ok(sink) = rodio::Sink::try_new(handle) {
+                                    sink.set_volume(vol as f32);
+                                    sink.set_speed(pitch as f32);
+                                    sink.append(decoder);
+                                    sink.detach();
+                                }
+                            }
+                        }
+                    }
+                    ExecResult::Value(RelType::Void)
+                } else {
+                    ExecResult::Fault("PlaySample expects (Int, Float, Float)".to_string())
                 }
             }
             Node::Block(nodes) => {

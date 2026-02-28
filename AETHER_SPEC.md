@@ -64,11 +64,29 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 ### 4.8. 3D Graphics (Vulkan/Metal/DX12 via WGPU)
 *   **`InitWindow(Box<Node>, Box<Node>, Box<Node>)`**: Initializes an OS Window (Width, Height, Title). Opens the window on the system.
 *   **`InitGraphics()`**: Initializes the GPU Adapter and Device.
-*   **`InitCamera(Box<Node>)`**: Initializes the First-Person Camera capturing mouse bounds and WASD translation natively. Parameter is a Float field-of-view (FOV).
 *   **`LoadShader(Box<Node>)`**: Compiles a WGSL Shader from a String. Returns a Shader Identifier.
 *   **`RenderMesh(Box<Node>, Box<Node>, Box<Node>)`**: Executes a RenderPass draw call to the screen (Shader Identifier, Vertex Buffer Array, MVP Matrix Uniform Array).
-*   **`DrawVoxelGrid(Box<Node>)`**: Pre-calculates instanced rendering payload pipelines mapped efficiently referencing a linear memory Array of XYZ Float primitives corresponding to cube anchors.
 *   **`PollEvents(Box<Node>)`**: Submits a block of nodes to run inside the Window Event Loop, intercepting close requests.
+
+#### `InitCamera`
+Initializes a First-Person 3D Camera mapping keyboard `WASD` inputs to matrix projections automatically.
+*   **Structure:** `{"InitCamera": [{"FloatLiteral": <FOV>}]}`
+
+#### `DrawVoxelGrid`
+Receives an array of voxel positions defining chunks of blocks in 3-dimensional space (instanced geometry).
+*   **Structure:** `{"DrawVoxelGrid": [{"ArrayLiteral": [X, Y, Z, BlockID, X, Y, Z, BlockID, ...]}]}`
+
+#### `LoadTextureAtlas`
+Loads an image texture from the disk into the WGPU graphics engine, generating tile-mapped UV regions implicitly.
+*   **Structure:** `{"LoadTextureAtlas": [{"StringLiteral": "<Filepath>"}, {"FloatLiteral": <TileSize (e.g. 16.0)>}]}`
+
+#### `LoadSample`
+Reads an audio file into system RAM buffering bytes natively using the Rodio CPAL interface (Amiga Paula mapping).
+*   **Structure:** `{"LoadSample": [{"IntLiteral": <SampleID>}, {"StringLiteral": "<Filepath>"}]}`
+
+#### `PlaySample`
+Triggers an asynchronous, polyphonic audio stream natively out of the thread loop. Pitch and Volume map natively.
+*   **Structure:** `{"PlaySample": [{"IntLiteral": <SampleID>}, {"FloatLiteral": <Volume>}, {"FloatLiteral": <Pitch>}]}`
 
 ### 4.9. 8-Bit Audio Engine (CPAL FFI)
 *   **`InitAudio()`**: Bootstraps the `cpal` low-latency audio stream and software synthesizer.

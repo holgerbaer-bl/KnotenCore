@@ -16,7 +16,7 @@ path = "src/bin/aether_build.rs"
 
 [dependencies]
 bytemuck = { version = "1.25.0", features = ["derive"] }
-cpal = "0.17.3"
+cpal = "0.15.3"
 pollster = "0.4.0"
 rand = "0.10.0"
 serde = { version = "1.0.228", features = ["derive"] }
@@ -31,3 +31,4 @@ egui = "0.30"
 egui-wgpu = "0.30"
 egui-winit = "0.30"
 cgmath = "0.18"
+rodio = "0.19.0"
