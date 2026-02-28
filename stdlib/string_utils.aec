@@ -1,0 +1,68 @@
+{
+  "Block": [
+    {
+      "FnDef": [
+        "String.IsNotEmpty",
+        [
+          "str"
+        ],
+        {
+          "Block": [
+            {
+              "Assign": [
+                "len",
+                {
+                  "ArrayLen": "str"
+                }
+              ]
+            },
+            {
+              "If": [
+                {
+                  "Lt": [
+                    {
+                      "IntLiteral": 0
+                    },
+                    {
+                      "Identifier": "len"
+                    }
+                  ]
+                },
+                {
+                  "Return": {
+                    "BoolLiteral": true
+                  }
+                },
+                {
+                  "Return": {
+                    "BoolLiteral": false
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "String.FormatLog",
+        [
+          "msg"
+        ],
+        {
+          "Return": {
+            "Concat": [
+              {
+                "StringLiteral": "[AetherCore] "
+              },
+              {
+                "Identifier": "msg"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

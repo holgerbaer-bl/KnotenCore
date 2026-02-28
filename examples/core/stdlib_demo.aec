@@ -1,0 +1,89 @@
+{
+  "Block": [
+    {
+      "Import": "stdlib/array_utils.aec"
+    },
+    {
+      "Import": "stdlib/math_ext.aec"
+    },
+    {
+      "Import": "stdlib/string_utils.aec"
+    },
+    {
+      "Print": {
+        "Call": [
+          "String.FormatLog",
+          [
+            {
+              "StringLiteral": "Testing Standard Library Modules..."
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "Assign": [
+        "clamp_res",
+        {
+          "Call": [
+            "Math.Clamp",
+            [
+              {
+                "IntLiteral": 10
+              },
+              {
+                "IntLiteral": 0
+              },
+              {
+                "IntLiteral": 5
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Print": {
+        "Identifier": "clamp_res"
+      }
+    },
+    {
+      "Assign": [
+        "arr",
+        {
+          "ArrayLiteral": [
+            {
+              "IntLiteral": 10
+            },
+            {
+              "IntLiteral": 42
+            },
+            {
+              "IntLiteral": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "arr_max",
+        {
+          "Call": [
+            "Array.Max",
+            [
+              {
+                "Identifier": "arr"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Print": {
+        "Identifier": "arr_max"
+      }
+    }
+  ]
+}

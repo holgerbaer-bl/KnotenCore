@@ -1,0 +1,363 @@
+{
+  "Block": [
+    {
+      "FnDef": [
+        "Array.Contains",
+        [
+          "arr",
+          "element"
+        ],
+        {
+          "Block": [
+            {
+              "Assign": [
+                "i",
+                {
+                  "IntLiteral": 0
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "found",
+                {
+                  "BoolLiteral": false
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "len",
+                {
+                  "ArrayLen": "arr"
+                }
+              ]
+            },
+            {
+              "While": [
+                {
+                  "Lt": [
+                    {
+                      "Identifier": "i"
+                    },
+                    {
+                      "Identifier": "len"
+                    }
+                  ]
+                },
+                {
+                  "Block": [
+                    {
+                      "If": [
+                        {
+                          "Eq": [
+                            {
+                              "ArrayGet": [
+                                "arr",
+                                {
+                                  "Identifier": "i"
+                                }
+                              ]
+                            },
+                            {
+                              "Identifier": "element"
+                            }
+                          ]
+                        },
+                        {
+                          "Block": [
+                            {
+                              "Assign": [
+                                "found",
+                                {
+                                  "BoolLiteral": true
+                                }
+                              ]
+                            },
+                            {
+                              "Assign": [
+                                "i",
+                                {
+                                  "Identifier": "len"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        null
+                      ]
+                    },
+                    {
+                      "Assign": [
+                        "i",
+                        {
+                          "Add": [
+                            {
+                              "Identifier": "i"
+                            },
+                            {
+                              "IntLiteral": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Return": {
+                "Identifier": "found"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "Array.Max",
+        [
+          "arr"
+        ],
+        {
+          "Block": [
+            {
+              "Assign": [
+                "len",
+                {
+                  "ArrayLen": "arr"
+                }
+              ]
+            },
+            {
+              "If": [
+                {
+                  "Eq": [
+                    {
+                      "Identifier": "len"
+                    },
+                    {
+                      "IntLiteral": 0
+                    }
+                  ]
+                },
+                {
+                  "Return": {
+                    "IntLiteral": 0
+                  }
+                },
+                null
+              ]
+            },
+            {
+              "Assign": [
+                "max_val",
+                {
+                  "ArrayGet": [
+                    "arr",
+                    {
+                      "IntLiteral": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "i",
+                {
+                  "IntLiteral": 1
+                }
+              ]
+            },
+            {
+              "While": [
+                {
+                  "Lt": [
+                    {
+                      "Identifier": "i"
+                    },
+                    {
+                      "Identifier": "len"
+                    }
+                  ]
+                },
+                {
+                  "Block": [
+                    {
+                      "Assign": [
+                        "curr",
+                        {
+                          "ArrayGet": [
+                            "arr",
+                            {
+                              "Identifier": "i"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "If": [
+                        {
+                          "Lt": [
+                            {
+                              "Identifier": "max_val"
+                            },
+                            {
+                              "Identifier": "curr"
+                            }
+                          ]
+                        },
+                        {
+                          "Assign": [
+                            "max_val",
+                            {
+                              "Identifier": "curr"
+                            }
+                          ]
+                        },
+                        null
+                      ]
+                    },
+                    {
+                      "Assign": [
+                        "i",
+                        {
+                          "Add": [
+                            {
+                              "Identifier": "i"
+                            },
+                            {
+                              "IntLiteral": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Return": {
+                "Identifier": "max_val"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "Array.Reverse",
+        [
+          "arr"
+        ],
+        {
+          "Block": [
+            {
+              "Assign": [
+                "len",
+                {
+                  "ArrayLen": "arr"
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "reversed",
+                {
+                  "ArrayLiteral": []
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "i",
+                {
+                  "IntLiteral": 0
+                }
+              ]
+            },
+            {
+              "While": [
+                {
+                  "Lt": [
+                    {
+                      "Identifier": "i"
+                    },
+                    {
+                      "Identifier": "len"
+                    }
+                  ]
+                },
+                {
+                  "Block": [
+                    {
+                      "Assign": [
+                        "idx",
+                        {
+                          "Sub": [
+                            {
+                              "Sub": [
+                                {
+                                  "Identifier": "len"
+                                },
+                                {
+                                  "IntLiteral": 1
+                                }
+                              ]
+                            },
+                            {
+                              "Identifier": "i"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "ArrayPush": [
+                        "reversed",
+                        {
+                          "ArrayGet": [
+                            "arr",
+                            {
+                              "Identifier": "idx"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Assign": [
+                        "i",
+                        {
+                          "Add": [
+                            {
+                              "Identifier": "i"
+                            },
+                            {
+                              "IntLiteral": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Return": {
+                "Identifier": "reversed"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
