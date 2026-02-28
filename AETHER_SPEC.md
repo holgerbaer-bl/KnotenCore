@@ -8,7 +8,9 @@ This specification documents the exact binary structural layout of the valid Aet
 AetherCore AST schemas are serialized using **Bincode** (Little-Endian, fixed integer sizes). All Aether programs are distributed as `.aec` files (AetherCore Executable).
 
 ## 2. Core Execution Model
-AetherCore executes structurally. Programs are represented by the `Node` enum. Each compilation unit or script starts with an implicit root block `Node::Block(Vec<Node>)` or any single `Node`.
+AetherCore executes structurally. Programs are represented by the `Node` enum. Each compilation unit or script starts with an implicit root block `Node::Block(Vec<Node>)` or any single `Node`. 
+
+The runtime maintains a **Call Stack** of **Stack Frames**. Variable resolution always prioritizes the local `StackFrame` before falling back to the global state.
 
 ## 3. Data Types
 AetherCore defines the following base types for AST values, managed as dynamically typed registers inside the runtime memory state:
@@ -60,6 +62,7 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 ### 4.7. File I/O
 *   **`FileRead(Box<Node>)`**: Reads a file by path. Returns file contents as an Array of Int bytes.
 *   **`FileWrite(Box<Node>, Box<Node>)`**: Writes an Array of Int bytes (arg 2) to a file path (arg 1).
+*   **`Print(Box<Node>)`**: Evaluates the node and prints the resulting value to the system terminal (stdout).
 
 ### 4.8. 3D Graphics (Vulkan/Metal/DX12 via WGPU)
 *   **`InitWindow(Box<Node>, Box<Node>, Box<Node>)`**: Initializes an OS Window (Width, Height, Title). Opens the window on the system.

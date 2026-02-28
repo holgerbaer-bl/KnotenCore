@@ -66,6 +66,10 @@ pub struct MeshBuffers {
     pub index_count: u32,
 }
 
+pub struct StackFrame {
+    pub locals: HashMap<String, RelType>,
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct VoxelVertex {
@@ -144,6 +148,8 @@ pub struct ExecutionEngine {
     // Rodio Audio State
     pub audio_stream_handle: Option<(rodio::OutputStream, rodio::OutputStreamHandle)>,
     pub samples: HashMap<i64, std::sync::Arc<[u8]>>,
+
+    pub call_stack: Vec<StackFrame>,
 }
 
 pub enum ExecResult {
@@ -201,6 +207,7 @@ impl ExecutionEngine {
             audio_stream: None,
             audio_stream_handle: None,
             samples: HashMap::new(),
+            call_stack: Vec::new(),
         }
     }
 
@@ -570,19 +577,35 @@ impl ExecutionEngine {
 
             // Mem
             Node::Identifier(name) => {
+                // Search Call Stack first (Local Scopes)
+                if let Some(frame) = self.call_stack.last() {
+                    if let Some(val) = frame.locals.get(name) {
+                        return ExecResult::Value(val.clone());
+                    }
+                }
+
+                // Fallback to Global Memory
                 if let Some(val) = self.memory.get(name) {
                     ExecResult::Value(val.clone())
                 } else {
-                    ExecResult::Fault("Undefined identifier".to_string())
+                    ExecResult::Fault(format!("Undefined identifier: {}", name))
                 }
             }
             Node::Assign(name, expr_node) => match self.evaluate(expr_node) {
                 ExecResult::Value(val) => {
-                    self.memory.insert(name.clone(), val.clone());
+                    if let Some(frame) = self.call_stack.last_mut() {
+                        frame.locals.insert(name.clone(), val.clone());
+                    } else {
+                        self.memory.insert(name.clone(), val.clone());
+                    }
                     ExecResult::Value(val)
                 }
                 ExecResult::ReturnBlockInfo(val) => {
-                    self.memory.insert(name.clone(), val.clone());
+                    if let Some(frame) = self.call_stack.last_mut() {
+                        frame.locals.insert(name.clone(), val.clone());
+                    } else {
+                        self.memory.insert(name.clone(), val.clone());
+                    }
                     ExecResult::Value(val)
                 }
                 fault => fault,
@@ -873,7 +896,12 @@ impl ExecutionEngine {
                 match func_val {
                     RelType::FnDef(_, params, body) => {
                         if args.len() != params.len() {
-                            return ExecResult::Fault("Argument count mismatch".to_string());
+                            return ExecResult::Fault(format!(
+                                "Argument count mismatch for function '{}': expected {}, got {}",
+                                name,
+                                params.len(),
+                                args.len()
+                            ));
                         }
 
                         let mut evaluated_args = Vec::new();
@@ -885,17 +913,24 @@ impl ExecutionEngine {
                             }
                         }
 
-                        let old_memory = self.memory.clone();
+                        // Create new Stack Frame
+                        let mut frame = StackFrame {
+                            locals: HashMap::new(),
+                        };
                         for (i, p) in params.iter().enumerate() {
-                            self.memory.insert(p.clone(), evaluated_args[i].clone());
+                            frame.locals.insert(p.clone(), evaluated_args[i].clone());
                         }
 
+                        // Push and Execute
+                        self.call_stack.push(frame);
                         let mut call_res = self.evaluate(&body);
+                        self.call_stack.pop(); // Pop scope
+
+                        // Unwrap Return value if applicable
                         if let ExecResult::ReturnBlockInfo(v) = call_res {
                             call_res = ExecResult::Value(v);
                         }
 
-                        self.memory = old_memory; // Pop scope
                         call_res
                     }
                     _ => ExecResult::Fault(format!("Identifier '{}' is not a function", name)),
@@ -947,6 +982,16 @@ impl ExecutionEngine {
                         ExecResult::Fault(err)
                     }
                     _ => ExecResult::Fault("FileWrite semantic error".to_string()),
+                }
+            }
+            Node::Print(n) => {
+                let val = self.evaluate(n);
+                match val {
+                    ExecResult::Value(v) => {
+                        println!("{}", v);
+                        ExecResult::Value(v)
+                    }
+                    fault => fault,
                 }
             }
 

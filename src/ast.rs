@@ -41,6 +41,7 @@ pub enum Node {
     // I/O
     FileRead(Box<Node>),
     FileWrite(Box<Node>, Box<Node>),
+    Print(Box<Node>),
 
     // FFI / Reflection
     EvalJSONNative(Box<Node>),

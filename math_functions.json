@@ -1,0 +1,188 @@
+{
+    "Block": [
+        {
+            "FnDef": [
+                "CalculateDamage",
+                [
+                    "Base",
+                    "Multiplier"
+                ],
+                {
+                    "Block": [
+                        {
+                            "Assign": [
+                                "Bonus",
+                                {
+                                    "FloatLiteral": 10.0
+                                }
+                            ]
+                        },
+                        {
+                            "Print": {
+                                "Concat": [
+                                    {
+                                        "StringLiteral": "Calculating inside function with Bonus: "
+                                    },
+                                    {
+                                        "ToString": {
+                                            "Identifier": "Bonus"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "Return": {
+                                "Add": [
+                                    {
+                                        "Mul": [
+                                            {
+                                                "Identifier": "Base"
+                                            },
+                                            {
+                                                "Identifier": "Multiplier"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "Identifier": "Bonus"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "Print": {
+                "StringLiteral": "--- Function Call Test ---"
+            }
+        },
+        {
+            "Assign": [
+                "GlobalVar",
+                {
+                    "FloatLiteral": 100.0
+                }
+            ]
+        },
+        {
+            "Assign": [
+                "FinalDamage",
+                {
+                    "Call": [
+                        "CalculateDamage",
+                        [
+                            {
+                                "Identifier": "GlobalVar"
+                            },
+                            {
+                                "FloatLiteral": 2.5
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "Print": {
+                "Concat": [
+                    {
+                        "StringLiteral": "Final Damage Result: "
+                    },
+                    {
+                        "ToString": {
+                            "Identifier": "FinalDamage"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "Print": {
+                "StringLiteral": "--- Scope Shadowing Test ---"
+            }
+        },
+        {
+            "Assign": [
+                "x",
+                {
+                    "IntLiteral": 10
+                }
+            ]
+        },
+        {
+            "FnDef": [
+                "ShadowTest",
+                [
+                    "x"
+                ],
+                {
+                    "Block": [
+                        {
+                            "Print": {
+                                "Concat": [
+                                    {
+                                        "StringLiteral": "Local x (passed as arg): "
+                                    },
+                                    {
+                                        "ToString": {
+                                            "Identifier": "x"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "Assign": [
+                                "x",
+                                {
+                                    "IntLiteral": 20
+                                }
+                            ]
+                        },
+                        {
+                            "Print": {
+                                "Concat": [
+                                    {
+                                        "StringLiteral": "Local x (after local assign): "
+                                    },
+                                    {
+                                        "ToString": {
+                                            "Identifier": "x"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "Call": [
+                "ShadowTest",
+                [
+                    {
+                        "IntLiteral": 50
+                    }
+                ]
+            ]
+        },
+        {
+            "Print": {
+                "Concat": [
+                    {
+                        "StringLiteral": "Global x (should still be 10): "
+                    },
+                    {
+                        "ToString": {
+                            "Identifier": "x"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
