@@ -54,7 +54,7 @@
           "Return": {
             "Concat": [
               {
-                "StringLiteral": "[AetherCore] "
+                "StringLiteral": "[KnotenCore] "
               },
               {
                 "Identifier": "msg"

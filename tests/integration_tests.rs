@@ -12,11 +12,11 @@ fn get_out_dir() -> PathBuf {
     path
 }
 
-/// The aether_test! macro generates a standard #[test] function.
+/// The knoten_test! macro generates a standard #[test] function.
 /// It serializes the provided AST node into target/tests_nod/<name>.nod,
 /// records the expected return value, and then intentionally panics,
 /// signaling that the compiler needs to execute it but does not exist yet.
-macro_rules! aether_test {
+macro_rules! knoten_test {
     ($name:ident, $node:expr, $expected_info:expr) => {
         #[test]
         fn $name() {
@@ -51,48 +51,48 @@ macro_rules! aether_test {
 // ------------------------------------------------------------------
 // Tests 1-10: Literals and Basic Types
 // ------------------------------------------------------------------
-aether_test!(
+knoten_test!(
     test_01_int_literal,
     Node::IntLiteral(42),
     "Return: 42 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_02_float_literal,
     Node::FloatLiteral(3.14),
     "Return: 3.14 (f64)"
 );
-aether_test!(
+knoten_test!(
     test_03_bool_literal_true,
     Node::BoolLiteral(true),
     "Return: true (bool)"
 );
-aether_test!(
+knoten_test!(
     test_04_bool_literal_false,
     Node::BoolLiteral(false),
     "Return: false (bool)"
 );
-aether_test!(
+knoten_test!(
     test_05_string_literal,
     Node::StringLiteral("Hello".to_string()),
     "Return: \"Hello\" (String)"
 );
-aether_test!(test_06_int_zero, Node::IntLiteral(0), "Return: 0 (i64)");
-aether_test!(
+knoten_test!(test_06_int_zero, Node::IntLiteral(0), "Return: 0 (i64)");
+knoten_test!(
     test_07_int_negative,
     Node::IntLiteral(-999),
     "Return: -999 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_08_float_negative,
     Node::FloatLiteral(-1.5),
     "Return: -1.5 (f64)"
 );
-aether_test!(
+knoten_test!(
     test_09_float_zero,
     Node::FloatLiteral(0.0),
     "Return: 0.0 (f64)"
 );
-aether_test!(
+knoten_test!(
     test_10_string_empty,
     Node::StringLiteral("".to_string()),
     "Return: \"\" (String)"
@@ -101,22 +101,22 @@ aether_test!(
 // ------------------------------------------------------------------
 // Tests 11-20: Memory Operations (Assignments)
 // ------------------------------------------------------------------
-aether_test!(
+knoten_test!(
     test_11_assign_int,
     Node::Assign("x".to_string(), Box::new(Node::IntLiteral(10))),
     "Return: 10 (i64), Memory: x = 10"
 );
-aether_test!(
+knoten_test!(
     test_12_assign_float,
     Node::Assign("pi".to_string(), Box::new(Node::FloatLiteral(3.1415))),
     "Return: 3.1415 (f64), Memory: pi = 3.1415"
 );
-aether_test!(
+knoten_test!(
     test_13_assign_bool,
     Node::Assign("flag".to_string(), Box::new(Node::BoolLiteral(true))),
     "Return: true (bool), Memory: flag = true"
 );
-aether_test!(
+knoten_test!(
     test_14_assign_string,
     Node::Assign(
         "msg".to_string(),
@@ -124,7 +124,7 @@ aether_test!(
     ),
     "Return: \"ok\" (String), Memory: msg = \"ok\""
 );
-aether_test!(
+knoten_test!(
     test_15_assign_expr,
     Node::Assign(
         "y".to_string(),
@@ -135,7 +135,7 @@ aether_test!(
     ),
     "Return: 10 (i64), Memory: y = 10"
 );
-aether_test!(
+knoten_test!(
     test_16_assign_reassign,
     Node::Block(vec![
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(1))),
@@ -143,7 +143,7 @@ aether_test!(
     ]),
     "Return: 2 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_17_read_identifier,
     Node::Block(vec![
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(42))),
@@ -151,7 +151,7 @@ aether_test!(
     ]),
     "Return: 42 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_18_assign_from_identifier,
     Node::Block(vec![
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(42))),
@@ -159,12 +159,12 @@ aether_test!(
     ]),
     "Return: 42 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_19_read_undefined,
     Node::Identifier("undeclared".to_string()),
     "Fault: Undefined identifier: undeclared"
 );
-aether_test!(
+knoten_test!(
     test_20_assign_undefined,
     Node::Assign(
         "y".to_string(),
@@ -176,7 +176,7 @@ aether_test!(
 // ------------------------------------------------------------------
 // Tests 21-30: Mathematical Operations
 // ------------------------------------------------------------------
-aether_test!(
+knoten_test!(
     test_21_add_int,
     Node::Add(
         Box::new(Node::IntLiteral(10)),
@@ -184,7 +184,7 @@ aether_test!(
     ),
     "Return: 30 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_22_sub_int,
     Node::Sub(
         Box::new(Node::IntLiteral(50)),
@@ -192,12 +192,12 @@ aether_test!(
     ),
     "Return: 30 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_23_mul_int,
     Node::Mul(Box::new(Node::IntLiteral(6)), Box::new(Node::IntLiteral(7))),
     "Return: 42 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_24_div_int,
     Node::Div(
         Box::new(Node::IntLiteral(100)),
@@ -205,7 +205,7 @@ aether_test!(
     ),
     "Return: 10 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_25_add_float,
     Node::Add(
         Box::new(Node::FloatLiteral(1.5)),
@@ -213,7 +213,7 @@ aether_test!(
     ),
     "Return: 4.0 (f64)"
 );
-aether_test!(
+knoten_test!(
     test_26_sub_float,
     Node::Sub(
         Box::new(Node::FloatLiteral(5.0)),
@@ -221,7 +221,7 @@ aether_test!(
     ),
     "Return: 3.9 (f64)"
 );
-aether_test!(
+knoten_test!(
     test_27_mul_float,
     Node::Mul(
         Box::new(Node::FloatLiteral(2.0)),
@@ -229,7 +229,7 @@ aether_test!(
     ),
     "Return: 6.2 (f64)"
 );
-aether_test!(
+knoten_test!(
     test_28_div_float,
     Node::Div(
         Box::new(Node::FloatLiteral(10.0)),
@@ -237,7 +237,7 @@ aether_test!(
     ),
     "Return: 4.0 (f64)"
 );
-aether_test!(
+knoten_test!(
     test_29_complex_math,
     Node::Add(
         Box::new(Node::Mul(
@@ -248,7 +248,7 @@ aether_test!(
     ),
     "Return: 10 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_30_div_by_zero,
     Node::Div(
         Box::new(Node::IntLiteral(10)),
@@ -260,17 +260,17 @@ aether_test!(
 // ------------------------------------------------------------------
 // Tests 31-40: Logical Operations and Control Flow (If)
 // ------------------------------------------------------------------
-aether_test!(
+knoten_test!(
     test_31_eq_true,
     Node::Eq(Box::new(Node::IntLiteral(5)), Box::new(Node::IntLiteral(5))),
     "Return: true (bool)"
 );
-aether_test!(
+knoten_test!(
     test_32_eq_false,
     Node::Eq(Box::new(Node::IntLiteral(5)), Box::new(Node::IntLiteral(6))),
     "Return: false (bool)"
 );
-aether_test!(
+knoten_test!(
     test_33_lt_true,
     Node::Lt(
         Box::new(Node::IntLiteral(5)),
@@ -278,7 +278,7 @@ aether_test!(
     ),
     "Return: true (bool)"
 );
-aether_test!(
+knoten_test!(
     test_34_lt_false,
     Node::Lt(
         Box::new(Node::IntLiteral(10)),
@@ -286,7 +286,7 @@ aether_test!(
     ),
     "Return: false (bool)"
 );
-aether_test!(
+knoten_test!(
     test_35_if_true,
     Node::If(
         Box::new(Node::BoolLiteral(true)),
@@ -295,7 +295,7 @@ aether_test!(
     ),
     "Return: 1 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_36_if_false,
     Node::If(
         Box::new(Node::BoolLiteral(false)),
@@ -304,7 +304,7 @@ aether_test!(
     ),
     "Return: void"
 );
-aether_test!(
+knoten_test!(
     test_37_if_else_true,
     Node::If(
         Box::new(Node::BoolLiteral(true)),
@@ -313,7 +313,7 @@ aether_test!(
     ),
     "Return: 1 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_38_if_else_false,
     Node::If(
         Box::new(Node::BoolLiteral(false)),
@@ -322,7 +322,7 @@ aether_test!(
     ),
     "Return: 2 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_39_if_lt,
     Node::If(
         Box::new(Node::Lt(
@@ -334,7 +334,7 @@ aether_test!(
     ),
     "Return: \"Less\" (String)"
 );
-aether_test!(
+knoten_test!(
     test_40_if_eq_assign,
     Node::Block(vec![
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(42))),
@@ -356,13 +356,13 @@ aether_test!(
 // ------------------------------------------------------------------
 // Tests 41-50: Control Flow (While, Block, Return)
 // ------------------------------------------------------------------
-aether_test!(test_41_empty_block, Node::Block(vec![]), "Return: void");
-aether_test!(
+knoten_test!(test_41_empty_block, Node::Block(vec![]), "Return: void");
+knoten_test!(
     test_42_single_expr_block,
     Node::Block(vec![Node::IntLiteral(99)]),
     "Return: 99 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_43_multi_expr_block,
     Node::Block(vec![
         Node::IntLiteral(1),
@@ -371,7 +371,7 @@ aether_test!(
     ]),
     "Return: 3 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_44_return_early,
     Node::Block(vec![
         Node::Return(Box::new(Node::IntLiteral(42))),
@@ -379,7 +379,7 @@ aether_test!(
     ]),
     "Return: 42 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_45_while_loop,
     Node::Block(vec![
         Node::Assign("i".to_string(), Box::new(Node::IntLiteral(0))),
@@ -400,7 +400,7 @@ aether_test!(
     ]),
     "Return: 3 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_46_while_never_executes,
     Node::Block(vec![
         Node::Assign("i".to_string(), Box::new(Node::IntLiteral(10))),
@@ -415,7 +415,7 @@ aether_test!(
     ]),
     "Return: 10 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_47_nested_blocks,
     Node::Block(vec![
         Node::Assign("outer".to_string(), Box::new(Node::IntLiteral(1))),
@@ -430,7 +430,7 @@ aether_test!(
     ]),
     "Fault: Undefined identifier: inner"
 );
-aether_test!(
+knoten_test!(
     test_48_nested_if,
     Node::If(
         Box::new(Node::BoolLiteral(true)),
@@ -443,7 +443,7 @@ aether_test!(
     ),
     "Return: 2 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_49_nested_while,
     Node::Block(vec![
         Node::Assign("i".to_string(), Box::new(Node::IntLiteral(0))),
@@ -490,7 +490,7 @@ aether_test!(
     ]),
     "Return: 4 (i64)"
 );
-aether_test!(
+knoten_test!(
     test_50_complex_combination,
     Node::Block(vec![
         Node::Assign("n".to_string(), Box::new(Node::IntLiteral(5))),
@@ -525,19 +525,19 @@ aether_test!(
 // ------------------------------------------------------------------
 // Tests 51-54: V2 Sprint Bootstrapping Features (Arrays, Bitwise, Funcs)
 // ------------------------------------------------------------------
-aether_test!(
+knoten_test!(
     test_51_array_literal,
     Node::ArrayLiteral(vec![Node::IntLiteral(1), Node::IntLiteral(2)]),
     "Return: [1 (i64), 2 (i64)] (Array)"
 );
 
-aether_test!(
+knoten_test!(
     test_52_bitwise_ops,
     Node::BitShiftLeft(Box::new(Node::IntLiteral(2)), Box::new(Node::IntLiteral(3))),
     "Return: 16 (i64)"
 );
 
-aether_test!(
+knoten_test!(
     test_53_function_call,
     Node::Block(vec![
         Node::FnDef(
@@ -553,7 +553,7 @@ aether_test!(
     "Return: 42 (i64), Memory: double = <fn>"
 );
 
-aether_test!(
+knoten_test!(
     test_54_string_concat,
     Node::Concat(
         Box::new(Node::StringLiteral("hello ".to_string())),

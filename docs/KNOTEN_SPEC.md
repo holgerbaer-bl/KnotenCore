@@ -5,7 +5,7 @@ KnotenCore is a native abstract syntax tree (AST) programming language for AI sy
 This specification documents the exact binary structural layout of the valid KnotenCore abstract syntax tree. The execution environment deserializes this layout directly into executable logic.
 
 ## 1. Serialization Format
-KnotenCore AST schemas are serialized using **Bincode** (Little-Endian, fixed integer sizes). All Aether programs are distributed as `.nod` files (KnotenCore Executable).
+KnotenCore AST schemas are serialized using **Bincode** (Little-Endian, fixed integer sizes). All Knoten programs are distributed as `.nod` files (KnotenCore Executable).
 
 ## 2. Core Execution Model
 KnotenCore executes structurally. Programs are represented by the `Node` enum. Each compilation unit or script starts with an implicit root block `Node::Block(Vec<Node>)` or any single `Node`. 
@@ -162,12 +162,12 @@ Upon execution of a `.nod` structure, the engine evaluates nodes from root to le
 The program's outcome is the value of the explicit root `Return` node, or the value of the last node in the top-level block.
 
 ## 6. Binary Footprint & Bundling
-The `run_knc` executor actively checks for the `AETHER_BUNDLE` environment flag during execution routines. The local toolchain exposes the `aether_build <file.json>` build command which evaluates custom memory directives hooking the AST natively within machine code. This outputs standalone `.exe` packages for zero-dependency execution.
+The `run_knc` executor actively checks for the `Knoten_BUNDLE` environment flag during execution routines. The local toolchain exposes the `Knoten_build <file.json>` build command which evaluates custom memory directives hooking the AST natively within machine code. This outputs standalone `.exe` packages for zero-dependency execution.
 ## 5. AI Safety & Validation
 
 KnotenCore implements a multi-layer validation strategy to ensure that AI-generated scripts are syntactically and logically sound before execution.
 
-### 5.1. JSON Schema (`aether_schema.json`)
+### 5.1. JSON Schema (`Knoten_schema.json`)
 A formal JSON Schema is provided in the repository root. This schema defines the structural requirements for every `Node` variant. Developers and AI agents should use this schema for real-time validation during the code synthesis phase.
 
 ### 5.2. Pre-Flight Validator

@@ -1,1 +1,9 @@
 /target
+# Transpiler outputs
+output.exe
+output.pdb
+output.rs
+# Other compiled binaries
+*.exe
+*.pdb
+*.bin

@@ -1,6 +1,6 @@
 # KnotenCore Standard Library (ASL)
 
-The KnotenCore Standard Library (ASL) provides core utilities available to all Aether scripts via the module import system. These functions are written natively in Aether AST but optimized for general-purpose application development.
+The KnotenCore Standard Library (ASL) provides core utilities available to all Knoten scripts via the module import system. These functions are written natively in Knoten AST but optimized for general-purpose application development.
 
 To include an ASL module in your script, use the `Import` node pointing to the relative `/stdlib/` path.
 
@@ -8,7 +8,7 @@ To include an ASL module in your script, use the `Import` node pointing to the r
 
 ## 1. Array Utilities (`stdlib/array_utils.nod`)
 
-A collection of tools for dynamically searching and manipulating Aether Array memory structures.
+A collection of tools for dynamically searching and manipulating Knoten Array memory structures.
 
 ### `Array.Contains(arr, element)`
 Iterates over an array to determine if a specific element exists.
@@ -33,7 +33,7 @@ Creates and returns a new array with the elements in reverse order.
 
 ## 2. Advanced Mathematics (`stdlib/math_ext.nod`)
 
-Extended mathematical functions built on top of the Aether execution primitives.
+Extended mathematical functions built on top of the Knoten execution primitives.
 
 ### `Math.Clamp(val, min, max)`
 Restricts a value to be within a specified range.

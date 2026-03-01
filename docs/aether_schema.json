@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "AetherCore AST Schema",
-    "description": "JSON Schema for validating AetherCore Abstract Syntax Tree (AST) scripts.",
+    "title": "KnotenCore AST Schema",
+    "description": "JSON Schema for validating KnotenCore Abstract Syntax Tree (AST) scripts.",
     "type": "object",
     "oneOf": [
         {

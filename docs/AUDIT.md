@@ -13,8 +13,8 @@ This script was constructed to contain complex stationary algebra and multiple l
 
 ### Without Optimization (`--no-opt`)
 When executing natively using the legacy unoptimized tree traversal:
-- The Aether runtime navigates down arithmetic recursion trees for `Add(Div(100, 2), Mul(5, 5))` every operation.
-- The Aether runtime navigates and allocates memory evaluating the conditional states of dead logic branches.
+- The Knoten runtime navigates down arithmetic recursion trees for `Add(Div(100, 2), Mul(5, 5))` every operation.
+- The Knoten runtime navigates and allocates memory evaluating the conditional states of dead logic branches.
 - **Node Cost: 30 Nodes**
 
 ### With Optimization

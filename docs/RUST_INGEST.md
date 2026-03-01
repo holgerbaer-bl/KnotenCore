@@ -1,6 +1,6 @@
 # KnotenCore Rust-Ingestor Architecture (FFI Automation)
 
-**Sprint 27: The Rust-Connector Automation** introduces autonomous expansion mechanics for KnotenCore. By deploying an ingestion framework over the engine, Aether logic can absorb natively compiled external programs.
+**Sprint 27: The Rust-Connector Automation** introduces autonomous expansion mechanics for KnotenCore. By deploying an ingestion framework over the engine, Knoten logic can absorb natively compiled external programs.
 
 ## 1. The `rust_ingest` Pipeline
 
@@ -14,8 +14,8 @@ cargo run --bin rust_ingest src/test_lib.rs
 
 ### Process
 1. **Targeting**: The ingestion pipeline queries the target Rust file for `pub fn <name>(<args>) -> <type>` declarations.
-2. **Translation**: The arguments and structural layout are converted natively into Aether's Abstract Syntax Tree via the `Node::ExternCall` wrapper.
-3. **Module Generation**: An `.nod` (Aether Executable Core) header JSON artifact is rendered to disk matching the target library's namespace.
+2. **Translation**: The arguments and structural layout are converted natively into Knoten's Abstract Syntax Tree via the `Node::ExternCall` wrapper.
+3. **Module Generation**: An `.nod` (Knoten Executable Core) header JSON artifact is rendered to disk matching the target library's namespace.
 
 ## 2. The Native Execution Bridge (`bridge.rs`)
 
@@ -67,7 +67,7 @@ pub fn normalize_vector(v: Vector3) -> Vector3 { ... }
 
 The ingestor generates:
 1. **Constructor Function** — `Vector3(x, y, z)` returning a `Node::ObjectLiteral` with the struct's fields mapped as key-value pairs inside a `RelType::Object(HashMap)`.
-2. **ExternCall Wrapper** — `normalize_vector(v)` remains an `ExternCall`, passing the Aether Object directly.
+2. **ExternCall Wrapper** — `normalize_vector(v)` remains an `ExternCall`, passing the Knoten Object directly.
 
 ### Struct Marshalling (bridge.rs)
 
