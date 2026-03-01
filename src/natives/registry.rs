@@ -20,6 +20,11 @@ pub enum NativeHandle {
     Window(SendWindow),
 }
 
+pub struct RegistryEntry {
+    pub handle: NativeHandle,
+    pub ref_count: usize,
+}
+
 // Our dummy stateful Rust object
 pub struct StatefulCounter {
     pub count: i64,
@@ -27,18 +32,47 @@ pub struct StatefulCounter {
 
 // Global thread-safe registry
 // Instead of lazy_static we'll use a const Mutex with an Option since lazy_static might not be available
-static COUNTER_REGISTRY: Mutex<Option<HashMap<usize, NativeHandle>>> = Mutex::new(None);
+static COUNTER_REGISTRY: Mutex<Option<HashMap<usize, RegistryEntry>>> = Mutex::new(None);
 static COUNTER_NEXT_ID: Mutex<usize> = Mutex::new(1);
 
 fn with_registry<F, R>(f: F) -> R
 where
-    F: FnOnce(&mut HashMap<usize, NativeHandle>) -> R,
+    F: FnOnce(&mut HashMap<usize, RegistryEntry>) -> R,
 {
     let mut option_guard = COUNTER_REGISTRY.lock().unwrap();
     if option_guard.is_none() {
         *option_guard = Some(HashMap::new());
     }
     f(option_guard.as_mut().unwrap())
+}
+
+// ── Lifecycle FFI Implementations ─────────────────────────────────
+
+pub fn registry_retain(handle_id: i64) {
+    let id = handle_id as usize;
+    with_registry(|registry| {
+        if let Some(entry) = registry.get_mut(&id) {
+            entry.ref_count += 1;
+        }
+    });
+}
+
+pub fn registry_release(handle_id: i64) {
+    let id = handle_id as usize;
+    let mut remove = false;
+    with_registry(|registry| {
+        if let Some(entry) = registry.get_mut(&id) {
+            if entry.ref_count > 0 {
+                entry.ref_count -= 1;
+            }
+            if entry.ref_count == 0 {
+                remove = true;
+            }
+        }
+        if remove {
+            registry.remove(&id);
+        }
+    });
 }
 
 // FFI Implementations
@@ -49,7 +83,13 @@ pub fn registry_create_counter() -> i64 {
 
     let counter = StatefulCounter { count: 0 };
     with_registry(|registry| {
-        registry.insert(id, NativeHandle::Counter(counter));
+        registry.insert(
+            id,
+            RegistryEntry {
+                handle: NativeHandle::Counter(counter),
+                ref_count: 1,
+            },
+        );
     });
 
     id as i64
@@ -58,8 +98,12 @@ pub fn registry_create_counter() -> i64 {
 pub fn registry_increment(handle_id: i64) {
     let id = handle_id as usize;
     with_registry(|registry| {
-        if let Some(NativeHandle::Counter(counter)) = registry.get_mut(&id) {
-            counter.count += 1;
+        if let Some(entry) = registry.get_mut(&id) {
+            if let NativeHandle::Counter(counter) = &mut entry.handle {
+                counter.count += 1;
+            } else {
+                eprintln!("[KnotenCore Registry] Error: Target handle is not a Counter.");
+            }
         } else {
             eprintln!(
                 "[KnotenCore Registry] Error: Counter handle {} not found.",
@@ -72,8 +116,12 @@ pub fn registry_increment(handle_id: i64) {
 pub fn registry_get_value(handle_id: i64) -> i64 {
     let id = handle_id as usize;
     with_registry(|registry| {
-        if let Some(NativeHandle::Counter(counter)) = registry.get(&id) {
-            counter.count
+        if let Some(entry) = registry.get(&id) {
+            if let NativeHandle::Counter(counter) = &entry.handle {
+                counter.count
+            } else {
+                -1
+            }
         } else {
             eprintln!(
                 "[KnotenCore Registry] Error: Counter handle {} not found.",
@@ -120,7 +168,13 @@ pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
             height: h,
         };
         with_registry(|registry| {
-            registry.insert(id, NativeHandle::Window(SendWindow(state)));
+            registry.insert(
+                id,
+                RegistryEntry {
+                    handle: NativeHandle::Window(SendWindow(state)),
+                    ref_count: 1, // RC starts at 1
+                },
+            );
         });
         id as i64
     } else {
@@ -132,13 +186,17 @@ pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
 pub fn registry_window_update(handle_id: i64) -> bool {
     let id = handle_id as usize;
     with_registry(|registry| {
-        if let Some(NativeHandle::Window(SendWindow(state))) = registry.get_mut(&id) {
-            // Update the window with its internal buffer. Returns true if open.
-            state
-                .window
-                .update_with_buffer(&state.buffer, state.width, state.height)
-                .is_ok()
-                && state.window.is_open()
+        if let Some(entry) = registry.get_mut(&id) {
+            if let NativeHandle::Window(SendWindow(state)) = &mut entry.handle {
+                // Update the window with its internal buffer. Returns true if open.
+                state
+                    .window
+                    .update_with_buffer(&state.buffer, state.width, state.height)
+                    .is_ok()
+                    && state.window.is_open()
+            } else {
+                false
+            }
         } else {
             false
         }

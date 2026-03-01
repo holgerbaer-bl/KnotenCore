@@ -116,6 +116,7 @@ pub enum Type {
     String,
     Array,
     Object,
+    Handle,
     Any,
     Void,
 }

@@ -1,0 +1,82 @@
+{
+  "Block": [
+    {
+      "Import": "stdlib/registry.nod"
+    },
+    {
+      "Assign": [
+        "escaped_handle",
+        {
+          "ArrayLiteral": []
+        }
+      ]
+    },
+    {
+      "Block": [
+        {
+          "Assign": [
+            "my_counter",
+            {
+              "Call": [
+                "registry_create_counter",
+                []
+              ]
+            }
+          ]
+        },
+        {
+          "ArrayPush": [
+            "escaped_handle",
+            {
+              "Identifier": "my_counter"
+            }
+          ]
+        },
+        {
+          "Print": {
+            "StringLiteral": "Inner block running. Counter handle created!"
+          }
+        },
+        {
+          "Print": {
+            "Call": [
+              "registry_get_value",
+              [
+                {
+                  "Identifier": "my_counter"
+                }
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "Print": {
+        "StringLiteral": "Out of block. The inner 'my_counter' went out of scope, releasing ARC!"
+      }
+    },
+    {
+      "Print": {
+        "StringLiteral": "Trying to read handle using the escaped identifier copy..."
+      }
+    },
+    {
+      "Print": {
+        "Call": [
+          "registry_get_value",
+          [
+            {
+              "ArrayGet": [
+                "escaped_handle",
+                {
+                  "IntLiteral": 0
+                }
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}

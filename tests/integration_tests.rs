@@ -141,7 +141,7 @@ aether_test!(
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(1))),
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(2))),
     ]),
-    "Return: 2 (i64), Memory: x = 2"
+    "Return: 2 (i64)"
 );
 aether_test!(
     test_17_read_identifier,
@@ -149,7 +149,7 @@ aether_test!(
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(42))),
         Node::Identifier("x".to_string()),
     ]),
-    "Return: 42 (i64), Memory: x = 42"
+    "Return: 42 (i64)"
 );
 aether_test!(
     test_18_assign_from_identifier,
@@ -157,7 +157,7 @@ aether_test!(
         Node::Assign("x".to_string(), Box::new(Node::IntLiteral(42))),
         Node::Assign("y".to_string(), Box::new(Node::Identifier("x".to_string()))),
     ]),
-    "Return: 42 (i64), Memory: x = 42, y = 42"
+    "Return: 42 (i64)"
 );
 aether_test!(
     test_19_read_undefined,
@@ -350,7 +350,7 @@ aether_test!(
             )))
         )
     ]),
-    "Return: 1 (i64), Memory: x = 42, y = 1"
+    "Return: 1 (i64)"
 );
 
 // ------------------------------------------------------------------
@@ -398,7 +398,7 @@ aether_test!(
         ),
         Node::Identifier("i".to_string())
     ]),
-    "Return: 3 (i64), Memory: i = 3"
+    "Return: 3 (i64)"
 );
 aether_test!(
     test_46_while_never_executes,
@@ -413,7 +413,7 @@ aether_test!(
         ),
         Node::Identifier("i".to_string())
     ]),
-    "Return: 10 (i64), Memory: i = 10"
+    "Return: 10 (i64)"
 );
 aether_test!(
     test_47_nested_blocks,
@@ -428,7 +428,7 @@ aether_test!(
             Box::new(Node::Identifier("inner".to_string()))
         )
     ]),
-    "Return: 3 (i64), Memory: inner = 2, outer = 1"
+    "Fault: Undefined identifier: inner"
 );
 aether_test!(
     test_48_nested_if,
@@ -488,7 +488,7 @@ aether_test!(
         ),
         Node::Identifier("sum".to_string())
     ]),
-    "Return: 4 (i64), Memory: i = 2, j = 2, sum = 4"
+    "Return: 4 (i64)"
 );
 aether_test!(
     test_50_complex_combination,
@@ -519,7 +519,7 @@ aether_test!(
         ),
         Node::Identifier("fact".to_string())
     ]),
-    "Return: 120 (i64), Memory: fact = 120, n = 0"
+    "Return: 120 (i64)"
 );
 
 // ------------------------------------------------------------------

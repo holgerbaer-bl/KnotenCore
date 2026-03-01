@@ -13,6 +13,7 @@ pub enum RelType {
     Str(String),
     Array(Vec<RelType>),
     Object(HashMap<String, RelType>),
+    Handle(i64),
     // Functions
     FnDef(String, Vec<String>, Box<Node>),
     Call(String, Vec<Node>),
@@ -39,6 +40,7 @@ impl std::fmt::Display for RelType {
                 }
                 write!(f, "{{{}}} (Object)", s.join(", "))
             }
+            RelType::Handle(id) => write!(f, "Handle<{}>", id),
             RelType::FnDef(_, _, _) => write!(f, "<Function>"),
             RelType::Call(_, _) => write!(f, "<Function Call>"),
             RelType::Void => write!(f, "void"),
@@ -620,21 +622,39 @@ impl ExecutionEngine {
     }
 
     pub fn get_var(&self, name: &str) -> Option<RelType> {
-        // Search Call Stack first (Local Scopes)
-        if let Some(frame) = self.call_stack.last()
-            && let Some(val) = frame.locals.get(name)
-        {
-            return Some(val.clone());
+        // Search Call Stack backwards (Local Scopes -> Outer Blocks)
+        for frame in self.call_stack.iter().rev() {
+            if let Some(val) = frame.locals.get(name) {
+                return Some(val.clone());
+            }
         }
         // Fallback to Global Memory
         self.memory.get(name).cloned()
     }
 
     pub fn set_var(&mut self, name: String, val: RelType) {
+        // Mutate in existing outer scope if it exists so while-loops don't shadow iterators natively
+        for frame in self.call_stack.iter_mut().rev() {
+            if frame.locals.contains_key(&name) {
+                frame.locals.insert(name, val);
+                return;
+            }
+        }
+
         if let Some(frame) = self.call_stack.last_mut() {
             frame.locals.insert(name, val);
         } else {
             self.memory.insert(name, val);
+        }
+    }
+
+    pub fn pop_scope_and_release_handles(&mut self) {
+        if let Some(frame) = self.call_stack.pop() {
+            for (_, val) in frame.locals {
+                if let RelType::Handle(id) = val {
+                    crate::natives::registry::registry_release(id);
+                }
+            }
         }
     }
 
@@ -1162,7 +1182,8 @@ impl ExecutionEngine {
                         // Push and Execute
                         self.call_stack.push(frame);
                         let mut call_res = self.evaluate(&body);
-                        self.call_stack.pop(); // Pop scope
+
+                        self.pop_scope_and_release_handles();
 
                         // Unwrap Return value if applicable
                         if let ExecResult::ReturnBlockInfo(v) = call_res {
@@ -3476,19 +3497,38 @@ impl ExecutionEngine {
                 }
             }
             Node::Block(nodes) => {
+                self.call_stack.push(StackFrame {
+                    locals: std::collections::HashMap::new(),
+                });
                 let mut last_val = RelType::Void;
+                let mut block_fault = None;
+                let mut block_return = None;
+
                 for n in nodes {
                     match self.evaluate(n) {
                         ExecResult::ReturnBlockInfo(val) => {
-                            return ExecResult::ReturnBlockInfo(val);
+                            block_return = Some(val);
+                            break;
                         }
-                        ExecResult::Fault(err) => return ExecResult::Fault(err),
+                        ExecResult::Fault(err) => {
+                            block_fault = Some(err);
+                            break;
+                        }
                         ExecResult::Value(val) => {
                             last_val = val;
                         }
                     }
                 }
-                ExecResult::Value(last_val)
+
+                self.pop_scope_and_release_handles();
+
+                if let Some(err) = block_fault {
+                    ExecResult::Fault(err)
+                } else if let Some(ret) = block_return {
+                    ExecResult::ReturnBlockInfo(ret)
+                } else {
+                    ExecResult::Value(last_val)
+                }
             }
             Node::EnablePhysics(enable_n) => {
                 let res = self.evaluate(enable_n);

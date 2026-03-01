@@ -327,39 +327,61 @@ impl BridgeModule for CoreBridge {
             match function {
                 "registry_create_counter" => {
                     let id = crate::natives::registry::registry_create_counter();
-                    Some(ExecResult::Value(RelType::Int(id)))
+                    Some(ExecResult::Value(RelType::Handle(id)))
                 }
                 "registry_increment" => {
                     if args.len() == 1 {
-                        if let RelType::Int(id) = &args[0] {
+                        if let RelType::Handle(id) = &args[0] {
                             crate::natives::registry::registry_increment(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
                     }
                     Some(ExecResult::Fault(
-                        "[FFI] registry_increment expects 1 Int arg".to_string(),
+                        "[FFI] registry_increment expects 1 Handle arg".to_string(),
                     ))
                 }
                 "registry_get_value" => {
                     if args.len() == 1 {
-                        if let RelType::Int(id) = &args[0] {
+                        if let RelType::Handle(id) = &args[0] {
                             let val = crate::natives::registry::registry_get_value(*id);
                             return Some(ExecResult::Value(RelType::Int(val)));
                         }
                     }
                     Some(ExecResult::Fault(
-                        "[FFI] registry_get_value expects 1 Int arg".to_string(),
+                        "[FFI] registry_get_value expects 1 Handle arg".to_string(),
                     ))
                 }
                 "registry_free" => {
                     if args.len() == 1 {
-                        if let RelType::Int(id) = &args[0] {
+                        if let RelType::Handle(id) = &args[0] {
                             crate::natives::registry::registry_free(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
                     }
                     Some(ExecResult::Fault(
-                        "[FFI] registry_free expects 1 Int arg".to_string(),
+                        "[FFI] registry_free expects 1 Handle arg".to_string(),
+                    ))
+                }
+                "registry_retain" => {
+                    if args.len() == 1 {
+                        if let RelType::Handle(id) = &args[0] {
+                            crate::natives::registry::registry_retain(*id);
+                            return Some(ExecResult::Value(RelType::Void));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_retain expects 1 Handle arg".to_string(),
+                    ))
+                }
+                "registry_release" => {
+                    if args.len() == 1 {
+                        if let RelType::Handle(id) = &args[0] {
+                            crate::natives::registry::registry_release(*id);
+                            return Some(ExecResult::Value(RelType::Void));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_release expects 1 Handle arg".to_string(),
                     ))
                 }
                 "registry_create_window" => {
@@ -372,7 +394,7 @@ impl BridgeModule for CoreBridge {
                                 *h,
                                 title.clone(),
                             );
-                            return Some(ExecResult::Value(RelType::Int(id)));
+                            return Some(ExecResult::Value(RelType::Handle(id)));
                         }
                     }
                     Some(ExecResult::Fault(
@@ -381,24 +403,24 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_window_update" => {
                     if args.len() == 1 {
-                        if let RelType::Int(id) = &args[0] {
+                        if let RelType::Handle(id) = &args[0] {
                             let open = crate::natives::registry::registry_window_update(*id);
                             return Some(ExecResult::Value(RelType::Bool(open)));
                         }
                     }
                     Some(ExecResult::Fault(
-                        "[FFI] registry_window_update expects 1 Int arg".to_string(),
+                        "[FFI] registry_window_update expects 1 Handle arg".to_string(),
                     ))
                 }
                 "registry_window_close" => {
                     if args.len() == 1 {
-                        if let RelType::Int(id) = &args[0] {
+                        if let RelType::Handle(id) = &args[0] {
                             crate::natives::registry::registry_window_close(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
                     }
                     Some(ExecResult::Fault(
-                        "[FFI] registry_window_close expects 1 Int arg".to_string(),
+                        "[FFI] registry_window_close expects 1 Handle arg".to_string(),
                     ))
                 }
                 _ => None,
