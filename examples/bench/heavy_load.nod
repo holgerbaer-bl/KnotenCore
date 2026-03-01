@@ -1,0 +1,28 @@
+{
+  "Block": [
+    { "Print": { "StringLiteral": "=== KnotenCore Chronos Benchmark ===" } },
+    {
+      "Block": [
+        { "Assign": ["timer", { "NativeCall": ["registry_now", []] }] },
+        { "Assign": ["i", { "IntLiteral": 0 }] },
+        { "Assign": ["acc", { "IntLiteral": 0 }] },
+        {
+          "While": [
+            { "Lt": [{ "Identifier": "i" }, { "IntLiteral": 1000000 }] },
+            {
+              "Block": [
+                { "Assign": ["acc", { "Add": [{ "Identifier": "acc" }, { "Identifier": "i" }] }] },
+                { "Assign": ["i", { "Add": [{ "Identifier": "i" }, { "IntLiteral": 1 }] }] }
+              ]
+            }
+          ]
+        },
+        { "Assign": ["elapsed", { "NativeCall": ["registry_elapsed_ms", [{ "Identifier": "timer" }]] }] },
+        { "Print": { "StringLiteral": "--- Result ---" } },
+        { "Print": { "Identifier": "acc" } },
+        { "Print": { "StringLiteral": "Elapsed (ms):" } },
+        { "Print": { "Identifier": "elapsed" } }
+      ]
+    }
+  ]
+}

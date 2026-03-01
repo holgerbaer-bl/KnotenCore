@@ -62,6 +62,7 @@ impl Codegen {
                     if fn_name == "registry_create_counter"
                         || fn_name == "registry_create_window"
                         || fn_name == "registry_file_create"
+                        || fn_name == "registry_now"
                     {
                         is_handle = true;
                     }

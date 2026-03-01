@@ -21,6 +21,7 @@ pub enum NativeHandle {
     Counter(StatefulCounter),
     Window(SendWindow),
     File(File),
+    Timestamp(std::time::Instant),
 }
 
 pub struct RegistryEntry {
@@ -158,6 +159,7 @@ pub fn registry_dump() -> i64 {
                 NativeHandle::Counter(_) => "Counter",
                 NativeHandle::Window(_) => "Window",
                 NativeHandle::File(_) => "File",
+                NativeHandle::Timestamp(_) => "Timestamp",
             };
             println!(
                 "   -> Handle {} [Type: {}, RefCount: {}]",
@@ -168,6 +170,41 @@ pub fn registry_dump() -> i64 {
         println!("[KnotenCore Registry] Total Active: {}", count);
     });
     count
+}
+
+// ── Timestamp Orchestration ────────────────────────────────────────
+
+pub fn registry_now() -> i64 {
+    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap();
+    let id = *id_guard;
+    *id_guard += 1;
+
+    with_registry(|registry| {
+        registry.insert(
+            id,
+            RegistryEntry {
+                handle: NativeHandle::Timestamp(std::time::Instant::now()),
+                ref_count: 1,
+            },
+        );
+    });
+
+    id as i64
+}
+
+pub fn registry_elapsed_ms(handle_id: i64) -> i64 {
+    let id = handle_id as usize;
+    with_registry(|registry| {
+        if let Some(entry) = registry.get(&id) {
+            if let NativeHandle::Timestamp(t) = &entry.handle {
+                t.elapsed().as_millis() as i64
+            } else {
+                -1
+            }
+        } else {
+            -1
+        }
+    })
 }
 
 // ── Window Orchestration ─────────────────────────────────────────

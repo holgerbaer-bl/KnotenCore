@@ -449,6 +449,21 @@ impl BridgeModule for CoreBridge {
                         "[FFI] registry_file_write expects (Handle, String)".to_string(),
                     ))
                 }
+                "registry_now" => {
+                    let id = crate::natives::registry::registry_now();
+                    Some(ExecResult::Value(RelType::Handle(id)))
+                }
+                "registry_elapsed_ms" => {
+                    if args.len() == 1 {
+                        if let RelType::Handle(id) = &args[0] {
+                            let ms = crate::natives::registry::registry_elapsed_ms(*id);
+                            return Some(ExecResult::Value(RelType::Int(ms)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_elapsed_ms expects 1 Handle arg".to_string(),
+                    ))
+                }
                 _ => None,
             }
         } else {
