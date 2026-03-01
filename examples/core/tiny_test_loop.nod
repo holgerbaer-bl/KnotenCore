@@ -1,0 +1,13 @@
+{
+  "Block": [
+    { "Assign": ["x", { "IntLiteral": 0 }] },
+    { "While": [
+      { "Lt": [{ "Identifier": "x" }, { "IntLiteral": 3 }] },
+      { "Block": [
+        { "Print": { "Identifier": "x" } },
+        { "Assign": ["x", { "Add": [{ "Identifier": "x" }, { "IntLiteral": 1 }] }] }
+      ]}
+    ]},
+    { "Print": { "StringLiteral": "Done!" } }
+  ]
+}
