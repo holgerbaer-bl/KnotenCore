@@ -1,9 +1,23 @@
+use minifb::{Window, WindowOptions};
 use std::collections::HashMap;
 use std::sync::Mutex;
+
+// Wrapper for Window to bypass non-Send restriction. Safe because our executor is single-threaded.
+pub struct SendWindow(pub RegistryWindowState);
+unsafe impl Send for SendWindow {}
+unsafe impl Sync for SendWindow {}
+
+pub struct RegistryWindowState {
+    pub window: Window,
+    pub buffer: Vec<u32>,
+    pub width: usize,
+    pub height: usize,
+}
 
 // The types of resources we can manage
 pub enum NativeHandle {
     Counter(StatefulCounter),
+    Window(SendWindow),
 }
 
 // Our dummy stateful Rust object
@@ -82,4 +96,56 @@ pub fn registry_free(handle_id: i64) {
             );
         }
     });
+}
+
+// ── Window Orchestration ─────────────────────────────────────────
+
+pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
+    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap();
+    let id = *id_guard;
+    *id_guard += 1;
+
+    let w = width as usize;
+    let h = height as usize;
+
+    // Create an initial framebuffer (solid color so we see something)
+    let buffer = vec![0x333333; w * h];
+
+    if let Ok(mut window) = Window::new(&title, w, h, WindowOptions::default()) {
+        window.set_target_fps(60);
+        let state = RegistryWindowState {
+            window,
+            buffer,
+            width: w,
+            height: h,
+        };
+        with_registry(|registry| {
+            registry.insert(id, NativeHandle::Window(SendWindow(state)));
+        });
+        id as i64
+    } else {
+        eprintln!("[KnotenCore Registry] Failed to create window.");
+        -1
+    }
+}
+
+pub fn registry_window_update(handle_id: i64) -> bool {
+    let id = handle_id as usize;
+    with_registry(|registry| {
+        if let Some(NativeHandle::Window(SendWindow(state))) = registry.get_mut(&id) {
+            // Update the window with its internal buffer. Returns true if open.
+            state
+                .window
+                .update_with_buffer(&state.buffer, state.width, state.height)
+                .is_ok()
+                && state.window.is_open()
+        } else {
+            false
+        }
+    })
+}
+
+pub fn registry_window_close(handle_id: i64) {
+    // Closing the window is as simple as freeing its handle!
+    registry_free(handle_id);
 }

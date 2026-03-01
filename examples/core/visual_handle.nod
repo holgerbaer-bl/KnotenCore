@@ -1,0 +1,36 @@
+{
+  "Block": [
+    { "Import": "stdlib/registry.nod" },
+    
+    { "Print": { "StringLiteral": "======================================" } },
+    { "Print": { "StringLiteral": "  KnotenCore OS — Visual Handle Demo" } },
+    { "Print": { "StringLiteral": "======================================" } },
+    
+    { "Print": { "StringLiteral": "Acquiring OS Window Handle..." } },
+    { "Assign": ["win_handle", { "Call": ["registry_create_window", [{ "IntLiteral": 800 }, { "IntLiteral": 600 }, { "StringLiteral": "KnotenCore OS" }]] }] },
+    
+    { "Print": { "Concat": [{ "StringLiteral": "Window allocated at Memory Index: " }, { "ToString": { "Identifier": "win_handle" } }] } },
+    { "Print": { "StringLiteral": "Close the window forcefully to free memory and break loop... (You can close it by pressing ESC or clicking X in the actual window)" } },
+    
+    { "Assign": ["ticks", { "IntLiteral": 0 }] },
+    
+    { "While": [
+      { "Call": ["registry_window_update", [{ "Identifier": "win_handle" }]] },
+      { "Block": [
+        { "Assign": ["ticks", { "Add": [{ "Identifier": "ticks" }, { "IntLiteral": 1 }] }] },
+        { "If": [
+            { "Eq": [{ "Identifier": "ticks" }, { "IntLiteral": 60 }] },
+            { "Block": [
+                { "Print": { "StringLiteral": "Window running flawlessly via AST Native Handle loop..." } },
+                { "Assign": ["ticks", { "IntLiteral": 0 }] }
+            ]},
+            { "Block": [] }
+        ]}
+      ]}
+    ]},
+    
+    { "Print": { "StringLiteral": "Loop broken. Destroying OS Visual Engine Node." } },
+    { "Call": ["registry_window_close", [{ "Identifier": "win_handle" }]] },
+    { "Print": { "StringLiteral": "Memory freed. Boot down." } }
+  ]
+}

@@ -362,6 +362,45 @@ impl BridgeModule for CoreBridge {
                         "[FFI] registry_free expects 1 Int arg".to_string(),
                     ))
                 }
+                "registry_create_window" => {
+                    if args.len() == 3 {
+                        if let (RelType::Int(w), RelType::Int(h), RelType::Str(title)) =
+                            (&args[0], &args[1], &args[2])
+                        {
+                            let id = crate::natives::registry::registry_create_window(
+                                *w,
+                                *h,
+                                title.clone(),
+                            );
+                            return Some(ExecResult::Value(RelType::Int(id)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_create_window expects (Int, Int, String)".to_string(),
+                    ))
+                }
+                "registry_window_update" => {
+                    if args.len() == 1 {
+                        if let RelType::Int(id) = &args[0] {
+                            let open = crate::natives::registry::registry_window_update(*id);
+                            return Some(ExecResult::Value(RelType::Bool(open)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_window_update expects 1 Int arg".to_string(),
+                    ))
+                }
+                "registry_window_close" => {
+                    if args.len() == 1 {
+                        if let RelType::Int(id) = &args[0] {
+                            crate::natives::registry::registry_window_close(*id);
+                            return Some(ExecResult::Value(RelType::Void));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_window_close expects 1 Int arg".to_string(),
+                    ))
+                }
                 _ => None,
             }
         } else {
