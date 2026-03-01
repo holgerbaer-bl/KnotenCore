@@ -64,6 +64,7 @@ impl Codegen {
                         || fn_name == "registry_file_create"
                         || fn_name == "registry_now"
                         || fn_name == "registry_gpu_init"
+                        || fn_name == "registry_voxel_world_create"
                     {
                         is_handle = true;
                     }

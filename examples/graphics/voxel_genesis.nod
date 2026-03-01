@@ -1,0 +1,109 @@
+{
+  "Block": [
+    { "Print": { "StringLiteral": "=== KnotenCore Voxel Genesis ===" } },
+    {
+      "Block": [
+        {
+          "Assign": [
+            "world",
+            {
+              "NativeCall": [
+                "registry_voxel_world_create",
+                [
+                  { "IntLiteral": 800 },
+                  { "IntLiteral": 600 },
+                  { "StringLiteral": "KnotenCore Voxel Genesis  16x16x16" }
+                ]
+              ]
+            }
+          ]
+        },
+        { "Print": { "StringLiteral": "Building 16x16x16 voxel cube (4096 blocks)..." } },
+        { "Assign": ["x", { "IntLiteral": 0 }] },
+        {
+          "While": [
+            { "Lt": [{ "Identifier": "x" }, { "IntLiteral": 16 }] },
+            {
+              "Block": [
+                { "Assign": ["y", { "IntLiteral": 0 }] },
+                {
+                  "While": [
+                    { "Lt": [{ "Identifier": "y" }, { "IntLiteral": 16 }] },
+                    {
+                      "Block": [
+                        { "Assign": ["z", { "IntLiteral": 0 }] },
+                        {
+                          "While": [
+                            { "Lt": [{ "Identifier": "z" }, { "IntLiteral": 16 }] },
+                            {
+                              "Block": [
+                                {
+                                  "NativeCall": [
+                                    "registry_voxel_add_block",
+                                    [
+                                      { "Identifier": "world" },
+                                      { "Identifier": "x" },
+                                      { "Identifier": "y" },
+                                      { "Identifier": "z" }
+                                    ]
+                                  ]
+                                },
+                                {
+                                  "Assign": [
+                                    "z",
+                                    { "Add": [{ "Identifier": "z" }, { "IntLiteral": 1 }] }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Assign": [
+                            "y",
+                            { "Add": [{ "Identifier": "y" }, { "IntLiteral": 1 }] }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Assign": [
+                    "x",
+                    { "Add": [{ "Identifier": "x" }, { "IntLiteral": 1 }] }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        { "Print": { "StringLiteral": "4096 voxels placed. Starting render loop..." } },
+        { "Assign": ["frame", { "IntLiteral": 0 }] },
+        {
+          "While": [
+            { "Lt": [{ "Identifier": "frame" }, { "IntLiteral": 300 }] },
+            {
+              "Block": [
+                {
+                  "NativeCall": [
+                    "registry_voxel_render_frame",
+                    [{ "Identifier": "world" }]
+                  ]
+                },
+                {
+                  "Assign": [
+                    "frame",
+                    { "Add": [{ "Identifier": "frame" }, { "IntLiteral": 1 }] }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        { "Print": { "StringLiteral": "300 frames rendered." } }
+      ]
+    },
+    { "Print": { "StringLiteral": "VoxelWorld handle released by ARC. Goodbye." } }
+  ]
+}

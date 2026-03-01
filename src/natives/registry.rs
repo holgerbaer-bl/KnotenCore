@@ -23,6 +23,7 @@ pub enum NativeHandle {
     File(File),
     Timestamp(std::time::Instant),
     GpuContext(GpuContext),
+    VoxelWorld(SendVoxelWorld),
 }
 
 pub struct RegistryEntry {
@@ -46,6 +47,114 @@ pub struct GpuContext {
 // SAFETY: wgpu GPU types are Send+Sync; our registry is single-threaded.
 unsafe impl Send for GpuContext {}
 unsafe impl Sync for GpuContext {}
+
+// VoxelWorld — isometric software-rendered voxel scene
+pub struct VoxelWorldState {
+    pub window: minifb::Window,
+    pub buffer: Vec<u32>,
+    pub width: usize,
+    pub height: usize,
+    pub voxels: Vec<[i32; 3]>,
+}
+
+pub struct SendVoxelWorld(pub VoxelWorldState);
+unsafe impl Send for SendVoxelWorld {}
+unsafe impl Sync for SendVoxelWorld {}
+
+// ── Isometric software renderer ───────────────────────────────────────
+
+/// Scanline polygon fill for convex polygons (used for isometric cube faces).
+fn fill_poly(buffer: &mut Vec<u32>, width: usize, height: usize, pts: &[(i32, i32)], color: u32) {
+    let min_y = pts.iter().map(|&(_, y)| y).min().unwrap_or(0).max(0) as usize;
+    let raw_max = pts.iter().map(|&(_, y)| y).max().unwrap_or(0) as usize;
+    let max_y = raw_max.min(height.saturating_sub(1));
+    if min_y >= height {
+        return;
+    }
+    let n = pts.len();
+    for row in min_y..=max_y {
+        let y = row as i32;
+        let mut xs: Vec<i32> = Vec::new();
+        for i in 0..n {
+            let (x0, y0) = pts[i];
+            let (x1, y1) = pts[(i + 1) % n];
+            let (lo, hi, xa, xb) = if y0 < y1 {
+                (y0, y1, x0, x1)
+            } else {
+                (y1, y0, x1, x0)
+            };
+            if lo <= y && y < hi && lo != hi {
+                let t = (y - lo) as f32 / (hi - lo) as f32;
+                xs.push((xa as f32 + t * (xb - xa) as f32) as i32);
+            }
+        }
+        xs.sort_unstable();
+        let mut i = 0;
+        while i + 1 < xs.len() {
+            let x0 = xs[i].max(0) as usize;
+            let x1 = (xs[i + 1]).min(width as i32 - 1) as usize;
+            if x0 <= x1 {
+                for col in x0..=x1 {
+                    buffer[row * width + col] = color;
+                }
+            }
+            i += 2;
+        }
+    }
+}
+
+/// Isometric projection render — painters-sorted, 3-face-per-voxel.
+fn iso_render(buffer: &mut Vec<u32>, width: usize, height: usize, voxels: &[[i32; 3]]) {
+    buffer.iter_mut().for_each(|p| *p = 0x0d1b2a); // dark navy background
+    let cx = (width as i32) / 2;
+    let cy = (height as i32) * 5 / 8;
+    let tw = 14i32; // half-width of one voxel tile
+    let ts = 7i32; // half-height of top rhombus
+
+    // Back-to-front sort: larger (vx + vz - vy*2) draws first
+    let mut sorted: Vec<[i32; 3]> = voxels.to_vec();
+    sorted.sort_by_key(|v| v[0] - v[1] * 2 + v[2]);
+
+    for [vx, vy, vz] in sorted.iter() {
+        let sx = cx + (vx - vz) * tw;
+        let sy = cy + (vx + vz) * ts - vy * ts * 2;
+
+        // Top face (rhombus)
+        fill_poly(
+            buffer,
+            width,
+            height,
+            &[(sx, sy - ts), (sx + tw, sy), (sx, sy + ts), (sx - tw, sy)],
+            0x5b9bd5,
+        );
+        // Left face (darker)
+        fill_poly(
+            buffer,
+            width,
+            height,
+            &[
+                (sx - tw, sy),
+                (sx, sy + ts),
+                (sx, sy + ts * 3),
+                (sx - tw, sy + ts * 2),
+            ],
+            0x2e6ea8,
+        );
+        // Right face (darkest)
+        fill_poly(
+            buffer,
+            width,
+            height,
+            &[
+                (sx, sy + ts),
+                (sx + tw, sy),
+                (sx + tw, sy + ts * 2),
+                (sx, sy + ts * 3),
+            ],
+            0x1a4a7c,
+        );
+    }
+}
 
 // Global thread-safe registry
 // Instead of lazy_static we'll use a const Mutex with an Option since lazy_static might not be available
@@ -174,6 +283,10 @@ pub fn registry_dump() -> i64 {
                 NativeHandle::File(_) => "File",
                 NativeHandle::Timestamp(_) => "Timestamp",
                 NativeHandle::GpuContext(_) => "GpuContext",
+                NativeHandle::VoxelWorld(SendVoxelWorld(s)) => {
+                    println!("      voxels={}, {}x{}", s.voxels.len(), s.width, s.height);
+                    "VoxelWorld"
+                }
             };
             println!(
                 "   -> Handle {} [Type: {}, RefCount: {}]",
@@ -414,6 +527,79 @@ pub fn registry_fill_color(window_handle: i64, r: i64, g: i64, b: i64) {
             );
         }
     });
+}
+
+// ── Voxel World Orchestration ─────────────────────────────────────────
+
+pub fn registry_voxel_world_create(width: i64, height: i64, title: String) -> i64 {
+    let w = width as usize;
+    let h = height as usize;
+    let buffer = vec![0x0d1b2au32; w * h];
+    match minifb::Window::new(
+        &title,
+        w,
+        h,
+        minifb::WindowOptions {
+            resize: false,
+            ..minifb::WindowOptions::default()
+        },
+    ) {
+        Ok(mut win) => {
+            win.set_target_fps(60);
+            let mut id_guard = COUNTER_NEXT_ID.lock().unwrap();
+            let id = *id_guard;
+            *id_guard += 1;
+            with_registry(|registry| {
+                registry.insert(
+                    id,
+                    RegistryEntry {
+                        handle: NativeHandle::VoxelWorld(SendVoxelWorld(VoxelWorldState {
+                            window: win,
+                            buffer,
+                            width: w,
+                            height: h,
+                            voxels: Vec::new(),
+                        })),
+                        ref_count: 1,
+                    },
+                );
+            });
+            id as i64
+        }
+        Err(e) => {
+            eprintln!("[KnotenCore Voxel] Failed to create window: {}", e);
+            -1
+        }
+    }
+}
+
+pub fn registry_voxel_add_block(world_handle: i64, x: i64, y: i64, z: i64) {
+    let id = world_handle as usize;
+    with_registry(|registry| {
+        if let Some(entry) = registry.get_mut(&id) {
+            if let NativeHandle::VoxelWorld(SendVoxelWorld(state)) = &mut entry.handle {
+                state.voxels.push([x as i32, y as i32, z as i32]);
+            }
+        }
+    });
+}
+
+/// Renders one frame of the voxel scene. Returns true while the window is open.
+pub fn registry_voxel_render_frame(world_handle: i64) -> bool {
+    let id = world_handle as usize;
+    with_registry(|registry| {
+        if let Some(entry) = registry.get_mut(&id) {
+            if let NativeHandle::VoxelWorld(SendVoxelWorld(state)) = &mut entry.handle {
+                iso_render(&mut state.buffer, state.width, state.height, &state.voxels);
+                return state
+                    .window
+                    .update_with_buffer(&state.buffer, state.width, state.height)
+                    .is_ok()
+                    && state.window.is_open();
+            }
+        }
+        false
+    })
 }
 
 pub struct RegistryModule;

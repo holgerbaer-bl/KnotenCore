@@ -485,6 +485,53 @@ impl BridgeModule for CoreBridge {
                         "[FFI] registry_fill_color expects (Handle, Int, Int, Int)".to_string(),
                     ))
                 }
+                "registry_voxel_world_create" => {
+                    if args.len() == 3 {
+                        if let (RelType::Int(w), RelType::Int(h), RelType::Str(title)) =
+                            (&args[0], &args[1], &args[2])
+                        {
+                            let id = crate::natives::registry::registry_voxel_world_create(
+                                *w,
+                                *h,
+                                title.clone(),
+                            );
+                            return Some(ExecResult::Value(RelType::Handle(id)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_voxel_world_create expects (Int, Int, String)".to_string(),
+                    ))
+                }
+                "registry_voxel_add_block" => {
+                    if args.len() == 4 {
+                        if let (
+                            RelType::Handle(world),
+                            RelType::Int(x),
+                            RelType::Int(y),
+                            RelType::Int(z),
+                        ) = (&args[0], &args[1], &args[2], &args[3])
+                        {
+                            crate::natives::registry::registry_voxel_add_block(*world, *x, *y, *z);
+                            return Some(ExecResult::Value(RelType::Void));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_voxel_add_block expects (Handle, Int, Int, Int)"
+                            .to_string(),
+                    ))
+                }
+                "registry_voxel_render_frame" => {
+                    if args.len() == 1 {
+                        if let RelType::Handle(world) = &args[0] {
+                            let open =
+                                crate::natives::registry::registry_voxel_render_frame(*world);
+                            return Some(ExecResult::Value(RelType::Bool(open)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_voxel_render_frame expects 1 Handle arg".to_string(),
+                    ))
+                }
                 _ => None,
             }
         } else {
