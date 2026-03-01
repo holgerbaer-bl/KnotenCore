@@ -1131,6 +1131,95 @@ impl ExecutionEngine {
                 ExecResult::Value(_) => ExecResult::Fault("Target has no length".to_string()),
                 fault => fault,
             },
+            Node::MapCreate => ExecResult::Value(RelType::Object(HashMap::new())),
+            Node::MapGet(map_node, key_node) => {
+                let map_res = self.evaluate(map_node);
+                if let ExecResult::Value(RelType::Object(map)) = map_res {
+                    match self.evaluate(key_node) {
+                        ExecResult::Value(RelType::Str(key)) => {
+                            if let Some(val) = map.get(&key) {
+                                ExecResult::Value(val.clone())
+                            } else {
+                                ExecResult::Fault(format!("Key '{}' not found in map", key))
+                            }
+                        }
+                        ExecResult::Value(_) => {
+                            ExecResult::Fault("Map key must be a String".to_string())
+                        }
+                        fault => fault,
+                    }
+                } else if let ExecResult::Fault(err) = map_res {
+                    ExecResult::Fault(err)
+                } else {
+                    ExecResult::Fault("Target is not a map".to_string())
+                }
+            }
+            Node::MapHasKey(map_node, key_node) => {
+                let map_res = self.evaluate(map_node);
+                if let ExecResult::Value(RelType::Object(map)) = map_res {
+                    match self.evaluate(key_node) {
+                        ExecResult::Value(RelType::Str(key)) => {
+                            ExecResult::Value(RelType::Bool(map.contains_key(&key)))
+                        }
+                        ExecResult::Value(_) => {
+                            ExecResult::Fault("Map key must be a String".to_string())
+                        }
+                        fault => fault,
+                    }
+                } else if let ExecResult::Fault(err) = map_res {
+                    ExecResult::Fault(err)
+                } else {
+                    ExecResult::Fault("Target is not a map".to_string())
+                }
+            }
+            Node::MapSet(map_node, key_node, val_node) => {
+                let var_name = if let Node::Identifier(name) = &**map_node {
+                    name.clone()
+                } else {
+                    return ExecResult::Fault("MapSet target must be an identifier".to_string());
+                };
+                let val = match self.get_var(&var_name) {
+                    Some(v) => v,
+                    None => {
+                        return ExecResult::Fault(format!("Undefined map variable '{}'", var_name));
+                    }
+                };
+                if let RelType::Object(mut map) = val {
+                    let key_res = self.evaluate(key_node);
+                    let val_res = self.evaluate(val_node);
+                    match (key_res, val_res) {
+                        (ExecResult::Value(RelType::Str(key)), ExecResult::Value(new_val)) => {
+                            if let Some(old_val) = map.get(&key) {
+                                self.release_handles(old_val);
+                            }
+                            map.insert(key, new_val);
+
+                            let map_val = RelType::Object(map);
+                            let mut found = false;
+                            for frame in self.call_stack.iter_mut().rev() {
+                                if frame.locals.contains_key(&var_name) {
+                                    frame.locals.insert(var_name.clone(), map_val.clone());
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if !found {
+                                self.memory.insert(var_name.clone(), map_val);
+                            }
+                            ExecResult::Value(RelType::Void)
+                        }
+                        (ExecResult::Value(_), _) => {
+                            ExecResult::Fault("Map key must be a String".to_string())
+                        }
+                        (ExecResult::Fault(err), _) | (_, ExecResult::Fault(err)) => {
+                            ExecResult::Fault(err)
+                        }
+                        _ => ExecResult::Fault("Invalid types for MapSet".to_string()),
+                    }
+                } else {
+                    ExecResult::Fault(format!("Variable '{}' is not a map", var_name))
+                }
+            }
             Node::Index(container, index) => {
                 let cv = self.evaluate(container);
                 let iv = self.evaluate(index);

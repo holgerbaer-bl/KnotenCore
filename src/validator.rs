@@ -89,6 +89,15 @@ impl Validator {
             Node::ArrayLen(arr) => {
                 self.check_node(arr);
             }
+            Node::MapGet(map, key) | Node::MapHasKey(map, key) => {
+                self.check_node(map);
+                self.check_node(key);
+            }
+            Node::MapSet(map, key, val) => {
+                self.check_node(map);
+                self.check_node(key);
+                self.check_node(val);
+            }
             Node::Sin(n)
             | Node::Cos(n)
             | Node::FileRead(n)
@@ -221,6 +230,7 @@ impl Validator {
             | Node::StringLiteral(_)
             | Node::Identifier(_)
             | Node::Time
+            | Node::MapCreate
             | Node::InitGraphics
             | Node::InitAudio
             | Node::GetLastKeypress

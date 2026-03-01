@@ -1,0 +1,92 @@
+{
+  "Block": [
+    { "Print": { "StringLiteral": "Creating Handle Map..." } },
+    {
+      "Assign": [
+        "file_map",
+        "MapCreate"
+      ]
+    },
+    { "Print": { "StringLiteral": "Creating 5 file handles..." } },
+    {
+      "Assign": [
+        "f1",
+        { "NativeCall": ["registry_file_create", [{ "StringLiteral": "dummy_1.txt" }]] }
+      ]
+    },
+    {
+      "Assign": [
+        "f2",
+        { "NativeCall": ["registry_file_create", [{ "StringLiteral": "dummy_2.txt" }]] }
+      ]
+    },
+    {
+      "Assign": [
+        "f3",
+        { "NativeCall": ["registry_file_create", [{ "StringLiteral": "dummy_3.txt" }]] }
+      ]
+    },
+    {
+      "Assign": [
+        "f4",
+        { "NativeCall": ["registry_file_create", [{ "StringLiteral": "dummy_4.txt" }]] }
+      ]
+    },
+    {
+      "Assign": [
+        "f5",
+        { "NativeCall": ["registry_file_create", [{ "StringLiteral": "dummy_5.txt" }]] }
+      ]
+    },
+    { "Print": { "StringLiteral": "Inserting handles into Map..." } },
+    {
+      "MapSet": [
+        { "Identifier": "file_map" },
+        { "StringLiteral": "file1" },
+        { "Identifier": "f1" }
+      ]
+    },
+    {
+      "MapSet": [
+        { "Identifier": "file_map" },
+        { "StringLiteral": "file2" },
+        { "Identifier": "f2" }
+      ]
+    },
+    {
+      "MapSet": [
+        { "Identifier": "file_map" },
+        { "StringLiteral": "file3" },
+        { "Identifier": "f3" }
+      ]
+    },
+    {
+      "MapSet": [
+        { "Identifier": "file_map" },
+        { "StringLiteral": "file4" },
+        { "Identifier": "f4" }
+      ]
+    },
+    {
+      "MapSet": [
+        { "Identifier": "file_map" },
+        { "StringLiteral": "file5" },
+        { "Identifier": "f5" }
+      ]
+    },
+    { "Print": { "StringLiteral": "Testing MapHasKey..." } },
+    {
+      "Assign": [
+        "has_f3",
+        {
+          "MapHasKey": [
+            { "Identifier": "file_map" },
+            { "StringLiteral": "file3" }
+          ]
+        }
+      ]
+    },
+    { "Print": { "Identifier": "has_f3" } },
+    { "Print": { "StringLiteral": "Done. Exiting scope to trigger ARC Map deep drop." } }
+  ]
+}

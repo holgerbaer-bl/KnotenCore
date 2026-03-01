@@ -13,6 +13,7 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::InitVoxelMap
         | Node::InitAudio
         | Node::GetLastKeypress
+        | Node::MapCreate
         | Node::Import(_) => {}
 
         Node::Add(l, r)
@@ -30,6 +31,8 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::Mat4Mul(l, r)
         | Node::ArrayPush(l, r)
         | Node::ArrayGet(l, r)
+        | Node::MapGet(l, r)
+        | Node::MapHasKey(l, r)
         | Node::FileWrite(l, r)
         | Node::UIWindow(l, r)
         | Node::LoadTextureAtlas(l, r)
@@ -108,7 +111,7 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::RenderAsset(a, b, c, d) | Node::SetVoxel(a, b, c, d) => {
             count += count_nodes(a) + count_nodes(b) + count_nodes(c) + count_nodes(d);
         }
-        Node::ArraySet(a, b, c) => {
+        Node::ArraySet(a, b, c) | Node::MapSet(a, b, c) => {
             count += count_nodes(a) + count_nodes(b) + count_nodes(c);
         }
         Node::DrawText(a, b, c, d, e) => {
@@ -210,6 +213,14 @@ pub fn optimize(node: Node) -> Node {
             Node::ArrayPush(Box::new(optimize(*arr)), Box::new(optimize(*val)))
         }
         Node::ArrayLen(arr) => Node::ArrayLen(Box::new(optimize(*arr))),
+        Node::MapCreate => Node::MapCreate,
+        Node::MapGet(m, k) => Node::MapGet(Box::new(optimize(*m)), Box::new(optimize(*k))),
+        Node::MapSet(m, k, v) => Node::MapSet(
+            Box::new(optimize(*m)),
+            Box::new(optimize(*k)),
+            Box::new(optimize(*v)),
+        ),
+        Node::MapHasKey(m, k) => Node::MapHasKey(Box::new(optimize(*m)), Box::new(optimize(*k))),
         Node::Index(arr, index) => {
             Node::Index(Box::new(optimize(*arr)), Box::new(optimize(*index)))
         }
@@ -469,6 +480,7 @@ impl TypeChecker {
             Node::StringLiteral(_) => Ok(Type::String),
             Node::ObjectLiteral(_) => Ok(Type::Object),
             Node::ArrayCreate(_) => Ok(Type::Array(vec![])),
+            Node::MapCreate => Ok(Type::Map(Box::new(Type::Any))),
             Node::Identifier(name) => {
                 if let Some(t) = self.get_var(name) {
                     Ok(t)

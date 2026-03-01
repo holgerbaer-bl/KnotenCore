@@ -6,6 +6,7 @@ pub enum VarKind {
     Normal,
     Handle,
     HandleArray,
+    HandleMap,
 }
 
 pub struct Codegen {
@@ -35,7 +36,7 @@ impl Codegen {
             Node::Identifier(name) => {
                 for scope in self.scopes.iter().rev() {
                     if let Some(kind) = scope.get(name) {
-                        return *kind == VarKind::Handle;
+                        return *kind != VarKind::Normal;
                     }
                 }
                 false
@@ -71,6 +72,8 @@ impl Codegen {
                         out.push_str(&format!("    registry::registry_release({});\n", var_name));
                     } else if *kind == VarKind::HandleArray {
                         out.push_str(&format!("    for item in {} {{\n        registry::registry_release(item);\n    }}\n", var_name));
+                    } else if *kind == VarKind::HandleMap {
+                        out.push_str(&format!("    for item in {}.into_values() {{\n        registry::registry_release(item);\n    }}\n", var_name));
                     }
                 }
 
@@ -96,6 +99,13 @@ impl Codegen {
                 if self.is_handle_expr(&**expr) {
                     if let Node::ArrayCreate(_) = &**expr {
                         kind = VarKind::HandleArray;
+                    } else if let Node::Identifier(name) = &**expr {
+                        for scope in self.scopes.iter().rev() {
+                            if let Some(k) = scope.get(name) {
+                                kind = *k;
+                                break;
+                            }
+                        }
                     } else {
                         kind = VarKind::Handle;
                     }
@@ -120,6 +130,11 @@ impl Codegen {
                     } else if previously_was == VarKind::HandleArray {
                         format!(
                             "for item in {} {{\n        registry::registry_release(item);\n    }}\n    {} = {}",
+                            name, name, inner
+                        )
+                    } else if previously_was == VarKind::HandleMap {
+                        format!(
+                            "for item in {}.into_values() {{\n        registry::registry_release(item);\n    }}\n    {} = {}",
                             name, name, inner
                         )
                     } else {
@@ -216,6 +231,39 @@ impl Codegen {
             }
             Node::ArrayLen(arr) => {
                 format!("{}.len() as i64", self.generate(arr, false))
+            }
+            Node::MapCreate => "std::collections::HashMap::new()".to_string(),
+            Node::MapGet(map, key) => {
+                format!(
+                    "(*{}.get(&{}).unwrap_or(&0))",
+                    self.generate(map, false),
+                    self.generate(key, false)
+                )
+            }
+            Node::MapSet(map, key, val) => {
+                if self.is_handle_expr(&**val) {
+                    if let Node::Identifier(name) = &**map {
+                        for scope in self.scopes.iter_mut().rev() {
+                            if scope.contains_key(name) {
+                                scope.insert(name.clone(), VarKind::HandleMap);
+                                break;
+                            }
+                        }
+                    }
+                }
+                format!(
+                    "{}.insert({}, {})",
+                    self.generate(map, false),
+                    self.generate(key, false),
+                    self.generate(val, false)
+                )
+            }
+            Node::MapHasKey(map, key) => {
+                format!(
+                    "{}.contains_key(&{})",
+                    self.generate(map, false),
+                    self.generate(key, false)
+                )
             }
             Node::If(cond, then_b, else_b) => {
                 let cond_str = self.generate(cond, false);
