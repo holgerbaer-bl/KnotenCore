@@ -4,40 +4,67 @@
 
     { "Print": { "StringLiteral": "======================================" } },
     { "Print": { "StringLiteral": "  KnotenCore Self-Hosting Evaluator" } },
-    { "Print": { "StringLiteral": "  Phase 1: The Inception" } },
+    { "Print": { "StringLiteral": "  Phase 2: Environment & Variables" } },
     { "Print": { "StringLiteral": "======================================" } },
     { "Print": { "StringLiteral": "" } },
 
-    { "Print": { "StringLiteral": "[1] Reading tiny_test.nod from disk..." } },
-    { "Assign": ["source", { "Call": ["fs_read_file", [{ "StringLiteral": "examples/core/tiny_test.nod" }]] }] },
+    { "Print": { "StringLiteral": "[1] Reading tiny_test_vars.nod from disk..." } },
+    { "Assign": ["source", { "Call": ["fs_read_file", [{ "StringLiteral": "examples/core/tiny_test_vars.nod" }]] }] },
 
-    { "Print": { "StringLiteral": "[2] Parsing JSON into KnotenCore Object..." } },
+    { "Print": { "StringLiteral": "[2] Parsing JSON AST..." } },
     { "Assign": ["ast", { "Call": ["fs_parse_json", [{ "Identifier": "source" }]] }] },
 
-    { "Print": { "StringLiteral": "[3] Evaluating AST with self-hosted eval()..." } },
+    { "Print": { "StringLiteral": "[3] Creating empty environment..." } },
+    { "Assign": ["env", { "ObjectLiteral": {} }] },
+
+    { "Print": { "StringLiteral": "[4] Evaluating AST with self-hosted eval(node, env)..." } },
     { "Print": { "StringLiteral": "" } },
 
     {
       "FnDef": [
         "eval",
-        ["node"],
+        ["node", "env"],
         { "Block": [
 
           { "If": [
             { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "IntLiteral" }]] },
-            { "Return": { "PropertyGet": [{ "Identifier": "node" }, "IntLiteral"] } },
+            { "Return": { "Call": ["obj_set", [{ "Identifier": "env" }, { "StringLiteral": "__result" }, { "PropertyGet": [{ "Identifier": "node" }, "IntLiteral"] }]] } },
             { "Block": [] }
           ]},
 
           { "If": [
             { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "StringLiteral" }]] },
-            { "Return": { "PropertyGet": [{ "Identifier": "node" }, "StringLiteral"] } },
+            { "Return": { "Call": ["obj_set", [{ "Identifier": "env" }, { "StringLiteral": "__result" }, { "PropertyGet": [{ "Identifier": "node" }, "StringLiteral"] }]] } },
             { "Block": [] }
           ]},
 
           { "If": [
             { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "FloatLiteral" }]] },
-            { "Return": { "PropertyGet": [{ "Identifier": "node" }, "FloatLiteral"] } },
+            { "Return": { "Call": ["obj_set", [{ "Identifier": "env" }, { "StringLiteral": "__result" }, { "PropertyGet": [{ "Identifier": "node" }, "FloatLiteral"] }]] } },
+            { "Block": [] }
+          ]},
+
+          { "If": [
+            { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "Identifier" }]] },
+            { "Block": [
+              { "Assign": ["var_name", { "PropertyGet": [{ "Identifier": "node" }, "Identifier"] }] },
+              { "Assign": ["var_val", { "Call": ["obj_get", [{ "Identifier": "env" }, { "Identifier": "var_name" }]] }] },
+              { "Return": { "Call": ["obj_set", [{ "Identifier": "env" }, { "StringLiteral": "__result" }, { "Identifier": "var_val" }]] } }
+            ]},
+            { "Block": [] }
+          ]},
+
+          { "If": [
+            { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "Assign" }]] },
+            { "Block": [
+              { "Assign": ["assign_data", { "PropertyGet": [{ "Identifier": "node" }, "Assign"] }] },
+              { "Assign": ["var_name", { "Call": ["array_get", [{ "Identifier": "assign_data" }, { "IntLiteral": 0 }]] }] },
+              { "Assign": ["val_node", { "Call": ["array_get", [{ "Identifier": "assign_data" }, { "IntLiteral": 1 }]] }] },
+              { "Assign": ["env", { "Call": ["eval", [{ "Identifier": "val_node" }, { "Identifier": "env" }]] }] },
+              { "Assign": ["val", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
+              { "Assign": ["env", { "Call": ["obj_set", [{ "Identifier": "env" }, { "Identifier": "var_name" }, { "Identifier": "val" }]] }] },
+              { "Return": { "Identifier": "env" } }
+            ]},
             { "Block": [] }
           ]},
 
@@ -45,9 +72,11 @@
             { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "Add" }]] },
             { "Block": [
               { "Assign": ["pair", { "PropertyGet": [{ "Identifier": "node" }, "Add"] }] },
-              { "Assign": ["lv", { "Call": ["eval", [{ "Index": [{ "Identifier": "pair" }, { "IntLiteral": 0 }] }]] }] },
-              { "Assign": ["rv", { "Call": ["eval", [{ "Index": [{ "Identifier": "pair" }, { "IntLiteral": 1 }] }]] }] },
-              { "Return": { "Add": [{ "Identifier": "lv" }, { "Identifier": "rv" }] } }
+              { "Assign": ["env", { "Call": ["eval", [{ "Call": ["array_get", [{ "Identifier": "pair" }, { "IntLiteral": 0 }]] }, { "Identifier": "env" }]] }] },
+              { "Assign": ["lv", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
+              { "Assign": ["env", { "Call": ["eval", [{ "Call": ["array_get", [{ "Identifier": "pair" }, { "IntLiteral": 1 }]] }, { "Identifier": "env" }]] }] },
+              { "Assign": ["rv", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
+              { "Return": { "Call": ["obj_set", [{ "Identifier": "env" }, { "StringLiteral": "__result" }, { "Add": [{ "Identifier": "lv" }, { "Identifier": "rv" }] }]] } }
             ]},
             { "Block": [] }
           ]},
@@ -56,9 +85,11 @@
             { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "Sub" }]] },
             { "Block": [
               { "Assign": ["pair", { "PropertyGet": [{ "Identifier": "node" }, "Sub"] }] },
-              { "Assign": ["lv", { "Call": ["eval", [{ "Index": [{ "Identifier": "pair" }, { "IntLiteral": 0 }] }]] }] },
-              { "Assign": ["rv", { "Call": ["eval", [{ "Index": [{ "Identifier": "pair" }, { "IntLiteral": 1 }] }]] }] },
-              { "Return": { "Sub": [{ "Identifier": "lv" }, { "Identifier": "rv" }] } }
+              { "Assign": ["env", { "Call": ["eval", [{ "Call": ["array_get", [{ "Identifier": "pair" }, { "IntLiteral": 0 }]] }, { "Identifier": "env" }]] }] },
+              { "Assign": ["lv", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
+              { "Assign": ["env", { "Call": ["eval", [{ "Call": ["array_get", [{ "Identifier": "pair" }, { "IntLiteral": 1 }]] }, { "Identifier": "env" }]] }] },
+              { "Assign": ["rv", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
+              { "Return": { "Call": ["obj_set", [{ "Identifier": "env" }, { "StringLiteral": "__result" }, { "Sub": [{ "Identifier": "lv" }, { "Identifier": "rv" }] }]] } }
             ]},
             { "Block": [] }
           ]},
@@ -67,9 +98,11 @@
             { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "Mul" }]] },
             { "Block": [
               { "Assign": ["pair", { "PropertyGet": [{ "Identifier": "node" }, "Mul"] }] },
-              { "Assign": ["lv", { "Call": ["eval", [{ "Index": [{ "Identifier": "pair" }, { "IntLiteral": 0 }] }]] }] },
-              { "Assign": ["rv", { "Call": ["eval", [{ "Index": [{ "Identifier": "pair" }, { "IntLiteral": 1 }] }]] }] },
-              { "Return": { "Mul": [{ "Identifier": "lv" }, { "Identifier": "rv" }] } }
+              { "Assign": ["env", { "Call": ["eval", [{ "Call": ["array_get", [{ "Identifier": "pair" }, { "IntLiteral": 0 }]] }, { "Identifier": "env" }]] }] },
+              { "Assign": ["lv", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
+              { "Assign": ["env", { "Call": ["eval", [{ "Call": ["array_get", [{ "Identifier": "pair" }, { "IntLiteral": 1 }]] }, { "Identifier": "env" }]] }] },
+              { "Assign": ["rv", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
+              { "Return": { "Call": ["obj_set", [{ "Identifier": "env" }, { "StringLiteral": "__result" }, { "Mul": [{ "Identifier": "lv" }, { "Identifier": "rv" }] }]] } }
             ]},
             { "Block": [] }
           ]},
@@ -78,25 +111,47 @@
             { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "Print" }]] },
             { "Block": [
               { "Assign": ["inner", { "PropertyGet": [{ "Identifier": "node" }, "Print"] }] },
-              { "Assign": ["val", { "Call": ["eval", [{ "Identifier": "inner" }]] }] },
+              { "Assign": ["env", { "Call": ["eval", [{ "Identifier": "inner" }, { "Identifier": "env" }]] }] },
+              { "Assign": ["val", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
               { "Print": { "Concat": [{ "StringLiteral": "    [self-host] >> " }, { "ToString": { "Identifier": "val" } }] } },
-              { "Return": { "Identifier": "val" } }
+              { "Return": { "Identifier": "env" } }
+            ]},
+            { "Block": [] }
+          ]},
+
+          { "If": [
+            { "Call": ["obj_has_key", [{ "Identifier": "node" }, { "StringLiteral": "Block" }]] },
+            { "Block": [
+              { "Assign": ["stmts", { "PropertyGet": [{ "Identifier": "node" }, "Block"] }] },
+              { "Assign": ["num_stmts", { "Call": ["array_length", [{ "Identifier": "stmts" }]] }] },
+              { "Assign": ["idx", { "IntLiteral": 0 }] },
+              { "While": [
+                { "Lt": [{ "Identifier": "idx" }, { "Identifier": "num_stmts" }] },
+                { "Block": [
+                  { "Assign": ["stmt", { "Call": ["array_get", [{ "Identifier": "stmts" }, { "Identifier": "idx" }]] }] },
+                  { "Assign": ["env", { "Call": ["eval", [{ "Identifier": "stmt" }, { "Identifier": "env" }]] }] },
+                  { "Assign": ["idx", { "Add": [{ "Identifier": "idx" }, { "IntLiteral": 1 }] }] }
+                ]}
+              ]},
+              { "Return": { "Identifier": "env" } }
             ]},
             { "Block": [] }
           ]},
 
           { "Print": { "StringLiteral": "    [self-host] Unknown node type" } },
-          { "Return": { "IntLiteral": 0 } }
+          { "Return": { "Identifier": "env" } }
         ]}
       ]
     },
 
-    { "Assign": ["result", { "Call": ["eval", [{ "Identifier": "ast" }]] }] },
+    { "Assign": ["env", { "Call": ["eval", [{ "Identifier": "ast" }, { "Identifier": "env" }]] }] },
+
+    { "Assign": ["final_result", { "Call": ["obj_get", [{ "Identifier": "env" }, { "StringLiteral": "__result" }]] }] },
 
     { "Print": { "StringLiteral": "" } },
     { "Print": { "StringLiteral": "======================================" } },
-    { "Print": { "Concat": [{ "StringLiteral": "  Evaluation complete. Result: " }, { "ToString": { "Identifier": "result" } }] } },
-    { "Print": { "StringLiteral": "  The Inception is real." } },
+    { "Print": { "Concat": [{ "StringLiteral": "  Evaluation complete. Result: " }, { "ToString": { "Identifier": "final_result" } }] } },
+    { "Print": { "StringLiteral": "  Variables work. The dream goes deeper." } },
     { "Print": { "StringLiteral": "======================================" } }
   ]
 }

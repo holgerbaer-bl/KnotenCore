@@ -1,25 +1,11 @@
 {
   "Block": [
-    {
-      "FnDef": [
-        "fs_read_file",
-        ["path"],
-        { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "fs_read_file", "args": [{ "Identifier": "path" }] } } }] }
-      ]
-    },
-    {
-      "FnDef": [
-        "fs_parse_json",
-        ["json_str"],
-        { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "fs_parse_json", "args": [{ "Identifier": "json_str" }] } } }] }
-      ]
-    },
-    {
-      "FnDef": [
-        "obj_has_key",
-        ["obj", "key"],
-        { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "obj_has_key", "args": [{ "Identifier": "obj" }, { "Identifier": "key" }] } } }] }
-      ]
-    }
+    { "FnDef": ["fs_read_file", ["path"], { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "fs_read_file", "args": [{ "Identifier": "path" }] } } }] } ] },
+    { "FnDef": ["fs_parse_json", ["json_str"], { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "fs_parse_json", "args": [{ "Identifier": "json_str" }] } } }] } ] },
+    { "FnDef": ["obj_has_key", ["obj", "key"], { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "obj_has_key", "args": [{ "Identifier": "obj" }, { "Identifier": "key" }] } } }] } ] },
+    { "FnDef": ["obj_set", ["obj", "key", "val"], { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "obj_set", "args": [{ "Identifier": "obj" }, { "Identifier": "key" }, { "Identifier": "val" }] } } }] } ] },
+    { "FnDef": ["obj_get", ["obj", "key"], { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "obj_get", "args": [{ "Identifier": "obj" }, { "Identifier": "key" }] } } }] } ] },
+    { "FnDef": ["array_length", ["arr"], { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "array_length", "args": [{ "Identifier": "arr" }] } } }] } ] },
+    { "FnDef": ["array_get", ["arr", "idx"], { "Block": [{ "Return": { "ExternCall": { "module": "fs", "function": "array_get", "args": [{ "Identifier": "arr" }, { "Identifier": "idx" }] } } }] } ] }
   ]
 }

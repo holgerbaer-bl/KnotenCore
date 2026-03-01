@@ -273,6 +273,54 @@ impl BridgeModule for CoreBridge {
                         "[FFI] obj_has_key expects (Object, String)".to_string(),
                     ))
                 }
+                "obj_set" => {
+                    if args.len() == 3 {
+                        if let (RelType::Object(map), RelType::Str(key)) = (&args[0], &args[1]) {
+                            let mut new_map = map.clone();
+                            new_map.insert(key.clone(), args[2].clone());
+                            return Some(ExecResult::Value(RelType::Object(new_map)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] obj_set expects (Object, String, Any)".to_string(),
+                    ))
+                }
+                "obj_get" => {
+                    if args.len() == 2 {
+                        if let (RelType::Object(map), RelType::Str(key)) = (&args[0], &args[1]) {
+                            return Some(ExecResult::Value(
+                                map.get(key).cloned().unwrap_or(RelType::Void),
+                            ));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] obj_get expects (Object, String)".to_string(),
+                    ))
+                }
+                "array_length" => {
+                    if args.len() == 1 {
+                        if let RelType::Array(arr) = &args[0] {
+                            return Some(ExecResult::Value(RelType::Int(arr.len() as i64)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] array_length expects 1 Array arg".to_string(),
+                    ))
+                }
+                "array_get" => {
+                    if args.len() == 2 {
+                        if let (RelType::Array(arr), RelType::Int(idx)) = (&args[0], &args[1]) {
+                            let i = *idx as usize;
+                            if i < arr.len() {
+                                return Some(ExecResult::Value(arr[i].clone()));
+                            }
+                            return Some(ExecResult::Value(RelType::Void));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] array_get expects (Array, Int)".to_string(),
+                    ))
+                }
                 _ => None,
             }
         } else {
