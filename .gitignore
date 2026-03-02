@@ -9,3 +9,8 @@ output.rs
 *.bin
 Cargo.lock
 .gemini/
+
+# Test artifacts and logs
+*.log
+dummy_*.txt
+*_output.txt

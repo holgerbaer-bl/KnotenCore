@@ -1,1 +1,0 @@
-KnotenCore standalone binary wrote this file!
