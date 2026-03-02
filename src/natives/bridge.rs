@@ -544,21 +544,57 @@ impl BridgeModule for CoreBridge {
                     ))
                 }
                 "registry_draw_quad_3d" => {
-                    if args.len() == 5 {
-                        if let (
-                            RelType::Handle(win),
-                            RelType::Handle(tex),
-                            RelType::Int(x),
-                            RelType::Int(y),
-                            RelType::Int(z),
-                        ) = (&args[0], &args[1], &args[2], &args[3], &args[4])
-                        {
-                            crate::natives::registry::registry_draw_quad_3d(*win, *tex, *x, *y, *z);
+                    if args.len() == 7 {
+                        // Allow Int args to be implicitly cast if they are floats conceptually (KnotenCore dynamic typings fallback)
+                        let get_float = |arg: &RelType| -> Option<f32> {
+                            match arg {
+                                RelType::Float(f) => Some(*f as f32),
+                                RelType::Int(i) => Some(*i as f32),
+                                _ => None,
+                            }
+                        };
+
+                        if let (RelType::Handle(win), RelType::Handle(tex)) = (&args[0], &args[1]) {
+                            if let (Some(x), Some(y), Some(z), Some(sx), Some(sy)) = (
+                                get_float(&args[2]),
+                                get_float(&args[3]),
+                                get_float(&args[4]),
+                                get_float(&args[5]),
+                                get_float(&args[6]),
+                            ) {
+                                crate::natives::registry::registry_draw_quad_3d(
+                                    *win, *tex, x, y, z, sx, sy,
+                                );
+                                return Some(ExecResult::Value(RelType::Void));
+                            }
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_draw_quad_3d expects (Handle, Handle, Float, Float, Float, Float, Float)"
+                            .to_string(),
+                    ))
+                }
+                "registry_set_camera" => {
+                    if args.len() == 4 {
+                        let get_float = |arg: &RelType| -> Option<f32> {
+                            match arg {
+                                RelType::Float(f) => Some(*f as f32),
+                                RelType::Int(i) => Some(*i as f32),
+                                _ => None,
+                            }
+                        };
+                        if let (Some(fov), Some(x), Some(y), Some(z)) = (
+                            get_float(&args[0]),
+                            get_float(&args[1]),
+                            get_float(&args[2]),
+                            get_float(&args[3]),
+                        ) {
+                            crate::natives::registry::registry_set_camera(fov, x, y, z);
                             return Some(ExecResult::Value(RelType::Void));
                         }
                     }
                     Some(ExecResult::Fault(
-                        "[FFI] registry_draw_quad_3d expects (Handle, Handle, Int, Int, Int)"
+                        "[FFI] registry_set_camera expects (Float, Float, Float, Float)"
                             .to_string(),
                     ))
                 }

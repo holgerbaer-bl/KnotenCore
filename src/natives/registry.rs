@@ -1,3 +1,4 @@
+use glam::{Mat4, Vec3};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::File;
@@ -29,6 +30,11 @@ pub struct RegistryWindowState {
     pub current_texture: Option<wgpu::SurfaceTexture>,
     pub current_view: Option<wgpu::TextureView>,
     pub encoder: Option<wgpu::CommandEncoder>,
+
+    // 3D Resources
+    pub depth_texture_view: wgpu::TextureView,
+    pub camera_buffer: wgpu::Buffer,
+    pub camera_bind_group: wgpu::BindGroup,
 }
 
 #[repr(C)]
@@ -458,8 +464,11 @@ pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
     let (device, queue) = pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("KnotenCore GPU Device"),
-            required_features: wgpu::Features::empty(),
-            required_limits: wgpu::Limits::default(),
+            required_features: wgpu::Features::PUSH_CONSTANTS,
+            required_limits: wgpu::Limits {
+                max_push_constant_size: 64,
+                ..Default::default()
+            },
             ..Default::default()
         },
         None,
@@ -489,8 +498,61 @@ pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
     };
     surface.configure(&device, &config);
 
+    let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Depth Texture"),
+        size: wgpu::Extent3d {
+            width: w,
+            height: h,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Depth32Float,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        view_formats: &[],
+    });
+    let depth_texture_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+    let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Camera Buffer"),
+        contents: bytemuck::cast_slice(&[Mat4::IDENTITY.to_cols_array_2d()]),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+    let camera_bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+            label: Some("camera_bgl"),
+        });
+    let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &camera_bind_group_layout,
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: camera_buffer.as_entire_binding(),
+        }],
+        label: Some("camera_bg"),
+    });
+
     // Default WGSL Shader for rendering Quads
     let shader_source = "
+struct CameraUniform {
+    view_proj: mat4x4<f32>,
+};
+
+@group(1) @binding(0)
+var<uniform> camera: CameraUniform;
+
+var<push_constant> model: mat4x4<f32>;
+
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
@@ -503,7 +565,7 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.tex_coords = tex_coords;
-    out.clip_position = vec4<f32>(position, 1.0);
+    out.clip_position = camera.view_proj * model * vec4<f32>(position, 1.0);
     return out;
 }
 
@@ -547,8 +609,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
-        bind_group_layouts: &[&bind_group_layout],
-        push_constant_ranges: &[],
+        bind_group_layouts: &[&bind_group_layout, &camera_bind_group_layout],
+        push_constant_ranges: &[wgpu::PushConstantRange {
+            stages: wgpu::ShaderStages::VERTEX,
+            range: 0..64,
+        }],
     });
 
     let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -583,7 +648,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             unclipped_depth: false,
             conservative: false,
         },
-        depth_stencil: None,
+        depth_stencil: Some(wgpu::DepthStencilState {
+            format: wgpu::TextureFormat::Depth32Float,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
         multisample: wgpu::MultisampleState {
             count: 1,
             mask: !0,
@@ -611,6 +682,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         current_texture: None,
         current_view: None,
         encoder: None,
+        depth_texture_view,
+        camera_buffer,
+        camera_bind_group,
     };
 
     with_registry(|registry| {
@@ -818,7 +892,14 @@ pub fn registry_fill_color(window_handle: i64, r: i64, g: i64, b: i64) {
                                 store: wgpu::StoreOp::Store,
                             },
                         })],
-                        depth_stencil_attachment: None,
+                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                            view: &state.depth_texture_view,
+                            depth_ops: Some(wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(1.0),
+                                store: wgpu::StoreOp::Store,
+                            }),
+                            stencil_ops: None,
+                        }),
                         timestamp_writes: None,
                         occlusion_query_set: None,
                     },
@@ -982,9 +1063,11 @@ pub fn registry_texture_load(path: String) -> i64 {
 pub fn registry_draw_quad_3d(
     window_handle: i64,
     texture_handle: i64,
-    x: i64,
-    y: i64,
-    _z: i64, // reserved for depth sorting
+    x: f32,
+    y: f32,
+    z: f32,
+    scale_x: f32,
+    scale_y: f32,
 ) {
     if window_handle < 0 || texture_handle < 0 {
         return;
@@ -1009,36 +1092,35 @@ pub fn registry_draw_quad_3d(
     with_registry(|registry| {
         if let Some(win_entry) = registry.get_mut(&win_id) {
             if let NativeHandle::Window(SendWindow(state)) = &mut win_entry.handle {
-                let sw = state.width as f32;
-                let sh = state.height as f32;
-                let nx = (x as f32 / sw) * 2.0 - 1.0;
-                let ny = 1.0 - (y as f32 / sh) * 2.0;
-                let nw = (tw as f32 / sw) * 2.0;
-                let nh = (th as f32 / sh) * 2.0;
+                let model_matrix = Mat4::from_scale_rotation_translation(
+                    Vec3::new(scale_x, scale_y, 1.0),
+                    glam::Quat::IDENTITY,
+                    Vec3::new(x, y, z),
+                );
 
                 let vertices = [
                     RegistryVertex {
-                        position: [nx, ny, 0.0],
+                        position: [-0.5, 0.5, 0.0],
                         tex_coords: [0.0, 0.0],
                     },
                     RegistryVertex {
-                        position: [nx, ny - nh, 0.0],
+                        position: [-0.5, -0.5, 0.0],
                         tex_coords: [0.0, 1.0],
                     },
                     RegistryVertex {
-                        position: [nx + nw, ny - nh, 0.0],
+                        position: [0.5, -0.5, 0.0],
                         tex_coords: [1.0, 1.0],
                     },
                     RegistryVertex {
-                        position: [nx + nw, ny - nh, 0.0],
+                        position: [0.5, -0.5, 0.0],
                         tex_coords: [1.0, 1.0],
                     },
                     RegistryVertex {
-                        position: [nx + nw, ny, 0.0],
+                        position: [0.5, 0.5, 0.0],
                         tex_coords: [1.0, 0.0],
                     },
                     RegistryVertex {
-                        position: [nx, ny, 0.0],
+                        position: [-0.5, 0.5, 0.0],
                         tex_coords: [0.0, 0.0],
                     },
                 ];
@@ -1080,7 +1162,14 @@ pub fn registry_draw_quad_3d(
                                 store: wgpu::StoreOp::Store,
                             },
                         })],
-                        depth_stencil_attachment: None,
+                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                            view: &state.depth_texture_view,
+                            depth_ops: Some(wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: wgpu::StoreOp::Store,
+                            }),
+                            stencil_ops: None,
+                        }),
                         timestamp_writes: None,
                         occlusion_query_set: None,
                     },
@@ -1089,8 +1178,37 @@ pub fn registry_draw_quad_3d(
                 render_pass.set_pipeline(&state.pipeline);
                 // Dereference Arc to wgpu::BindGroup
                 render_pass.set_bind_group(0, &*bind_group, &[]);
+                render_pass.set_bind_group(1, &state.camera_bind_group, &[]);
+                render_pass.set_push_constants(
+                    wgpu::ShaderStages::VERTEX,
+                    0,
+                    bytemuck::cast_slice(&[model_matrix.to_cols_array_2d()]),
+                );
                 render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
                 render_pass.draw(0..6, 0..1);
+            }
+        }
+    });
+}
+
+pub fn registry_set_camera(
+    fov_degrees: f32,
+    cam_x: f32,
+    cam_y: f32,
+    cam_z: f32,
+) {
+    with_registry(|registry| {
+        for entry in registry.values() {
+            if let NativeHandle::Window(SendWindow(state)) = &entry.handle {
+                let aspect = state.width as f32 / state.height as f32;
+                let proj = Mat4::perspective_rh_gl(fov_degrees.to_radians(), aspect, 0.1, 1000.0);
+                let view = Mat4::look_at_rh(
+                    Vec3::new(cam_x, cam_y, cam_z),
+                    Vec3::new(cam_x, cam_y, cam_z + 1.0),
+                    Vec3::new(0.0, 1.0, 0.0),
+                );
+                let view_proj = proj * view;
+                state.queue.write_buffer(&state.camera_buffer, 0, bytemuck::cast_slice(&[view_proj.to_cols_array_2d()]));
             }
         }
     });
