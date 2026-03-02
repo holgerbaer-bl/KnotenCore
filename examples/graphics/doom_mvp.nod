@@ -1,0 +1,121 @@
+{
+  "Block": [
+    { "Print": { "StringLiteral": "[Doom MVP] Initializing window..." } },
+    {
+      "Assign": [
+        "win",
+        {
+          "NativeCall": [
+            "registry_create_window",
+            [
+              { "IntLiteral": 640 },
+              { "IntLiteral": 480 },
+              { "StringLiteral": "KnotenCore Doom MVP" }
+            ]
+          ]
+        }
+      ]
+    },
+    { "Print": { "StringLiteral": "[Doom MVP] Loading wall.png texture..." } },
+    {
+      "Assign": [
+        "wall_tex",
+        {
+          "NativeCall": [
+            "registry_texture_load",
+            [
+              { "StringLiteral": "examples/graphics/wall.png" }
+            ]
+          ]
+        }
+      ]
+    },
+    { "Print": { "StringLiteral": "[Doom MVP] Entering render loop..." } },
+    {
+      "Assign": ["frame", { "IntLiteral": 0 }]
+    },
+    {
+      "While": [
+        {
+          "Lt": [
+            { "Identifier": "frame" },
+            { "IntLiteral": 120 }
+          ]
+        },
+        {
+          "Block": [
+            {
+              "NativeCall": [
+                "registry_fill_color",
+                [
+                  { "Identifier": "win" },
+                  { "IntLiteral": 40 },
+                  { "IntLiteral": 40 },
+                  { "IntLiteral": 60 }
+                ]
+              ]
+            },
+            {
+              "NativeCall": [
+                "registry_draw_quad_3d",
+                [
+                  { "Identifier": "win" },
+                  { "Identifier": "wall_tex" },
+                  { "IntLiteral": 100 },
+                  { "IntLiteral": 100 },
+                  { "IntLiteral": 0 }
+                ]
+              ]
+            },
+            {
+              "NativeCall": [
+                "registry_draw_quad_3d",
+                [
+                  { "Identifier": "win" },
+                  { "Identifier": "wall_tex" },
+                  { "IntLiteral": 200 },
+                  { "IntLiteral": 150 },
+                  { "IntLiteral": 0 }
+                ]
+              ]
+            },
+            {
+              "NativeCall": [
+                "registry_draw_quad_3d",
+                [
+                  { "Identifier": "win" },
+                  { "Identifier": "wall_tex" },
+                  { "IntLiteral": 300 },
+                  { "IntLiteral": 200 },
+                  { "IntLiteral": 0 }
+                ]
+              ]
+            },
+            {
+              "NativeCall": [
+                "registry_window_update",
+                [{ "Identifier": "win" }]
+              ]
+            },
+            {
+              "Assign": [
+                "frame",
+                {
+                  "Add": [
+                    { "Identifier": "frame" },
+                    { "IntLiteral": 1 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    { "Print": { "StringLiteral": "[Doom MVP] Loop ended. Dumping registry..." } },
+    {
+      "NativeCall": ["registry_dump", []]
+    },
+    { "Print": { "StringLiteral": "[Doom MVP] Exiting scope. ARC cleanup triggered." } }
+  ]
+}

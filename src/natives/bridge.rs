@@ -532,6 +532,36 @@ impl BridgeModule for CoreBridge {
                         "[FFI] registry_voxel_render_frame expects 1 Handle arg".to_string(),
                     ))
                 }
+                "registry_texture_load" => {
+                    if args.len() == 1 {
+                        if let RelType::Str(path) = &args[0] {
+                            let id = crate::natives::registry::registry_texture_load(path.clone());
+                            return Some(ExecResult::Value(RelType::Handle(id)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_texture_load expects 1 String arg".to_string(),
+                    ))
+                }
+                "registry_draw_quad_3d" => {
+                    if args.len() == 5 {
+                        if let (
+                            RelType::Handle(win),
+                            RelType::Handle(tex),
+                            RelType::Int(x),
+                            RelType::Int(y),
+                            RelType::Int(z),
+                        ) = (&args[0], &args[1], &args[2], &args[3], &args[4])
+                        {
+                            crate::natives::registry::registry_draw_quad_3d(*win, *tex, *x, *y, *z);
+                            return Some(ExecResult::Value(RelType::Void));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_draw_quad_3d expects (Handle, Handle, Int, Int, Int)"
+                            .to_string(),
+                    ))
+                }
                 _ => None,
             }
         } else {

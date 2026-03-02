@@ -24,6 +24,7 @@ pub enum NativeHandle {
     Timestamp(std::time::Instant),
     GpuContext(GpuContext),
     VoxelWorld(SendVoxelWorld),
+    Texture(TextureAsset),
 }
 
 pub struct RegistryEntry {
@@ -47,6 +48,15 @@ pub struct GpuContext {
 // SAFETY: wgpu GPU types are Send+Sync; our registry is single-threaded.
 unsafe impl Send for GpuContext {}
 unsafe impl Sync for GpuContext {}
+
+// Texture loaded into memory for rendering
+pub struct TextureAsset {
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Vec<u32>, // RGBA packed as 0x00RRGGBB for minifb
+}
+unsafe impl Send for TextureAsset {}
+unsafe impl Sync for TextureAsset {}
 
 // VoxelWorld — isometric software-rendered voxel scene
 pub struct VoxelWorldState {
@@ -286,6 +296,10 @@ pub fn registry_dump() -> i64 {
                 NativeHandle::VoxelWorld(SendVoxelWorld(s)) => {
                     println!("      voxels={}, {}x{}", s.voxels.len(), s.width, s.height);
                     "VoxelWorld"
+                }
+                NativeHandle::Texture(tex) => {
+                    println!("      {}x{}", tex.width, tex.height);
+                    "Texture"
                 }
             };
             println!(
@@ -613,4 +627,119 @@ impl crate::natives::NativeModule for RegistryModule {
         use crate::natives::bridge::BridgeModule;
         crate::natives::bridge::CoreBridge.handle("registry", func_name, args)
     }
+}
+
+// ── Texture Orchestration ─────────────────────────────────────────
+
+pub fn registry_texture_load(path: String) -> i64 {
+    let img = match image::open(&path) {
+        Ok(img) => img.to_rgba8(),
+        Err(e) => {
+            eprintln!("[KnotenCore Texture] Failed to load '{}': {}", path, e);
+            return -1;
+        }
+    };
+
+    let width = img.width();
+    let height = img.height();
+    let mut pixels = Vec::with_capacity((width * height) as usize);
+    for pixel in img.pixels() {
+        let r = pixel[0] as u32;
+        let g = pixel[1] as u32;
+        let b = pixel[2] as u32;
+        pixels.push((r << 16) | (g << 8) | b);
+    }
+
+    println!(
+        "[KnotenCore Texture] Loaded '{}' ({}x{})",
+        path, width, height
+    );
+
+    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap();
+    let id = *id_guard;
+    *id_guard += 1;
+
+    with_registry(|registry| {
+        registry.insert(
+            id,
+            RegistryEntry {
+                handle: NativeHandle::Texture(TextureAsset {
+                    width,
+                    height,
+                    pixels,
+                }),
+                ref_count: 1,
+            },
+        );
+    });
+
+    id as i64
+}
+
+/// Draw a textured quad into a minifb Window at pixel position (x,y).
+/// This is a software blit — suitable for a Doom-style rasteriser.
+pub fn registry_draw_quad_3d(
+    window_handle: i64,
+    texture_handle: i64,
+    x: i64,
+    y: i64,
+    _z: i64, // reserved for depth sorting
+) {
+    let win_id = window_handle as usize;
+    let tex_id = texture_handle as usize;
+
+    // First, grab texture data (clone out to avoid nested lock)
+    let tex_data: Option<(u32, u32, Vec<u32>)> = with_registry(|registry| {
+        if let Some(entry) = registry.get(&tex_id) {
+            if let NativeHandle::Texture(tex) = &entry.handle {
+                return Some((tex.width, tex.height, tex.pixels.clone()));
+            }
+        }
+        None
+    });
+
+    let (tw, th, tpx) = match tex_data {
+        Some(d) => d,
+        None => {
+            eprintln!(
+                "[KnotenCore DrawQuad] Texture handle {} not found.",
+                texture_handle
+            );
+            return;
+        }
+    };
+
+    // Blit into window buffer
+    with_registry(|registry| {
+        if let Some(entry) = registry.get_mut(&win_id) {
+            if let NativeHandle::Window(SendWindow(state)) = &mut entry.handle {
+                let dx = x.max(0) as usize;
+                let dy = y.max(0) as usize;
+                for ty in 0..th as usize {
+                    let screen_y = dy + ty;
+                    if screen_y >= state.height {
+                        break;
+                    }
+                    for tx in 0..tw as usize {
+                        let screen_x = dx + tx;
+                        if screen_x >= state.width {
+                            break;
+                        }
+                        state.buffer[screen_y * state.width + screen_x] =
+                            tpx[ty * tw as usize + tx];
+                    }
+                }
+            } else {
+                eprintln!(
+                    "[KnotenCore DrawQuad] Handle {} is not a Window.",
+                    window_handle
+                );
+            }
+        } else {
+            eprintln!(
+                "[KnotenCore DrawQuad] Window handle {} not found.",
+                window_handle
+            );
+        }
+    });
 }

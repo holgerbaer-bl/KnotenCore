@@ -31,6 +31,7 @@ impl Codegen {
                         | "registry_now"
                         | "registry_gpu_init"
                         | "registry_voxel_world_create"
+                        | "registry_texture_load"
                 )
             }
             Node::Identifier(name) => {
