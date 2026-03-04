@@ -53,6 +53,10 @@ The `build` command:
 | **AST Optimiser** | Constant folding + dead code elimination before execution or compilation |
 | **I/O Persistence** | Safe disk reads/writes (`registry_read_file`, `registry_write_file`) bridging filesystem and AST |
 | **Global UI Styling** | Shape EGUI aesthetics natively via AST (`UISetStyle` for rounding, spacing, colors) |
+| **Native UI Layouts** | Grid, Horizontal, and Fullscreen overlay mechanics via declarative AST nodes |
+| **State & Scroll** | Infinite data handling in UI using native `UIScrollArea` without item ceilings |
+| **Platform Stability** | Patched WGPU stack-buffer overruns and resilient Windows EventLoop integration |
+| **Neural DSL Preview** | A high-density, parsing-optimized `.knoten` syntax replacing JSON-AST for Agent-native flow |
 
 ---
 
@@ -68,6 +72,10 @@ The `build` command:
 | **Sprint 43** | Chronos Engine | 1M-iteration benchmark: JIT=651ms, AOT=**0ms** (LLVM constant-folded) |
 | **Sprint 44** | Visual Cortex | AMD Radeon RX 6700 XT (Vulkan) initialised from a 60-line JSON script |
 | **Sprint 45** | Standalone Compiler | `run_knc build` → `standalone_demo.exe` (157KB, LTO release) |
+| **Sprint 50** | ARC Safety Hardening | Neutralized double-free/alias conditions in the resource registry |
+| **Sprint 54-56** | I/O & EGUI Infrastructure | Added `UIGrid`, `UIHorizontal`, `UIFullscreen`, and dynamic styling |
+| **Sprint 57** | State, Scroll & Size | Introduced `UIScrollArea` and shrunk binaries below `< 5MB` |
+| **Sprint 58** | Neural Syntax (Preview) | Created the `.knoten` Lexer/Parser for optimal Agent-to-Agent authoring |
 
 ---
 
