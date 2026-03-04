@@ -1,0 +1,161 @@
+{
+  "Block": [
+    {
+      "InitWindow": [
+        { "IntLiteral": 900 },
+        { "IntLiteral": 750 },
+        { "StringLiteral": "KnotenCalculator Pro v2.2 - Premium" }
+      ]
+    },
+    "InitGraphics",
+    { "Assign": [ "display", { "StringLiteral": "0" } ] },
+    { "Assign": [ "current", { "IntLiteral": 0 } ] },
+    { "Assign": [ "accumulator", { "IntLiteral": 0 } ] },
+    { "Assign": [ "operator", { "IntLiteral": 0 } ] },
+    { "Assign": [ "op_char", { "StringLiteral": "" } ] },
+    { "Assign": [ "full_path", { "StringLiteral": "" } ] },
+    { "Assign": [ "history", { "ArrayCreate": [] } ] },
+    { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] },
+    { "Assign": [ "new_input", { "BoolLiteral": true } ] },
+    { "Assign": [ "reset_path", { "BoolLiteral": false } ] },
+    {
+      "PollEvents": {
+        "UIFullscreen": {
+          "Block": [
+            {
+              "UISetStyle": [
+                { "FloatLiteral": 20.0 },
+                { "FloatLiteral": 12.0 },
+                { "ArrayCreate": [ { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.8 }, { "FloatLiteral": 1.0 }, { "FloatLiteral": 1.0 } ] },
+                { "ArrayCreate": [ { "FloatLiteral": 0.05 }, { "FloatLiteral": 0.05 }, { "FloatLiteral": 0.07 }, { "FloatLiteral": 1.0 } ] },
+                { "ArrayCreate": [ { "FloatLiteral": 0.12 }, { "FloatLiteral": 0.13 }, { "FloatLiteral": 0.16 }, { "FloatLiteral": 1.0 } ] },
+                { "ArrayCreate": [ { "FloatLiteral": 0.18 }, { "FloatLiteral": 0.20 }, { "FloatLiteral": 0.25 }, { "FloatLiteral": 1.0 } ] }
+              ]
+            },
+            {
+              "UIHorizontal": {
+                "Block": [
+                  {
+                    "UIVertical": {
+                      "Block": [
+                        { "UILabel": { "StringLiteral": "  CALCULATOR PRO" } },
+                        { "UILabel": { "Identifier": "display" } },
+                        {
+                          "UIHorizontal": {
+                            "Block": [
+                              { "If": [ { "UIButton": { "StringLiteral": "7" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 7 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "7" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "8" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 8 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "8" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "9" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 9 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "9" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "÷" } }, { "Block": [ { "Assign": [ "old_acc", { "Identifier": "accumulator" } ] }, { "Assign": [ "old_cur", { "Identifier": "current" } ] }, { "Assign": [ "old_op", { "Identifier": "op_char" } ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 1 } ] }, { "Assign": [ "accumulator", { "Add": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 2 } ] }, { "Assign": [ "accumulator", { "Sub": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 3 } ] }, { "Assign": [ "accumulator", { "Mul": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 4 } ] }, { "Assign": [ "accumulator", { "Div": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Assign": [ "accumulator", { "Identifier": "current" } ] }, null ] }, { "If": [ { "Gt": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Block": [ { "Assign": [ "step", { "Concat": [ { "ToString": { "Identifier": "old_acc" } }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "Identifier": "old_op" }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "ToString": { "Identifier": "old_cur" } }, { "Concat": [ { "StringLiteral": " = " }, { "ToString": { "Identifier": "accumulator" } } ] } ] } ] } ] } ] } ] } ] }, { "ArrayPush": [ { "Identifier": "intermediate_steps" }, { "Identifier": "step" } ] } ] }, null ] }, { "Assign": [ "operator", { "IntLiteral": 4 } ] }, { "Assign": [ "op_char", { "StringLiteral": "/" } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": " / " } ] } ] }, { "Assign": [ "new_input", { "BoolLiteral": true } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "accumulator" } } ] } ] }, null ] }
+                            ]
+                          }
+                        },
+                        {
+                          "UIHorizontal": {
+                            "Block": [
+                              { "If": [ { "UIButton": { "StringLiteral": "4" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 4 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "4" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "5" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 5 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "5" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "6" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 6 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "6" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "×" } }, { "Block": [ { "Assign": [ "old_acc", { "Identifier": "accumulator" } ] }, { "Assign": [ "old_cur", { "Identifier": "current" } ] }, { "Assign": [ "old_op", { "Identifier": "op_char" } ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 1 } ] }, { "Assign": [ "accumulator", { "Add": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 2 } ] }, { "Assign": [ "accumulator", { "Sub": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 3 } ] }, { "Assign": [ "accumulator", { "Mul": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 4 } ] }, { "Assign": [ "accumulator", { "Div": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Assign": [ "accumulator", { "Identifier": "current" } ] }, null ] }, { "If": [ { "Gt": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Block": [ { "Assign": [ "step", { "Concat": [ { "ToString": { "Identifier": "old_acc" } }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "Identifier": "old_op" }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "ToString": { "Identifier": "old_cur" } }, { "Concat": [ { "StringLiteral": " = " }, { "ToString": { "Identifier": "accumulator" } } ] } ] } ] } ] } ] } ] } ] }, { "ArrayPush": [ { "Identifier": "intermediate_steps" }, { "Identifier": "step" } ] } ] }, null ] }, { "Assign": [ "operator", { "IntLiteral": 3 } ] }, { "Assign": [ "op_char", { "StringLiteral": "*" } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": " * " } ] } ] }, { "Assign": [ "new_input", { "BoolLiteral": true } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "accumulator" } } ] } ] }, null ] }
+                            ]
+                          }
+                        },
+                        {
+                          "UIHorizontal": {
+                            "Block": [
+                              { "If": [ { "UIButton": { "StringLiteral": "1" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 1 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "1" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "2" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 2 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "2" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "3" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 3 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "3" } ] } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "−" } }, { "Block": [ { "Assign": [ "old_acc", { "Identifier": "accumulator" } ] }, { "Assign": [ "old_cur", { "Identifier": "current" } ] }, { "Assign": [ "old_op", { "Identifier": "op_char" } ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 1 } ] }, { "Assign": [ "accumulator", { "Add": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 2 } ] }, { "Assign": [ "accumulator", { "Sub": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 3 } ] }, { "Assign": [ "accumulator", { "Mul": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 4 } ] }, { "Assign": [ "accumulator", { "Div": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Assign": [ "accumulator", { "Identifier": "current" } ] }, null ] }, { "If": [ { "Gt": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Block": [ { "Assign": [ "step", { "Concat": [ { "ToString": { "Identifier": "old_acc" } }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "Identifier": "old_op" }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "ToString": { "Identifier": "old_cur" } }, { "Concat": [ { "StringLiteral": " = " }, { "ToString": { "Identifier": "accumulator" } } ] } ] } ] } ] } ] } ] } ] }, { "ArrayPush": [ { "Identifier": "intermediate_steps" }, { "Identifier": "step" } ] } ] }, null ] }, { "Assign": [ "operator", { "IntLiteral": 2 } ] }, { "Assign": [ "op_char", { "StringLiteral": "-" } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": " - " } ] } ] }, { "Assign": [ "new_input", { "BoolLiteral": true } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "accumulator" } } ] } ] }, null ] }
+                            ]
+                          }
+                        },
+                        {
+                          "UIHorizontal": {
+                            "Block": [
+                              { "If": [ { "UIButton": { "StringLiteral": "C" } }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "accumulator", { "IntLiteral": 0 } ] }, { "Assign": [ "operator", { "IntLiteral": 0 } ] }, { "Assign": [ "op_char", { "StringLiteral": "" } ] }, { "Assign": [ "display", { "StringLiteral": "0" } ] }, { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "new_input", { "BoolLiteral": true } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] },
+                              { "If": [ { "UIButton": { "StringLiteral": "0" } }, { "Block": [ { "If": [ { "Identifier": "reset_path" }, { "Block": [ { "Assign": [ "full_path", { "StringLiteral": "" } ] }, { "Assign": [ "intermediate_steps", { "ArrayCreate": [] } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] } ] }, null ] }, { "If": [ { "Identifier": "new_input" }, { "Block": [ { "Assign": [ "current", { "IntLiteral": 0 } ] }, { "Assign": [ "new_input", { "BoolLiteral": false } ] } ] }, null ] }, { "Assign": [ "current", { "Add": [ { "Mul": [ { "Identifier": "current" }, { "IntLiteral": 10 } ] }, { "IntLiteral": 0 } ] } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": "0" } ] } ] } ] }, null ] },
+                              {
+                                "If": [
+                                  { "UIButton": { "StringLiteral": "=" } },
+                                  {
+                                    "Block": [
+                                      { "Assign": [ "old_acc", { "Identifier": "accumulator" } ] },
+                                      { "Assign": [ "old_cur", { "Identifier": "current" } ] },
+                                      { "Assign": [ "old_op", { "Identifier": "op_char" } ] },
+                                      { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 1 } ] }, { "Assign": [ "current", { "Add": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] },
+                                      { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 2 } ] }, { "Assign": [ "current", { "Sub": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] },
+                                      { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 3 } ] }, { "Assign": [ "current", { "Mul": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] },
+                                      { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 4 } ] }, { "If": [ { "Eq": [ { "Identifier": "current" }, { "IntLiteral": 0 } ] }, { "Assign": [ "display", { "StringLiteral": "ERR:DIV0" } ] }, { "Assign": [ "current", { "Div": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] } ] }, null ] },
+                                      { "If": [ { "Gt": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Block": [ { "Assign": [ "step", { "Concat": [ { "ToString": { "Identifier": "old_acc" } }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "Identifier": "old_op" }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "ToString": { "Identifier": "old_cur" } }, { "Concat": [ { "StringLiteral": " = " }, { "ToString": { "Identifier": "current" } } ] } ] } ] } ] } ] } ] } ] }, { "ArrayPush": [ { "Identifier": "intermediate_steps" }, { "Identifier": "step" } ] } ] }, null ] },
+                                      { "Assign": [ "display", { "ToString": { "Identifier": "current" } } ] },
+                                      { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "Concat": [ { "StringLiteral": " = " }, { "Identifier": "display" } ] } ] } ] },
+                                      { "ArrayPush": [ { "Identifier": "history" }, { "Identifier": "full_path" } ] },
+                                      { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 12 } ] }, { "Assign": [ "history", { "ArrayCreate": [] } ] }, null ] },
+                                      { "Assign": [ "operator", { "IntLiteral": 0 } ] },
+                                      { "Assign": [ "op_char", { "StringLiteral": "" } ] },
+                                      { "Assign": [ "new_input", { "BoolLiteral": true } ] },
+                                      { "Assign": [ "reset_path", { "BoolLiteral": true } ] }
+                                    ]
+                                  },
+                                  null
+                                ]
+                              },
+                              { "If": [ { "UIButton": { "StringLiteral": "+" } }, { "Block": [ { "Assign": [ "old_acc", { "Identifier": "accumulator" } ] }, { "Assign": [ "old_cur", { "Identifier": "current" } ] }, { "Assign": [ "old_op", { "Identifier": "op_char" } ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 1 } ] }, { "Assign": [ "accumulator", { "Add": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 2 } ] }, { "Assign": [ "accumulator", { "Sub": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 3 } ] }, { "Assign": [ "accumulator", { "Mul": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 4 } ] }, { "Assign": [ "accumulator", { "Div": [ { "Identifier": "accumulator" }, { "Identifier": "current" } ] } ] }, null ] }, { "If": [ { "Eq": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Assign": [ "accumulator", { "Identifier": "current" } ] }, null ] }, { "If": [ { "Gt": [ { "Identifier": "operator" }, { "IntLiteral": 0 } ] }, { "Block": [ { "Assign": [ "step", { "Concat": [ { "ToString": { "Identifier": "old_acc" } }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "Identifier": "old_op" }, { "Concat": [ { "StringLiteral": " " }, { "Concat": [ { "ToString": { "Identifier": "old_cur" } }, { "Concat": [ { "StringLiteral": " = " }, { "ToString": { "Identifier": "accumulator" } } ] } ] } ] } ] } ] } ] } ] }, { "ArrayPush": [ { "Identifier": "intermediate_steps" }, { "Identifier": "step" } ] } ] }, null ] }, { "Assign": [ "operator", { "IntLiteral": 1 } ] }, { "Assign": [ "op_char", { "StringLiteral": "+" } ] }, { "Assign": [ "full_path", { "Concat": [ { "Identifier": "full_path" }, { "StringLiteral": " + " } ] } ] }, { "Assign": [ "new_input", { "BoolLiteral": true } ] }, { "Assign": [ "reset_path", { "BoolLiteral": false } ] }, { "Assign": [ "display", { "ToString": { "Identifier": "accumulator" } } ] } ] }, null ] }
+                            ]
+                          }
+                        },
+                        {
+                          "UIVertical": {
+                            "Block": [
+                              { "UILabel": { "StringLiteral": "  FULL CALCULATION PATH" } },
+                              { "UILabel": { "Identifier": "full_path" } },
+                              { "UILabel": { "StringLiteral": " " } },
+                              { "UILabel": { "StringLiteral": "  INTERMEDIATE STEPS" } },
+                              { "UIVertical": { "Block": [
+                                { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "intermediate_steps" } }, { "IntLiteral": 0 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "intermediate_steps" }, { "IntLiteral": 0 } ] } }, null ] },
+                                { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "intermediate_steps" } }, { "IntLiteral": 1 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "intermediate_steps" }, { "IntLiteral": 1 } ] } }, null ] },
+                                { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "intermediate_steps" } }, { "IntLiteral": 2 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "intermediate_steps" }, { "IntLiteral": 2 } ] } }, null ] },
+                                { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "intermediate_steps" } }, { "IntLiteral": 3 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "intermediate_steps" }, { "IntLiteral": 3 } ] } }, null ] },
+                                { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "intermediate_steps" } }, { "IntLiteral": 4 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "intermediate_steps" }, { "IntLiteral": 4 } ] } }, null ] }
+                              ]}}
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "UIVertical": {
+                      "Block": [
+                        { "UILabel": { "StringLiteral": "  SESSION HISTORY" } },
+                        {
+                          "UIVertical": {
+                            "Block": [
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 0 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 0 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 1 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 1 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 2 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 2 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 3 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 3 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 4 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 4 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 5 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 5 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 6 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 6 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 7 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 7 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 8 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 8 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 9 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 9 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 10 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 10 } ] } }, null ] },
+                              { "If": [ { "Gt": [ { "ArrayLen": { "Identifier": "history" } }, { "IntLiteral": 11 } ] }, { "UILabel": { "ArrayGet": [ { "Identifier": "history" }, { "IntLiteral": 11 } ] } }, null ] }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
