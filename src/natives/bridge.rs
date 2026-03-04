@@ -598,6 +598,44 @@ impl BridgeModule for CoreBridge {
                             .to_string(),
                     ))
                 }
+                "registry_is_key_pressed" => {
+                    if args.len() == 1 {
+                        if let RelType::Int(code) = &args[0] {
+                            let pressed = crate::natives::registry::registry_is_key_pressed(*code);
+                            return Some(ExecResult::Value(RelType::Float(pressed as f64)));
+                        }
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_is_key_pressed expects 1 Int arg".to_string(),
+                    ))
+                }
+                "registry_get_mouse_delta_x" => {
+                    if args.is_empty() {
+                        let dx = crate::natives::registry::registry_get_mouse_delta_x();
+                        return Some(ExecResult::Value(RelType::Float(dx as f64)));
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_get_mouse_delta_x expects 0 args".to_string(),
+                    ))
+                }
+                "registry_get_mouse_delta_y" => {
+                    if args.is_empty() {
+                        let dy = crate::natives::registry::registry_get_mouse_delta_y();
+                        return Some(ExecResult::Value(RelType::Float(dy as f64)));
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_get_mouse_delta_y expects 0 args".to_string(),
+                    ))
+                }
+                "registry_get_last_char" => {
+                    if args.is_empty() {
+                        let c = crate::natives::registry::registry_get_last_char();
+                        return Some(ExecResult::Value(RelType::Int(c)));
+                    }
+                    Some(ExecResult::Fault(
+                        "[FFI] registry_get_last_char expects 0 args".to_string(),
+                    ))
+                }
                 _ => None,
             }
         } else {

@@ -8,6 +8,16 @@ use std::sync::Mutex;
 use wgpu::util::DeviceExt;
 use winit::{event_loop::EventLoop, window::Window as WinitWindow};
 
+use std::collections::HashSet;
+use winit::keyboard::{KeyCode, PhysicalKey};
+
+pub struct InputState {
+    pub keys: HashSet<KeyCode>,
+    pub mouse_dx: f32,
+    pub mouse_dy: f32,
+    pub last_char: u32,
+}
+
 // Wrapper for Window to bypass non-Send restriction. Safe because our executor is single-threaded.
 pub struct SendWindow(pub RegistryWindowState);
 unsafe impl Send for SendWindow {}
@@ -15,8 +25,8 @@ unsafe impl Sync for SendWindow {}
 
 pub struct RegistryWindowState {
     pub window: Arc<WinitWindow>,
-    // Store EventLoop temporarily if needed, though winit requires run to pump properly.
-    // For synchronous MVP we might just let it be.
+    pub event_loop: winit::event_loop::EventLoop<()>,
+    pub input: Arc<Mutex<InputState>>,
     pub surface: wgpu::Surface<'static>,
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
@@ -685,6 +695,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         depth_texture_view,
         camera_buffer,
         camera_bind_group,
+        event_loop,
+        input: Arc::new(Mutex::new(InputState {
+            keys: HashSet::new(),
+            mouse_dx: 0.0,
+            mouse_dy: 0.0,
+            last_char: 0,
+        })),
     };
 
     with_registry(|registry| {
@@ -718,6 +735,73 @@ pub fn registry_window_update(handle_id: i64) -> bool {
                 }
 
                 state.current_view = None;
+
+                // --- Reset Frame Deltas ---
+                {
+                    let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
+                    input.mouse_dx = 0.0;
+                    input.mouse_dy = 0.0;
+                    input.last_char = 0;
+                }
+
+                // --- Event Pump ---
+                use winit::application::ApplicationHandler;
+                struct FramePump {
+                    input: Arc<Mutex<InputState>>,
+                }
+                impl ApplicationHandler for FramePump {
+                    fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {}
+                    fn window_event(
+                        &mut self,
+                        _: &winit::event_loop::ActiveEventLoop,
+                        _: winit::window::WindowId,
+                        event: winit::event::WindowEvent,
+                    ) {
+                        if let winit::event::WindowEvent::KeyboardInput { event, .. } = event {
+                            let mut input_guard =
+                                self.input.lock().unwrap_or_else(|e| e.into_inner());
+                            if let PhysicalKey::Code(code) = event.physical_key {
+                                if event.state == winit::event::ElementState::Pressed {
+                                    input_guard.keys.insert(code);
+                                } else {
+                                    input_guard.keys.remove(&code);
+                                }
+                            }
+                            if event.state == winit::event::ElementState::Pressed && !event.repeat {
+                                if let Some(txt) = &event.text {
+                                    input_guard.last_char =
+                                        txt.chars().next().unwrap_or('\0') as u32;
+                                } else if let winit::keyboard::Key::Character(c) =
+                                    &event.logical_key
+                                {
+                                    input_guard.last_char =
+                                        c.as_str().chars().next().unwrap_or('\0') as u32;
+                                }
+                            }
+                        }
+                    }
+                    fn device_event(
+                        &mut self,
+                        _: &winit::event_loop::ActiveEventLoop,
+                        _: winit::event::DeviceId,
+                        event: winit::event::DeviceEvent,
+                    ) {
+                        if let winit::event::DeviceEvent::MouseMotion { delta } = event {
+                            let mut input_guard =
+                                self.input.lock().unwrap_or_else(|e| e.into_inner());
+                            input_guard.mouse_dx += delta.0 as f32;
+                            input_guard.mouse_dy += delta.1 as f32;
+                        }
+                    }
+                }
+                let mut pump_handler = FramePump {
+                    input: state.input.clone(),
+                };
+                #[cfg(any(windows, target_os = "macos", target_os = "linux"))]
+                use winit::platform::pump_events::EventLoopExtPumpEvents;
+                let _ = state
+                    .event_loop
+                    .pump_app_events(Some(std::time::Duration::ZERO), &mut pump_handler);
 
                 // Synchronous immediate return - we assume window is open until dropped
                 true
@@ -1191,12 +1275,7 @@ pub fn registry_draw_quad_3d(
     });
 }
 
-pub fn registry_set_camera(
-    fov_degrees: f32,
-    cam_x: f32,
-    cam_y: f32,
-    cam_z: f32,
-) {
+pub fn registry_set_camera(fov_degrees: f32, cam_x: f32, cam_y: f32, cam_z: f32) {
     with_registry(|registry| {
         for entry in registry.values() {
             if let NativeHandle::Window(SendWindow(state)) = &entry.handle {
@@ -1208,8 +1287,71 @@ pub fn registry_set_camera(
                     Vec3::new(0.0, 1.0, 0.0),
                 );
                 let view_proj = proj * view;
-                state.queue.write_buffer(&state.camera_buffer, 0, bytemuck::cast_slice(&[view_proj.to_cols_array_2d()]));
+                state.queue.write_buffer(
+                    &state.camera_buffer,
+                    0,
+                    bytemuck::cast_slice(&[view_proj.to_cols_array_2d()]),
+                );
             }
         }
     });
+}
+
+pub fn registry_is_key_pressed(keycode: i64) -> f32 {
+    let mut pressed = false;
+    with_registry(|registry| {
+        for entry in registry.values() {
+            if let NativeHandle::Window(SendWindow(state)) = &entry.handle {
+                let input = state.input.lock().unwrap_or_else(|e| e.into_inner());
+                for k in &input.keys {
+                    if *k as i64 == keycode {
+                        pressed = true;
+                        break;
+                    }
+                }
+            }
+        }
+    });
+    if pressed { 1.0 } else { 0.0 }
+}
+
+pub fn registry_get_mouse_delta_x() -> f32 {
+    let mut acc = 0.0;
+    with_registry(|registry| {
+        for entry in registry.values() {
+            if let NativeHandle::Window(SendWindow(state)) = &entry.handle {
+                let input = state.input.lock().unwrap_or_else(|e| e.into_inner());
+                acc += input.mouse_dx;
+            }
+        }
+    });
+    acc
+}
+
+pub fn registry_get_mouse_delta_y() -> f32 {
+    let mut acc = 0.0;
+    with_registry(|registry| {
+        for entry in registry.values() {
+            if let NativeHandle::Window(SendWindow(state)) = &entry.handle {
+                let input = state.input.lock().unwrap_or_else(|e| e.into_inner());
+                acc += input.mouse_dy;
+            }
+        }
+    });
+    acc
+}
+
+pub fn registry_get_last_char() -> i64 {
+    let mut last = 0;
+    with_registry(|registry| {
+        for entry in registry.values() {
+            if let NativeHandle::Window(SendWindow(state)) = &entry.handle {
+                let input = state.input.lock().unwrap_or_else(|e| e.into_inner());
+                if input.last_char != 0 {
+                    last = input.last_char as i64;
+                }
+            }
+        }
+    });
+    last
 }
