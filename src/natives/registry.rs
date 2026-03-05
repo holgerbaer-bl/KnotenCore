@@ -6,6 +6,7 @@ use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
 use wgpu::util::DeviceExt;
+use winit::event_loop::EventLoop;
 use winit::window::Window as WinitWindow;
 
 use std::collections::HashSet;
