@@ -1,0 +1,62 @@
+{
+  "Block": [
+    {
+      "InitWindow": [
+        { "IntLiteral": 640 },
+        { "IntLiteral": 480 },
+        { "StringLiteral": "KnotenCore v0.61 - Live Fetch Agent" }
+      ]
+    },
+    "InitGraphics",
+    { "Assign": [ "api_status", { "StringLiteral": "[ IDLE ] Press 'Ping API' to fetch..." } ] },
+    { "Assign": [ "fetch_fired", { "BoolLiteral": false } ] },
+    {
+      "PollEvents": {
+        "UIFullscreen": {
+          "Block": [
+            {
+              "UISetStyle": [
+                { "FloatLiteral": 18.0 },
+                { "FloatLiteral": 13.0 },
+                { "ArrayCreate": [ { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.8 }, { "FloatLiteral": 1.0 }, { "FloatLiteral": 1.0 } ] },
+                { "ArrayCreate": [ { "FloatLiteral": 0.04 }, { "FloatLiteral": 0.04 }, { "FloatLiteral": 0.06 }, { "FloatLiteral": 1.0 } ] },
+                { "ArrayCreate": [ { "FloatLiteral": 0.10 }, { "FloatLiteral": 0.12 }, { "FloatLiteral": 0.16 }, { "FloatLiteral": 1.0 } ] },
+                { "ArrayCreate": [ { "FloatLiteral": 0.18 }, { "FloatLiteral": 0.20 }, { "FloatLiteral": 0.28 }, { "FloatLiteral": 1.0 } ] }
+              ]
+            },
+            { "UILabel": { "StringLiteral": "  KNOTENCORE v0.61 - LIVE FETCH AGENT" } },
+            { "UILabel": { "StringLiteral": "  Powered by Neural DSL + Async-Bridge + ureq" } },
+            { "UILabel": { "StringLiteral": " " } },
+            { "UILabel": { "StringLiteral": "  API ENDPOINT: https://jsonplaceholder.typicode.com/todos/1" } },
+            { "UILabel": { "StringLiteral": " " } },
+            { "UILabel": { "StringLiteral": "  AGENT STATUS:" } },
+            { "UILabel": { "Identifier": "api_status" } },
+            { "UILabel": { "StringLiteral": " " } },
+            {
+              "If": [
+                { "UIButton": { "StringLiteral": "  >> PING API  " } },
+                {
+                  "Block": [
+                    { "Assign": [ "api_status", { "StringLiteral": "[ FETCHING... ] Non-blocking request dispatched to background thread." } ] },
+                    {
+                      "Fetch": {
+                        "method": "GET",
+                        "url": "https://jsonplaceholder.typicode.com/todos/1",
+                        "callback": {
+                          "Block": [
+                            { "Assign": [ "api_status", { "Concat": [ { "StringLiteral": "[ OK ] Payload: " }, { "Identifier": "FETCH_RESULT" } ] } ] }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                null
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

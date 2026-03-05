@@ -222,6 +222,8 @@ pub struct ExecutionEngine {
 
     pub async_bridge: Option<crate::async_bridge::AsyncBridge>,
 
+    pub ui_dirty: bool, // Sprint 61: Force WGPU redraw after async callback
+
     pub call_stack: Vec<StackFrame>,
 }
 
@@ -297,6 +299,7 @@ impl ExecutionEngine {
             audio_stream_handle: None,
             samples: HashMap::new(),
             async_bridge: Some(crate::async_bridge::AsyncBridge::new()),
+            ui_dirty: false,
             call_stack: Vec::new(),
             bridge: Box::new(CoreBridge),
         };
@@ -2260,6 +2263,7 @@ impl ExecutionEngine {
             } => {
                 if let Some(bridge) = &self.async_bridge {
                     bridge.dispatch_fetch(method.clone(), url.clone(), callback.clone());
+                    self.ui_dirty = true; // Sprint 61: Trigger redraw when request dispatched
                     ExecResult::Value(RelType::Void)
                 } else {
                     ExecResult::Fault("AsyncBridge not initialized".into())
@@ -2990,6 +2994,7 @@ impl ExecutionEngine {
                                     }
                                 }
                                 let _ = self.engine.evaluate(&payload.callback_node);
+                                self.engine.ui_dirty = true; // Sprint 61: Trigger re-render after callback
                             }
 
                             let res = self.engine.evaluate(self.body);
