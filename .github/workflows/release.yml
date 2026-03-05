@@ -24,7 +24,7 @@ jobs:
             asset_name: knoten_core-macos-amd64
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
@@ -36,13 +36,13 @@ jobs:
       run: cargo build --release --bin knoten_upgrade
 
     - name: Upload Artifact (run_knc)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.asset_name }}
         path: target/release/run_knc${{ matrix.os == 'windows-latest' && '.exe' || '' }}
 
     - name: Upload Artifact (knoten_upgrade)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: knoten_upgrade-${{ matrix.asset_name }}
         path: target/release/knoten_upgrade${{ matrix.os == 'windows-latest' && '.exe' || '' }}
