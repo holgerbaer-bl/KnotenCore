@@ -30,10 +30,15 @@ impl AsyncBridge {
 
         // Spawn the dedicated background worker thread
         thread::spawn(move || {
+            // Sprint 63.1: Global ureq Agent with strict timeout
+            let agent = ureq::AgentBuilder::new()
+                .timeout(std::time::Duration::from_secs(10))
+                .build();
+
             // Processing loop: wait for tasks from the main thread
             while let Ok(task) = rx_task.recv() {
                 let payload = match task.method.to_uppercase().as_str() {
-                    "GET" => match ureq::get(&task.url).call() {
+                    "GET" => match agent.get(&task.url).call() {
                         Ok(response) => match response.into_string() {
                             Ok(body) => Ok(body),
                             Err(e) => Err(format!("Failed to read GET response: {}", e)),
@@ -45,7 +50,7 @@ impl AsyncBridge {
                         )),
                         Err(e) => Err(format!("GET Request failed: {}", e)),
                     },
-                    "POST" => match ureq::post(&task.url).call() {
+                    "POST" => match agent.post(&task.url).call() {
                         Ok(response) => match response.into_string() {
                             Ok(body) => Ok(body),
                             Err(e) => Err(format!("Failed to read POST response: {}", e)),

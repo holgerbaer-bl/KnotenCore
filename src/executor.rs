@@ -242,10 +242,20 @@ pub struct ExecutionEngine {
 
     pub async_bridge: Option<crate::async_bridge::AsyncBridge>,
 
+    // Sprint 63: Thread-safe Action Queue
+    pub action_tx: Option<std::sync::mpsc::Sender<Action>>,
+    pub action_rx: Option<std::sync::mpsc::Receiver<Action>>,
+    pub permission_fault: Option<String>,
+
     pub ui_dirty: bool, // Sprint 61: Force WGPU redraw after async callback
     pub permissions: AgentPermissions, // Sprint 62: Sandbox constraints
 
     pub call_stack: Vec<StackFrame>,
+}
+
+// Sprint 63: Thread-safe actions
+pub enum Action {
+    UpdateData(String, RelType),
 }
 
 pub enum ExecResult {
@@ -320,11 +330,18 @@ impl ExecutionEngine {
             audio_stream_handle: None,
             samples: HashMap::new(),
             async_bridge: Some(crate::async_bridge::AsyncBridge::new()),
+            action_tx: None,
+            action_rx: None,
+            permission_fault: None,
             ui_dirty: false,
             permissions: AgentPermissions::default(),
             call_stack: Vec::new(),
             bridge: Box::new(CoreBridge),
         };
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        engine.action_tx = Some(tx);
+        engine.action_rx = Some(rx);
 
         engine
             .native_modules
@@ -640,7 +657,7 @@ impl ExecutionEngine {
     }
 
     pub fn execute(&mut self, root: &Node) -> String {
-        let res = self.evaluate(root);
+        let res = self.evaluate_inner(root);
 
         let mut out = String::new();
         match res {
@@ -777,6 +794,18 @@ impl ExecutionEngine {
     }
 
     fn evaluate(&mut self, node: &Node) -> ExecResult {
+        let res = self.evaluate_inner(node);
+
+        // Sprint 63: Sandbox Fallback Interception for UI display
+        if let ExecResult::Fault(ref err) = res {
+            if err.contains("Permission Denied") || err.contains("Sandbox") {
+                self.permission_fault = Some(err.clone());
+            }
+        }
+        res
+    }
+
+    fn evaluate_inner(&mut self, node: &Node) -> ExecResult {
         match node {
             // Literals
             Node::IntLiteral(v) => ExecResult::Value(RelType::Int(*v)),
@@ -793,7 +822,7 @@ impl ExecutionEngine {
                 }
             }
             Node::Assign(name, expr_node) => {
-                let res = self.evaluate(expr_node);
+                let res = self.evaluate_inner(expr_node);
                 match res {
                     ExecResult::Value(val) => {
                         self.set_var(name.clone(), val.clone());
@@ -814,14 +843,14 @@ impl ExecutionEngine {
             Node::Div(l, r) => self.do_math(l, r, '/'),
 
             // Math & Time & Matrix
-            Node::Sin(n) => match self.evaluate(n) {
+            Node::Sin(n) => match self.evaluate_inner(n) {
                 ExecResult::Value(RelType::Float(f)) => ExecResult::Value(RelType::Float(f.sin())),
                 ExecResult::Value(RelType::Int(i)) => {
                     ExecResult::Value(RelType::Float((i as f64).sin()))
                 }
                 fault => fault,
             },
-            Node::Cos(n) => match self.evaluate(n) {
+            Node::Cos(n) => match self.evaluate_inner(n) {
                 ExecResult::Value(RelType::Float(f)) => ExecResult::Value(RelType::Float(f.cos())),
                 ExecResult::Value(RelType::Int(i)) => {
                     ExecResult::Value(RelType::Float((i as f64).cos()))
@@ -837,8 +866,8 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Float(t))
             }
             Node::Mat4Mul(l, r) => {
-                let lv = self.evaluate(l);
-                let rv = self.evaluate(r);
+                let lv = self.evaluate_inner(l);
+                let rv = self.evaluate_inner(r);
                 if let (
                     ExecResult::Value(RelType::Array(l_arr)),
                     ExecResult::Value(RelType::Array(r_arr)),
@@ -883,8 +912,8 @@ impl ExecutionEngine {
 
             // Logic
             Node::Eq(l, r) => {
-                let lv = self.evaluate(l);
-                let rv = self.evaluate(r);
+                let lv = self.evaluate_inner(l);
+                let rv = self.evaluate_inner(r);
                 match (lv, rv) {
                     (
                         ExecResult::Value(RelType::Int(li)),
@@ -905,7 +934,7 @@ impl ExecutionEngine {
             }
             // Egui UI (Sprint 10 & 59)
             Node::UIWindow(id, title, body) => {
-                let title_val = self.evaluate(title);
+                let title_val = self.evaluate_inner(title);
                 let title_str = match title_val {
                     ExecResult::Value(RelType::Str(s)) => s,
                     _ => "Knoten Window".to_string(),
@@ -915,14 +944,14 @@ impl ExecutionEngine {
                         .id(egui::Id::new(id))
                         .show(&ctx, |ui| {
                             self.egui_ui_ptr = Some(ui as *mut egui::Ui);
-                            self.evaluate(body);
+                            self.evaluate_inner(body);
                             self.egui_ui_ptr = None;
                         });
                 }
                 ExecResult::Value(RelType::Void)
             }
             Node::UILabel(text) => {
-                let text_val = self.evaluate(text);
+                let text_val = self.evaluate_inner(text);
                 let text_str = match text_val {
                     ExecResult::Value(RelType::Str(s)) => s,
                     _ => "".to_string(),
@@ -935,7 +964,7 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Void)
             }
             Node::UIButton(text) => {
-                let text_val = self.evaluate(text);
+                let text_val = self.evaluate_inner(text);
                 let text_str = match text_val {
                     ExecResult::Value(RelType::Str(s)) => s,
                     _ => "".to_string(),
@@ -951,7 +980,7 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Bool(clicked))
             }
             Node::UITextInput(var_name_node) => {
-                let var_val = self.evaluate(var_name_node);
+                let var_val = self.evaluate_inner(var_name_node);
                 if let ExecResult::Value(RelType::Str(var_name)) = var_val {
                     let mut current_text = match self.memory.get(&var_name) {
                         Some(RelType::Str(s)) => s.clone(),
@@ -976,12 +1005,12 @@ impl ExecutionEngine {
                 btn_idle_node,
                 btn_hover_node,
             ) => {
-                let rounding = match self.evaluate(rounding_node) {
+                let rounding = match self.evaluate_inner(rounding_node) {
                     ExecResult::Value(RelType::Float(f)) => f as f32,
                     ExecResult::Value(RelType::Int(i)) => i as f32,
                     _ => 4.0,
                 };
-                let spacing = match self.evaluate(spacing_node) {
+                let spacing = match self.evaluate_inner(spacing_node) {
                     ExecResult::Value(RelType::Float(f)) => f as f32,
                     ExecResult::Value(RelType::Int(i)) => i as f32,
                     _ => 8.0,
@@ -999,15 +1028,15 @@ impl ExecutionEngine {
                     }
                     out
                 };
-                let accent = parse_rgba(self.evaluate(accent_node), [0.0, 0.5, 1.0, 1.0]);
-                let fill = parse_rgba(self.evaluate(fill_node), [0.1, 0.1, 0.1, 1.0]);
+                let accent = parse_rgba(self.evaluate_inner(accent_node), [0.0, 0.5, 1.0, 1.0]);
+                let fill = parse_rgba(self.evaluate_inner(fill_node), [0.1, 0.1, 0.1, 1.0]);
                 let btn_idle = btn_idle_node
                     .clone()
-                    .map(|n| parse_rgba(self.evaluate(&*n), [0.2, 0.2, 0.2, 1.0]))
+                    .map(|n| parse_rgba(self.evaluate_inner(&*n), [0.2, 0.2, 0.2, 1.0]))
                     .unwrap_or([0.2, 0.2, 0.2, 1.0]);
                 let btn_hover = btn_hover_node
                     .clone()
-                    .map(|n| parse_rgba(self.evaluate(&*n), [0.3, 0.3, 0.5, 1.0]))
+                    .map(|n| parse_rgba(self.evaluate_inner(&*n), [0.3, 0.3, 0.5, 1.0]))
                     .unwrap_or([0.3, 0.3, 0.5, 1.0]);
                 if let Some(ctx) = &self.egui_ctx {
                     let mut visuals = egui::Visuals::dark();
@@ -1045,7 +1074,7 @@ impl ExecutionEngine {
                     unsafe {
                         (*ui_ptr).horizontal(|ui| {
                             self.egui_ui_ptr = Some(ui as *mut egui::Ui);
-                            self.evaluate(body);
+                            self.evaluate_inner(body);
                             self.egui_ui_ptr = None;
                         });
                         self.egui_ui_ptr = Some(ui_ptr);
@@ -1062,7 +1091,29 @@ impl ExecutionEngine {
                         .frame(egui::Frame::none())
                         .show(&ctx, |ui| {
                             self.egui_ui_ptr = Some(ui as *mut egui::Ui);
-                            self.evaluate(body);
+
+                            // Sprint 63: Sandbox Permission Error Feedback
+                            if let Some(fault) = &self.permission_fault {
+                                ui.add_space(10.0);
+                                egui::Frame::none()
+                                    .fill(egui::Color32::from_rgba_premultiplied(100, 0, 0, 50))
+                                    .stroke(egui::Stroke::new(2.0, egui::Color32::RED))
+                                    .inner_margin(10.0)
+                                    .show(ui, |ui| {
+                                        ui.heading(
+                                            egui::RichText::new("⚠️ Sandbox Permission Denied")
+                                                .color(egui::Color32::RED),
+                                        );
+                                        ui.label(
+                                            egui::RichText::new(fault)
+                                                .color(egui::Color32::LIGHT_RED),
+                                        );
+                                    });
+                                ui.add_space(10.0);
+                            }
+
+                            self.evaluate_inner(body);
+
                             self.egui_ui_ptr = None;
                         });
                 }
@@ -1080,7 +1131,7 @@ impl ExecutionEngine {
                                 if let Node::Block(nodes) = &**body {
                                     let mut col_count = 0;
                                     for node in nodes {
-                                        self.evaluate(node);
+                                        self.evaluate_inner(node);
                                         col_count += 1;
                                         if col_count >= *columns {
                                             ui.end_row();
@@ -1088,7 +1139,7 @@ impl ExecutionEngine {
                                         }
                                     }
                                 } else {
-                                    self.evaluate(body);
+                                    self.evaluate_inner(body);
                                     ui.end_row();
                                 }
 
@@ -1107,7 +1158,7 @@ impl ExecutionEngine {
                             .show(&mut *ui_ptr, |ui| {
                                 let old_ui_ptr = self.egui_ui_ptr;
                                 self.egui_ui_ptr = Some(ui as *mut egui::Ui);
-                                self.evaluate(body);
+                                self.evaluate_inner(body);
                                 self.egui_ui_ptr = old_ui_ptr;
                             });
                     }
@@ -1115,8 +1166,8 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Void)
             }
             Node::Lt(l, r) => {
-                let lv = self.evaluate(l);
-                let rv = self.evaluate(r);
+                let lv = self.evaluate_inner(l);
+                let rv = self.evaluate_inner(r);
                 match (lv, rv) {
                     (ExecResult::Value(RelType::Int(li)), ExecResult::Value(RelType::Int(ri))) => {
                         ExecResult::Value(RelType::Bool(li < ri))
@@ -1140,8 +1191,8 @@ impl ExecutionEngine {
                 }
             }
             Node::Gt(l, r) => {
-                let lv = self.evaluate(l);
-                let rv = self.evaluate(r);
+                let lv = self.evaluate_inner(l);
+                let rv = self.evaluate_inner(r);
                 match (lv, rv) {
                     (ExecResult::Value(RelType::Int(li)), ExecResult::Value(RelType::Int(ri))) => {
                         ExecResult::Value(RelType::Bool(li > ri))
@@ -1169,7 +1220,7 @@ impl ExecutionEngine {
             Node::ObjectLiteral(map) => {
                 let mut obj = HashMap::new();
                 for (k, v) in map {
-                    match self.evaluate(v) {
+                    match self.evaluate_inner(v) {
                         ExecResult::Value(val) => {
                             obj.insert(k.clone(), val);
                         }
@@ -1178,7 +1229,7 @@ impl ExecutionEngine {
                 }
                 ExecResult::Value(RelType::Object(obj))
             }
-            Node::PropertyGet(obj_node, prop_name) => match self.evaluate(obj_node) {
+            Node::PropertyGet(obj_node, prop_name) => match self.evaluate_inner(obj_node) {
                 ExecResult::Value(RelType::Object(obj)) => {
                     if let Some(val) = obj.get(prop_name) {
                         ExecResult::Value(val.clone())
@@ -1191,7 +1242,7 @@ impl ExecutionEngine {
                 _ => ExecResult::Fault("PropertyGet on non-object".to_string()),
             },
             Node::PropertySet(obj_node, prop_name, val_node) => {
-                let val = match self.evaluate(val_node) {
+                let val = match self.evaluate_inner(val_node) {
                     ExecResult::Value(v) => v,
                     fault => return fault,
                 };
@@ -1230,7 +1281,7 @@ impl ExecutionEngine {
             Node::ArrayCreate(nodes) => {
                 let mut vals = Vec::new();
                 for item in nodes {
-                    match self.evaluate(item) {
+                    match self.evaluate_inner(item) {
                         ExecResult::Value(v) => vals.push(v),
                         fault => return fault,
                     }
@@ -1238,9 +1289,9 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Array(vals))
             }
             Node::ArrayGet(arr_node, index_node) => {
-                let arr_val = self.evaluate(arr_node);
+                let arr_val = self.evaluate_inner(arr_node);
                 if let ExecResult::Value(RelType::Array(arr)) = arr_val {
-                    match self.evaluate(index_node) {
+                    match self.evaluate_inner(index_node) {
                         ExecResult::Value(RelType::Int(idx)) => {
                             if idx >= 0 && (idx as usize) < arr.len() {
                                 ExecResult::Value(arr[idx as usize].clone())
@@ -1275,8 +1326,8 @@ impl ExecutionEngine {
                     }
                 };
                 if let RelType::Array(mut arr) = val {
-                    let idx_res = self.evaluate(index_node);
-                    let val_res = self.evaluate(val_node);
+                    let idx_res = self.evaluate_inner(index_node);
+                    let val_res = self.evaluate_inner(val_node);
                     match (idx_res, val_res) {
                         (ExecResult::Value(RelType::Int(idx)), ExecResult::Value(new_val)) => {
                             if idx >= 0 && (idx as usize) < arr.len() {
@@ -1332,7 +1383,7 @@ impl ExecutionEngine {
                     }
                 };
                 if let RelType::Array(mut arr) = val {
-                    match self.evaluate(val_node) {
+                    match self.evaluate_inner(val_node) {
                         ExecResult::Value(new_val) => {
                             arr.push(new_val);
                             let array_val = RelType::Array(arr);
@@ -1356,7 +1407,7 @@ impl ExecutionEngine {
                     ExecResult::Fault(format!("Variable '{}' is not an array", var_name))
                 }
             }
-            Node::ArrayLen(arr_node) => match self.evaluate(arr_node) {
+            Node::ArrayLen(arr_node) => match self.evaluate_inner(arr_node) {
                 ExecResult::Value(RelType::Array(arr)) => {
                     ExecResult::Value(RelType::Int(arr.len() as i64))
                 }
@@ -1368,9 +1419,9 @@ impl ExecutionEngine {
             },
             Node::MapCreate => ExecResult::Value(RelType::Object(HashMap::new())),
             Node::MapGet(map_node, key_node) => {
-                let map_res = self.evaluate(map_node);
+                let map_res = self.evaluate_inner(map_node);
                 if let ExecResult::Value(RelType::Object(map)) = map_res {
-                    match self.evaluate(key_node) {
+                    match self.evaluate_inner(key_node) {
                         ExecResult::Value(RelType::Str(key)) => {
                             if let Some(val) = map.get(&key) {
                                 ExecResult::Value(val.clone())
@@ -1390,9 +1441,9 @@ impl ExecutionEngine {
                 }
             }
             Node::MapHasKey(map_node, key_node) => {
-                let map_res = self.evaluate(map_node);
+                let map_res = self.evaluate_inner(map_node);
                 if let ExecResult::Value(RelType::Object(map)) = map_res {
-                    match self.evaluate(key_node) {
+                    match self.evaluate_inner(key_node) {
                         ExecResult::Value(RelType::Str(key)) => {
                             ExecResult::Value(RelType::Bool(map.contains_key(&key)))
                         }
@@ -1420,8 +1471,8 @@ impl ExecutionEngine {
                     }
                 };
                 if let RelType::Object(mut map) = val {
-                    let key_res = self.evaluate(key_node);
-                    let val_res = self.evaluate(val_node);
+                    let key_res = self.evaluate_inner(key_node);
+                    let val_res = self.evaluate_inner(val_node);
                     match (key_res, val_res) {
                         (ExecResult::Value(RelType::Str(key)), ExecResult::Value(new_val)) => {
                             if let Some(old_val) = map.get(&key) {
@@ -1456,8 +1507,8 @@ impl ExecutionEngine {
                 }
             }
             Node::Index(container, index) => {
-                let cv = self.evaluate(container);
-                let iv = self.evaluate(index);
+                let cv = self.evaluate_inner(container);
+                let iv = self.evaluate_inner(index);
                 match (cv, iv) {
                     (
                         ExecResult::Value(RelType::Array(arr)),
@@ -1485,8 +1536,8 @@ impl ExecutionEngine {
                 }
             }
             Node::Concat(l, r) => {
-                let lv = self.evaluate(l);
-                let rv = self.evaluate(r);
+                let lv = self.evaluate_inner(l);
+                let rv = self.evaluate_inner(r);
                 match (lv, rv) {
                     (ExecResult::Value(RelType::Str(ls)), ExecResult::Value(RelType::Str(rs))) => {
                         ExecResult::Value(RelType::Str(ls + &rs))
@@ -1507,8 +1558,8 @@ impl ExecutionEngine {
 
             // Bitwise
             Node::BitAnd(l, r) => {
-                let lv = self.evaluate(l);
-                let rv = self.evaluate(r);
+                let lv = self.evaluate_inner(l);
+                let rv = self.evaluate_inner(r);
                 match (lv, rv) {
                     (ExecResult::Value(RelType::Int(li)), ExecResult::Value(RelType::Int(ri))) => {
                         ExecResult::Value(RelType::Int(li & ri))
@@ -1520,8 +1571,8 @@ impl ExecutionEngine {
                 }
             }
             Node::BitShiftLeft(l, r) => {
-                let lv = self.evaluate(l);
-                let rv = self.evaluate(r);
+                let lv = self.evaluate_inner(l);
+                let rv = self.evaluate_inner(r);
                 match (lv, rv) {
                     (ExecResult::Value(RelType::Int(li)), ExecResult::Value(RelType::Int(ri))) => {
                         ExecResult::Value(RelType::Int(li << ri))
@@ -1533,8 +1584,8 @@ impl ExecutionEngine {
                 }
             }
             Node::BitShiftRight(l, r) => {
-                let lv = self.evaluate(l);
-                let rv = self.evaluate(r);
+                let lv = self.evaluate_inner(l);
+                let rv = self.evaluate_inner(r);
                 match (lv, rv) {
                     (ExecResult::Value(RelType::Int(li)), ExecResult::Value(RelType::Int(ri))) => {
                         ExecResult::Value(RelType::Int(li >> ri))
@@ -1571,7 +1622,7 @@ impl ExecutionEngine {
 
                         let mut evaluated_args = Vec::new();
                         for arg in args {
-                            match self.evaluate(arg) {
+                            match self.evaluate_inner(arg) {
                                 ExecResult::Value(v) => evaluated_args.push(v),
                                 ExecResult::ReturnBlockInfo(v) => evaluated_args.push(v),
                                 fault => return fault,
@@ -1588,7 +1639,7 @@ impl ExecutionEngine {
 
                         // Push and Execute
                         self.call_stack.push(frame);
-                        let mut call_res = self.evaluate(&body);
+                        let mut call_res = self.evaluate_inner(&body);
 
                         self.pop_scope_and_release_handles();
 
@@ -1605,7 +1656,7 @@ impl ExecutionEngine {
             Node::NativeCall(func_name, args) => {
                 let mut evaluated_args = Vec::new();
                 for arg in args {
-                    match self.evaluate(arg) {
+                    match self.evaluate_inner(arg) {
                         ExecResult::Value(v) => evaluated_args.push(v),
                         fault => return fault,
                     }
@@ -1625,7 +1676,7 @@ impl ExecutionEngine {
             } => {
                 let mut evaluated_args = Vec::new();
                 for arg in args {
-                    match self.evaluate(arg) {
+                    match self.evaluate_inner(arg) {
                         ExecResult::Value(v) => evaluated_args.push(v),
                         fault => return fault,
                     }
@@ -1642,7 +1693,7 @@ impl ExecutionEngine {
                 ))
             }
             // I/O
-            Node::FileRead(path_node) => match self.evaluate(path_node) {
+            Node::FileRead(path_node) => match self.evaluate_inner(path_node) {
                 ExecResult::Value(RelType::Str(path)) => match std::fs::read(&path) {
                     Ok(bytes) => {
                         let arr = bytes.into_iter().map(|b| RelType::Int(b as i64)).collect();
@@ -1654,8 +1705,8 @@ impl ExecutionEngine {
                 _ => ExecResult::Fault("FileRead semantic error: path not a string".to_string()),
             },
             Node::FileWrite(path_node, data_node) => {
-                let p_val = self.evaluate(path_node);
-                let d_val = self.evaluate(data_node);
+                let p_val = self.evaluate_inner(path_node);
+                let d_val = self.evaluate_inner(data_node);
                 match (p_val, d_val) {
                     (
                         ExecResult::Value(RelType::Str(path)),
@@ -1689,7 +1740,7 @@ impl ExecutionEngine {
                 }
             }
             Node::Print(n) => {
-                let val = self.evaluate(n);
+                let val = self.evaluate_inner(n);
                 match val {
                     ExecResult::Value(v) => {
                         println!("{}", v);
@@ -1700,7 +1751,7 @@ impl ExecutionEngine {
             }
 
             // FFI / Reflection
-            Node::EvalJSONNative(json_node) => match self.evaluate(json_node) {
+            Node::EvalJSONNative(json_node) => match self.evaluate_inner(json_node) {
                 ExecResult::Value(RelType::Str(json)) => {
                     match serde_json::from_str::<Node>(&json) {
                         Ok(parsed) => {
@@ -1714,7 +1765,7 @@ impl ExecutionEngine {
                 fault => fault,
             },
             Node::ToString(n) => {
-                match self.evaluate(n) {
+                match self.evaluate_inner(n) {
                     ExecResult::Value(v) => {
                         let s = format!("{}", v);
                         // Clean up type signatures "42 (i64)" -> "42" so it can be combined easily
@@ -1728,7 +1779,7 @@ impl ExecutionEngine {
             }
             Node::Import(path) => match std::fs::read_to_string(path) {
                 Ok(json) => match serde_json::from_str::<Node>(&json) {
-                    Ok(parsed) => self.evaluate(&parsed),
+                    Ok(parsed) => self.evaluate_inner(&parsed),
                     Err(e) => {
                         ExecResult::Fault(format!("Import JSON Parse Fault ({}): {}", path, e))
                     }
@@ -1738,9 +1789,9 @@ impl ExecutionEngine {
 
             // 3D Graphics (WGPU FFI)
             Node::InitWindow(w_node, h_node, t_node) => {
-                let w_val = self.evaluate(w_node);
-                let h_val = self.evaluate(h_node);
-                let t_val = self.evaluate(t_node);
+                let w_val = self.evaluate_inner(w_node);
+                let h_val = self.evaluate_inner(h_node);
+                let t_val = self.evaluate_inner(t_node);
                 if let (
                     ExecResult::Value(RelType::Int(w)),
                     ExecResult::Value(RelType::Int(h)),
@@ -1901,7 +1952,7 @@ impl ExecutionEngine {
                 }
             }
             Node::LoadShader(code_node) => {
-                if let ExecResult::Value(RelType::Str(code)) = self.evaluate(code_node) {
+                if let ExecResult::Value(RelType::Str(code)) = self.evaluate_inner(code_node) {
                     if let Some(device) = &self.device {
                         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                             label: Some("KnotenShader"),
@@ -1918,9 +1969,9 @@ impl ExecutionEngine {
                 }
             }
             Node::RenderMesh(shader_id_node, verts_node, uniform_node) => {
-                let shader_val = self.evaluate(shader_id_node);
-                let _verts_val = self.evaluate(verts_node);
-                let uniform_val = self.evaluate(uniform_node);
+                let shader_val = self.evaluate_inner(shader_id_node);
+                let _verts_val = self.evaluate_inner(verts_node);
+                let uniform_val = self.evaluate_inner(uniform_node);
 
                 if let ExecResult::Value(RelType::Int(s_id)) = shader_val {
                     if let (Some(device), Some(queue), Some(surface), Some(config)) =
@@ -2069,7 +2120,7 @@ impl ExecutionEngine {
                 }
             }
             Node::LoadMesh(path_node) => {
-                if let ExecResult::Value(RelType::Str(path)) = self.evaluate(path_node) {
+                if let ExecResult::Value(RelType::Str(path)) = self.evaluate_inner(path_node) {
                     if let Some(device) = &self.device {
                         let obj = tobj::load_obj(
                             &path,
@@ -2159,7 +2210,7 @@ impl ExecutionEngine {
                 }
             }
             Node::LoadTexture(path_node) => {
-                if let ExecResult::Value(RelType::Str(path)) = self.evaluate(path_node) {
+                if let ExecResult::Value(RelType::Str(path)) = self.evaluate_inner(path_node) {
                     if let (Some(device), Some(queue)) = (&self.device, &self.queue) {
                         match image::open(&path) {
                             Ok(img_dyn) => {
@@ -2267,7 +2318,7 @@ impl ExecutionEngine {
                 }
             }
             Node::LoadFont(path_node) => {
-                if let ExecResult::Value(RelType::Str(path)) = self.evaluate(path_node) {
+                if let ExecResult::Value(RelType::Str(path)) = self.evaluate_inner(path_node) {
                     if let (Some(device), Some(config)) = (&self.device, &self.config) {
                         match std::fs::read(&path) {
                             Ok(bytes) => {
@@ -2310,8 +2361,8 @@ impl ExecutionEngine {
                 }
             }
             Node::Extract { source, path } => {
-                let source_val = self.evaluate(source);
-                let path_val = self.evaluate(path);
+                let source_val = self.evaluate_inner(source);
+                let path_val = self.evaluate_inner(path);
 
                 if let (
                     ExecResult::Value(RelType::Str(json_str)),
@@ -2322,7 +2373,19 @@ impl ExecutionEngine {
                         Ok(mut current) => {
                             let parts: Vec<&str> = p.split('.').collect();
                             for part in parts {
-                                if let Some(next) = current.get(part) {
+                                // Sprint 63.1: Support JSON Array Indexing
+                                let mut next_val = None;
+                                if current.is_array() {
+                                    if let Ok(idx) = part.parse::<usize>() {
+                                        next_val = current.get(idx);
+                                    }
+                                }
+
+                                if next_val.is_none() {
+                                    next_val = current.get(part);
+                                }
+
+                                if let Some(next) = next_val {
                                     current = next.clone();
                                 } else {
                                     return ExecResult::Value(RelType::Void); // Native path not found
@@ -2362,7 +2425,7 @@ impl ExecutionEngine {
                     );
                 }
 
-                let path_val = self.evaluate(path);
+                let path_val = self.evaluate_inner(path);
                 if let ExecResult::Value(RelType::Str(p)) = path_val {
                     if let Ok(content) = std::fs::read_to_string(&p) {
                         ExecResult::Value(RelType::Str(content))
@@ -2382,8 +2445,8 @@ impl ExecutionEngine {
                     );
                 }
 
-                let path_val = self.evaluate(path);
-                let content_val = self.evaluate(content_ast);
+                let path_val = self.evaluate_inner(path);
+                let content_val = self.evaluate_inner(content_ast);
 
                 match (path_val, content_val) {
                     (
@@ -2402,11 +2465,11 @@ impl ExecutionEngine {
                 }
             }
             Node::DrawText(text_n, x_n, y_n, size_n, color_n) => {
-                let text_val = self.evaluate(text_n);
-                let x_val = self.evaluate(x_n);
-                let y_val = self.evaluate(y_n);
-                let size_val = self.evaluate(size_n);
-                let color_val = self.evaluate(color_n);
+                let text_val = self.evaluate_inner(text_n);
+                let x_val = self.evaluate_inner(x_n);
+                let y_val = self.evaluate_inner(y_n);
+                let size_val = self.evaluate_inner(size_n);
+                let color_val = self.evaluate_inner(color_n);
 
                 if let (
                     ExecResult::Value(RelType::Str(text)),
@@ -2530,7 +2593,7 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Str(txt))
             }
             Node::PlayAudioFile(path_node) => {
-                if let ExecResult::Value(RelType::Str(path)) = self.evaluate(path_node) {
+                if let ExecResult::Value(RelType::Str(path)) = self.evaluate_inner(path_node) {
                     if let Ok(mut reader) = hound::WavReader::open(path) {
                         let spec = reader.spec();
                         let samples: Vec<f32> = match spec.sample_format {
@@ -2559,10 +2622,10 @@ impl ExecutionEngine {
                 }
             }
             Node::RenderAsset(shader_node, mesh_node, tex_node, uniform_node) => {
-                let shader_val = self.evaluate(shader_node);
-                let mesh_val = self.evaluate(mesh_node);
-                let tex_val = self.evaluate(tex_node);
-                let uniform_val = self.evaluate(uniform_node);
+                let shader_val = self.evaluate_inner(shader_node);
+                let mesh_val = self.evaluate_inner(mesh_node);
+                let tex_val = self.evaluate_inner(tex_node);
+                let uniform_val = self.evaluate_inner(uniform_node);
 
                 if let (
                     ExecResult::Value(RelType::Int(s_id)),
@@ -3063,15 +3126,8 @@ impl ExecutionEngine {
                                 }
                             }
 
-                            let egui_ctx = self.engine.egui_ctx.clone();
-                            if let (Some(ctx), Some(state), Some(window)) =
-                                (&egui_ctx, &mut self.engine.egui_state, &self.engine.window)
-                            {
-                                let raw_input = state.take_egui_input(window.as_ref());
-                                ctx.begin_pass(raw_input);
-                            }
-
-                            // Sprint 60: Async Bridge Poll - avoid borrow checker by taking payloads first
+                            // Sprint 60/63: Async Bridge + Action Queue Poll
+                            // Must happen BEFORE begin_pass to avoid WGPU panics
                             let mut payloads: Vec<crate::async_bridge::FetchPayload> = Vec::new();
                             if let Some(bridge) = &self.engine.async_bridge {
                                 while let Some(payload) = bridge.try_recv() {
@@ -3093,7 +3149,32 @@ impl ExecutionEngine {
                                     }
                                 }
                                 let _ = self.engine.evaluate(&payload.callback_node);
-                                self.engine.ui_dirty = true; // Sprint 61: Trigger re-render after callback
+                                self.engine.ui_dirty = true;
+                            }
+
+                            // Sprint 63: Poll Action Queue
+                            let mut unhandled_actions = Vec::new();
+                            if let Some(rx) = &self.engine.action_rx {
+                                while let Ok(action) = rx.try_recv() {
+                                    unhandled_actions.push(action);
+                                }
+                            }
+
+                            for action in unhandled_actions {
+                                match action {
+                                    crate::executor::Action::UpdateData(key, val) => {
+                                        self.engine.set_var(key, val);
+                                        self.engine.ui_dirty = true;
+                                    }
+                                }
+                            }
+
+                            let egui_ctx = self.engine.egui_ctx.clone();
+                            if let (Some(ctx), Some(state), Some(window)) =
+                                (&egui_ctx, &mut self.engine.egui_state, &self.engine.window)
+                            {
+                                let raw_input = state.take_egui_input(window.as_ref());
+                                ctx.begin_pass(raw_input);
                             }
 
                             let res = self.engine.evaluate(self.body);
@@ -3337,22 +3418,7 @@ impl ExecutionEngine {
                                                             },
                                                         },
                                                     )],
-                                                    depth_stencil_attachment: depth_view_opt
-                                                        .as_ref()
-                                                        .map(|dv| {
-                                                            wgpu::RenderPassDepthStencilAttachment {
-                                                                view: dv,
-                                                                depth_ops: Some(wgpu::Operations {
-                                                                    load: if has_voxels {
-                                                                        wgpu::LoadOp::Load
-                                                                    } else {
-                                                                        wgpu::LoadOp::Clear(1.0)
-                                                                    },
-                                                                    store: wgpu::StoreOp::Store,
-                                                                }),
-                                                                stencil_ops: None,
-                                                            }
-                                                        }),
+                                                    depth_stencil_attachment: None,
                                                     timestamp_writes: None,
                                                     occlusion_query_set: None,
                                                     label: Some("egui render pass"),
@@ -3684,9 +3750,9 @@ impl ExecutionEngine {
                 }
             }
             Node::PlayNote(channel_node, freq_node, wave_node) => {
-                let cv = self.evaluate(channel_node);
-                let fv = self.evaluate(freq_node);
-                let wv = self.evaluate(wave_node);
+                let cv = self.evaluate_inner(channel_node);
+                let fv = self.evaluate_inner(freq_node);
+                let wv = self.evaluate_inner(wave_node);
 
                 if let (
                     Some(voices),
@@ -3711,7 +3777,7 @@ impl ExecutionEngine {
                 }
             }
             Node::StopNote(channel_node) => {
-                let cv = self.evaluate(channel_node);
+                let cv = self.evaluate_inner(channel_node);
                 if let (Some(voices), ExecResult::Value(RelType::Int(c))) = (&self.voices, cv) {
                     if (0..4).contains(&c) {
                         let mut v_lock = voices.lock().unwrap();
@@ -3727,12 +3793,12 @@ impl ExecutionEngine {
 
             // Flow
             Node::If(cond, then_br, else_br) => {
-                let cv = self.evaluate(cond);
+                let cv = self.evaluate_inner(cond);
                 match cv {
-                    ExecResult::Value(RelType::Bool(true)) => self.evaluate(then_br),
+                    ExecResult::Value(RelType::Bool(true)) => self.evaluate_inner(then_br),
                     ExecResult::Value(RelType::Bool(false)) => {
                         if let Some(eb) = else_br {
-                            self.evaluate(eb)
+                            self.evaluate_inner(eb)
                         } else {
                             ExecResult::Value(RelType::Void)
                         }
@@ -3743,8 +3809,8 @@ impl ExecutionEngine {
             }
             Node::While(cond, body) => {
                 loop {
-                    match self.evaluate(cond) {
-                        ExecResult::Value(RelType::Bool(true)) => match self.evaluate(body) {
+                    match self.evaluate_inner(cond) {
+                        ExecResult::Value(RelType::Bool(true)) => match self.evaluate_inner(body) {
                             ExecResult::ReturnBlockInfo(r) => {
                                 return ExecResult::ReturnBlockInfo(r);
                             }
@@ -3759,7 +3825,7 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Void) // while evaluate returns void naturally unless return hits
             }
             Node::InitCamera(fov_node) => {
-                let fov_res = self.evaluate(fov_node);
+                let fov_res = self.evaluate_inner(fov_node);
                 if let ExecResult::Value(RelType::Float(f)) = fov_res {
                     self.camera_fov = f as f32;
                     self.camera_active = true;
@@ -3773,7 +3839,7 @@ impl ExecutionEngine {
                 }
             }
             Node::DrawVoxelGrid(positions_node) => {
-                let pos_res = self.evaluate(positions_node);
+                let pos_res = self.evaluate_inner(positions_node);
                 if let ExecResult::Value(RelType::Array(positions)) = pos_res {
                     if !self.voxel_map_active {
                         self.voxel_instances.clear();
@@ -3820,8 +3886,8 @@ impl ExecutionEngine {
                 }
             }
             Node::LoadTextureAtlas(path_n, tile_size_n) => {
-                let path_res = self.evaluate(path_n);
-                let tile_size_res = self.evaluate(tile_size_n);
+                let path_res = self.evaluate_inner(path_n);
+                let tile_size_res = self.evaluate_inner(tile_size_n);
 
                 if let (
                     ExecResult::Value(RelType::Str(path)),
@@ -3939,8 +4005,8 @@ impl ExecutionEngine {
                 }
             }
             Node::LoadSample(id_n, path_n) => {
-                let id_res = self.evaluate(id_n);
-                let path_res = self.evaluate(path_n);
+                let id_res = self.evaluate_inner(id_n);
+                let path_res = self.evaluate_inner(path_n);
 
                 if let (
                     ExecResult::Value(RelType::Int(id)),
@@ -3958,9 +4024,9 @@ impl ExecutionEngine {
                 }
             }
             Node::PlaySample(id_n, vol_n, pitch_n) => {
-                let id_res = self.evaluate(id_n);
-                let vol_res = self.evaluate(vol_n);
-                let pitch_res = self.evaluate(pitch_n);
+                let id_res = self.evaluate_inner(id_n);
+                let vol_res = self.evaluate_inner(vol_n);
+                let pitch_res = self.evaluate_inner(pitch_n);
 
                 if let (
                     ExecResult::Value(RelType::Int(id)),
@@ -4003,10 +4069,10 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Void)
             }
             Node::SetVoxel(x_n, y_n, z_n, id_n) => {
-                let xr = self.evaluate(x_n);
-                let yr = self.evaluate(y_n);
-                let zr = self.evaluate(z_n);
-                let idr = self.evaluate(id_n);
+                let xr = self.evaluate_inner(x_n);
+                let yr = self.evaluate_inner(y_n);
+                let zr = self.evaluate_inner(z_n);
+                let idr = self.evaluate_inner(id_n);
 
                 if let (
                     ExecResult::Value(xv),
@@ -4044,7 +4110,7 @@ impl ExecutionEngine {
                 }
             }
             Node::EnableInteraction(enabled_n) => {
-                let res = self.evaluate(enabled_n);
+                let res = self.evaluate_inner(enabled_n);
                 if let ExecResult::Value(RelType::Bool(b)) = res {
                     self.interaction_enabled = b;
                     ExecResult::Value(RelType::Void)
@@ -4061,7 +4127,7 @@ impl ExecutionEngine {
                 let mut block_return = None;
 
                 for n in nodes {
-                    match self.evaluate(n) {
+                    match self.evaluate_inner(n) {
                         ExecResult::ReturnBlockInfo(val) => {
                             block_return = Some(val);
                             break;
@@ -4087,7 +4153,7 @@ impl ExecutionEngine {
                 }
             }
             Node::EnablePhysics(enable_n) => {
-                let res = self.evaluate(enable_n);
+                let res = self.evaluate_inner(enable_n);
                 if let ExecResult::Value(RelType::Bool(b)) = res {
                     self.physics_enabled = b;
                     ExecResult::Value(RelType::Void)
@@ -4095,7 +4161,7 @@ impl ExecutionEngine {
                     ExecResult::Fault("EnablePhysics expects Boolean".to_string())
                 }
             }
-            Node::Return(val_node) => match self.evaluate(val_node) {
+            Node::Return(val_node) => match self.evaluate_inner(val_node) {
                 ExecResult::Value(v) => ExecResult::ReturnBlockInfo(v),
                 fault => fault,
             },
@@ -4174,8 +4240,8 @@ impl ExecutionEngine {
     }
 
     fn do_math(&mut self, l: &Node, r: &Node, op: char) -> ExecResult {
-        let lv = self.evaluate(l);
-        let rv = self.evaluate(r);
+        let lv = self.evaluate_inner(l);
+        let rv = self.evaluate_inner(r);
 
         match (lv, rv) {
             (ExecResult::Value(RelType::Int(li)), ExecResult::Value(RelType::Int(ri))) => {
