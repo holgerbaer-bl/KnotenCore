@@ -258,3 +258,36 @@ You can redefine the entire application aesthetic dynamically using the `UISetSt
 - The `UISetStyle` configuration acts immediately on the active `egui::Context` rendering stack. 
 - Calling `UISetStyle` repeatedly allows you to script dynamic themes (e.g., hover-flash features, dark/light mode toggles).
 - RGBA values mapped here must be `0.0` to `1.0` floats. Out-of-bounds metrics will be clamped or fallback to default engine specs.
+---
+
+## Sprint 67: High-Performance 2D & Game Engine Evolution
+
+KnotenCore has evolved from a pure UI execution engine into a **hybrid Game Engine**. To maintain 60+ FPS in graphical applications, follow these strict performance guidelines.
+
+### 🔴 Anti-Pattern: Layout Abuse
+**Never** use `UIHorizontal`, `UIVertical`, or `UIGrid` with many `UIButton` nodes to draw game boards, tile maps, or particle systems. 
+- **Reason**: These nodes trigger the EGUI layout and widget reconciliation logic, which is too slow for 64+ elements updating every frame.
+
+### 🟢 Best Practice: Native 2D Primitives
+**Always** use `Node::DrawRect` for rendering game grids, backgrounds, and sprites.
+- **Reason**: `DrawRect` bypasses the entire layout system and paints directly to the GPU via EGUI's `layer_painter`. It is designed for "drawing," not "layout."
+
+**Example: Efficient 8x8 Grid**
+```json
+{
+  "While": [ ... loop 64 times ...
+    {
+      "DrawRect": {
+        "x": { "Identifier": "px" },
+        "y": { "Identifier": "py" },
+        "width": { "IntLiteral": 32 },
+        "height": { "IntLiteral": 32 },
+        "color": [0.1, 0.8, 0.2, 1.0]
+      }
+    }
+  ]
+}
+```
+
+### Layout Hybridization
+Use `UIFillParent` inside a `UIFullscreen` or `UIWindow` to claim the entire rendering area before starting your `While` loops for `DrawRect`. Use `UIFixed` if you need to reserve a specific pixel-stable area within a responsive UI.

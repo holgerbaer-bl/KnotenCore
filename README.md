@@ -18,7 +18,18 @@ It enables AI agents to read clear diagnostic JSON logs, self-heal instantly upo
 ## 3. The Power in Action: KnotenCalculator Pro v2.2
 Our flagship demo, the **KnotenCalculator Pro v2.2 with Kinetic History**, proves the capabilities of the engine. Featuring a natively scrolling kinetic history tape, variable data states, and complex UI layouts, the Calculator evaluates the DOM entirely within KnotenCore's hybrid VM infrastructure at roughly 60+ FPS – powered exclusively by Agent-generated logic.
 
-## 4. The Neural DSL
+## 4. Native 2D Graphics API (Sprint 67)
+To bypass the overhead of traditional UI layout engines, **KnotenCore** provides a native 2D drawing layer that renders directly via the GPU. This is essential for high-performance applications like games or complex data visualizations.
+
+### Native 2D Nodes
+- **`Node::DrawRect { x, y, width, height, color }`**: Paints a filled rectangle directly to the framebuffer. Uses EGUI's `layer_painter` on the background layer for zero-layout overhead.
+- **`Node::UIFixed { width, height, body }`**: Forces a fixed pixel dimension on its children, bypassing responsive flow.
+- **`Node::UIFillParent`**: Dynamically expands to fill the entire available screen or parent container rect.
+
+### Architecture: The Hybrid Game Engine
+Instead of wrapping every pixel in a "widget" object, `DrawRect` targets the low-level **Painter API**. This allows KnotenCore to function as a hybrid engine: a fast UI library for tools, and a blazingly fast 2D game engine for interactive experiences.
+
+## 5. The Neural DSL
 KnotenCore eschews heavy JSON trees for an Ultra-Dense Neural Syntax (`.knoten`). Designed for maximum structural compression and token efficiency, the DSL gives AI models immediate and obvious control flow mechanics.
 
 ```rust
@@ -35,7 +46,7 @@ win = UIWindow("main_nav", "Control Panel") -> {
 }
 ```
 
-## 5. Architecture: The Hybrid AST/Register VM
+## 6. Architecture: The Hybrid AST/Register VM
 KnotenCore dynamically routes code to the single most performant executor path. High-level UI declarations remain an AST, while intensive logical/mathematical constraints bypass the tree evaluator and compile directly into flat **Opcodes** for the Register VM.
 
 ```mermaid
