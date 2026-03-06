@@ -7,14 +7,8 @@ fn lit_str(v: &str) -> Node { Node::StringLiteral(v.to_string()) }
 fn lit_float(v: f64) -> Node { Node::FloatLiteral(v) }
 fn get_id(name: &str) -> Node { Node::Identifier(name.to_string()) }
 fn assign(name: &str, ex: Node) -> Node { Node::Assign(name.to_string(), Box::new(ex)) }
-
-fn generate_chess_board() -> Node {
-    // Leave cells EMPTY here — main.rs will inject 64 cells dynamically via AST manipulation.
-    Node::UIGrid(
-        8,
-        "chess_board_grid".to_string(),
-        Box::new(Node::Block(vec![])) // Empty — filled by Rust wrapper
-    )
+fn rgba_arr(r: f64, g: f64, b: f64, a: f64) -> Node {
+    Node::ArrayCreate(vec![lit_float(r), lit_float(g), lit_float(b), lit_float(a)])
 }
 
 fn create_initial_board() -> Vec<Node> {
@@ -31,118 +25,187 @@ fn create_initial_board() -> Vec<Node> {
     initial.into_iter().map(lit_str).collect()
 }
 
-fn main() {
-    // 1. Initialize State — always default to Player (White = 0) first
-    let mut setup_state = vec![
-        assign("board_state", Node::ArrayCreate(create_initial_board())),
-        assign("turn", lit_int(0)),         // 0 = White (Player), 1 = Black (AI)
+/// Move a piece from src_idx to dst_idx on the board, then switch turn to 0 (player) and persist.
+fn ai_move(src: i64, dst: i64) -> Node {
+    Node::Block(vec![
+        // Copy piece from src to dst
+        Node::ArraySet(
+            Box::new(get_id("board_state")),
+            Box::new(lit_int(dst)),
+            Box::new(Node::ArrayGet(Box::new(get_id("board_state")), Box::new(lit_int(src)))),
+        ),
+        // Clear src
+        Node::ArraySet(
+            Box::new(get_id("board_state")),
+            Box::new(lit_int(src)),
+            Box::new(lit_str(" ")),
+        ),
+        assign("turn", lit_int(0)),
         assign("selected_index", lit_int(-1)),
+        Node::Store { key: "chess_board".to_string(), value: Box::new(get_id("board_state")) },
+        Node::Store { key: "chess_turn".to_string(), value: Box::new(get_id("turn")) },
+    ])
+}
 
-        // Try to load saved game state
+/// AI picks the first available black pawn that can move one step forward (src+8).
+/// Falls back to a knight move if all pawns are blocked.
+fn build_ai_logic() -> Node {
+    // Try each of the 8 black pawns (initial positions 8–15), one at a time.
+    // A pawn can move if position src+8 is empty.
+    let mut chain: Option<Box<Node>> = None;
+
+    // Build from back → front so the chain resolves in order (pos 8 first)
+    for col in (0i64..8).rev() {
+        let src = 8 + col;
+        let dst = src + 8;
+
+        let can_move = Node::Block(vec![
+            // Can move if: board[src] is not empty AND board[src+8] is empty
+            Node::If(
+                Box::new(Node::Eq(Box::new(get_id("ai_moved")), Box::new(lit_int(0)))),
+                Box::new(Node::If(
+                    Box::new(Node::Eq(
+                        Box::new(Node::ArrayGet(Box::new(get_id("board_state")), Box::new(lit_int(src)))),
+                        Box::new(lit_str(" ")),
+                    )),
+                    Box::new(Node::Block(vec![])), // piece gone already — skip
+                    Some(Box::new(Node::If(
+                        Box::new(Node::Eq(
+                            Box::new(Node::ArrayGet(Box::new(get_id("board_state")), Box::new(lit_int(dst)))),
+                            Box::new(lit_str(" ")),
+                        )),
+                        Box::new(Node::Block(vec![
+                            ai_move(src, dst),
+                            assign("ai_moved", lit_int(1)),
+                        ])),
+                        None,
+                    ))),
+                )),
+                None,
+            ),
+        ]);
+
+        if let Some(prev) = chain {
+            chain = Some(Box::new(Node::Block(vec![can_move, *prev])));
+        } else {
+            chain = Some(Box::new(can_move));
+        }
+    }
+
+    // Wrap in: if turn == AI (1): try to move a pawn
+    Node::If(
+        Box::new(Node::Eq(Box::new(get_id("turn")), Box::new(lit_int(1)))),
+        Box::new(Node::Block(vec![
+            assign("ai_moved", lit_int(0)),
+            *chain.unwrap_or_else(|| Box::new(Node::Block(vec![]))),
+            // If nothing moved (all pawns blocked), just pass turn back
+            Node::If(
+                Box::new(Node::Eq(Box::new(get_id("ai_moved")), Box::new(lit_int(0)))),
+                Box::new(Node::Block(vec![
+                    assign("turn", lit_int(0)),
+                    Node::Store { key: "chess_turn".to_string(), value: Box::new(get_id("turn")) },
+                ])),
+                None,
+            ),
+        ])),
+        None,
+    )
+}
+
+fn generate_chess_board() -> Node {
+    Node::UIGrid(8, "chess_board_grid".to_string(), Box::new(Node::Block(vec![])))
+}
+
+fn main() {
+    let mut setup_state = vec![
+        // Safe defaults
+        assign("board_state", Node::ArrayCreate(create_initial_board())),
+        assign("turn", lit_int(0)),         // 0 = White (Human), 1 = Black (AI)
+        assign("selected_index", lit_int(-1)),
+        assign("ai_moved", lit_int(0)),
+
+        // Try loading saved state
         assign("board_load", Node::Load { key: "chess_board".to_string() }),
         assign("turn_load", Node::Load { key: "chess_turn".to_string() }),
-
-        // Only restore if turn_load is NOT void (i.e., a real saved value exists)
         Node::If(
             Box::new(Node::Eq(Box::new(get_id("turn_load")), Box::new(lit_str("void")))),
-            Box::new(Node::Block(vec![])), // No save found — keep defaults
+            Box::new(Node::Block(vec![])),
             Some(Box::new(Node::Block(vec![
-                // Restore board only if it's non-empty and non-void
                 assign("board_state", Node::If(
                     Box::new(Node::Eq(Box::new(get_id("board_load")), Box::new(lit_str("")))),
                     Box::new(get_id("board_state")),
                     Some(Box::new(Node::If(
                         Box::new(Node::Eq(Box::new(get_id("board_load")), Box::new(lit_str("void")))),
                         Box::new(get_id("board_state")),
-                        Some(Box::new(get_id("board_load")))
+                        Some(Box::new(get_id("board_load"))),
                     )))
                 )),
-                // Restore turn — but clamp to 0 (White) if invalid
-                assign("turn", Node::If(
-                    Box::new(Node::Eq(Box::new(get_id("turn_load")), Box::new(lit_int(1)))),
-                    Box::new(lit_int(0)), // Hotfix: Force back to player on load to avoid AI deadlock
-                    Some(Box::new(lit_int(0)))
-                ))
+                assign("turn", get_id("turn_load")),
             ])))
-        )
+        ),
     ];
 
-    // 2. Premium dark theme style — tight spacing to give board room
+    // ── Global neon cyberpunk style ───────────────────────────────────────────
     let global_style = Node::UISetStyle(
-        Box::new(lit_float(4.0)),
-        Box::new(lit_float(4.0)),
-        Box::new(Node::ArrayCreate(vec![
-            lit_float(0.0), lit_float(0.8), lit_float(0.4), lit_float(1.0)
-        ])),
-        Box::new(Node::ArrayCreate(vec![
-            lit_float(0.05), lit_float(0.05), lit_float(0.08), lit_float(0.98)
-        ])),
+        Box::new(lit_float(6.0)),   // rounding
+        Box::new(lit_float(6.0)),   // spacing
+        Box::new(rgba_arr(0.0, 0.9, 0.7, 1.0)),   // accent: cyan-teal
+        Box::new(rgba_arr(0.04, 0.04, 0.08, 0.98)), // dark bg
         None,
         None
     );
 
-    // 3. AI logic — NON-BLOCKING: only fires when it's AI's turn.
-    //    We make AI auto-pass (simplified). A real AI move would mutate board_state here.
-    //    Crucially, it runs INSIDE PollEvents so it doesn't block the render loop.
-    let ai_logic = Node::If(
-        Box::new(Node::Eq(Box::new(get_id("turn")), Box::new(lit_int(1)))),
-        Box::new(Node::Block(vec![
-            // Simplified AI: just pass back to the player after one frame
-            assign("turn", lit_int(0)),
-            Node::Print(Box::new(lit_str("AI made its move."))),
-            Node::Store { key: "chess_turn".to_string(), value: Box::new(get_id("turn")) }
-        ])),
-        None
-    );
+    // ── AI turn logic ─────────────────────────────────────────────────────────
+    let ai_logic = build_ai_logic();
 
-    // 4. Main UI window — board is between turn label and controls
+    // ── Main UI ───────────────────────────────────────────────────────────────
     let main_window = Node::UIWindow(
         "chess_main".to_string(),
-        Box::new(lit_str("Agentic WGPU Chess")),
+        Box::new(lit_str("♟ Agentic WGPU Chess — Human vs. Computer")),
         Box::new(Node::Block(vec![
-            global_style.clone(),
+            global_style,
 
-            // Turn indicator
+            // Turn status bar
             Node::If(
                 Box::new(Node::Eq(Box::new(get_id("turn")), Box::new(lit_int(0)))),
-                Box::new(Node::UILabel(Box::new(lit_str("♟ Turn: Player (White)")))),
-                Some(Box::new(Node::UILabel(Box::new(lit_str("🤖 Turn: AI (Black)")))))
+                Box::new(Node::UILabel(Box::new(lit_str("◉  YOUR TURN  — White (Human)")))),
+                Some(Box::new(Node::UILabel(Box::new(lit_str("◆  AI THINKING  — Black (Computer)"))))),
             ),
 
-            // Chess Board Grid (64 cells injected dynamically by main.rs)
+            // The board (64 cells injected by main.rs)
             generate_chess_board(),
 
-            // Reset button
+            // Controls
             Node::UIHorizontal(Box::new(Node::Block(vec![
                 Node::If(
-                    Box::new(Node::UIButton(Box::new(lit_str("🔄 Reset Game")))),
+                    Box::new(Node::UIButton(Box::new(lit_str("🔄 New Game")))),
                     Box::new(Node::Block(vec![
                         assign("board_state", Node::ArrayCreate(create_initial_board())),
                         assign("turn", lit_int(0)),
                         assign("selected_index", lit_int(-1)),
                         Node::Store { key: "chess_board".to_string(), value: Box::new(get_id("board_state")) },
-                        Node::Store { key: "chess_turn".to_string(), value: Box::new(get_id("turn")) }
+                        Node::Store { key: "chess_turn".to_string(), value: Box::new(get_id("turn")) },
                     ])),
-                    None
-                )
+                    None,
+                ),
             ]))),
         ]))
     );
 
-    setup_state.push(Node::InitWindow(Box::new(lit_int(920)), Box::new(lit_int(740)), Box::new(lit_str("Agentic WGPU Chess"))));
+    setup_state.push(Node::InitWindow(
+        Box::new(lit_int(960)),
+        Box::new(lit_int(760)),
+        Box::new(lit_str("Agentic WGPU Chess")),
+    ));
     setup_state.push(Node::InitGraphics);
-    // PollEvents drives the render loop — AI logic and UI run here every frame
     setup_state.push(Node::PollEvents(Box::new(Node::Block(vec![
         ai_logic,
         main_window,
     ]))));
 
     let program = Node::Block(setup_state);
-
     let json = serde_json::to_string_pretty(&program).unwrap();
-    let out_dir = "examples/graphics";
-    fs::create_dir_all(out_dir).unwrap();
-    let out_path = format!("{}/chess_showcase.nod", out_dir);
-    fs::write(&out_path, json).unwrap();
-    println!("Compiled AST to {}", out_path);
+    fs::create_dir_all("examples/graphics").unwrap();
+    fs::write("examples/graphics/chess_showcase.nod", json).unwrap();
+    println!("✅ AST compiled to examples/graphics/chess_showcase.nod");
 }

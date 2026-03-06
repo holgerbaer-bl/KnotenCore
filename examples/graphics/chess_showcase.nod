@@ -219,6 +219,14 @@
     },
     {
       "Assign": [
+        "ai_moved",
+        {
+          "IntLiteral": 0
+        }
+      ]
+    },
+    {
+      "Assign": [
         "board_load",
         {
           "Load": {
@@ -300,24 +308,7 @@
               "Assign": [
                 "turn",
                 {
-                  "If": [
-                    {
-                      "Eq": [
-                        {
-                          "Identifier": "turn_load"
-                        },
-                        {
-                          "IntLiteral": 1
-                        }
-                      ]
-                    },
-                    {
-                      "IntLiteral": 0
-                    },
-                    {
-                      "IntLiteral": 0
-                    }
-                  ]
+                  "Identifier": "turn_load"
                 }
               ]
             }
@@ -328,10 +319,10 @@
     {
       "InitWindow": [
         {
-          "IntLiteral": 920
+          "IntLiteral": 960
         },
         {
-          "IntLiteral": 740
+          "IntLiteral": 760
         },
         {
           "StringLiteral": "Agentic WGPU Chess"
@@ -358,24 +349,1242 @@
                 "Block": [
                   {
                     "Assign": [
-                      "turn",
+                      "ai_moved",
                       {
                         "IntLiteral": 0
                       }
                     ]
                   },
                   {
-                    "Print": {
-                      "StringLiteral": "AI made its move."
-                    }
+                    "Block": [
+                      {
+                        "Block": [
+                          {
+                            "If": [
+                              {
+                                "Eq": [
+                                  {
+                                    "Identifier": "ai_moved"
+                                  },
+                                  {
+                                    "IntLiteral": 0
+                                  }
+                                ]
+                              },
+                              {
+                                "If": [
+                                  {
+                                    "Eq": [
+                                      {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 8
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "StringLiteral": " "
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "Block": []
+                                  },
+                                  {
+                                    "If": [
+                                      {
+                                        "Eq": [
+                                          {
+                                            "ArrayGet": [
+                                              {
+                                                "Identifier": "board_state"
+                                              },
+                                              {
+                                                "IntLiteral": 16
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "StringLiteral": " "
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "Block": [
+                                          {
+                                            "Block": [
+                                              {
+                                                "ArraySet": [
+                                                  {
+                                                    "Identifier": "board_state"
+                                                  },
+                                                  {
+                                                    "IntLiteral": 16
+                                                  },
+                                                  {
+                                                    "ArrayGet": [
+                                                      {
+                                                        "Identifier": "board_state"
+                                                      },
+                                                      {
+                                                        "IntLiteral": 8
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "ArraySet": [
+                                                  {
+                                                    "Identifier": "board_state"
+                                                  },
+                                                  {
+                                                    "IntLiteral": 8
+                                                  },
+                                                  {
+                                                    "StringLiteral": " "
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "Assign": [
+                                                  "turn",
+                                                  {
+                                                    "IntLiteral": 0
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "Assign": [
+                                                  "selected_index",
+                                                  {
+                                                    "IntLiteral": -1
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "Store": {
+                                                  "key": "chess_board",
+                                                  "value": {
+                                                    "Identifier": "board_state"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "Store": {
+                                                  "key": "chess_turn",
+                                                  "value": {
+                                                    "Identifier": "turn"
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "Assign": [
+                                              "ai_moved",
+                                              {
+                                                "IntLiteral": 1
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      null
+                                    ]
+                                  }
+                                ]
+                              },
+                              null
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "Block": [
+                          {
+                            "Block": [
+                              {
+                                "If": [
+                                  {
+                                    "Eq": [
+                                      {
+                                        "Identifier": "ai_moved"
+                                      },
+                                      {
+                                        "IntLiteral": 0
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "If": [
+                                      {
+                                        "Eq": [
+                                          {
+                                            "ArrayGet": [
+                                              {
+                                                "Identifier": "board_state"
+                                              },
+                                              {
+                                                "IntLiteral": 9
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "StringLiteral": " "
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "Block": []
+                                      },
+                                      {
+                                        "If": [
+                                          {
+                                            "Eq": [
+                                              {
+                                                "ArrayGet": [
+                                                  {
+                                                    "Identifier": "board_state"
+                                                  },
+                                                  {
+                                                    "IntLiteral": 17
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "StringLiteral": " "
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "Block": [
+                                              {
+                                                "Block": [
+                                                  {
+                                                    "ArraySet": [
+                                                      {
+                                                        "Identifier": "board_state"
+                                                      },
+                                                      {
+                                                        "IntLiteral": 17
+                                                      },
+                                                      {
+                                                        "ArrayGet": [
+                                                          {
+                                                            "Identifier": "board_state"
+                                                          },
+                                                          {
+                                                            "IntLiteral": 9
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "ArraySet": [
+                                                      {
+                                                        "Identifier": "board_state"
+                                                      },
+                                                      {
+                                                        "IntLiteral": 9
+                                                      },
+                                                      {
+                                                        "StringLiteral": " "
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "Assign": [
+                                                      "turn",
+                                                      {
+                                                        "IntLiteral": 0
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "Assign": [
+                                                      "selected_index",
+                                                      {
+                                                        "IntLiteral": -1
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "Store": {
+                                                      "key": "chess_board",
+                                                      "value": {
+                                                        "Identifier": "board_state"
+                                                      }
+                                                    }
+                                                  },
+                                                  {
+                                                    "Store": {
+                                                      "key": "chess_turn",
+                                                      "value": {
+                                                        "Identifier": "turn"
+                                                      }
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "Assign": [
+                                                  "ai_moved",
+                                                  {
+                                                    "IntLiteral": 1
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          null
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  null
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "Block": [
+                              {
+                                "Block": [
+                                  {
+                                    "If": [
+                                      {
+                                        "Eq": [
+                                          {
+                                            "Identifier": "ai_moved"
+                                          },
+                                          {
+                                            "IntLiteral": 0
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "If": [
+                                          {
+                                            "Eq": [
+                                              {
+                                                "ArrayGet": [
+                                                  {
+                                                    "Identifier": "board_state"
+                                                  },
+                                                  {
+                                                    "IntLiteral": 10
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "StringLiteral": " "
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "Block": []
+                                          },
+                                          {
+                                            "If": [
+                                              {
+                                                "Eq": [
+                                                  {
+                                                    "ArrayGet": [
+                                                      {
+                                                        "Identifier": "board_state"
+                                                      },
+                                                      {
+                                                        "IntLiteral": 18
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "StringLiteral": " "
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "Block": [
+                                                  {
+                                                    "Block": [
+                                                      {
+                                                        "ArraySet": [
+                                                          {
+                                                            "Identifier": "board_state"
+                                                          },
+                                                          {
+                                                            "IntLiteral": 18
+                                                          },
+                                                          {
+                                                            "ArrayGet": [
+                                                              {
+                                                                "Identifier": "board_state"
+                                                              },
+                                                              {
+                                                                "IntLiteral": 10
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "ArraySet": [
+                                                          {
+                                                            "Identifier": "board_state"
+                                                          },
+                                                          {
+                                                            "IntLiteral": 10
+                                                          },
+                                                          {
+                                                            "StringLiteral": " "
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "Assign": [
+                                                          "turn",
+                                                          {
+                                                            "IntLiteral": 0
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "Assign": [
+                                                          "selected_index",
+                                                          {
+                                                            "IntLiteral": -1
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "Store": {
+                                                          "key": "chess_board",
+                                                          "value": {
+                                                            "Identifier": "board_state"
+                                                          }
+                                                        }
+                                                      },
+                                                      {
+                                                        "Store": {
+                                                          "key": "chess_turn",
+                                                          "value": {
+                                                            "Identifier": "turn"
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "Assign": [
+                                                      "ai_moved",
+                                                      {
+                                                        "IntLiteral": 1
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              null
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      null
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "Block": [
+                                  {
+                                    "Block": [
+                                      {
+                                        "If": [
+                                          {
+                                            "Eq": [
+                                              {
+                                                "Identifier": "ai_moved"
+                                              },
+                                              {
+                                                "IntLiteral": 0
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "If": [
+                                              {
+                                                "Eq": [
+                                                  {
+                                                    "ArrayGet": [
+                                                      {
+                                                        "Identifier": "board_state"
+                                                      },
+                                                      {
+                                                        "IntLiteral": 11
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "StringLiteral": " "
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "Block": []
+                                              },
+                                              {
+                                                "If": [
+                                                  {
+                                                    "Eq": [
+                                                      {
+                                                        "ArrayGet": [
+                                                          {
+                                                            "Identifier": "board_state"
+                                                          },
+                                                          {
+                                                            "IntLiteral": 19
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "StringLiteral": " "
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "Block": [
+                                                      {
+                                                        "Block": [
+                                                          {
+                                                            "ArraySet": [
+                                                              {
+                                                                "Identifier": "board_state"
+                                                              },
+                                                              {
+                                                                "IntLiteral": 19
+                                                              },
+                                                              {
+                                                                "ArrayGet": [
+                                                                  {
+                                                                    "Identifier": "board_state"
+                                                                  },
+                                                                  {
+                                                                    "IntLiteral": 11
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "ArraySet": [
+                                                              {
+                                                                "Identifier": "board_state"
+                                                              },
+                                                              {
+                                                                "IntLiteral": 11
+                                                              },
+                                                              {
+                                                                "StringLiteral": " "
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "Assign": [
+                                                              "turn",
+                                                              {
+                                                                "IntLiteral": 0
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "Assign": [
+                                                              "selected_index",
+                                                              {
+                                                                "IntLiteral": -1
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "Store": {
+                                                              "key": "chess_board",
+                                                              "value": {
+                                                                "Identifier": "board_state"
+                                                              }
+                                                            }
+                                                          },
+                                                          {
+                                                            "Store": {
+                                                              "key": "chess_turn",
+                                                              "value": {
+                                                                "Identifier": "turn"
+                                                              }
+                                                            }
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "Assign": [
+                                                          "ai_moved",
+                                                          {
+                                                            "IntLiteral": 1
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  },
+                                                  null
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          null
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "Block": [
+                                      {
+                                        "Block": [
+                                          {
+                                            "If": [
+                                              {
+                                                "Eq": [
+                                                  {
+                                                    "Identifier": "ai_moved"
+                                                  },
+                                                  {
+                                                    "IntLiteral": 0
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "If": [
+                                                  {
+                                                    "Eq": [
+                                                      {
+                                                        "ArrayGet": [
+                                                          {
+                                                            "Identifier": "board_state"
+                                                          },
+                                                          {
+                                                            "IntLiteral": 12
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "StringLiteral": " "
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "Block": []
+                                                  },
+                                                  {
+                                                    "If": [
+                                                      {
+                                                        "Eq": [
+                                                          {
+                                                            "ArrayGet": [
+                                                              {
+                                                                "Identifier": "board_state"
+                                                              },
+                                                              {
+                                                                "IntLiteral": 20
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "StringLiteral": " "
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "Block": [
+                                                          {
+                                                            "Block": [
+                                                              {
+                                                                "ArraySet": [
+                                                                  {
+                                                                    "Identifier": "board_state"
+                                                                  },
+                                                                  {
+                                                                    "IntLiteral": 20
+                                                                  },
+                                                                  {
+                                                                    "ArrayGet": [
+                                                                      {
+                                                                        "Identifier": "board_state"
+                                                                      },
+                                                                      {
+                                                                        "IntLiteral": 12
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "ArraySet": [
+                                                                  {
+                                                                    "Identifier": "board_state"
+                                                                  },
+                                                                  {
+                                                                    "IntLiteral": 12
+                                                                  },
+                                                                  {
+                                                                    "StringLiteral": " "
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "Assign": [
+                                                                  "turn",
+                                                                  {
+                                                                    "IntLiteral": 0
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "Assign": [
+                                                                  "selected_index",
+                                                                  {
+                                                                    "IntLiteral": -1
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "Store": {
+                                                                  "key": "chess_board",
+                                                                  "value": {
+                                                                    "Identifier": "board_state"
+                                                                  }
+                                                                }
+                                                              },
+                                                              {
+                                                                "Store": {
+                                                                  "key": "chess_turn",
+                                                                  "value": {
+                                                                    "Identifier": "turn"
+                                                                  }
+                                                                }
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "Assign": [
+                                                              "ai_moved",
+                                                              {
+                                                                "IntLiteral": 1
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      },
+                                                      null
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              null
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "Block": [
+                                          {
+                                            "Block": [
+                                              {
+                                                "If": [
+                                                  {
+                                                    "Eq": [
+                                                      {
+                                                        "Identifier": "ai_moved"
+                                                      },
+                                                      {
+                                                        "IntLiteral": 0
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "If": [
+                                                      {
+                                                        "Eq": [
+                                                          {
+                                                            "ArrayGet": [
+                                                              {
+                                                                "Identifier": "board_state"
+                                                              },
+                                                              {
+                                                                "IntLiteral": 13
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "StringLiteral": " "
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "Block": []
+                                                      },
+                                                      {
+                                                        "If": [
+                                                          {
+                                                            "Eq": [
+                                                              {
+                                                                "ArrayGet": [
+                                                                  {
+                                                                    "Identifier": "board_state"
+                                                                  },
+                                                                  {
+                                                                    "IntLiteral": 21
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "StringLiteral": " "
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "Block": [
+                                                              {
+                                                                "Block": [
+                                                                  {
+                                                                    "ArraySet": [
+                                                                      {
+                                                                        "Identifier": "board_state"
+                                                                      },
+                                                                      {
+                                                                        "IntLiteral": 21
+                                                                      },
+                                                                      {
+                                                                        "ArrayGet": [
+                                                                          {
+                                                                            "Identifier": "board_state"
+                                                                          },
+                                                                          {
+                                                                            "IntLiteral": 13
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "ArraySet": [
+                                                                      {
+                                                                        "Identifier": "board_state"
+                                                                      },
+                                                                      {
+                                                                        "IntLiteral": 13
+                                                                      },
+                                                                      {
+                                                                        "StringLiteral": " "
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "Assign": [
+                                                                      "turn",
+                                                                      {
+                                                                        "IntLiteral": 0
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "Assign": [
+                                                                      "selected_index",
+                                                                      {
+                                                                        "IntLiteral": -1
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "Store": {
+                                                                      "key": "chess_board",
+                                                                      "value": {
+                                                                        "Identifier": "board_state"
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  {
+                                                                    "Store": {
+                                                                      "key": "chess_turn",
+                                                                      "value": {
+                                                                        "Identifier": "turn"
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "Assign": [
+                                                                  "ai_moved",
+                                                                  {
+                                                                    "IntLiteral": 1
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          null
+                                                        ]
+                                                      }
+                                                    ]
+                                                  },
+                                                  null
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "Block": [
+                                              {
+                                                "Block": [
+                                                  {
+                                                    "If": [
+                                                      {
+                                                        "Eq": [
+                                                          {
+                                                            "Identifier": "ai_moved"
+                                                          },
+                                                          {
+                                                            "IntLiteral": 0
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "If": [
+                                                          {
+                                                            "Eq": [
+                                                              {
+                                                                "ArrayGet": [
+                                                                  {
+                                                                    "Identifier": "board_state"
+                                                                  },
+                                                                  {
+                                                                    "IntLiteral": 14
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "StringLiteral": " "
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "Block": []
+                                                          },
+                                                          {
+                                                            "If": [
+                                                              {
+                                                                "Eq": [
+                                                                  {
+                                                                    "ArrayGet": [
+                                                                      {
+                                                                        "Identifier": "board_state"
+                                                                      },
+                                                                      {
+                                                                        "IntLiteral": 22
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "StringLiteral": " "
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "Block": [
+                                                                  {
+                                                                    "Block": [
+                                                                      {
+                                                                        "ArraySet": [
+                                                                          {
+                                                                            "Identifier": "board_state"
+                                                                          },
+                                                                          {
+                                                                            "IntLiteral": 22
+                                                                          },
+                                                                          {
+                                                                            "ArrayGet": [
+                                                                              {
+                                                                                "Identifier": "board_state"
+                                                                              },
+                                                                              {
+                                                                                "IntLiteral": 14
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "ArraySet": [
+                                                                          {
+                                                                            "Identifier": "board_state"
+                                                                          },
+                                                                          {
+                                                                            "IntLiteral": 14
+                                                                          },
+                                                                          {
+                                                                            "StringLiteral": " "
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "Assign": [
+                                                                          "turn",
+                                                                          {
+                                                                            "IntLiteral": 0
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "Assign": [
+                                                                          "selected_index",
+                                                                          {
+                                                                            "IntLiteral": -1
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "Store": {
+                                                                          "key": "chess_board",
+                                                                          "value": {
+                                                                            "Identifier": "board_state"
+                                                                          }
+                                                                        }
+                                                                      },
+                                                                      {
+                                                                        "Store": {
+                                                                          "key": "chess_turn",
+                                                                          "value": {
+                                                                            "Identifier": "turn"
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "Assign": [
+                                                                      "ai_moved",
+                                                                      {
+                                                                        "IntLiteral": 1
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              null
+                                                            ]
+                                                          }
+                                                        ]
+                                                      },
+                                                      null
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "Block": [
+                                                  {
+                                                    "If": [
+                                                      {
+                                                        "Eq": [
+                                                          {
+                                                            "Identifier": "ai_moved"
+                                                          },
+                                                          {
+                                                            "IntLiteral": 0
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "If": [
+                                                          {
+                                                            "Eq": [
+                                                              {
+                                                                "ArrayGet": [
+                                                                  {
+                                                                    "Identifier": "board_state"
+                                                                  },
+                                                                  {
+                                                                    "IntLiteral": 15
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "StringLiteral": " "
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "Block": []
+                                                          },
+                                                          {
+                                                            "If": [
+                                                              {
+                                                                "Eq": [
+                                                                  {
+                                                                    "ArrayGet": [
+                                                                      {
+                                                                        "Identifier": "board_state"
+                                                                      },
+                                                                      {
+                                                                        "IntLiteral": 23
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "StringLiteral": " "
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "Block": [
+                                                                  {
+                                                                    "Block": [
+                                                                      {
+                                                                        "ArraySet": [
+                                                                          {
+                                                                            "Identifier": "board_state"
+                                                                          },
+                                                                          {
+                                                                            "IntLiteral": 23
+                                                                          },
+                                                                          {
+                                                                            "ArrayGet": [
+                                                                              {
+                                                                                "Identifier": "board_state"
+                                                                              },
+                                                                              {
+                                                                                "IntLiteral": 15
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "ArraySet": [
+                                                                          {
+                                                                            "Identifier": "board_state"
+                                                                          },
+                                                                          {
+                                                                            "IntLiteral": 15
+                                                                          },
+                                                                          {
+                                                                            "StringLiteral": " "
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "Assign": [
+                                                                          "turn",
+                                                                          {
+                                                                            "IntLiteral": 0
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "Assign": [
+                                                                          "selected_index",
+                                                                          {
+                                                                            "IntLiteral": -1
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "Store": {
+                                                                          "key": "chess_board",
+                                                                          "value": {
+                                                                            "Identifier": "board_state"
+                                                                          }
+                                                                        }
+                                                                      },
+                                                                      {
+                                                                        "Store": {
+                                                                          "key": "chess_turn",
+                                                                          "value": {
+                                                                            "Identifier": "turn"
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "Assign": [
+                                                                      "ai_moved",
+                                                                      {
+                                                                        "IntLiteral": 1
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              },
+                                                              null
+                                                            ]
+                                                          }
+                                                        ]
+                                                      },
+                                                      null
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   },
                   {
-                    "Store": {
-                      "key": "chess_turn",
-                      "value": {
-                        "Identifier": "turn"
-                      }
-                    }
+                    "If": [
+                      {
+                        "Eq": [
+                          {
+                            "Identifier": "ai_moved"
+                          },
+                          {
+                            "IntLiteral": 0
+                          }
+                        ]
+                      },
+                      {
+                        "Block": [
+                          {
+                            "Assign": [
+                              "turn",
+                              {
+                                "IntLiteral": 0
+                              }
+                            ]
+                          },
+                          {
+                            "Store": {
+                              "key": "chess_turn",
+                              "value": {
+                                "Identifier": "turn"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      null
+                    ]
                   }
                 ]
               },
@@ -386,17 +1595,17 @@
             "UIWindow": [
               "chess_main",
               {
-                "StringLiteral": "Agentic WGPU Chess"
+                "StringLiteral": "♟ Agentic WGPU Chess — Human vs. Computer"
               },
               {
                 "Block": [
                   {
                     "UISetStyle": [
                       {
-                        "FloatLiteral": 4.0
+                        "FloatLiteral": 6.0
                       },
                       {
-                        "FloatLiteral": 4.0
+                        "FloatLiteral": 6.0
                       },
                       {
                         "ArrayCreate": [
@@ -404,10 +1613,10 @@
                             "FloatLiteral": 0.0
                           },
                           {
-                            "FloatLiteral": 0.8
+                            "FloatLiteral": 0.9
                           },
                           {
-                            "FloatLiteral": 0.4
+                            "FloatLiteral": 0.7
                           },
                           {
                             "FloatLiteral": 1.0
@@ -417,10 +1626,10 @@
                       {
                         "ArrayCreate": [
                           {
-                            "FloatLiteral": 0.05
+                            "FloatLiteral": 0.04
                           },
                           {
-                            "FloatLiteral": 0.05
+                            "FloatLiteral": 0.04
                           },
                           {
                             "FloatLiteral": 0.08
@@ -448,12 +1657,12 @@
                       },
                       {
                         "UILabel": {
-                          "StringLiteral": "♟ Turn: Player (White)"
+                          "StringLiteral": "◉  YOUR TURN  — White (Human)"
                         }
                       },
                       {
                         "UILabel": {
-                          "StringLiteral": "🤖 Turn: AI (Black)"
+                          "StringLiteral": "◆  AI THINKING  — Black (Computer)"
                         }
                       }
                     ]
@@ -474,7 +1683,7 @@
                           "If": [
                             {
                               "UIButton": {
-                                "StringLiteral": "🔄 Reset Game"
+                                "StringLiteral": "🔄 New Game"
                               }
                             },
                             {
