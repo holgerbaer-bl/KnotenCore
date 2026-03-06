@@ -159,6 +159,27 @@ pub fn count_nodes(node: &Node) -> usize {
             count += count_nodes(width) + count_nodes(height) + count_nodes(body);
         }
         Node::UIFillParent => {}
+        // Sprint 68: Native 3D/2D Render Scene Graph
+        Node::RenderCanvas { body } => { count += count_nodes(body); }
+        Node::Transform2D { x, y, rotation, scale, body } => {
+            count += count_nodes(x) + count_nodes(y) + count_nodes(rotation)
+                + count_nodes(scale) + count_nodes(body);
+        }
+        Node::Sprite2D { texture_id, transform } => {
+            count += count_nodes(texture_id) + count_nodes(transform);
+        }
+        Node::Camera3D { pos_x, pos_y, pos_z, target_x, target_y, target_z, fov } => {
+            count += count_nodes(pos_x) + count_nodes(pos_y) + count_nodes(pos_z)
+                + count_nodes(target_x) + count_nodes(target_y) + count_nodes(target_z)
+                + count_nodes(fov);
+        }
+        Node::Mesh3D { primitive, material } => {
+            count += count_nodes(primitive) + count_nodes(material);
+        }
+        Node::Material3D { r, g, b, a, metallic, roughness } => {
+            count += count_nodes(r) + count_nodes(g) + count_nodes(b) + count_nodes(a)
+                + count_nodes(metallic) + count_nodes(roughness);
+        }
     }
     count
 }
@@ -401,6 +422,40 @@ pub fn optimize(node: Node) -> Node {
             body: Box::new(optimize(*body)),
         },
         Node::UIFillParent => Node::UIFillParent,
+        // Sprint 68: Native 3D/2D Render Scene Graph
+        Node::RenderCanvas { body } => Node::RenderCanvas { body: Box::new(optimize(*body)) },
+        Node::Transform2D { x, y, rotation, scale, body } => Node::Transform2D {
+            x: Box::new(optimize(*x)),
+            y: Box::new(optimize(*y)),
+            rotation: Box::new(optimize(*rotation)),
+            scale: Box::new(optimize(*scale)),
+            body: Box::new(optimize(*body)),
+        },
+        Node::Sprite2D { texture_id, transform } => Node::Sprite2D {
+            texture_id: Box::new(optimize(*texture_id)),
+            transform: Box::new(optimize(*transform)),
+        },
+        Node::Camera3D { pos_x, pos_y, pos_z, target_x, target_y, target_z, fov } => Node::Camera3D {
+            pos_x: Box::new(optimize(*pos_x)),
+            pos_y: Box::new(optimize(*pos_y)),
+            pos_z: Box::new(optimize(*pos_z)),
+            target_x: Box::new(optimize(*target_x)),
+            target_y: Box::new(optimize(*target_y)),
+            target_z: Box::new(optimize(*target_z)),
+            fov: Box::new(optimize(*fov)),
+        },
+        Node::Mesh3D { primitive, material } => Node::Mesh3D {
+            primitive: Box::new(optimize(*primitive)),
+            material: Box::new(optimize(*material)),
+        },
+        Node::Material3D { r, g, b, a, metallic, roughness } => Node::Material3D {
+            r: Box::new(optimize(*r)),
+            g: Box::new(optimize(*g)),
+            b: Box::new(optimize(*b)),
+            a: Box::new(optimize(*a)),
+            metallic: Box::new(optimize(*metallic)),
+            roughness: Box::new(optimize(*roughness)),
+        },
     }
 }
 

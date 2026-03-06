@@ -251,6 +251,14 @@ pub struct ExecutionEngine {
     pub permissions: AgentPermissions, // Sprint 62: Sandbox constraints
 
     pub call_stack: Vec<StackFrame>,
+
+    // Sprint 68: Native 3D/2D Render Canvas
+    pub render_canvas_active: bool,
+    pub canvas_mesh_pipeline: Option<wgpu::RenderPipeline>,
+    pub camera3d_view_proj: Option<[[f32; 4]; 4]>, // Cached MVP (view * proj)
+    pub canvas_material: [f32; 8],                 // [r,g,b,a, metallic,roughness, pad,pad]
+    pub sprite2d_queue: Vec<(i64, f32, f32, f32, f32)>, // (tex_id, x, y, rotation, scale)
+    pub transform2d_stack: Vec<[f32; 4]>,           // pushed (x,y,rot,scale) transforms
 }
 
 // Sprint 63: Thread-safe actions
@@ -336,6 +344,12 @@ impl ExecutionEngine {
             ui_dirty: false,
             permissions: AgentPermissions::default(),
             call_stack: Vec::new(),
+            render_canvas_active: false,
+            canvas_mesh_pipeline: None,
+            camera3d_view_proj: None,
+            canvas_material: [1.0, 1.0, 1.0, 1.0, 0.0, 0.5, 0.0, 0.0],
+            sprite2d_queue: Vec::new(),
+            transform2d_stack: Vec::new(),
             bridge: Box::new(CoreBridge),
         };
 
@@ -354,6 +368,93 @@ impl ExecutionEngine {
             .push(Box::new(crate::natives::registry::RegistryModule));
 
         engine
+    }
+
+    /// Sprint 68: Lazily initialize the Blinn-Phong pipeline used by Mesh3D nodes.
+    pub fn ensure_canvas_mesh_pipeline(&mut self) {
+        if self.canvas_mesh_pipeline.is_some() {
+            return;
+        }
+        let (device, config) = match (&self.device, &self.config) {
+            (Some(d), Some(c)) => (d, c),
+            _ => return,
+        };
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Mesh3D Blinn-Phong Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../assets/mesh3d.wgsl").into()),
+        });
+
+        // UBO layout: 16 f32 (view-proj) + 8 f32 (material) = 24 × 4 = 96 bytes
+        let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Mesh3D BGL"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+
+        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Mesh3D Pipeline Layout"),
+            bind_group_layouts: &[&bgl],
+            push_constant_ranges: &[],
+        });
+
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Mesh3D Pipeline"),
+            layout: Some(&layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<VoxelVertex>() as wgpu::BufferAddress,
+                    step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &[
+                        wgpu::VertexAttribute { offset: 0,  shader_location: 0, format: wgpu::VertexFormat::Float32x3 },
+                        wgpu::VertexAttribute { offset: 12, shader_location: 1, format: wgpu::VertexFormat::Float32x3 },
+                        wgpu::VertexAttribute { offset: 24, shader_location: 2, format: wgpu::VertexFormat::Float32x2 },
+                    ],
+                }],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: Some(wgpu::Face::Back),
+                unclipped_depth: false,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                conservative: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None,
+            cache: None,
+        });
+
+        self.canvas_mesh_pipeline = Some(pipeline);
     }
 
     pub fn ensure_voxel_pipeline(&mut self) {
@@ -1255,7 +1356,247 @@ impl ExecutionEngine {
                 }
                 ExecResult::Value(RelType::Void)
             }
+
+            // ─── Sprint 68: Native 3D/2D Render Scene Graph ──────────────────────────
+
+            /// Material3D — stores material params so the next Mesh3D draw uses them.
+            Node::Material3D { r, g, b, a, metallic, roughness } => {
+                let ef = |res: ExecResult| -> f32 {
+                    match res {
+                        ExecResult::Value(RelType::Float(f)) => f as f32,
+                        ExecResult::Value(RelType::Int(i)) => i as f32,
+                        _ => 0.0,
+                    }
+                };
+                let rv = ef(self.evaluate_inner(r));
+                let gv = ef(self.evaluate_inner(g));
+                let bv = ef(self.evaluate_inner(b));
+                let av = ef(self.evaluate_inner(a));
+                let mv = ef(self.evaluate_inner(metallic));
+                let rv2 = ef(self.evaluate_inner(roughness));
+                self.canvas_material = [rv, gv, bv, av, mv, rv2, 0.0, 0.0];
+                ExecResult::Value(RelType::Void)
+            }
+
+            /// Camera3D — computes perspective + view matrix from position/target/fov.
+            Node::Camera3D { pos_x, pos_y, pos_z, target_x, target_y, target_z, fov } => {
+                let ef = |res: ExecResult| -> f32 {
+                    match res {
+                        ExecResult::Value(RelType::Float(f)) => f as f32,
+                        ExecResult::Value(RelType::Int(i)) => i as f32,
+                        _ => 0.0,
+                    }
+                };
+                let px = ef(self.evaluate_inner(pos_x));
+                let py = ef(self.evaluate_inner(pos_y));
+                let pz = ef(self.evaluate_inner(pos_z));
+                let tx = ef(self.evaluate_inner(target_x));
+                let ty = ef(self.evaluate_inner(target_y));
+                let tz = ef(self.evaluate_inner(target_z));
+                let fv = ef(self.evaluate_inner(fov));
+
+                use cgmath::{perspective, Deg, Matrix4, Point3, Vector3};
+                let (w, h) = if let Some(cfg) = &self.config {
+                    (cfg.width as f32, cfg.height as f32)
+                } else {
+                    (1280.0f32, 720.0f32)
+                };
+                let aspect = w / h.max(1.0);
+                let proj: Matrix4<f32> = perspective(Deg(fv), aspect, 0.01, 1000.0);
+                let view: Matrix4<f32> = Matrix4::look_at_rh(
+                    Point3::new(px, py, pz),
+                    Point3::new(tx, ty, tz),
+                    Vector3::unit_y(),
+                );
+                let vp = proj * view;
+                self.camera3d_view_proj = Some([
+                    [vp.x.x, vp.x.y, vp.x.z, vp.x.w],
+                    [vp.y.x, vp.y.y, vp.y.z, vp.y.w],
+                    [vp.z.x, vp.z.y, vp.z.z, vp.z.w],
+                    [vp.w.x, vp.w.y, vp.w.z, vp.w.w],
+                ]);
+                ExecResult::Value(RelType::Void)
+            }
+
+            /// Mesh3D — uploads geometry + material UBO, issues an indexed draw call.
+            Node::Mesh3D { primitive, material } => {
+                // Evaluate material overrides first (if any nested Material3D)
+                let mat_res = self.evaluate_inner(material);
+                if let ExecResult::Fault(e) = mat_res {
+                    return ExecResult::Fault(e);
+                }
+
+                let prim_name = match self.evaluate_inner(primitive) {
+                    ExecResult::Value(RelType::Str(s)) => s,
+                    _ => return ExecResult::Fault("Mesh3D: primitive must be a String".into()),
+                };
+
+                self.ensure_canvas_mesh_pipeline();
+                if self.canvas_mesh_pipeline.is_none()
+                    || self.device.is_none()
+                    || self.camera3d_view_proj.is_none()
+                {
+                    return ExecResult::Fault(
+                        "Mesh3D: requires active RenderCanvas + Camera3D + WGPU device".into()
+                    );
+                }
+
+                // Build geometry
+                let (verts, indices): (Vec<VoxelVertex>, Vec<u32>) = match prim_name.as_str() {
+                    "plane" => {
+                        let verts = vec![
+                            VoxelVertex { position: [-1.0, 0.0,  1.0], normal: [0.0,1.0,0.0], uv:[0.0,0.0] },
+                            VoxelVertex { position: [ 1.0, 0.0,  1.0], normal: [0.0,1.0,0.0], uv:[1.0,0.0] },
+                            VoxelVertex { position: [ 1.0, 0.0, -1.0], normal: [0.0,1.0,0.0], uv:[1.0,1.0] },
+                            VoxelVertex { position: [-1.0, 0.0, -1.0], normal: [0.0,1.0,0.0], uv:[0.0,1.0] },
+                        ];
+                        (verts, vec![0,1,2, 2,3,0])
+                    }
+                    _ /* "cube" */ => {
+                        let v = 0.5f32;
+                        let faces: [([f32;3],[f32;3]); 8] = [
+                            ([-v,-v,-v],[-0.577,-0.577,-0.577]),
+                            ([-v, v,-v],[-0.577, 0.577,-0.577]),
+                            ([ v, v,-v],[ 0.577, 0.577,-0.577]),
+                            ([ v,-v,-v],[ 0.577,-0.577,-0.577]),
+                            ([-v,-v, v],[-0.577,-0.577, 0.577]),
+                            ([-v, v, v],[-0.577, 0.577, 0.577]),
+                            ([ v, v, v],[ 0.577, 0.577, 0.577]),
+                            ([ v,-v, v],[ 0.577,-0.577, 0.577]),
+                        ];
+                        let verts = faces.iter().map(|(p,n)| VoxelVertex {
+                            position: *p, normal: *n, uv: [0.5,0.5]
+                        }).collect();
+                        let indices = vec![
+                            0,1,2, 2,3,0,
+                            4,5,6, 6,7,4,
+                            0,1,5, 5,4,0,
+                            3,2,6, 6,7,3,
+                            1,2,6, 6,5,1,
+                            0,3,7, 7,4,0,
+                        ];
+                        (verts, indices)
+                    }
+                };
+
+                // Pack UBO: 16 floats view-proj + 8 floats material
+                let vp = self.camera3d_view_proj.unwrap();
+                let mat = self.canvas_material;
+                let mut ubo_data = [0.0f32; 24];
+                for r in 0..4 { for c in 0..4 { ubo_data[r*4+c] = vp[r][c]; } }
+                ubo_data[16..24].copy_from_slice(&mat);
+
+                let device = self.device.as_ref().unwrap();
+                let vbo = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Mesh3D VBO"), contents: bytemuck::cast_slice(&verts),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+                let ibo = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Mesh3D IBO"), contents: bytemuck::cast_slice(&indices),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+                let ubo = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Mesh3D UBO"), contents: bytemuck::cast_slice(&ubo_data),
+                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                });
+
+                let bgl = self.canvas_mesh_pipeline.as_ref().unwrap().get_bind_group_layout(0);
+                let bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    layout: &bgl,
+                    entries: &[wgpu::BindGroupEntry { binding:0, resource: ubo.as_entire_binding() }],
+                    label: Some("Mesh3D BG"),
+                });
+
+                let surface = match self.surface.as_ref() {
+                    Some(s) => s,
+                    None => return ExecResult::Fault("Mesh3D: no WGPU surface".into()),
+                };
+                let frame = match surface.get_current_texture() {
+                    Ok(f) => f,
+                    Err(e) => return ExecResult::Fault(format!("Mesh3D: surface error {:?}", e)),
+                };
+                let fb_view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                let queue = self.queue.as_ref().unwrap();
+                let mut enc = device.create_command_encoder(
+                    &wgpu::CommandEncoderDescriptor { label: Some("Mesh3D enc") }
+                );
+                {
+                    let mut rpass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("Mesh3D rpass"),
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view: &fb_view, resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store,
+                            },
+                        })],
+                        depth_stencil_attachment: self.depth_texture_view.as_ref().map(|dv|
+                            wgpu::RenderPassDepthStencilAttachment {
+                                view: dv,
+                                depth_ops: Some(wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear(1.0),
+                                    store: wgpu::StoreOp::Store,
+                                }),
+                                stencil_ops: None,
+                            }
+                        ),
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
+                    });
+                    rpass.set_pipeline(self.canvas_mesh_pipeline.as_ref().unwrap());
+                    rpass.set_bind_group(0, &bg, &[]);
+                    rpass.set_vertex_buffer(0, vbo.slice(..));
+                    rpass.set_index_buffer(ibo.slice(..), wgpu::IndexFormat::Uint32);
+                    rpass.draw_indexed(0..indices.len() as u32, 0, 0..1);
+                }
+                queue.submit(std::iter::once(enc.finish()));
+                frame.present();
+                ExecResult::Value(RelType::Void)
+            }
+
+            /// RenderCanvas — activates the 3D canvas mode, evaluates the scene body.
+            Node::RenderCanvas { body } => {
+                self.render_canvas_active = true;
+                self.sprite2d_queue.clear();
+                let result = self.evaluate_inner(body);
+                self.render_canvas_active = false;
+                result
+            }
+
+            /// Transform2D — pushes a spatial context for Sprite2D children.
+            Node::Transform2D { x, y, rotation, scale, body } => {
+                let ef = |res: ExecResult| -> f32 {
+                    match res {
+                        ExecResult::Value(RelType::Float(f)) => f as f32,
+                        ExecResult::Value(RelType::Int(i)) => i as f32,
+                        _ => 0.0,
+                    }
+                };
+                let xv  = ef(self.evaluate_inner(x));
+                let yv  = ef(self.evaluate_inner(y));
+                let rv  = ef(self.evaluate_inner(rotation));
+                let scv = ef(self.evaluate_inner(scale));
+                self.transform2d_stack.push([xv, yv, rv, scv]);
+                let result = self.evaluate_inner(body);
+                self.transform2d_stack.pop();
+                result
+            }
+
+            /// Sprite2D — enqueues a sprite draw (flushed by RenderCanvas frame).
+            Node::Sprite2D { texture_id, transform: _ } => {
+                let tid = match self.evaluate_inner(texture_id) {
+                    ExecResult::Value(RelType::Int(i)) => i,
+                    ExecResult::Value(RelType::Handle(i)) => i,
+                    _ => return ExecResult::Fault("Sprite2D: texture_id must be Int or Handle".into()),
+                };
+                let (x, y, rot, sc) = self.transform2d_stack.last()
+                    .map(|t| (t[0], t[1], t[2], t[3]))
+                    .unwrap_or((0.0, 0.0, 0.0, 1.0));
+                self.sprite2d_queue.push((tid, x, y, rot, sc));
+                ExecResult::Value(RelType::Void)
+            }
+
             Node::Lt(l, r) => {
+
                 let lv = self.evaluate_inner(l);
                 let rv = self.evaluate_inner(r);
                 match (lv, rv) {

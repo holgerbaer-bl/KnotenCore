@@ -296,6 +296,40 @@ impl Validator {
                 self.check_node(height);
                 self.check_node(body);
             }
+            // Sprint 68: Native 3D/2D Render Scene Graph
+            Node::RenderCanvas { body } => { self.check_node(body); }
+            Node::Transform2D { x, y, rotation, scale, body } => {
+                self.check_node(x);
+                self.check_node(y);
+                self.check_node(rotation);
+                self.check_node(scale);
+                self.check_node(body);
+            }
+            Node::Sprite2D { texture_id, transform } => {
+                self.check_node(texture_id);
+                self.check_node(transform);
+            }
+            Node::Camera3D { pos_x, pos_y, pos_z, target_x, target_y, target_z, fov } => {
+                self.check_node(pos_x);
+                self.check_node(pos_y);
+                self.check_node(pos_z);
+                self.check_node(target_x);
+                self.check_node(target_y);
+                self.check_node(target_z);
+                self.check_node(fov);
+            }
+            Node::Mesh3D { primitive, material } => {
+                self.check_node(primitive);
+                self.check_node(material);
+            }
+            Node::Material3D { r, g, b, a, metallic, roughness } => {
+                self.check_node(r);
+                self.check_node(g);
+                self.check_node(b);
+                self.check_node(a);
+                self.check_node(metallic);
+                self.check_node(roughness);
+            }
         }
     }
 }

@@ -77,6 +77,31 @@ pub enum Node {
     },
     UIFillParent,
 
+    // Sprint 68: Native 3D/2D Render Scene Graph
+    RenderCanvas { body: Box<Node> },
+    Transform2D {
+        x: Box<Node>,
+        y: Box<Node>,
+        rotation: Box<Node>,
+        scale: Box<Node>,
+        body: Box<Node>,
+    },
+    Sprite2D { texture_id: Box<Node>, transform: Box<Node> },
+    Camera3D {
+        pos_x: Box<Node>,
+        pos_y: Box<Node>,
+        pos_z: Box<Node>,
+        target_x: Box<Node>,
+        target_y: Box<Node>,
+        target_z: Box<Node>,
+        fov: Box<Node>,
+    },
+    Mesh3D { primitive: Box<Node>, material: Box<Node> }, // primitive: "cube"|"sphere"|"plane"
+    Material3D {
+        r: Box<Node>, g: Box<Node>, b: Box<Node>, a: Box<Node>,
+        metallic: Box<Node>, roughness: Box<Node>,
+    },
+
     // Sprint 60: Async Connectivity
     Fetch {
         method: String,
