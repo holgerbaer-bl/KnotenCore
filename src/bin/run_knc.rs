@@ -18,7 +18,8 @@ fn main() {
 
 fn run() {
     let mut engine = ExecutionEngine::new();
-
+    engine.permissions.allow_fs_read = true;
+    engine.permissions.allow_fs_write = true;
     // Check if we are bundled (Sprint 11)
     if let Some(bundled_json) = option_env!("KNOTEN_BUNDLE") {
         println!("Running embedded KnotenCore bundle...");

@@ -55,6 +55,8 @@ fn main() {{
         .expect("Failed to parse bundled KnotenCore JSON AST");
         
     let mut engine = ExecutionEngine::new();
+    engine.permissions.allow_fs_read = true;
+    engine.permissions.allow_fs_write = true;
     let result = engine.execute(&ast);
     
     println!("\nExecution Finished.\nResult: {{}}", result);
