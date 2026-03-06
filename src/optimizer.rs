@@ -151,6 +151,14 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::Extract { source, path } => {
             count += count_nodes(source) + count_nodes(path);
         }
+        Node::DrawRect { x, y, width, height, color } => {
+            count += count_nodes(x) + count_nodes(y) + count_nodes(width)
+                + count_nodes(height) + count_nodes(color);
+        }
+        Node::UIFixed { width, height, body } => {
+            count += count_nodes(width) + count_nodes(height) + count_nodes(body);
+        }
+        Node::UIFillParent => {}
     }
     count
 }
@@ -380,6 +388,19 @@ pub fn optimize(node: Node) -> Node {
         ),
         Node::EnableInteraction(b) => Node::EnableInteraction(Box::new(optimize(*b))),
         Node::EnablePhysics(b) => Node::EnablePhysics(Box::new(optimize(*b))),
+        Node::DrawRect { x, y, width, height, color } => Node::DrawRect {
+            x: Box::new(optimize(*x)),
+            y: Box::new(optimize(*y)),
+            width: Box::new(optimize(*width)),
+            height: Box::new(optimize(*height)),
+            color: Box::new(optimize(*color)),
+        },
+        Node::UIFixed { width, height, body } => Node::UIFixed {
+            width: Box::new(optimize(*width)),
+            height: Box::new(optimize(*height)),
+            body: Box::new(optimize(*body)),
+        },
+        Node::UIFillParent => Node::UIFillParent,
     }
 }
 

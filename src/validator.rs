@@ -282,7 +282,20 @@ impl Validator {
             | Node::InitAudio
             | Node::GetLastKeypress
             | Node::InitVoxelMap
+            | Node::UIFillParent
             | Node::StopNote(_) => {}
+            Node::DrawRect { x, y, width, height, color } => {
+                self.check_node(x);
+                self.check_node(y);
+                self.check_node(width);
+                self.check_node(height);
+                self.check_node(color);
+            }
+            Node::UIFixed { width, height, body } => {
+                self.check_node(width);
+                self.check_node(height);
+                self.check_node(body);
+            }
         }
     }
 }

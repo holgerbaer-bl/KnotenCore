@@ -62,6 +62,21 @@ pub enum Node {
     Store { key: String, value: Box<Node> },
     Load { key: String },
 
+    // Sprint 67: Native 2D Drawing Primitives
+    DrawRect {
+        x: Box<Node>,
+        y: Box<Node>,
+        width: Box<Node>,
+        height: Box<Node>,
+        color: Box<Node>, // Array [R, G, B, A] as floats 0.0..1.0
+    },
+    UIFixed {
+        width: Box<Node>,
+        height: Box<Node>,
+        body: Box<Node>,
+    },
+    UIFillParent,
+
     // Sprint 60: Async Connectivity
     Fetch {
         method: String,

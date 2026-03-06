@@ -1165,6 +1165,96 @@ impl ExecutionEngine {
                 }
                 ExecResult::Value(RelType::Void)
             }
+
+            // Sprint 67: Native 2D Drawing Primitives (egui Painter path — bypasses widget layout)
+            Node::DrawRect { x, y, width, height, color } => {
+                let xv = match self.evaluate_inner(x) {
+                    ExecResult::Value(RelType::Float(f)) => f as f32,
+                    ExecResult::Value(RelType::Int(i)) => i as f32,
+                    _ => return ExecResult::Fault("DrawRect: x must be a number".into()),
+                };
+                let yv = match self.evaluate_inner(y) {
+                    ExecResult::Value(RelType::Float(f)) => f as f32,
+                    ExecResult::Value(RelType::Int(i)) => i as f32,
+                    _ => return ExecResult::Fault("DrawRect: y must be a number".into()),
+                };
+                let wv = match self.evaluate_inner(width) {
+                    ExecResult::Value(RelType::Float(f)) => f as f32,
+                    ExecResult::Value(RelType::Int(i)) => i as f32,
+                    _ => return ExecResult::Fault("DrawRect: width must be a number".into()),
+                };
+                let hv = match self.evaluate_inner(height) {
+                    ExecResult::Value(RelType::Float(f)) => f as f32,
+                    ExecResult::Value(RelType::Int(i)) => i as f32,
+                    _ => return ExecResult::Fault("DrawRect: height must be a number".into()),
+                };
+
+                // Parse color array [R, G, B, A] as 0.0..1.0 floats
+                let mut rgba = [1.0f32, 1.0, 1.0, 1.0];
+                if let ExecResult::Value(RelType::Array(arr)) = self.evaluate_inner(color) {
+                    for (i, v) in arr.iter().enumerate().take(4) {
+                        rgba[i] = match v {
+                            RelType::Float(f) => *f as f32,
+                            RelType::Int(n) => *n as f32,
+                            _ => rgba[i],
+                        };
+                    }
+                }
+
+                if let Some(ctx) = self.egui_ctx.clone() {
+                    let color32 = egui::Color32::from_rgba_unmultiplied(
+                        (rgba[0] * 255.0) as u8,
+                        (rgba[1] * 255.0) as u8,
+                        (rgba[2] * 255.0) as u8,
+                        (rgba[3] * 255.0) as u8,
+                    );
+                    let rect = egui::Rect::from_min_size(
+                        egui::pos2(xv, yv),
+                        egui::vec2(wv, hv),
+                    );
+                    // Paint directly to the background layer — completely bypasses EGUI layout
+                    let painter = ctx.layer_painter(egui::LayerId::new(
+                        egui::Order::Background,
+                        egui::Id::new("knoten_draw_rect"),
+                    ));
+                    painter.rect_filled(rect, egui::Rounding::ZERO, color32);
+                    ExecResult::Value(RelType::Void)
+                } else {
+                    ExecResult::Fault("DrawRect requires an active egui context (use inside PollEvents)".into())
+                }
+            }
+
+            Node::UIFixed { width, height, body } => {
+                let wv = match self.evaluate_inner(width) {
+                    ExecResult::Value(RelType::Float(f)) => f as f32,
+                    ExecResult::Value(RelType::Int(i)) => i as f32,
+                    _ => return ExecResult::Fault("UIFixed: width must be a number".into()),
+                };
+                let hv = match self.evaluate_inner(height) {
+                    ExecResult::Value(RelType::Float(f)) => f as f32,
+                    ExecResult::Value(RelType::Int(i)) => i as f32,
+                    _ => return ExecResult::Fault("UIFixed: height must be a number".into()),
+                };
+                if let Some(ui_ptr) = self.egui_ui_ptr {
+                    unsafe {
+                        (*ui_ptr).set_min_size(egui::vec2(wv, hv));
+                        (*ui_ptr).set_max_size(egui::vec2(wv, hv));
+                    }
+                }
+                self.evaluate_inner(body)
+            }
+
+            Node::UIFillParent => {
+                if let Some(ctx) = self.egui_ctx.clone() {
+                    let size = ctx.available_rect().size();
+                    if let Some(ui_ptr) = self.egui_ui_ptr {
+                        unsafe {
+                            (*ui_ptr).set_min_size(size);
+                        }
+                    }
+                }
+                ExecResult::Value(RelType::Void)
+            }
             Node::Lt(l, r) => {
                 let lv = self.evaluate_inner(l);
                 let rv = self.evaluate_inner(r);
