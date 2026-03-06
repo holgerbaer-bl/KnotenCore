@@ -1,0 +1,2292 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "board_state",
+        {
+          "ArrayCreate": [
+            {
+              "StringLiteral": "♖"
+            },
+            {
+              "StringLiteral": "♘"
+            },
+            {
+              "StringLiteral": "♗"
+            },
+            {
+              "StringLiteral": "♕"
+            },
+            {
+              "StringLiteral": "♔"
+            },
+            {
+              "StringLiteral": "♗"
+            },
+            {
+              "StringLiteral": "♘"
+            },
+            {
+              "StringLiteral": "♖"
+            },
+            {
+              "StringLiteral": "♙"
+            },
+            {
+              "StringLiteral": "♙"
+            },
+            {
+              "StringLiteral": "♙"
+            },
+            {
+              "StringLiteral": "♙"
+            },
+            {
+              "StringLiteral": "♙"
+            },
+            {
+              "StringLiteral": "♙"
+            },
+            {
+              "StringLiteral": "♙"
+            },
+            {
+              "StringLiteral": "♙"
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": " "
+            },
+            {
+              "StringLiteral": "♟"
+            },
+            {
+              "StringLiteral": "♟"
+            },
+            {
+              "StringLiteral": "♟"
+            },
+            {
+              "StringLiteral": "♟"
+            },
+            {
+              "StringLiteral": "♟"
+            },
+            {
+              "StringLiteral": "♟"
+            },
+            {
+              "StringLiteral": "♟"
+            },
+            {
+              "StringLiteral": "♟"
+            },
+            {
+              "StringLiteral": "♜"
+            },
+            {
+              "StringLiteral": "♞"
+            },
+            {
+              "StringLiteral": "♝"
+            },
+            {
+              "StringLiteral": "♛"
+            },
+            {
+              "StringLiteral": "♚"
+            },
+            {
+              "StringLiteral": "♝"
+            },
+            {
+              "StringLiteral": "♞"
+            },
+            {
+              "StringLiteral": "♜"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "While": [
+        {
+          "BoolLiteral": true
+        },
+        {
+          "Block": [
+            "InitGraphics",
+            {
+              "UIWindow": [
+                "chess_main",
+                {
+                  "StringLiteral": "Agentic WGPU Chess"
+                },
+                {
+                  "Block": [
+                    {
+                      "UISetStyle": [
+                        {
+                          "FloatLiteral": 8.0
+                        },
+                        {
+                          "FloatLiteral": 12.0
+                        },
+                        {
+                          "ArrayCreate": [
+                            {
+                              "FloatLiteral": 0.0
+                            },
+                            {
+                              "FloatLiteral": 0.8
+                            },
+                            {
+                              "FloatLiteral": 0.4
+                            },
+                            {
+                              "FloatLiteral": 1.0
+                            }
+                          ]
+                        },
+                        {
+                          "ArrayCreate": [
+                            {
+                              "FloatLiteral": 0.08
+                            },
+                            {
+                              "FloatLiteral": 0.08
+                            },
+                            {
+                              "FloatLiteral": 0.12
+                            },
+                            {
+                              "FloatLiteral": 0.95
+                            }
+                          ]
+                        },
+                        null,
+                        {
+                          "ArrayCreate": [
+                            {
+                              "FloatLiteral": 0.2
+                            },
+                            {
+                              "FloatLiteral": 0.8
+                            },
+                            {
+                              "FloatLiteral": 0.4
+                            },
+                            {
+                              "FloatLiteral": 0.8
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "UILabel": {
+                        "StringLiteral": "Chess Engine vs. Player"
+                      }
+                    },
+                    {
+                      "UIGrid": [
+                        8,
+                        "chess_board_grid",
+                        {
+                          "Block": [
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 0
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 0 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 1
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 1 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 2
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 2 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 3
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 3 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 4
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 4 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 5
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 5 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 6
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 6 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 7
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 7 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 8
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 8 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 9
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 9 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 10
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 10 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 11
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 11 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 12
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 12 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 13
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 13 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 14
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 14 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 15
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 15 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 16
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 16 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 17
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 17 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 18
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 18 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 19
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 19 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 20
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 20 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 21
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 21 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 22
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 22 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 23
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 23 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 24
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 24 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 25
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 25 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 26
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 26 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 27
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 27 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 28
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 28 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 29
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 29 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 30
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 30 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 31
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 31 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 32
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 32 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 33
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 33 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 34
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 34 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 35
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 35 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 36
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 36 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 37
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 37 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 38
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 38 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 39
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 39 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 40
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 40 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 41
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 41 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 42
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 42 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 43
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 43 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 44
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 44 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 45
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 45 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 46
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 46 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 47
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 47 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 48
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 48 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 49
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 49 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 50
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 50 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 51
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 51 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 52
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 52 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 53
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 53 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 54
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 54 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 55
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 55 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 56
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 56 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 57
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 57 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 58
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 58 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 59
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 59 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 60
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 60 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 61
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 61 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 62
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 62 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            },
+                            {
+                              "If": [
+                                {
+                                  "Assign": [
+                                    "clicked",
+                                    {
+                                      "UIButton": {
+                                        "ArrayGet": [
+                                          {
+                                            "Identifier": "board_state"
+                                          },
+                                          {
+                                            "IntLiteral": 63
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Block": [
+                                    {
+                                      "Print": {
+                                        "StringLiteral": "Tile 63 clicked"
+                                      }
+                                    }
+                                  ]
+                                },
+                                null
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "PollEvents": {
+                "Block": []
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
