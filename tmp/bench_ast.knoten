@@ -1,0 +1,10 @@
+{
+    let start = GlobalTime();
+    let count = 0;
+    while (count < 100000) {
+        count = count + 1;
+    }
+    let end = GlobalTime();
+    Print("100k iterations took seconds: ");
+    Print(end - start);
+}
