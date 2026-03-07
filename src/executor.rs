@@ -289,6 +289,8 @@ pub struct ExecutionEngine {
     pub canvas_material: [f32; 8],                 // [r,g,b,a, metallic,roughness, pad,pad]
     pub sprite2d_queue: Vec<(i64, f32, f32, f32, f32)>, // (tex_id, x, y, rotation, scale)
     pub transform2d_stack: Vec<[f32; 4]>,           // pushed (x,y,rot,scale) transforms
+    pub current_canvas_frame: Option<wgpu::SurfaceTexture>,
+    pub current_canvas_view: Option<wgpu::TextureView>,
 }
 
 // Sprint 63: Thread-safe actions
@@ -328,6 +330,8 @@ impl ExecutionEngine {
             camera_pitch: 0.0,
             camera_fov: 60.0,
             point_lights: Vec::new(),
+            current_canvas_frame: None,
+            current_canvas_view: None,
             input_w: false,
             input_a: false,
             input_s: false,
@@ -1392,7 +1396,7 @@ impl ExecutionEngine {
 
             /// Material3D — stores material params so the next Mesh3D draw uses them.
             Node::Material3D { r, g, b, a, metallic, roughness, texture_id } => {
-                let f = |n| match self.evaluate_inner(n) {
+                let mut f = |n| match self.evaluate_inner(n) {
                     ExecResult::Value(RelType::Float(v)) => v as f32,
                     ExecResult::Value(RelType::Int(v)) => v as f32,
                     _ => 1.0,
@@ -1411,7 +1415,7 @@ impl ExecutionEngine {
 
             /// PointLight3D - adds a point light to the scene.
             Node::PointLight3D { x, y, z, r, g, b, intensity } => {
-                let f = |n| match self.evaluate_inner(n) {
+                let mut f = |n| match self.evaluate_inner(n) {
                     ExecResult::Value(RelType::Float(v)) => v as f32,
                     ExecResult::Value(RelType::Int(v)) => v as f32,
                     _ => 0.0,
@@ -1603,6 +1607,10 @@ impl ExecutionEngine {
             Node::RenderCanvas { body } => {
                 self.render_canvas_active = true;
                 self.sprite2d_queue.clear();
+                
+                // Sprint 70: If we have a shared frame/view from about_to_wait, we use it.
+                // Otherwise this node is a NOP for rendering (it just sets the active flag).
+                
                 let result = self.evaluate_inner(body);
                 self.render_canvas_active = false;
                 result
@@ -3758,6 +3766,11 @@ impl ExecutionEngine {
                                     let view = frame
                                         .texture
                                         .create_view(&wgpu::TextureViewDescriptor::default());
+                                    
+                                    // Sprint 70: Store for shared use across nodes
+                                    self.engine.current_canvas_frame = Some(frame);
+                                    self.engine.current_canvas_view = Some(view);
+
                                     let mut encoder = device.create_command_encoder(
                                         &wgpu::CommandEncoderDescriptor::default(),
                                     );
@@ -3964,7 +3977,12 @@ impl ExecutionEngine {
                                     }
 
                                     queue.submit(Some(encoder.finish()));
-                                    frame.present();
+                                    
+                                    // Sprint 70: Cleanup shared state and present
+                                    if let Some(f) = self.engine.current_canvas_frame.take() {
+                                        f.present();
+                                    }
+                                    self.engine.current_canvas_view = None;
                                 }
 
                                 for id in &full_output.textures_delta.free {
