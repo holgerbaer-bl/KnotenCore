@@ -1,12 +1,10 @@
-use crate::executor::{ExecutionEngine, RelType, ExecResult};
+use crate::executor::ExecutionEngine;
 use crate::ast::Node;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::event_loop::ActiveEventLoop;
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use winit::window::WindowId;
-use std::sync::{Arc, Mutex};
-use wgpu::util::DeviceExt;
 
 impl ExecutionEngine {
     pub fn run_event_loop(&mut self, body: &Node) {
@@ -163,7 +161,7 @@ impl<'a> ApplicationHandler for KnotenApp<'a> {
         }
 
         // Frame Clear + Evaluate Body
-        if let (Some(surface), Some(device), Some(_queue)) = (&self.engine.surface, &self.engine.device, &self.engine.queue) {
+        if let (Some(surface), Some(_device), Some(_queue)) = (&self.engine.surface, &self.engine.device, &self.engine.queue) {
             if let Ok(frame) = surface.get_current_texture() {
                 let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
                 self.engine.current_canvas_frame = Some(frame);

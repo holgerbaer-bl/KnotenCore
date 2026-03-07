@@ -319,13 +319,126 @@ impl ExecutionEngine {
     pub fn evaluate_extra(&mut self, node: &Node) -> ExecResult {
         match node {
             Node::PollEvents(body) => { self.run_event_loop(body); ExecResult::Value(RelType::Void) }
-            Node::Mesh3D { primitive, .. } => {
-               if let ExecResult::Value(RelType::Str(s)) = self.evaluate(primitive) {
-                   self.draw_mesh_immediate(&s)
-               } else { ExecResult::Fault("Invalid mesh primitive".into()) }
+            Node::Print(expr) => {
+                match self.evaluate(expr) {
+                    ExecResult::Value(v) => { println!("{}", v); ExecResult::Value(RelType::Void) }
+                    err => err,
+                }
             }
-            // ... more to come
-            _ => ExecResult::Fault(format!("Unsupported node: {:?}", node)),
+            Node::Mesh3D { primitive, material: _m } => {
+                let p = match self.evaluate(primitive) { ExecResult::Value(RelType::Str(s)) => s, _ => return ExecResult::Fault("Invalid primitive".into()) };
+                self.draw_mesh_immediate(&p) 
+            }
+            Node::PointLight3D { x, y, z, r, g, b, intensity } => {
+                let px = match self.evaluate(x) { ExecResult::Value(RelType::Float(f)) => f as f32, ExecResult::Value(RelType::Int(i)) => i as f32, _ => 0.0 };
+                let py = match self.evaluate(y) { ExecResult::Value(RelType::Float(f)) => f as f32, ExecResult::Value(RelType::Int(i)) => i as f32, _ => 0.0 };
+                let pz = match self.evaluate(z) { ExecResult::Value(RelType::Float(f)) => f as f32, ExecResult::Value(RelType::Int(i)) => i as f32, _ => 0.0 };
+                let cr = match self.evaluate(r) { ExecResult::Value(RelType::Float(f)) => f as f32, ExecResult::Value(RelType::Int(i)) => i as f32, _ => 1.0 };
+                let cg = match self.evaluate(g) { ExecResult::Value(RelType::Float(f)) => f as f32, ExecResult::Value(RelType::Int(i)) => i as f32, _ => 1.0 };
+                let cb = match self.evaluate(b) { ExecResult::Value(RelType::Float(f)) => f as f32, ExecResult::Value(RelType::Int(i)) => i as f32, _ => 1.0 };
+                let intens = match self.evaluate(intensity) { ExecResult::Value(RelType::Float(f)) => f as f32, ExecResult::Value(RelType::Int(i)) => i as f32, _ => 1.0 };
+                self.point_lights.push(PointLightData { x: px, y: py, z: pz, r: cr, g: cg, b: cb, intensity: intens });
+                ExecResult::Value(RelType::Void)
+            }
+            Node::InitGraphics => { self.interaction_enabled = true; ExecResult::Value(RelType::Void) }
+            Node::InitAudio => { ExecResult::Value(RelType::Void) }
+            Node::InitVoxelMap => { self.voxel_map_active = true; ExecResult::Value(RelType::Void) }
+            Node::SetVoxel(x, y, z, id) => {
+                let vx = match self.evaluate(x) { ExecResult::Value(RelType::Int(i)) => i as i32, _ => 0 };
+                let vy = match self.evaluate(y) { ExecResult::Value(RelType::Int(i)) => i as i32, _ => 0 };
+                let vz = match self.evaluate(z) { ExecResult::Value(RelType::Int(i)) => i as i32, _ => 0 };
+                let vid = match self.evaluate(id) { ExecResult::Value(RelType::Int(i)) => i as u8, _ => 0 };
+                self.voxel_map.insert([vx as i64, vy as i64, vz as i64], vid);
+                self.voxel_map_dirty = true;
+                ExecResult::Value(RelType::Void)
+            }
+            Node::DrawVoxelGrid(_) => { ExecResult::Value(RelType::Void) }
+            Node::EnablePhysics(b) => {
+                if let ExecResult::Value(RelType::Bool(v)) = self.evaluate(b) { self.physics_enabled = v; }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::EnableInteraction(b) => {
+                if let ExecResult::Value(RelType::Bool(v)) = self.evaluate(b) { self.interaction_enabled = v; }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::MouseGrab { enabled } => {
+                if let ExecResult::Value(RelType::Bool(v)) = self.evaluate(enabled) { self.mouse_grab_enabled = v; }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::FPSCamera { fov } => {
+                if let ExecResult::Value(RelType::Float(f)) = self.evaluate(fov) { self.camera_fov = f as f32; self.camera_active = true; }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::WeaponViewModel { mesh, tex } => {
+                if let ExecResult::Value(RelType::Int(m)) = self.evaluate(mesh) { self.weapon_mesh = Some(m); }
+                if let ExecResult::Value(RelType::Int(t)) = self.evaluate(tex) { self.weapon_tex = Some(t); }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::Store { key, value } => {
+                if let ExecResult::Value(v) = self.evaluate(value) { self.memory.insert(key.clone(), v); }
+                ExecResult::Value(RelType::Void)
+            }
+            Node::Load { key } => {
+                if let Some(v) = self.memory.get(key) { ExecResult::Value(v.clone()) }
+                else { ExecResult::Value(RelType::Void) }
+            }
+            Node::FileRead(path) => {
+                if let ExecResult::Value(RelType::Str(p)) = self.evaluate(path) {
+                    match std::fs::read_to_string(&p) {
+                        Ok(s) => ExecResult::Value(RelType::Str(s)),
+                        Err(e) => ExecResult::Fault(format!("File read error: {}", e)),
+                    }
+                } else { ExecResult::Fault("FileRead expects string path".into()) }
+            }
+            Node::FileWrite(path, data) => {
+                if let (ExecResult::Value(RelType::Str(p)), ExecResult::Value(RelType::Str(d))) = (self.evaluate(path), self.evaluate(data)) {
+                    if let Err(e) = std::fs::write(&p, &d) { return ExecResult::Fault(format!("File write error: {}", e)); }
+                    ExecResult::Value(RelType::Void)
+                } else { ExecResult::Fault("FileWrite expects string path and data".into()) }
+            }
+            Node::FSRead(path) => self.evaluate(path), // Placeholder for sandboxed I/O
+            Node::FSWrite(path, _) => self.evaluate(path), // Placeholder
+            Node::NativeCall(name, args) => {
+                let mut v_args = Vec::with_capacity(args.len());
+                for a in args { match self.evaluate(a) { ExecResult::Value(v) => v_args.push(v), err => return err } }
+                for mod_ in &self.native_modules {
+                    if let Some(res) = mod_.handle(name, &v_args) { return res; }
+                }
+                ExecResult::Fault(format!("Native function '{}' not found", name))
+            }
+            Node::ExternCall { module: _m, function: _f, args: _a } => {
+                ExecResult::Fault("ExternCall not implemented".into())
+            }
+            Node::UIWindow(_id, _title, body) => {
+                self.evaluate(body)
+            }
+            Node::UIButton(_text) => {
+                ExecResult::Value(RelType::Bool(false))
+            }
+            Node::UILabel(text) => { self.evaluate(text); ExecResult::Value(RelType::Void) }
+            Node::UITextInput(_) => ExecResult::Value(RelType::Str("".into())) ,
+            Node::UISetStyle(_,_,_,_,_,_) => ExecResult::Value(RelType::Void),
+            Node::UIHorizontal(body) | Node::UIFullscreen(body) | Node::UIGrid(_,_,body) | Node::UIScrollArea(_,body) => self.evaluate(body),
+            Node::UIFixed { body, .. } => self.evaluate(body),
+            Node::UIFillParent => ExecResult::Value(RelType::Void),
+            Node::Fetch { .. } | Node::Extract { .. } => ExecResult::Fault("Networking not restored".into()),
+            Node::EvalJSONNative(_) | Node::ToString(_) => ExecResult::Fault("System node missing".into()),
+            Node::Import(_p) => ExecResult::Value(RelType::Void),
+            Node::GetLastKeypress => ExecResult::Value(RelType::Str("".into())),
+            Node::DrawRect { .. } => ExecResult::Value(RelType::Void),
+            Node::RenderCanvas { body } => self.evaluate(body),
+            Node::Transform2D { body, .. } => self.evaluate(body),
+            Node::Sprite2D { .. } => ExecResult::Value(RelType::Void),
+            Node::Camera3D { .. } => { self.camera_active = true; ExecResult::Value(RelType::Void) }
+            Node::Material3D { .. } => ExecResult::Value(RelType::Void),
+            Node::MeshInstance3D { .. } => ExecResult::Value(RelType::Void),
+            Node::RaycastSimple => ExecResult::Value(RelType::Void),
+            Node::InitWindow(_,_,_) | Node::LoadShader(_) | Node::RenderMesh(_,_,_) => ExecResult::Value(RelType::Void),
+            Node::LoadMesh(_) | Node::LoadTexture(_) | Node::RenderAsset(_,_,_,_) => ExecResult::Value(RelType::Void),
+            Node::LoadFont(_) | Node::DrawText(_,_,_,_,_) => ExecResult::Value(RelType::Void),
+            Node::PlayNote(_,_,_) | Node::StopNote(_) | Node::PlayAudioFile(_) => ExecResult::Value(RelType::Void),
+            Node::InitCamera(_) | Node::LoadTextureAtlas(_,_) | Node::LoadSample(_,_) | Node::PlaySample(_,_,_) => ExecResult::Value(RelType::Void),
+            _ => ExecResult::Fault(format!("Unsupported node in executor: {:?}", node)),
         }
     }
 }

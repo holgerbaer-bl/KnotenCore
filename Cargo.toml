@@ -21,10 +21,6 @@ path = "src/bin/rust_ingest.rs"
 name = "knoten_upgrade"
 path = "src/bin/knoten_upgrade.rs"
 
-[[bin]]
-name = "chess_builder"
-path = "src/bin/chess_builder.rs"
-
 [dependencies]
 bytemuck = { version = "1.25.0", features = ["derive"] }
 cpal = "0.15.3"

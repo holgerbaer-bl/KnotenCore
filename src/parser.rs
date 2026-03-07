@@ -619,7 +619,7 @@ impl Parser {
 
         match name {
             // AST Map generated directly by Agent
-            "Print" => Node::Print(Box::new(args.remove(0))),
+            "Print" | "print" => Node::Print(Box::new(args.remove(0))),
             "Time" => Node::Time,
             "GlobalTime" => Node::GlobalTime,
             "Sin" => Node::Sin(Box::new(args.remove(0))),
@@ -679,6 +679,15 @@ impl Parser {
                 Node::UISetStyle(r, s, a, f, i, h)
             }
             "Concat" => Node::Concat(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "ArrayLen" => Node::ArrayLen(Box::new(args.remove(0))),
+            "ArrayPush" => Node::ArrayPush(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "ArrayGet" => Node::ArrayGet(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "ArraySet" => Node::ArraySet(Box::new(args.remove(0)), Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "MapCreate" => Node::MapCreate,
+            "MapGet" => Node::MapGet(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "MapSet" => Node::MapSet(Box::new(args.remove(0)), Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "MapHasKey" => Node::MapHasKey(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "ToString" => Node::ToString(Box::new(args.remove(0))),
             "FileRead" => Node::FileRead(Box::new(args.remove(0))),
             "FSRead" => Node::FSRead(Box::new(args.remove(0))),
             "FSWrite" => Node::FSWrite(Box::new(args.remove(0)), Box::new(args.remove(0))),
