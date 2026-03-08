@@ -169,6 +169,7 @@ impl<'a> ApplicationHandler for KnotenApp<'a> {
             }
         }
 
+        self.engine.poll_async_bridge();
         let _ = self.engine.evaluate(self.body);
         self.engine.present_frame();
     }

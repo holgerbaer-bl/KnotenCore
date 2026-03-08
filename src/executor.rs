@@ -6,7 +6,23 @@ use std::sync::{Arc, Mutex};
 use winit::event_loop::EventLoop;
 use winit::window::Window;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct NativeHandle(pub i64);
+
+impl Clone for NativeHandle {
+    fn clone(&self) -> Self {
+        crate::natives::registry::registry_retain(self.0);
+        NativeHandle(self.0)
+    }
+}
+
+impl Drop for NativeHandle {
+    fn drop(&mut self) {
+        crate::natives::registry::registry_release(self.0);
+    }
+}
+
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum RelType {
     Int(i64),
     Float(f64),
@@ -14,7 +30,7 @@ pub enum RelType {
     Str(String),
     Array(Vec<RelType>),
     Object(HashMap<String, RelType>),
-    Handle(i64),
+    Handle(NativeHandle),
     FnDef(String, Vec<String>, Box<Node>),
     Call(String, Vec<Node>),
     Void,
@@ -34,23 +50,6 @@ impl Default for AgentPermissions {
     }
 }
 
-impl Clone for RelType {
-    fn clone(&self) -> Self {
-        match self {
-            RelType::Int(v) => RelType::Int(*v),
-            RelType::Float(v) => RelType::Float(*v),
-            RelType::Bool(v) => RelType::Bool(*v),
-            RelType::Str(s) => RelType::Str(s.clone()),
-            RelType::Array(a) => RelType::Array(a.clone()),
-            RelType::Object(m) => RelType::Object(m.clone()),
-            RelType::Handle(id) => { crate::natives::registry::registry_retain(*id); RelType::Handle(*id) }
-            RelType::FnDef(a, b, c) => RelType::FnDef(a.clone(), b.clone(), c.clone()),
-            RelType::Call(a, b) => RelType::Call(a.clone(), b.clone()),
-            RelType::Void => RelType::Void,
-        }
-    }
-}
-
 impl std::fmt::Display for RelType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -60,7 +59,7 @@ impl std::fmt::Display for RelType {
             RelType::Str(v) => write!(f, "{}", v),
             RelType::Array(v) => { let s: Vec<String> = v.iter().map(|i| i.to_string()).collect(); write!(f, "[{}]", s.join(", ")) }
             RelType::Object(map) => { let mut s = Vec::new(); for (k, v) in map { s.push(format!("{}: {}", k, v)); } write!(f, "{{{}}}", s.join(", ")) }
-            RelType::Handle(id) => write!(f, "Handle<{}>", id),
+            RelType::Handle(h) => write!(f, "Handle<{}>", h.0),
             RelType::FnDef(_, _, _) => write!(f, "<Function>"),
             RelType::Call(_, _) => write!(f, "<Function Call>"),
             RelType::Void => write!(f, ""),
@@ -247,6 +246,24 @@ impl ExecutionEngine {
         self.evaluate(node)
     }
 
+    pub fn poll_async_bridge(&mut self) {
+        let mut payloads = Vec::new();
+        if let Some(bridge) = &self.async_bridge {
+            while let Some(payload) = bridge.try_recv() {
+                payloads.push(payload);
+            }
+        }
+        for payload in payloads {
+            let (data, is_err) = match payload.payload {
+                Ok(s) => (RelType::Str(s), RelType::Bool(false)),
+                Err(e) => (RelType::Str(e), RelType::Bool(true)),
+            };
+            self.memory.insert("fetch_result".into(), data);
+            self.memory.insert("fetch_error".into(), is_err);
+            let _ = self.evaluate(&payload.callback_node);
+        }
+    }
+
     pub fn get_var(&self, name: &str) -> Option<RelType> {
         for frame in self.call_stack.iter().rev() {
             if let Some(val) = frame.locals.get(name) { return Some(val.clone()); }
@@ -255,32 +272,21 @@ impl ExecutionEngine {
     }
 
     pub fn set_var(&mut self, name: String, val: RelType) {
-        let mut old_val = None;
         for frame in self.call_stack.iter_mut().rev() {
             if frame.locals.contains_key(&name) {
-                if let Some(v) = frame.locals.get(&name) { old_val = Some(v.clone()); }
                 frame.locals.insert(name, val);
-                if let Some(old) = old_val { self.release_handles(&old); }
                 return;
             }
         }
         if let Some(frame) = self.call_stack.last_mut() {
-            if let Some(v) = frame.locals.get(&name) { old_val = Some(v.clone()); }
             frame.locals.insert(name, val);
         } else {
-            if let Some(v) = self.memory.get(&name) { old_val = Some(v.clone()); }
             self.memory.insert(name, val);
         }
-        if let Some(old) = old_val { self.release_handles(&old); }
     }
 
-    pub fn release_handles(&self, val: &RelType) {
-        match val {
-            RelType::Handle(id) => crate::natives::registry::registry_release(*id),
-            RelType::Array(arr) => for i in arr { self.release_handles(i); },
-            RelType::Object(map) => for v in map.values() { self.release_handles(v); },
-            _ => {}
-        }
+    pub fn release_handles(&self, _val: &RelType) {
+        // Obsolete due to Drop impl
     }
 
     fn default_new() -> Self {
@@ -300,7 +306,7 @@ impl ExecutionEngine {
             mouse_grab_enabled: false, mouse_delta: (0.0, 0.0), glyph_brush: None, staging_belt: None,
             keyboard_buffer: Arc::new(Mutex::new(String::new())), egui_ctx: None, egui_state: None,
             egui_renderer: None, egui_ui_ptr: None, voices: None, stream_samples: None, stream_pos: None,
-            audio_stream: None, audio_stream_handle: None, samples: HashMap::new(), async_bridge: None,
+            audio_stream: None, audio_stream_handle: None, samples: HashMap::new(), async_bridge: Some(crate::async_bridge::AsyncBridge::new()),
             action_tx: None, action_rx: None, permission_fault: None, ui_dirty: false,
             permissions: AgentPermissions::default(),
             call_stack: vec![StackFrame { locals: HashMap::new() }],
@@ -386,6 +392,7 @@ impl ExecutionEngine {
                 else { ExecResult::Value(RelType::Void) }
             }
             Node::FileRead(path) => {
+                if !self.permissions.allow_fs_read { return ExecResult::Fault("Permission Denied: allow_fs_read is false".into()); }
                 if let ExecResult::Value(RelType::Str(p)) = self.evaluate(path) {
                     match std::fs::read_to_string(&p) {
                         Ok(s) => ExecResult::Value(RelType::Str(s)),
@@ -394,13 +401,28 @@ impl ExecutionEngine {
                 } else { ExecResult::Fault("FileRead expects string path".into()) }
             }
             Node::FileWrite(path, data) => {
+                if !self.permissions.allow_fs_write { return ExecResult::Fault("Permission Denied: allow_fs_write is false".into()); }
                 if let (ExecResult::Value(RelType::Str(p)), ExecResult::Value(RelType::Str(d))) = (self.evaluate(path), self.evaluate(data)) {
                     if let Err(e) = std::fs::write(&p, &d) { return ExecResult::Fault(format!("File write error: {}", e)); }
                     ExecResult::Value(RelType::Void)
                 } else { ExecResult::Fault("FileWrite expects string path and data".into()) }
             }
-            Node::FSRead(path) => self.evaluate(path), // Placeholder for sandboxed I/O
-            Node::FSWrite(path, _) => self.evaluate(path), // Placeholder
+            Node::FSRead(path) => {
+                if !self.permissions.allow_fs_read { return ExecResult::Fault("Permission Denied: allow_fs_read is false".into()); }
+                if let ExecResult::Value(RelType::Str(p)) = self.evaluate(path) {
+                    match std::fs::read_to_string(&p) {
+                        Ok(s) => ExecResult::Value(RelType::Str(s)),
+                        Err(e) => ExecResult::Fault(format!("FSRead error: {}", e)),
+                    }
+                } else { ExecResult::Fault("FSRead expects string path".into()) }
+            }
+            Node::FSWrite(path, data) => {
+                if !self.permissions.allow_fs_write { return ExecResult::Fault("Permission Denied: allow_fs_write is false".into()); }
+                if let (ExecResult::Value(RelType::Str(p)), ExecResult::Value(RelType::Str(d))) = (self.evaluate(path), self.evaluate(data)) {
+                    if let Err(e) = std::fs::write(&p, &d) { return ExecResult::Fault(format!("FSWrite error: {}", e)); }
+                    ExecResult::Value(RelType::Void)
+                } else { ExecResult::Fault("FSWrite expects string path and data".into()) }
+            }
             Node::NativeCall(name, args) => {
                 let mut v_args = Vec::with_capacity(args.len());
                 for a in args { match self.evaluate(a) { ExecResult::Value(v) => v_args.push(v), err => return err } }
@@ -409,8 +431,11 @@ impl ExecutionEngine {
                 }
                 ExecResult::Fault(format!("Native function '{}' not found", name))
             }
-            Node::ExternCall { module: _m, function: _f, args: _a } => {
-                ExecResult::Fault("ExternCall not implemented".into())
+            Node::ExternCall { module, function, args } => {
+                let mut v_args = Vec::with_capacity(args.len());
+                for a in args { match self.evaluate(a) { ExecResult::Value(v) => v_args.push(v), err => return err } }
+                if let Some(res) = self.bridge.handle(module, function, &v_args) { return res; }
+                ExecResult::Fault(format!("Extern function '{}.{}' not found", module, function))
             }
             Node::UIWindow(_id, _title, body) => {
                 self.evaluate(body)
@@ -424,8 +449,21 @@ impl ExecutionEngine {
             Node::UIHorizontal(body) | Node::UIFullscreen(body) | Node::UIGrid(_,_,body) | Node::UIScrollArea(_,body) => self.evaluate(body),
             Node::UIFixed { body, .. } => self.evaluate(body),
             Node::UIFillParent => ExecResult::Value(RelType::Void),
-            Node::Fetch { .. } | Node::Extract { .. } => ExecResult::Fault("Networking not restored".into()),
-            Node::EvalJSONNative(_) | Node::ToString(_) => ExecResult::Fault("System node missing".into()),
+            Node::Fetch { method, url, callback } => {
+                if let Some(bridge) = &self.async_bridge {
+                    bridge.dispatch_fetch(method.clone(), url.clone(), callback.clone());
+                    ExecResult::Value(RelType::Void)
+                } else { ExecResult::Fault("AsyncBridge not initialized".into()) }
+            }
+            Node::Extract { .. } => ExecResult::Fault("Extract not implemented".into()),
+            Node::EvalJSONNative(json_expr) => {
+                if let ExecResult::Value(RelType::Str(json)) = self.evaluate(json_expr) {
+                    ExecResult::Value(crate::natives::fs::fs_parse_json(&json))
+                } else { ExecResult::Fault("EvalJSONNative expects string".into()) }
+            }
+            Node::ToString(expr) => {
+                ExecResult::Value(RelType::Str(self.evaluate(expr).to_string()))
+            }
             Node::Import(_p) => ExecResult::Value(RelType::Void),
             Node::GetLastKeypress => ExecResult::Value(RelType::Str("".into())),
             Node::DrawRect { .. } => ExecResult::Value(RelType::Void),

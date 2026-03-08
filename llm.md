@@ -291,3 +291,30 @@ KnotenCore has evolved from a pure UI execution engine into a **hybrid Game Engi
 
 ### Layout Hybridization
 Use `UIFillParent` inside a `UIFullscreen` or `UIWindow` to claim the entire rendering area before starting your `While` loops for `DrawRect`. Use `UIFixed` if you need to reserve a specific pixel-stable area within a responsive UI.
+
+---
+
+## Sprint 76: Security Sandbox & Automatic Resource Management
+
+Sprint 76 introduces a "Sandboxed-by-Default" runtime. This impacts how AI agents interact with the OS and manage memory.
+
+### 1. The Security Sandbox
+All I/O operations are now permission-gated. If you generate code that uses `FSRead`, `FSWrite`, or their registry equivalents, the user **must** run the engine with explicit allow flags.
+
+- **`--allow-read`**: Required for reading files.
+- **`--allow-write`**: Required for writing files.
+
+Failure to provide these flags will result in an `ExecResult::Fault` explaining the missing permission.
+
+### 2. Automatic ARC (NativeHandle)
+Manual handle release (e.g., calling `registry_release` or `registry_free` manually) is **deprecated** and generally unnecessary.
+
+**The NativeHandle Pattern:**
+- When an operation (like `registry_create_window` or `registry_texture_load`) returns a handle, it is wrapped in an `executor::NativeHandle`.
+- This struct implements the Rust `Drop` trait.
+- Because `RelType::Handle` now owns the `NativeHandle`, the handle is **automatically released** when the variable goes out of scope or is overwritten in the evaluator.
+
+#### AI Best Practice:
+- **Don't** try to manually count references or call cleanup functions. 
+- **Do** trust the engine to clean up handles when variables are no longer used.
+- **Example**: If you define `h = registry_create_window(...)` inside a function, `h` will be released automatically when that function returns.

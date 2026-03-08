@@ -327,11 +327,11 @@ impl BridgeModule for CoreBridge {
             match function {
                 "registry_create_counter" => {
                     let id = crate::natives::registry::registry_create_counter();
-                    Some(ExecResult::Value(RelType::Handle(id)))
+                    Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))))
                 }
                 "registry_increment" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(id) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_increment(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
@@ -342,7 +342,7 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_get_value" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(id) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             let val = crate::natives::registry::registry_get_value(*id);
                             return Some(ExecResult::Value(RelType::Int(val)));
                         }
@@ -353,7 +353,7 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_free" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(id) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_free(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
@@ -364,7 +364,7 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_retain" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(id) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_retain(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
@@ -375,7 +375,7 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_release" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(id) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_release(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
@@ -394,7 +394,7 @@ impl BridgeModule for CoreBridge {
                                 *h,
                                 title.clone(),
                             );
-                            return Some(ExecResult::Value(RelType::Handle(id)));
+                            return Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))));
                         }
                     }
                     Some(ExecResult::Fault(
@@ -403,7 +403,7 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_window_update" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(id) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             let open = crate::natives::registry::registry_window_update(*id);
                             return Some(ExecResult::Value(RelType::Bool(open)));
                         }
@@ -414,7 +414,7 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_window_close" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(id) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_window_close(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
@@ -431,7 +431,7 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1 {
                         if let RelType::Str(path) = &args[0] {
                             let id = crate::natives::registry::registry_file_create(path.clone());
-                            return Some(ExecResult::Value(RelType::Handle(id)));
+                            return Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))));
                         }
                     }
                     Some(ExecResult::Fault(
@@ -440,7 +440,7 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_file_write" => {
                     if args.len() == 2 {
-                        if let (RelType::Handle(id), RelType::Str(content)) = (&args[0], &args[1]) {
+                        if let (RelType::Handle(crate::executor::NativeHandle(id)), RelType::Str(content)) = (&args[0], &args[1]) {
                             crate::natives::registry::registry_file_write(*id, content.clone());
                             return Some(ExecResult::Value(RelType::Void));
                         }
@@ -451,11 +451,11 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_now" => {
                     let id = crate::natives::registry::registry_now();
-                    Some(ExecResult::Value(RelType::Handle(id)))
+                    Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))))
                 }
                 "registry_elapsed_ms" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(id) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             let ms = crate::natives::registry::registry_elapsed_ms(*id);
                             return Some(ExecResult::Value(RelType::Int(ms)));
                         }
@@ -466,12 +466,12 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_gpu_init" => {
                     let id = crate::natives::registry::registry_gpu_init();
-                    Some(ExecResult::Value(RelType::Handle(id)))
+                    Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))))
                 }
                 "registry_fill_color" => {
                     if args.len() == 4 {
                         if let (
-                            RelType::Handle(win),
+                            RelType::Handle(crate::executor::NativeHandle(win)),
                             RelType::Int(r),
                             RelType::Int(g),
                             RelType::Int(b),
@@ -495,7 +495,7 @@ impl BridgeModule for CoreBridge {
                                 *h,
                                 title.clone(),
                             );
-                            return Some(ExecResult::Value(RelType::Handle(id)));
+                            return Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))));
                         }
                     }
                     Some(ExecResult::Fault(
@@ -505,7 +505,7 @@ impl BridgeModule for CoreBridge {
                 "registry_voxel_add_block" => {
                     if args.len() == 4 {
                         if let (
-                            RelType::Handle(world),
+                            RelType::Handle(crate::executor::NativeHandle(world)),
                             RelType::Int(x),
                             RelType::Int(y),
                             RelType::Int(z),
@@ -522,7 +522,7 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_voxel_render_frame" => {
                     if args.len() == 1 {
-                        if let RelType::Handle(world) = &args[0] {
+                        if let RelType::Handle(crate::executor::NativeHandle(world)) = &args[0] {
                             let open =
                                 crate::natives::registry::registry_voxel_render_frame(*world);
                             return Some(ExecResult::Value(RelType::Bool(open)));
@@ -536,7 +536,7 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1 {
                         if let RelType::Str(path) = &args[0] {
                             let id = crate::natives::registry::registry_texture_load(path.clone());
-                            return Some(ExecResult::Value(RelType::Handle(id)));
+                            return Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))));
                         }
                     }
                     Some(ExecResult::Fault(
@@ -554,14 +554,15 @@ impl BridgeModule for CoreBridge {
                             }
                         };
 
-                        if let (RelType::Handle(win), RelType::Handle(tex)) = (&args[0], &args[1]) {
-                            if let (Some(x), Some(y), Some(z), Some(sx), Some(sy)) = (
-                                get_float(&args[2]),
-                                get_float(&args[3]),
-                                get_float(&args[4]),
-                                get_float(&args[5]),
-                                get_float(&args[6]),
-                            ) {
+                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0] {
+                        if let (Some(x), Some(y), Some(z), Some(sx), Some(sy)) = (
+                            get_float(&args[2]),
+                            get_float(&args[3]),
+                            get_float(&args[4]),
+                            get_float(&args[5]),
+                            get_float(&args[6]),
+                        ) {
+                            if let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1] {
                                 crate::natives::registry::registry_draw_quad_3d(
                                     *win, *tex, x, y, z, sx, sy,
                                 );
@@ -569,6 +570,7 @@ impl BridgeModule for CoreBridge {
                             }
                         }
                     }
+                }
                     Some(ExecResult::Fault(
                         "[FFI] registry_draw_quad_3d expects (Handle, Handle, Float, Float, Float, Float, Float)"
                             .to_string(),

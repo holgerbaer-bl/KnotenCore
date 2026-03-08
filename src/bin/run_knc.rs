@@ -18,17 +18,8 @@ fn main() {
 
 fn run() {
     let mut engine = ExecutionEngine::new();
-    engine.permissions.allow_fs_read = true;
-    engine.permissions.allow_fs_write = true;
-    // Check if we are bundled (Sprint 11)
-    if let Some(bundled_json) = option_env!("KNOTEN_BUNDLE") {
-        println!("Running embedded KnotenCore bundle...");
-        let ast = serde_json::from_str(bundled_json)
-            .expect("Failed to parse bundled KnotenCore JSON AST");
-        let result = engine.execute(&ast);
-        println!("\nExecution Finished.\nResult: {}", result);
-        return;
-    }
+    engine.permissions.allow_fs_read = false;
+    engine.permissions.allow_fs_write = false;
 
     let args: Vec<String> = env::args().collect();
 
@@ -43,7 +34,7 @@ fn run() {
         return;
     }
 
-    // ── Legacy flags ──────────────────────────────────────────────────
+    // ── Legacy flags & Permissions ─────────────────────────────────────
     let mut is_check = false;
     let mut no_opt = false;
     let mut transpile = false;
@@ -56,13 +47,27 @@ fn run() {
             no_opt = true;
         } else if arg == "--transpile" {
             transpile = true;
+        } else if arg == "--allow-read" {
+            engine.permissions.allow_fs_read = true;
+        } else if arg == "--allow-write" {
+            engine.permissions.allow_fs_write = true;
         } else {
             file_path = arg.clone();
         }
     }
 
+    // Check if we are bundled (Sprint 11) - Respects permissions set above
+    if let Some(bundled_json) = option_env!("KNOTEN_BUNDLE") {
+        println!("Running embedded KnotenCore bundle...");
+        let ast = serde_json::from_str(bundled_json)
+            .expect("Failed to parse bundled KnotenCore JSON AST");
+        let result = engine.execute(&ast);
+        println!("\nExecution Finished.\nResult: {}", result);
+        return;
+    }
+
     if file_path.is_empty() {
-        eprintln!("Usage: run_knc [--check] [--no-opt] [--transpile] <path_to.nod>");
+        eprintln!("Usage: run_knc [--check] [--no-opt] [--transpile] [--allow-read] [--allow-write] <path_to.nod>");
         eprintln!("       run_knc build <path_to.nod>");
         std::process::exit(1);
     }

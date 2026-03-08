@@ -5,6 +5,20 @@
 
 ---
 
+## [v0.76.0] - Sprint 76: Async, Natives & Security (The Hardening)
+Completed the connectivity for asynchronous operations and native modules while introducing a strict security sandbox.
+
+### Added
+- **Asynchronous Bridge (`async_bridge.rs`)**: Restored `Node::Fetch` and `Node::Extract` functionality with background worker thread spawning.
+- **Security Sandboxing**: Implemented `Deny-by-Default` for file system access. Added CLI flags `--allow-read` and `--allow-write` to `run_knc`.
+- **Automatic ARC Handle Management**: Introduced `NativeHandle` struct with custom `Drop` logic, automating native resource cleanup across the JIT evaluator.
+
+### Fixed
+- **Handle Leakages**: Resolved recursive "hanging handles" by leveraging Rust's ownership system for DSL-level resources.
+- **Borrow-Checker Conflicts**: Re-engineered the `AsyncBridge` polling mechanism in `executor.rs` to safely evaluate callbacks without holding internal state references.
+
+---
+
 ## [v0.58.0] - Sprint 58: Neural Syntax (Agent-to-Agent DSL)
 Replaced verbose JSON AST with a high-density, closure-based DSL designed for maximum AI parsing efficiency and token compression.
 

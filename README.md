@@ -18,6 +18,17 @@ To maintain long-term stability and reduce compilation times, the core engine ha
 - **`src/evaluator.rs`**: The brain. Handles **AST Parsing**, recursive evaluation, and pure logical/mathematical execution.
 - **`src/renderer.rs`**: The eyes. Unified **WGPU** logic, shader management, Hardware-Instancing, and high-performance draw calls.
 - **`src/window.rs`**: The skin. Manages the **winit Event-Loop**, application lifecycle, and hardware input (MouseGrab/Keyboard).
+- **`src/async_bridge.rs`**: The nervous system. Handles non-blocking operations like `Fetch` and `Extract` via background worker threads.
+
+## 3. Security & Sandboxing (Sprint 76)
+KnotenCore is built for AI-driven execution, which requires strict security. Starting with Sprint 76, the runner enforce a "Deny-by-Default" policy for I/O:
+- **FS Read/Write**: Disabled by default.
+- **Permissions**: Must be explicitly granted via CLI flags:
+  - `--allow-read`: Enables `FSRead` and `registry_read_file`.
+  - `--allow-write`: Enables `FSWrite` and `registry_write_file`.
+
+## 4. Automatic Memory Management (ARC)
+Unlike raw handle systems, KnotenCore utilizes a **Managed Handle Topology**. Native resources (Windows, Textures, Counters) are wrapped in a `NativeHandle` struct that implements the `Drop` trait. When a handle variable goes out of scope in the DSL, the engine automatically decrements the reference count and cleans up the resource in the registry.
 
 ## 3. Why it exists ("Agent First")
 The current app development ecosystem is heavily burdened with human-centric boilerplate, fragmented tooling, and bloated artifact pipelines. KnotenCore eliminates all of this overhead. By providing a **deterministic, token-efficient runtime expressly built for AIs**, it shifts the paradigm from "AI writing React code for humans" to "AI writing Neural DSL code for a bare-metal Agent VM."
