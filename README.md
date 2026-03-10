@@ -36,7 +36,7 @@ KnotenCore features a unified AABB (Axis-Aligned Bounding Box) physics engine th
 ## 5. Error Tracing Foundation (Sprint 78)
 KnotenCore provides deep diagnostic context for runtime failures to enable **Self-Healing AI Agents**:
 - **Structured Faults**: Errors now include node context for AI self-healing.
-- **Native 3D Primitives**: High-performance sphere generation offloaded to the engine (Sprint 79).
+- **Native 3D Primitives**: High-performance sphere, cube, and cylinder generation offloaded to the engine (Sprint 79).
 - **`Diagnostic logs`**: Runtime errors include the node type, allowing agents to pinpoint the failing logic in the Neural DSL immediately.
 - **`Scalability`**: This foundation serves as the basis for future automated refactoring and error correction by LLM-based executors.
 

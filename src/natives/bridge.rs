@@ -663,6 +663,74 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_draw_sphere".into()
                     })
                 }
+                "registry_draw_cube" => {
+                    if args.len() == 8 {
+                        let get_float = |arg: &RelType| -> Option<f32> {
+                            match arg {
+                                RelType::Float(f) => Some(*f as f32),
+                                RelType::Int(i) => Some(*i as f32),
+                                _ => None,
+                            }
+                        };
+                        if let (RelType::Handle(crate::executor::NativeHandle(win)), RelType::Handle(crate::executor::NativeHandle(tex))) = (&args[0], &args[1]) {
+                            if let (Some(w), Some(h), Some(d), Some(x), Some(y), Some(z)) = (
+                                get_float(&args[2]),
+                                get_float(&args[3]),
+                                get_float(&args[4]),
+                                get_float(&args[5]),
+                                get_float(&args[6]),
+                                get_float(&args[7]),
+                            ) {
+                                crate::natives::registry::registry_draw_cube(
+                                    *win, *tex, w, h, d, x, y, z,
+                                );
+                                return Some(ExecResult::Value(RelType::Void));
+                            }
+                        }
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_draw_cube expects (Handle win, Handle tex, Float w, Float h, Float d, Float x, Float y, Float z)"
+                            .to_string(),
+                        node: "Native::Bridge::registry_draw_cube".into()
+                    })
+                }
+                "registry_draw_cylinder" => {
+                    if args.len() == 8 {
+                        let get_float = |arg: &RelType| -> Option<f32> {
+                            match arg {
+                                RelType::Float(f) => Some(*f as f32),
+                                RelType::Int(i) => Some(*i as f32),
+                                _ => None,
+                            }
+                        };
+                        let get_int = |arg: &RelType| -> Option<i64> {
+                            match arg {
+                                RelType::Int(i) => Some(*i),
+                                _ => None,
+                            }
+                        };
+                        if let (RelType::Handle(crate::executor::NativeHandle(win)), RelType::Handle(crate::executor::NativeHandle(tex))) = (&args[0], &args[1]) {
+                            if let (Some(r), Some(h), Some(s), Some(x), Some(y), Some(z)) = (
+                                get_float(&args[2]),
+                                get_float(&args[3]),
+                                get_int(&args[4]),
+                                get_float(&args[5]),
+                                get_float(&args[6]),
+                                get_float(&args[7]),
+                            ) {
+                                crate::natives::registry::registry_draw_cylinder(
+                                    *win, *tex, r, h, s, x, y, z,
+                                );
+                                return Some(ExecResult::Value(RelType::Void));
+                            }
+                        }
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_draw_cylinder expects (Handle win, Handle tex, Float r, Float h, Int segments, Float x, Float y, Float z)"
+                            .to_string(),
+                        node: "Native::Bridge::registry_draw_cylinder".into()
+                    })
+                }
                 "registry_set_camera" => {
                     if args.len() == 4 {
                         let get_float = |arg: &RelType| -> Option<f32> {

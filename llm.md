@@ -200,21 +200,6 @@ fn registry_draw_quad_3d(
 )
 ```
 
-Example calling `registry_draw_quad_3d` from a `.nod` AST:
-```json
-{
-  "NativeCall": ["registry_draw_quad_3d", [
-    { "Identifier": "window_handle" },
-    { "Identifier": "texture_handle" },
-    { "FloatLiteral": 0.0 }, /* X: center */
-    { "FloatLiteral": 0.0 }, /* Y: center */
-    { "FloatLiteral": -5.0 }, /* Z: pushed back into screen */
-    { "FloatLiteral": 1.0 }, /* Scale X */
-    { "FloatLiteral": 1.0 }  /* Scale Y */
-  ]]
-}
-```
-
 **Z-Buffer Setup:** The engine automatically manages a Z-Buffer depth attachment (`TextureFormat::Depth32Float`). When implementing new 3D pipelines, ensure you include the `depth_stencil` configuration in the `RenderPipelineDescriptor`.
 
 ---
@@ -227,7 +212,7 @@ KnotenCore’s AOT pipeline leverages **LLVM Constant Folding** to achieve extre
 
 ---
 
-## Sprint 54: Visual Design System & Styling 
+## Sprint 54: Visual Design System & Styling
 
 KnotenCore includes an embedded EGUI context that supports extensive internal stylistic overrides to build modern, agent-native user interfaces directly from the JSON AST.
 
@@ -257,10 +242,6 @@ You can redefine the entire application aesthetic dynamically using the `UISetSt
 }
 ```
 
-### Architectural Notes
-- The `UISetStyle` configuration acts immediately on the active `egui::Context` rendering stack. 
-- Calling `UISetStyle` repeatedly allows you to script dynamic themes (e.g., hover-flash features, dark/light mode toggles).
-- RGBA values mapped here must be `0.0` to `1.0` floats. Out-of-bounds metrics will be clamped or fallback to default engine specs.
 ---
 
 ## Sprint 67: High-Performance 2D & Game Engine Evolution
@@ -274,26 +255,6 @@ KnotenCore has evolved from a pure UI execution engine into a **hybrid Game Engi
 ### 🟢 Best Practice: Native 2D Primitives
 **Always** use `Node::DrawRect` for rendering game grids, backgrounds, and sprites.
 - **Reason**: `DrawRect` bypasses the entire layout system and paints directly to the GPU via EGUI's `layer_painter`. It is designed for "drawing," not "layout."
-
-**Example: Efficient 8x8 Grid**
-```json
-{
-  "While": [ ... loop 64 times ...
-    {
-      "DrawRect": {
-        "x": { "Identifier": "px" },
-        "y": { "Identifier": "py" },
-        "width": { "IntLiteral": 32 },
-        "height": { "IntLiteral": 32 },
-        "color": [0.1, 0.8, 0.2, 1.0]
-      }
-    }
-  ]
-}
-```
-
-### Layout Hybridization
-Use `UIFillParent` inside a `UIFullscreen` or `UIWindow` to claim the entire rendering area before starting your `While` loops for `DrawRect`. Use `UIFixed` if you need to reserve a specific pixel-stable area within a responsive UI.
 
 ---
 
@@ -315,12 +276,7 @@ Manual handle release (e.g., calling `registry_release` or `registry_free` manua
 **The NativeHandle Pattern:**
 - When an operation (like `registry_create_window` or `registry_texture_load`) returns a handle, it is wrapped in an `executor::NativeHandle`.
 - This struct implements the Rust `Drop` trait.
-- Because `RelType::Handle` now owns the `NativeHandle`, the handle is **automatically released** when the variable goes out of scope or is overwritten in the evaluator.
-
-#### AI Best Practice:
-- **Don't** try to manually count references or call cleanup functions. 
-- **Do** trust the engine to clean up handles when variables are no longer used.
-- **Example**: If you define `h = registry_create_window(...)` inside a function, `h` will be released automatically when that function returns.
+- Because `RelType::Handle` owns the `NativeHandle`, the handle is **automatically released** when the variable goes out of scope or is overwritten in the evaluator.
 
 ---
 
@@ -341,15 +297,6 @@ Use this node to define an immovable physical collision box.
 }
 ```
 
-### 2. Collision Resolution
-- The FPS camera carries a default AABB (roughly human-sized).
-- Movement is restricted: the engine prevents the camera from entering any volume defined by `AddWorldAABB`.
-- Voxel maps still provide collision, but `AddWorldAABB` allows for arbitrary geometric collision (walls, invisible barriers, etc.).
-
-### AI Best Practice:
-- **Designating Barriers**: When generating a scene, use `AddWorldAABB` for all static geometry that the player should not walk through.
-- **Dynamic Updates**: `AddWorldAABB` is currently static (once added, it stays). To create dynamic barriers, wait for future engine updates or move the player's camera manually if teleportation is needed.
-
 ---
 
 ## Sprint 78: Error Tracing Foundation (Diagnostic Context)
@@ -361,58 +308,53 @@ When an operation fails (e.g., division by zero, invalid handle, permission deni
 - **`msg`**: A human-readable description of what went wrong.
 - **`node`**: The exact AST node or native function where the error originated (e.g., `"Node::MathDiv"`, `"Native::IO::ReadFile"`).
 
-### 2. Implementation for AI Agents
-When extending the engine, you **must** provide this context. Avoid generic error strings.
-
-**JIT Implementation (`executor.rs` or `evaluator.rs`):**
-```rust
-return ExecResult::Fault { 
-    msg: "MyNode expects 1 argument".into(), 
-    node: "Node::MyNode".into() 
-};
-```
-
-**Native Bridge Implementation (`bridge.rs`):**
-```rust
-Some(ExecResult::Fault { 
-    msg: "Invalid handle in my_ffi_call".into(), 
-    node: "Native::Bridge::my_ffi_call".into() 
-})
-```
-
 ### AI Best Practice:
-- **Parse the Node**: When you receive an error, look at the `node` field first. It tells you exactly which part of your generated DSL failed, bypassing the need to "guess" based on the error message alone.
+- **Parse the Node**: When you receive an error, look at the `node` field first. It tells you exactly which part of your generated DSL failed.
 - **Immediate Self-Healing**: Use the `node` context to identify the specific code block in your memory that needs regeneration or adjustment.
 
-### Native Sphere Primitive (Sprint 79)
-To render a high-quality sphere without calculating individual vertices and indices, use the `registry_draw_sphere` call.
+---
 
-**Syntax**:
+## Sprint 79: Native 3D Primitives
+
+To render standard shapes without manual vertex management, use the native registry calls via `ExternCall`.
+
+### `DrawSphere`
 ```json
 {
   "Node": "ExternCall",
   "module": "registry",
   "function": "registry_draw_sphere",
-  "args": [
-    { "Node": "Load", "key": "window_handle" },
-    { "Node": "Load", "key": "texture_handle" },
-    1.0,  // Radius
-    32,   // Rings (Latitude segments)
-    32,   // Sectors (Longitude segments)
-    0.0,  // X
-    1.0,  // Y
-    0.0   // Z
-  ]
+  "args": [win, tex, radius, rings, sectors, x, y, z]
 }
 ```
 
-### 3. Verification
-To verify your error tracing implementation, use the intentional crash test provided in the repository:
-
-```bash
-cargo run --bin run_knc -- tests/intentional_crash.knoten
+### `DrawCube`
+```json
+{
+  "Node": "ExternCall",
+  "module": "registry",
+  "function": "registry_draw_cube",
+  "args": [win, tex, width, height, depth, x, y, z]
+}
 ```
 
-**Required Output Format:**
+### `DrawCylinder`
+```json
+{
+  "Node": "ExternCall",
+  "module": "registry",
+  "function": "registry_draw_cylinder",
+  "args": [win, tex, radius, height, segments, x, y, z]
+}
+```
+
+---
+
+## Verification & Testing
+
+AI agents can verify their implementation by running the intentional crash test or by creating a primitives test script:
+
+`cargo run --bin run_knc -- tests/intentional_crash.knoten`
+
+**Expected Error Format:**
 `Result: Fault: <message> (at <node_identifier>)`
-or by creating a sphere test script and observing the output.

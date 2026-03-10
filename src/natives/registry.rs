@@ -1398,6 +1398,260 @@ pub fn registry_draw_sphere(
     });
 }
 
+pub fn registry_draw_cube(
+    window_handle: i64,
+    texture_handle: i64,
+    width: f32,
+    height: f32,
+    depth: f32,
+    x: f32,
+    y: f32,
+    z: f32,
+) {
+    if window_handle < 0 || texture_handle < 0 {
+        return;
+    }
+    let win_id = window_handle as usize;
+    let tex_id = texture_handle as usize;
+
+    let tex_data: Option<(u32, u32, Arc<wgpu::BindGroup>)> = with_registry(|registry| {
+        if let Some(entry) = registry.get(&tex_id) {
+            if let NativeHandle::Texture(tex) = &entry.handle {
+                return Some((tex.width, tex.height, tex.bind_group.clone()));
+            }
+        }
+        None
+    });
+
+    let (_tw, _th, bind_group) = match tex_data {
+        Some(d) => d,
+        None => return,
+    };
+
+    with_registry(|registry| {
+        if let Some(win_entry) = registry.get_mut(&win_id) {
+            if let NativeHandle::Window(SendWindow(state)) = &mut win_entry.handle {
+                let model_matrix = Mat4::from_translation(Vec3::new(x, y, z));
+
+                let w2 = width / 2.0;
+                let h2 = height / 2.0;
+                let d2 = depth / 2.0;
+
+                let vertices = [
+                    // Front face
+                    RegistryVertex { position: [-w2, -h2, d2], tex_coords: [0.0, 1.0] },
+                    RegistryVertex { position: [w2, -h2, d2], tex_coords: [1.0, 1.0] },
+                    RegistryVertex { position: [w2, h2, d2], tex_coords: [1.0, 0.0] },
+                    RegistryVertex { position: [-w2, h2, d2], tex_coords: [0.0, 0.0] },
+                    // Back face
+                    RegistryVertex { position: [-w2, -h2, -d2], tex_coords: [1.0, 1.0] },
+                    RegistryVertex { position: [-w2, h2, -d2], tex_coords: [1.0, 0.0] },
+                    RegistryVertex { position: [w2, h2, -d2], tex_coords: [0.0, 0.0] },
+                    RegistryVertex { position: [w2, -h2, -d2], tex_coords: [0.0, 1.0] },
+                    // Top face
+                    RegistryVertex { position: [-w2, h2, -d2], tex_coords: [0.0, 0.0] },
+                    RegistryVertex { position: [-w2, h2, d2], tex_coords: [0.0, 1.0] },
+                    RegistryVertex { position: [w2, h2, d2], tex_coords: [1.0, 1.0] },
+                    RegistryVertex { position: [w2, h2, -d2], tex_coords: [1.0, 0.0] },
+                    // Bottom face
+                    RegistryVertex { position: [-w2, -h2, -d2], tex_coords: [1.0, 0.0] },
+                    RegistryVertex { position: [w2, -h2, -d2], tex_coords: [0.0, 0.0] },
+                    RegistryVertex { position: [w2, -h2, d2], tex_coords: [0.0, 1.0] },
+                    RegistryVertex { position: [-w2, -h2, d2], tex_coords: [1.0, 1.0] },
+                    // Right face
+                    RegistryVertex { position: [w2, -h2, -d2], tex_coords: [1.0, 1.0] },
+                    RegistryVertex { position: [w2, h2, -d2], tex_coords: [1.0, 0.0] },
+                    RegistryVertex { position: [w2, h2, d2], tex_coords: [0.0, 0.0] },
+                    RegistryVertex { position: [w2, -h2, d2], tex_coords: [0.0, 1.0] },
+                    // Left face
+                    RegistryVertex { position: [-w2, -h2, -d2], tex_coords: [0.0, 1.0] },
+                    RegistryVertex { position: [-w2, -h2, d2], tex_coords: [1.0, 1.0] },
+                    RegistryVertex { position: [-w2, h2, d2], tex_coords: [1.0, 0.0] },
+                    RegistryVertex { position: [-w2, h2, -d2], tex_coords: [0.0, 0.0] },
+                ];
+
+                let mut indices = Vec::new();
+                for i in 0..6 {
+                    let base = (i * 4) as u32;
+                    indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
+                }
+
+                let vertex_buffer = state.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Cube VB"),
+                    contents: bytemuck::cast_slice(&vertices),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+                let index_buffer = state.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Cube IB"),
+                    contents: bytemuck::cast_slice(&indices),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+
+                if state.encoder.is_none() {
+                    state.current_texture = Some(state.surface.get_current_texture().unwrap());
+                    state.current_view = Some(
+                        state.current_texture.as_ref().unwrap().texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                    );
+                    state.encoder = Some(state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("Cube Encoder") }));
+                }
+
+                let mut render_pass = state.encoder.as_mut().unwrap().begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Cube Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: state.current_view.as_ref().unwrap(),
+                        resolve_target: None,
+                        ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
+                    })],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &state.depth_texture_view,
+                        depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store }),
+                        stencil_ops: None,
+                    }),
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+
+                render_pass.set_pipeline(&state.pipeline);
+                render_pass.set_bind_group(0, &*bind_group, &[]);
+                render_pass.set_bind_group(1, &state.camera_bind_group, &[]);
+                render_pass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytemuck::cast_slice(&[model_matrix.to_cols_array_2d()]));
+                render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                render_pass.draw_indexed(0..(indices.len() as u32), 0, 0..1);
+            }
+        }
+    });
+}
+
+pub fn registry_draw_cylinder(
+    window_handle: i64,
+    texture_handle: i64,
+    radius: f32,
+    height: f32,
+    segments: i64,
+    x: f32,
+    y: f32,
+    z: f32,
+) {
+    if window_handle < 0 || texture_handle < 0 {
+        return;
+    }
+    let win_id = window_handle as usize;
+    let tex_id = texture_handle as usize;
+
+    let tex_data: Option<(u32, u32, Arc<wgpu::BindGroup>)> = with_registry(|registry| {
+        if let Some(entry) = registry.get(&tex_id) {
+            if let NativeHandle::Texture(tex) = &entry.handle {
+                return Some((tex.width, tex.height, tex.bind_group.clone()));
+            }
+        }
+        None
+    });
+
+    let (_tw, _th, bind_group) = match tex_data {
+        Some(d) => d,
+        None => return,
+    };
+
+    with_registry(|registry| {
+        if let Some(win_entry) = registry.get_mut(&win_id) {
+            if let NativeHandle::Window(SendWindow(state)) = &mut win_entry.handle {
+                let model_matrix = Mat4::from_translation(Vec3::new(x, y, z));
+
+                let mut vertices = Vec::new();
+                let mut indices = Vec::new();
+                let s = segments as u32;
+                let h2 = height / 2.0;
+
+                // Vertices for the side surface
+                for i in 0..=s {
+                    let angle = 2.0 * std::f32::consts::PI * i as f32 / s as f32;
+                    let x_pos = angle.cos() * radius;
+                    let z_pos = angle.sin() * radius;
+                    let u = i as f32 / s as f32;
+
+                    vertices.push(RegistryVertex { position: [x_pos, h2, z_pos], tex_coords: [u, 0.0] });
+                    vertices.push(RegistryVertex { position: [x_pos, -h2, z_pos], tex_coords: [u, 1.0] });
+                }
+
+                for i in 0..s {
+                    let base = i * 2;
+                    indices.extend_from_slice(&[base, base + 1, base + 2, base + 1, base + 3, base + 2]);
+                }
+
+                // Implementing top and bottom caps for completeness:
+                let top_center_idx = vertices.len() as u32;
+                vertices.push(RegistryVertex { position: [0.0, h2, 0.0], tex_coords: [0.5, 0.5] });
+                let bottom_center_idx = vertices.len() as u32;
+                vertices.push(RegistryVertex { position: [0.0, -h2, 0.0], tex_coords: [0.5, 0.5] });
+
+                for i in 0..s {
+                    let angle = 2.0 * std::f32::consts::PI * i as f32 / s as f32;
+                    let next_angle = 2.0 * std::f32::consts::PI * (i + 1) as f32 / s as f32;
+                    
+                    let curr_x = angle.cos() * radius;
+                    let curr_z = angle.sin() * radius;
+                    let next_x = next_angle.cos() * radius;
+                    let next_z = next_angle.sin() * radius;
+
+                    let v_idx = vertices.len() as u32;
+                    vertices.push(RegistryVertex { position: [curr_x, h2, curr_z], tex_coords: [0.5 + angle.cos()*0.5, 0.5 + angle.sin()*0.5] });
+                    vertices.push(RegistryVertex { position: [next_x, h2, next_z], tex_coords: [0.5 + next_angle.cos()*0.5, 0.5 + next_angle.sin()*0.5] });
+                    indices.extend_from_slice(&[top_center_idx, v_idx, v_idx + 1]);
+
+                    let v_idx_b = vertices.len() as u32;
+                    vertices.push(RegistryVertex { position: [curr_x, -h2, curr_z], tex_coords: [0.5 + angle.cos()*0.5, 0.5 + angle.sin()*0.5] });
+                    vertices.push(RegistryVertex { position: [next_x, -h2, next_z], tex_coords: [0.5 + next_angle.cos()*0.5, 0.5 + next_angle.sin()*0.5] });
+                    indices.extend_from_slice(&[bottom_center_idx, v_idx_b + 1, v_idx_b]);
+                }
+
+                let vertex_buffer = state.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Cylinder VB"),
+                    contents: bytemuck::cast_slice(&vertices),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+                let index_buffer = state.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Cylinder IB"),
+                    contents: bytemuck::cast_slice(&indices),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+
+                if state.encoder.is_none() {
+                    state.current_texture = Some(state.surface.get_current_texture().unwrap());
+                    state.current_view = Some(
+                        state.current_texture.as_ref().unwrap().texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                    );
+                    state.encoder = Some(state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("Cylinder Encoder") }));
+                }
+
+                let mut render_pass = state.encoder.as_mut().unwrap().begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Cylinder Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: state.current_view.as_ref().unwrap(),
+                        resolve_target: None,
+                        ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
+                    })],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &state.depth_texture_view,
+                        depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store }),
+                        stencil_ops: None,
+                    }),
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+
+                render_pass.set_pipeline(&state.pipeline);
+                render_pass.set_bind_group(0, &*bind_group, &[]);
+                render_pass.set_bind_group(1, &state.camera_bind_group, &[]);
+                render_pass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytemuck::cast_slice(&[model_matrix.to_cols_array_2d()]));
+                render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                render_pass.draw_indexed(0..(indices.len() as u32), 0, 0..1);
+            }
+        }
+    });
+}
+
 pub fn registry_set_camera(fov_degrees: f32, cam_x: f32, cam_y: f32, cam_z: f32) {
     with_registry(|registry| {
         for entry in registry.values() {

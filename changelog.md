@@ -92,18 +92,24 @@ Resolved critical UI type inconsistencies and introduced native horizontal layou
 ### Added
 - **`UIHorizontal(Box<Node>)`**: Renders child nodes side-by-side in a single egui horizontal layout row. Enables button grids, toolbars, and multi-column forms.
 - **`UIFullscreen(Box<Node>)`**: Renders a borderless, zero-title-bar panel covering the entire canvas. Ideal for immersive game HUDs and full-screen overlay UIs.
-- **`UISetStyle` Button Colors (#5):** Extended `UISetStyle` to 6 arguments with two optional trailing RGBA arrays for `button_idle` and `button_hover` colors. Backward-compatible: scripts using only 4 args still work.
+
+---
+
+## [0.79.1] - 2026-03-10
+### Added
+- **Native 3D Primitives (Cube, Cylinder)**: Expanded the registry with `registry_draw_cube` and `registry_draw_cylinder` for efficient geometry generation.
+- **Native 3D Primitives (Sphere)**: Implemented `registry_draw_sphere` in the core registry.
+- **Global UI Style Engine**: Bound a new AST node `UISetStyle` manipulating the global `egui::Context` rendering frame. Modifiable metrics include Window Rounding, Item Spacing, RGBA Accent coloring, and Background Panel shading, perfect for rendering Glassmorphism and Flat Design.
+- **The Ultimate Constant**: Bound `registry_get_ultimate_answer` returning 42 natively via the FFI.
+- **AOT & JIT Node Integration**: Upgraded the `executor.rs` stack and `optimizer.rs` counting arrays to safely recurse into all new stylistic nodes.
 
 ---
 
 ## [v0.54.0] - Sprint 54: The Styling & Persistence Update
-Introduced panic-resilient File I/O mappings and dynamic EGUI stylistic overrides powered natively by the JSON AST.
+Introduced panic-resilient File I/O mappings and dynamic EGUI stylistic overrides powered natively by the JSON.
 
 ### Added
 - **File I/O Persistence**: Engineered `registry_read_file` and `registry_write_file` using `std::fs` natively, with robust error catching to prevent runtime panics within the ARC registry.
-- **Global UI Style Engine**: Bound a new AST node `UISetStyle` manipulating the global `egui::Context` rendering frame. Modifiable metrics include Window Rounding, Item Spacing, RGBA Accent coloring, and Background Panel shading, perfect for rendering Glassmorphism and Flat Design.
-- **The Ultimate Constant**: Bound `registry_get_ultimate_answer` returning 42 natively via the FFI.
-- **AOT & JIT Node Integration**: Upgraded the `executor.rs` stack and `optimizer.rs` counting arrays to safely recurse into all new stylistic nodes.
 
 ---
 
