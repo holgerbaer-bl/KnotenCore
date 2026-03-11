@@ -21,7 +21,7 @@ Completed the real WGPU rendering pipeline per Audit v7 findings.
 
 ---
 
-: Real Renderer Port (2026-03-11)
+## [v0.85.0] - Sprint 85: Real Renderer Port (2026-03-11)
 Replaced the partially-fake 3D rendering pipeline with a fully correct WGPU implementation.
 
 ### Fixed — Rendering (Real, Not Fake)
