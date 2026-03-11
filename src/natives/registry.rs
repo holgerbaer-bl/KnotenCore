@@ -53,6 +53,11 @@ pub enum RenderCommand {
         x: f32, y: f32, z: f32,
         scale_x: f32, scale_y: f32,
     },
+    /// Sprint 86: send a camera view-projection matrix to a specific window.
+    SetCamera {
+        window_id: usize,
+        view_proj: [[f32; 4]; 4],
+    },
     UpdateWindow(usize),
     CloseWindow(usize),
     AddMesh {
@@ -91,18 +96,17 @@ pub struct RegistryWindowState {
     pub input: Arc<Mutex<InputState>>,
     pub surface: wgpu::Surface<'static>,
     pub surface_format: wgpu::TextureFormat,
+    /// Sprint 86: store the full config so resize can just mutate width/height and reconfigure.
+    pub config: wgpu::SurfaceConfiguration,
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
     pub pipeline: wgpu::RenderPipeline,
     pub width: u32,
     pub height: u32,
-    // Hack for synchronous winit updates without a main loop pump:
     pub clear_color: wgpu::Color,
-    // Frame resources updated every frame
     pub current_texture: Option<wgpu::SurfaceTexture>,
     pub current_view: Option<wgpu::TextureView>,
     pub encoder: Option<wgpu::CommandEncoder>,
-
     // 3D Resources
     pub depth_texture_view: wgpu::TextureView,
     pub camera_buffer: wgpu::Buffer,
@@ -1043,9 +1047,30 @@ fn generate_cube() -> (Vec<RegistryVertex>, Vec<u32>) {
     (vertices, indices)
 }
 
+/// Sprint 86: Compute a perspective view-proj matrix and send it to all windows.
+/// Called from scripts as: registry_set_camera(fov_deg, cam_x, cam_y, cam_z)
 pub fn registry_set_camera(fov_degrees: f32, cam_x: f32, cam_y: f32, cam_z: f32) {
-    // Note: Camera setting is now more complex.
-    // For now, we omit the implementation here as it requires a RenderCommand or shared state update.
+    registry_set_camera_for_window(0, fov_degrees, cam_x, cam_y, cam_z);
+}
+
+/// Sprint 86: Send a camera to a specific window (window_id = handle_id).
+/// Called from scripts as: registry_set_camera_for_window(win, fov_deg, cam_x, cam_y, cam_z)
+pub fn registry_set_camera_for_window(window_id: i64, fov_degrees: f32, cam_x: f32, cam_y: f32, cam_z: f32) {
+    use glam::{Mat4, Vec3};
+    let eye    = Vec3::new(cam_x, cam_y, cam_z);
+    let target = Vec3::ZERO;
+    let up     = Vec3::Y;
+    // Assume a reasonable aspect until the window reports its size via resize events.
+    let aspect = 16.0_f32 / 9.0_f32;
+    let proj   = Mat4::perspective_rh(fov_degrees.to_radians(), aspect, 0.1, 1000.0);
+    let view   = Mat4::look_at_rh(eye, target, up);
+    let vp     = proj * view;
+    let vp_arr = vp.to_cols_array_2d();
+
+    send_render_command(RenderCommand::SetCamera {
+        window_id: window_id as usize,
+        view_proj: vp_arr,
+    });
 }
 
 pub fn registry_is_key_pressed(keycode: i64) -> f32 {

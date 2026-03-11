@@ -773,9 +773,39 @@ impl BridgeModule for CoreBridge {
                         }
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] registry_set_camera expects (Float, Float, Float, Float)"
+                        msg: "[FFI] registry_set_camera expects (Float fov, Float x, Float y, Float z)"
                             .to_string(),
                         node: "Native::Bridge::registry_set_camera".into()
+                    })
+                }
+                // Sprint 86: window-specific camera — (Handle win, Float fov, Float x, Float y, Float z)
+                "registry_set_camera_for_window" => {
+                    if args.len() == 5 {
+                        let get_float = |arg: &RelType| -> Option<f32> {
+                            match arg {
+                                RelType::Float(f) => Some(*f as f32),
+                                RelType::Int(i) => Some(*i as f32),
+                                _ => None,
+                            }
+                        };
+                        if let RelType::Handle(crate::executor::NativeHandle(win_id)) = &args[0] {
+                            if let (Some(fov), Some(x), Some(y), Some(z)) = (
+                                get_float(&args[1]),
+                                get_float(&args[2]),
+                                get_float(&args[3]),
+                                get_float(&args[4]),
+                            ) {
+                                crate::natives::registry::registry_set_camera_for_window(
+                                    *win_id, fov, x, y, z,
+                                );
+                                return Some(ExecResult::Value(RelType::Void));
+                            }
+                        }
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_set_camera_for_window expects (Handle win, Float fov, Float x, Float y, Float z)"
+                            .to_string(),
+                        node: "Native::Bridge::registry_set_camera_for_window".into()
                     })
                 }
                 "registry_is_key_pressed" => {

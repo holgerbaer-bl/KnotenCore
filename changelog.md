@@ -3,7 +3,25 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
-## [v0.85.0] - Sprint 85: Real Renderer Port (2026-03-11)
+## [v0.86.0] - Sprint 86: WGPU Pipeline Forging (2026-03-11)
+Completed the real WGPU rendering pipeline per Audit v7 findings.
+
+### Added — Camera Command (FINDING-5)
+- **`RenderCommand::SetCamera { window_id: usize, view_proj: [[f32;4];4] }`** added to the enum in `registry.rs`.
+- **`registry_set_camera(fov, x, y, z)`** now computes a real `perspective_rh × look_at_rh` matrix via `glam` and sends `SetCamera` (broadcasts to window_id=0 = all windows).
+- **`registry_set_camera_for_window(win_id, fov, x, y, z)`** — new Rust function + bridge entry that sends `SetCamera` to a specific window identified by handle id.
+
+### Added — Camera UBO Write (FINDING-4)
+- **`SetCamera` handler in `window.rs`** writes the 64-byte view-proj matrix into `camera_buffer` via `queue.write_buffer`. The `RedrawRequested` handler still writes a sane fallback each frame so frames render even before a camera command is sent.
+
+### Fixed — State Management & Resize (FINDING-3 & 7)
+- **`config: wgpu::SurfaceConfiguration`** field added to `RegistryWindowState` and stored at window creation.
+- **`WindowEvent::Resized`** now mutates `state.config.width`/`height` and calls `state.surface.configure(&state.device, &state.config)` — no more temporary one-off config object with potentially wrong fields.
+- **Camera UBO aspect** fixed to use actual `state.width / state.height` each frame instead of a hardcoded `16:9`.
+
+---
+
+: Real Renderer Port (2026-03-11)
 Replaced the partially-fake 3D rendering pipeline with a fully correct WGPU implementation.
 
 ### Fixed — Rendering (Real, Not Fake)

@@ -272,6 +272,7 @@ impl KnotenApp {
                     input,
                     surface,
                     surface_format: config.format,
+                    config, // Sprint 86: store full config for resize handler
                     device,
                     queue,
                     pipeline,
@@ -324,6 +325,25 @@ impl KnotenApp {
                     });
                 }
             }
+            // Sprint 86: SetCamera — write the view-proj matrix to the per-window camera UBO
+            RenderCommand::SetCamera { window_id, view_proj } => {
+                // If window_id == 0, broadcast to all windows (legacy 4-arg call)
+                if window_id == 0 {
+                    for state in self.windows.values_mut() {
+                        state.queue.write_buffer(
+                            &state.camera_buffer,
+                            0,
+                            bytemuck::cast_slice(view_proj.as_flattened()),
+                        );
+                    }
+                } else if let Some(state) = self.windows.get_mut(&window_id) {
+                    state.queue.write_buffer(
+                        &state.camera_buffer,
+                        0,
+                        bytemuck::cast_slice(view_proj.as_flattened()),
+                    );
+                }
+            }
             draw_cmd => {
                 // Determine target window id
                 let win_id = match &draw_cmd {
@@ -374,20 +394,12 @@ impl ApplicationHandler for KnotenApp {
             }
             WindowEvent::Resized(physical_size) => {
                 if physical_size.width > 0 && physical_size.height > 0 {
-                    state.width = physical_size.width;
+                    state.width  = physical_size.width;
                     state.height = physical_size.height;
-                    // Sprint 85 FIX: use stored surface_format instead of hardcoded Bgra8UnormSrgb
-                    let config = wgpu::SurfaceConfiguration {
-                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                        format: state.surface_format,
-                        width: state.width,
-                        height: state.height,
-                        present_mode: wgpu::PresentMode::Fifo,
-                        alpha_mode: wgpu::CompositeAlphaMode::Auto,
-                        view_formats: vec![],
-                        desired_maximum_frame_latency: 2,
-                    };
-                    state.surface.configure(&state.device, &config);
+                    // Sprint 86 FIX: mutate stored config and reconfigure — no hardcoded format
+                    state.config.width  = physical_size.width;
+                    state.config.height = physical_size.height;
+                    state.surface.configure(&state.device, &state.config);
 
                     let depth_texture = state.device.create_texture(&wgpu::TextureDescriptor {
                         label: Some("Depth Texture"),
@@ -401,9 +413,8 @@ impl ApplicationHandler for KnotenApp {
                 }
             }
             WindowEvent::RedrawRequested => {
-                // Sprint 85: write a real default view-proj matrix to the camera UBO each frame.
-                // The MeshUniforms struct starts with view_proj (mat4x4 = 64 bytes at offset 0).
-                // Default: perspective 60°, camera at (0,0,5) looking at origin.
+                // Sprint 86: write a default view-proj only if no SetCamera has been received yet
+                // (camera_buffer starts zero, so we provide a sane fallback each frame).
                 let aspect = state.width as f32 / state.height.max(1) as f32;
                 let proj = glam::Mat4::perspective_rh(60_f32.to_radians(), aspect, 0.1, 1000.0);
                 let view = glam::Mat4::look_at_rh(
@@ -412,10 +423,11 @@ impl ApplicationHandler for KnotenApp {
                     glam::Vec3::Y,
                 );
                 let view_proj = proj * view;
-                // Only write the first 64 bytes (view_proj); rest stays zeroed (no lights = ambient only)
+                // Write the 64-byte view_proj into the camera UBO at offset 0.
+                // If the script already called registry_set_camera_for_window, it overwrites this.
                 state.queue.write_buffer(&state.camera_buffer, 0, bytemuck::cast_slice(&view_proj.to_cols_array()));
 
-                // Here we process all pending RenderCommands for this window
+                // Drain and process all pending RenderCommands for this window
                 let output = state.surface.get_current_texture().unwrap();
                 let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
                 let mut encoder = state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
