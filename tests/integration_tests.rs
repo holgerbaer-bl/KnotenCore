@@ -126,8 +126,8 @@ knoten_test!(
 );
 knoten_test!(
     test_02_float_literal,
-    Node::FloatLiteral(3.14),
-    "Return: 3.14 (f64)"
+    Node::FloatLiteral(std::f32::consts::PI as f64),
+    "Return: 3.1415927410125732 (f64)"
 );
 knoten_test!(
     test_03_bool_literal_true,
@@ -176,8 +176,8 @@ knoten_test!(
 );
 knoten_test!(
     test_12_assign_float,
-    Node::Assign("pi".to_string(), Box::new(Node::FloatLiteral(3.1415))),
-    "Return: 3.1415 (f64), Memory: pi = 3.1415"
+    Node::Assign("pi".to_string(), Box::new(Node::FloatLiteral(std::f32::consts::PI as f64))),
+    "Return: 3.1415927410125732 (f64), Memory: pi = 3.1415927410125732"
 );
 knoten_test!(
     test_13_assign_bool,

@@ -65,6 +65,11 @@ pub enum RenderCommand {
         vertices: Vec<RegistryVertex>,
         indices: Vec<u32>,
     },
+    ExitEventLoop,
+}
+
+pub fn exit_event_loop() {
+    send_render_command(RenderCommand::ExitEventLoop);
 }
 
 static RENDER_TX: Mutex<Option<std::sync::mpsc::Sender<RenderCommand>>> = Mutex::new(None);
@@ -538,7 +543,15 @@ pub fn registry_file_create(path: String) -> i64 {
     let id = *id_guard;
     *id_guard += 1;
 
-    match File::create(&path) {
+    let safe_path = match crate::executor::ExecutionEngine::validate_fs_path_write(&path) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("[KnotenCore FileIO] Security error creating file '{}': {}", path, e);
+            return -1;
+        }
+    };
+
+    match File::create(&safe_path) {
         Ok(file) => {
             with_registry(|registry| {
                 registry.insert(
@@ -629,7 +642,7 @@ pub fn registry_gpu_init() -> i64 {
     id as i64
 }
 
-pub fn registry_fill_color(window_handle: i64, r: i64, g: i64, b: i64) {
+pub fn registry_fill_color(window_handle: i64, _r: i64, _g: i64, _b: i64) {
     if window_handle < 0 {
         return;
     }
@@ -667,7 +680,14 @@ impl crate::natives::NativeModule for RegistryModule {
 // ── Texture Orchestration ─────────────────────────────────────────
 
 pub fn registry_texture_load(path: String) -> i64 {
-    let img = match image::open(&path) {
+    let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(&path) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("[KnotenCore Texture] Security error loading '{}': {}", path, e);
+            return -1;
+        }
+    };
+    let img = match image::open(&safe_path) {
         Ok(img) => img.to_rgba8(),
         Err(e) => {
             eprintln!("[KnotenCore Texture] Failed to load '{}': {}", path, e);

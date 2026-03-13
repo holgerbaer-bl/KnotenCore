@@ -1,4 +1,12 @@
 # KnotenCore 🦀🤖
+
+*(Noun) /knoːtən kɔːr/*
+
+1. **Not** a relentless underground German hardcore techno subgenre. 
+2. A blazing-fast, thread-safe, and heavily sandboxed 3D scripting engine that pumps out frames instead of 160 BPM basslines. 
+
+*(Please leave your glowsticks at the door before compiling).*
+
 **The Agent-First Rust Engine.**
 
 ## What is KnotenCore?

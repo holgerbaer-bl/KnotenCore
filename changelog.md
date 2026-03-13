@@ -3,6 +3,21 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v0.89.0] - Sprint 89: Zero-Day Fixes & Release Candidate (2026-03-14)
+Resolved critical pre-release audit blockers including FFI sandbox escapes, WGPU surface panics, and zombie processes.
+
+### Fixed — Security & Stability
+- **FFI Security Lockdown (FINDING 2)**: Extended `validate_fs_path` and `validate_fs_path_write` from `executor.rs` to secure `fs_read_file`, `registry_texture_load`, and `registry_file_create`. Prevents directory traversal attacks via `../../` escapes.
+- **WGPU Surface Panic (FINDING 3)**: Fixed `RedrawRequested` panic in `window.rs` on window resize/minimize by implementing a proper match on `surface.get_current_texture()`, handling `Outdated` and `Lost` by explicitly reconfiguring the surface.
+- **Anti-Zombie Protocol & Cleanups (FINDING 4)**: Introduced `RenderCommand::ExitEventLoop` to ensure the winit EventLoop in `run_knc.rs` shuts down gracefully exactly when the background AST executor thread finishes. removed unused variable block in `registry_fill_color`.
+- **Test-Suite Fix (FINDING 1)**: Replaced hardcoded float literals (3.14/3.1415) in `tests/integration_tests.rs` with `std::f32::consts::PI` to resolve `clippy::approx_constant` warnings and reinstate test validity.
+
+### Added — Documentation
+- Refreshed documentation across `README.md`, `llm.md`, and `changelog.md` prioritizing production-ready release state.
+
+### Compliance
+- Git commit pushed by autonomous agent. Commit message: `Fix: Sprint 89 - Pre-Release Audit Fixes and Graceful Shutdown`.
+
 ## [v0.88.0] - Sprint 88: Targeted Code Optimization (2026-03-14)
 Resolved targeted performance bottlenecks in array and map manipulation during evaluation. Ensured stricter adherence to expected error propagation formats across both JIT and VM pipelines.
 

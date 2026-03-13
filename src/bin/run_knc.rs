@@ -137,6 +137,7 @@ fn run() {
         .spawn(move || {
             let result = thread_engine.execute(&ast_for_thread);
             println!("\nExecution Finished.\nResult: {}", result);
+            knoten_core::natives::registry::exit_event_loop();
         })
         .expect("Failed to spawn executor thread");
 

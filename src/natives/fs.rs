@@ -3,10 +3,16 @@ use std::collections::HashMap;
 
 /// Reads a file and returns its contents as a String.
 pub fn fs_read_file(path: String) -> String {
-    std::fs::read_to_string(&path).unwrap_or_else(|e| {
-        eprintln!("[KnotenCore FS] Error reading '{}': {}", path, e);
-        String::new()
-    })
+    match crate::executor::ExecutionEngine::validate_fs_path(&path) {
+        Ok(safe_path) => std::fs::read_to_string(&safe_path).unwrap_or_else(|e| {
+            eprintln!("[KnotenCore FS] Error reading '{}': {}", safe_path.display(), e);
+            String::new()
+        }),
+        Err(e) => {
+            eprintln!("[KnotenCore FS] Security error reading '{}': {}", path, e);
+            String::new()
+        }
+    }
 }
 
 /// Parses a JSON string into a nested RelType structure.

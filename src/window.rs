@@ -325,6 +325,9 @@ impl KnotenApp {
                     });
                 }
             }
+            RenderCommand::ExitEventLoop => {
+                event_loop.exit();
+            }
             // Sprint 86: SetCamera — write the view-proj matrix to the per-window camera UBO
             RenderCommand::SetCamera { window_id, view_proj } => {
                 // If window_id == 0, broadcast to all windows (legacy 4-arg call)
@@ -428,7 +431,15 @@ impl ApplicationHandler for KnotenApp {
                 state.queue.write_buffer(&state.camera_buffer, 0, bytemuck::cast_slice(&view_proj.to_cols_array()));
 
                 // Drain and process all pending RenderCommands for this window
-                let output = state.surface.get_current_texture().unwrap();
+                let output = match state.surface.get_current_texture() {
+                    Ok(frame) => frame,
+                    Err(wgpu::SurfaceError::Outdated) | Err(wgpu::SurfaceError::Lost) => {
+                        state.surface.configure(&state.device, &state.config);
+                        return;
+                    }
+                    Err(wgpu::SurfaceError::Timeout) => return,
+                    Err(wgpu::SurfaceError::OutOfMemory) => panic!("Out of memory when acquiring WGPU surface"),
+                };
                 let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
                 let mut encoder = state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
                 

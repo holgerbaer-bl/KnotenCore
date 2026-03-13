@@ -624,7 +624,7 @@ impl ExecutionEngine {
 impl ExecutionEngine {
     /// FINDING-05: Validate and canonicalize a filesystem path for read operations.
     /// The resolved path must be a descendant of the current working directory.
-    fn validate_fs_path(path: &str) -> Result<std::path::PathBuf, String> {
+    pub fn validate_fs_path(path: &str) -> Result<std::path::PathBuf, String> {
         let cwd = std::env::current_dir()
             .map_err(|e| format!("Cannot determine working directory: {}", e))?;
         // For reads: the file must already exist, so we can canonicalize directly.
@@ -641,7 +641,7 @@ impl ExecutionEngine {
 
     /// FINDING-05: Validate a filesystem path for write operations.
     /// For writes, the file may not yet exist — we validate the parent directory.
-    fn validate_fs_path_write(path: &str) -> Result<std::path::PathBuf, String> {
+    pub fn validate_fs_path_write(path: &str) -> Result<std::path::PathBuf, String> {
         let cwd = std::env::current_dir()
             .map_err(|e| format!("Cannot determine working directory: {}", e))?;
         let target = std::path::Path::new(path);

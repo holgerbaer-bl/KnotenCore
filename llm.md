@@ -235,7 +235,7 @@ All I/O operations are permission-gated. If you generate code that uses `FSRead`
 **Security:** `ExternCall` is not a sandbox bypass. The engine intercepts high-risk bridge calls and validates them against the current sandbox permissions before execution. Failure to provide the required flags returns `ExecResult::Fault` with a specific permission denial message.
 
 ### FS Path Safety
-All four FS operations (`FileRead`, `FileWrite`, `FSRead`, `FSWrite`) validate paths before execution:
+Filesystem operations (including DSL nodes `FileRead`, `FileWrite`, `FSRead`, `FSWrite` and native FFI functions like `fs_read_file`, `registry_texture_load`, `registry_file_create`) validate paths before execution:
 - **Reads**: Path canonicalized via `std::fs::canonicalize()`. File must exist.
 - **Writes**: Path normalized by resolving `..` components. File need not exist.
 - **Restriction**: Resolved path must be within the current working directory.
