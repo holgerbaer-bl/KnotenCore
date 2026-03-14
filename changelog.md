@@ -3,8 +3,21 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v0.90.0] - Sprint 90: Day 1 Patch & Architecture Polish (2026-03-14)
+Refined architectural performance and hygiene by eliminating the winit 1-frame latency tax and securing Windows pathing.
+
+### Changed — Architecture & Hygiene
+- **Zero-Latency Event-Loop (window.rs / registry.rs / run_knc.rs)**: Removed the polling-based `mpsc::channel` connecting the `ExecutionEngine` to `winit`. Replaced entirely with Winit's native `EventLoopProxy<RenderCommand>` and `EventLoopBuilder::with_user_event()`, resolving the 1-frame rendering latency / stuttering.
+- **Windows UNC Path Fix (executor.rs)**: Swapped out `std::fs::canonicalize` for `dunce::canonicalize`. This cleanly strips the problematic `\\?\` prefix from Windows paths across `validate_fs_path` and `validate_fs_path_write`, unbreaking CWD validation logic on Windows.
+- **Clippy Polish (vm.rs / parser.rs)**: Addressed compilation warnings by deriving `Default` for `VM` and `VMCompiler`, resolving nested combinatorial conditions (collapsible `if` lets) within the Fetch parser, and clearing out dead/unused `Mat4`/`Vec3` and `Window` imports.
+
+### Compliance
+- Git commit pushed by autonomous agent. Commit message: `Fix: Sprint 90 - EventLoopProxy Latency Fix, Windows dunce Pathing and Code Hygiene`.
+- Re-verified all 54 knoten integration tests and successfully compiled Windows targets.
+
+---
+
 ## [v0.89.0] - Sprint 89: Zero-Day Fixes & Release Candidate (2026-03-14)
-Resolved critical pre-release audit blockers including FFI sandbox escapes, WGPU surface panics, and zombie processes.
 
 ### Fixed — Security & Stability
 - **FFI Security Lockdown (FINDING 2)**: Extended `validate_fs_path` and `validate_fs_path_write` from `executor.rs` to secure `fs_read_file`, `registry_texture_load`, and `registry_file_create`. Prevents directory traversal attacks via `../../` escapes.

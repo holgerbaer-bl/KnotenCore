@@ -1,4 +1,3 @@
-use glam::{Mat4, Vec3};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::File;
@@ -72,10 +71,10 @@ pub fn exit_event_loop() {
     send_render_command(RenderCommand::ExitEventLoop);
 }
 
-static RENDER_TX: Mutex<Option<std::sync::mpsc::Sender<RenderCommand>>> = Mutex::new(None);
+static RENDER_TX: Mutex<Option<winit::event_loop::EventLoopProxy<RenderCommand>>> = Mutex::new(None);
 static SENT_MESHES: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
-pub fn set_render_channel(tx: std::sync::mpsc::Sender<RenderCommand>) {
+pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) {
     let mut guard = RENDER_TX.lock().unwrap();
     *guard = Some(tx);
 }
@@ -83,7 +82,7 @@ pub fn set_render_channel(tx: std::sync::mpsc::Sender<RenderCommand>) {
 fn send_render_command(cmd: RenderCommand) {
     let guard = RENDER_TX.lock().unwrap();
     if let Some(tx) = guard.as_ref() {
-        let _ = tx.send(cmd);
+        let _ = tx.send_event(cmd);
     }
 }
 

@@ -10,6 +10,10 @@
 
 KnotenCore programs are AST scripts in either JSON (`.nod`) or the Knoten DSL (`.knoten`). The runtime interprets them (JIT) or compiles them to standalone Rust binaries (AOT). All OS resources are managed through a deterministic ARC registry.
 
+### Core Architecture Constraints
+- **GUI & Threading**: Graphical contexts rely completely on WGPU, and cross-thread communication uses `winit::event_loop::EventLoopProxy<RenderCommand>` for zero-latency messaging over standard mpsc channels.
+- **Path Validation**: All disk interaction must be validated through `executor::ExecutionEngine::validate_fs_path`. This uses `dunce::canonicalize` to aggressively normalize Windows UNC prefixes (`\\?\`).
+
 To add a new native operation (e.g. `AudioPlay`, `DrawSprite`), you must update exactly **4 touchpoints**:
 
 | # | File | Role |

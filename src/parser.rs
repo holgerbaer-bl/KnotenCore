@@ -381,24 +381,22 @@ impl Parser {
                     self.advance();
                     let callback = self.parse_block();
 
-                    if let Node::Call(name, args) = expr {
-                        if name == "Fetch" && args.len() == 2 {
-                            let method = if let Node::StringLiteral(s) = &args[0] {
-                                s.clone()
-                            } else {
-                                self.diagnostic_panic("Fetch expects Method as string")
-                            };
-                            let url = if let Node::StringLiteral(s) = &args[1] {
-                                s.clone()
-                            } else {
-                                self.diagnostic_panic("Fetch expects URL as string")
-                            };
-                            return Node::Fetch {
-                                method,
-                                url,
-                                callback: Box::new(callback),
-                            };
-                        }
+                    if let Node::Call(name, args) = expr && name == "Fetch" && args.len() == 2 {
+                        let method = if let Node::StringLiteral(s) = &args[0] {
+                            s.clone()
+                        } else {
+                            self.diagnostic_panic("Fetch expects Method as string")
+                        };
+                        let url = if let Node::StringLiteral(s) = &args[1] {
+                            s.clone()
+                        } else {
+                            self.diagnostic_panic("Fetch expects URL as string")
+                        };
+                        return Node::Fetch {
+                            method,
+                            url,
+                            callback: Box::new(callback),
+                        };
                     }
                     self.diagnostic_panic(
                         "FatArrow '=>' can only be used with Fetch(method, url) calls",

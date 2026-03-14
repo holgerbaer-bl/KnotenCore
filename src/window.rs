@@ -8,15 +8,19 @@ use winit::window::{Window as WinitWindow, WindowId};
 use wgpu::util::DeviceExt;
 
 pub struct KnotenApp {
-    pub render_rx: std::sync::mpsc::Receiver<RenderCommand>,
     pub windows: HashMap<usize, RegistryWindowState>,
     pub window_id_map: HashMap<WindowId, usize>,
 }
 
+impl Default for KnotenApp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KnotenApp {
-    pub fn new(rx: std::sync::mpsc::Receiver<RenderCommand>) -> Self {
+    pub fn new() -> Self {
         Self {
-            render_rx: rx,
             windows: HashMap::new(),
             window_id_map: HashMap::new(),
         }
@@ -364,8 +368,12 @@ impl KnotenApp {
     }
 }
 
-impl ApplicationHandler for KnotenApp {
+impl ApplicationHandler<RenderCommand> for KnotenApp {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
+
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, cmd: RenderCommand) {
+        self.handle_command(event_loop, cmd);
+    }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
         let registry_id = match self.window_id_map.get(&window_id) {
@@ -511,10 +519,5 @@ impl ApplicationHandler for KnotenApp {
         }
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        // Poll command receiver
-        while let Ok(cmd) = self.render_rx.try_recv() {
-            self.handle_command(event_loop, cmd);
-        }
-    }
+    // UserEvent natively replaces `about_to_wait` polling
 }

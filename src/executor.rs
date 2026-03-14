@@ -2,9 +2,8 @@ use crate::ast::Node;
 use crate::natives::NativeModule;
 use crate::natives::bridge::{BridgeModule, CoreBridge};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use winit::event_loop::EventLoop;
-use winit::window::Window;
 
 #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NativeHandle(pub i64);
@@ -553,15 +552,11 @@ impl ExecutionEngine {
                         "fs_append",
                     ];
                     
-                    if read_requires.contains(&function.as_str()) && !self.permissions.allow_fs_read {
+                    if (read_requires.contains(&function.as_str()) && !self.permissions.allow_fs_read) ||
+                       (write_requires.contains(&function.as_str()) && !self.permissions.allow_fs_write) {
+                        let permission_type = if read_requires.contains(&function.as_str()) { "FS_READ" } else { "FS_WRITE" };
                         return ExecResult::Fault { 
-                            msg: format!("Permission Denied: FS_READ required for {}.{}", module, function), 
-                            node: "Node::ExternCall".into() 
-                        };
-                    }
-                    if write_requires.contains(&function.as_str()) && !self.permissions.allow_fs_write {
-                        return ExecResult::Fault { 
-                            msg: format!("Permission Denied: FS_WRITE required for {}.{}", module, function), 
+                            msg: format!("Permission Denied: {} required for {}.{}", permission_type, module, function), 
                             node: "Node::ExternCall".into() 
                         };
                     }
@@ -624,11 +619,11 @@ impl ExecutionEngine {
 impl ExecutionEngine {
     /// FINDING-05: Validate and canonicalize a filesystem path for read operations.
     /// The resolved path must be a descendant of the current working directory.
-    pub fn validate_fs_path(path: &str) -> Result<std::path::PathBuf, String> {
+    pub fn validate_fs_path(path: &str) -> Result<PathBuf, String> {
         let cwd = std::env::current_dir()
             .map_err(|e| format!("Cannot determine working directory: {}", e))?;
         // For reads: the file must already exist, so we can canonicalize directly.
-        let canonical = std::fs::canonicalize(path)
+        let canonical = dunce::canonicalize(path)
             .map_err(|e| format!("Path '{}' is invalid or does not exist: {}", path, e))?;
         if !canonical.starts_with(&cwd) {
             return Err(format!(

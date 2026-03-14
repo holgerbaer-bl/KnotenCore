@@ -22,6 +22,7 @@ name = "knoten_upgrade"
 path = "src/bin/knoten_upgrade.rs"
 
 [dependencies]
+dunce = "1.0"
 bytemuck = { version = "1.25.0", features = ["derive"] }
 cpal = "0.15.3"
 pollster = "0.4.0"

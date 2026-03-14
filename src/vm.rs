@@ -17,6 +17,7 @@ pub enum Opcode {
     Gt,
 }
 
+#[derive(Default)]
 pub struct VMCompiler {
     pub code: Vec<Opcode>,
 }
@@ -97,6 +98,7 @@ impl VMCompiler {
     }
 }
 
+#[derive(Default)]
 pub struct VM {
     stack: Vec<RelType>,
 }

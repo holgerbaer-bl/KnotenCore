@@ -124,9 +124,19 @@ fn run() {
         }
     }
 
+    // ── Main Thread Loop & Proxy Setup ─────────────────────────────
+    use winit::event_loop::EventLoop;
+    #[cfg(target_os = "windows")]
+    use winit::platform::windows::EventLoopBuilderExtWindows;
+
+    let mut builder = EventLoop::<knoten_core::natives::registry::RenderCommand>::with_user_event();
+    #[cfg(target_os = "windows")]
+    builder.with_any_thread(true);
+    let event_loop = builder.build().expect("Failed to create event loop");
+
     // ── Pre-Execution Setup ──────────────────────────────────────────
-    let (tx, rx) = std::sync::mpsc::channel();
-    knoten_core::natives::registry::set_render_channel(tx);
+    let proxy = event_loop.create_proxy();
+    knoten_core::natives::registry::set_render_channel(proxy);
 
     let ast_arc = Arc::new(ast);
     let ast_for_thread = ast_arc.clone();
@@ -141,16 +151,7 @@ fn run() {
         })
         .expect("Failed to spawn executor thread");
 
-    // ── Main Thread Loop ─────────────────────────────────────────────
-    use winit::event_loop::{EventLoop, EventLoopBuilder};
-    #[cfg(target_os = "windows")]
-    use winit::platform::windows::EventLoopBuilderExtWindows;
-
-    let mut builder = EventLoopBuilder::new();
-    #[cfg(target_os = "windows")]
-    builder.with_any_thread(true);
-    let event_loop = builder.build().expect("Failed to create event loop");
-    let mut app = knoten_core::window::KnotenApp::new(rx);
+    let mut app = knoten_core::window::KnotenApp::new();
     let _ = event_loop.run_app(&mut app);
 }
 
