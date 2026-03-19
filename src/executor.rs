@@ -29,6 +29,7 @@ pub enum RelType {
     Str(String),
     Array(Vec<RelType>),
     Object(HashMap<String, RelType>),
+    Dict(std::rc::Rc<std::cell::RefCell<HashMap<String, RelType>>>),
     Handle(NativeHandle),
     FnDef(String, Vec<String>, Box<Node>),
     Call(String, Vec<Node>),
@@ -58,7 +59,13 @@ impl std::fmt::Display for RelType {
             RelType::Str(v) => write!(f, "{}", v),
             RelType::Array(v) => { let s: Vec<String> = v.iter().map(|i| i.to_string()).collect(); write!(f, "[{}]", s.join(", ")) }
             RelType::Object(map) => { let mut s = Vec::new(); for (k, v) in map { s.push(format!("{}: {}", k, v)); } write!(f, "{{{}}}", s.join(", ")) }
-            RelType::Handle(h) => write!(f, "Handle<{}>", h.0),
+            RelType::Dict(map_rc) => { 
+                let map = map_rc.borrow();
+                let mut s = Vec::new(); 
+                for (k, v) in map.iter() { s.push(format!("{}: {}", k, v)); } 
+                write!(f, "{{{}}}", s.join(", ")) 
+            }
+            RelType::Handle(h) => write!(f, "<NativeHandle:{}>", h.0),
             RelType::FnDef(_, _, _) => write!(f, "<Function>"),
             RelType::Call(_, _) => write!(f, "<Function Call>"),
             RelType::Void => write!(f, ""),

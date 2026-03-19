@@ -21,6 +21,9 @@ pub enum OpCode {
     SetLocal(usize),
     GetLocal(usize),
     Call(usize, usize),
+    AllocateDict,
+    GetProperty,
+    SetProperty,
     Print,
     Return,
 }

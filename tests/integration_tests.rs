@@ -50,6 +50,7 @@ macro_rules! knoten_test {
                         knoten_core::executor::RelType::Str(_) => "String",
                         knoten_core::executor::RelType::Array(_) => "Array",
                         knoten_core::executor::RelType::Object(_) => "Object",
+                        knoten_core::executor::RelType::Dict(_) => "Dict",
                         knoten_core::executor::RelType::FnDef(_, _, _) => "fn",
                         knoten_core::executor::RelType::Call(_, _) => "call",
                         knoten_core::executor::RelType::Handle(_) => "handle",

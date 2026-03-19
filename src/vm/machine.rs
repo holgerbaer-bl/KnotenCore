@@ -281,6 +281,33 @@ impl VM {
                         self.stack.push(RelType::Void); // Running without a connected FFI proxy
                     }
                 }
+                OpCode::AllocateDict => {
+                    self.stack.push(RelType::Dict(std::rc::Rc::new(std::cell::RefCell::new(HashMap::new()))));
+                }
+                OpCode::SetProperty => {
+                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    let key = self.stack.pop().unwrap_or(RelType::Void);
+                    let obj = self.stack.pop().unwrap_or(RelType::Void);
+                    
+                    if let (RelType::Dict(map_rc), RelType::Str(k)) = (&obj, key) {
+                        map_rc.borrow_mut().insert(k, val);
+                        self.stack.push(obj); // Push back the reference
+                    } else {
+                        return Err(format!("SetProperty expects (Dict, Str, Any)."));
+                    }
+                }
+                OpCode::GetProperty => {
+                    let key = self.stack.pop().unwrap_or(RelType::Void);
+                    let obj = self.stack.pop().unwrap_or(RelType::Void);
+                    
+                    if let (RelType::Dict(map_rc), RelType::Str(k)) = (&obj, key) {
+                        let res = map_rc.borrow().get(&k).cloned().unwrap_or(RelType::Void);
+                        self.stack.push(res);
+                    } else {
+                        // Silent fail mimicking optional structures or missing keys natively
+                        self.stack.push(RelType::Void);
+                    }
+                }
                 OpCode::Print => {
                     let val = self.stack.pop().unwrap_or(RelType::Void);
                     println!("{}", val);

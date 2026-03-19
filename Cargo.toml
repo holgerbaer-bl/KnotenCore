@@ -27,7 +27,7 @@ bytemuck = { version = "1.25.0", features = ["derive"] }
 cpal = "0.15.3"
 pollster = "0.4.0"
 rand = "0.10.0"
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive", "rc"] }
 wgpu = "23.0"
 winit = "0.30"
 tobj = "4.0.2"

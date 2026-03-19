@@ -14,6 +14,7 @@ pub enum Token {
     RBracket,
     Comma,
     Semi,
+    Colon,
     Dot,
     Plus,
     Minus,
@@ -184,6 +185,7 @@ impl<'a> Lexer<'a> {
             ']' => Token::RBracket,
             ',' => Token::Comma,
             ';' => Token::Semi,
+            ':' => Token::Colon,
             '.' => Token::Dot,
             '+' => Token::Plus,
             '*' => Token::Star,
@@ -577,6 +579,26 @@ impl Parser {
                 }
                 self.expect(Token::RBracket);
                 Node::ArrayCreate(args)
+            }
+            Token::LBrace => {
+                self.advance();
+                let mut map = std::collections::HashMap::new();
+                while *self.peek() != Token::RBrace && *self.peek() != Token::EOF {
+                    let key = match self.advance() {
+                        Token::Ident(name) => name,
+                        Token::Str(s) => s,
+                        other => self.diagnostic_panic(&format!("Expected property name in object literal, found {:?}", other)),
+                    };
+                    self.expect(Token::Colon);
+                    let val = self.parse_expression();
+                    map.insert(key, val);
+                    
+                    if *self.peek() == Token::Comma {
+                        self.advance();
+                    }
+                }
+                self.expect(Token::RBrace);
+                Node::ObjectLiteral(map)
             }
             _ => {
                 let hint = format!("Unexpected token in expression: {:?}", self.peek());

@@ -238,7 +238,33 @@ impl Compiler {
                 self.current_local_count = previous_local_count;
                 
                 // Backpatch Jump to skip execution block dynamically
+                // Backpatch Jump to skip execution block dynamically
                 self.instructions[jump_over_idx] = OpCode::Jump(self.instructions.len());
+                true
+            }
+            Node::ObjectLiteral(map) => {
+                self.instructions.push(OpCode::AllocateDict);
+                for (k, v) in map {
+                    let k_idx = self.add_constant(RelType::Str(k.clone()));
+                    self.instructions.push(OpCode::Constant(k_idx)); // Push Key
+                    if !self.compile_node(v) { return false; } // Push Value
+                    self.instructions.push(OpCode::SetProperty); // Mutate and push Object reference
+                }
+                true
+            }
+            Node::PropertyGet(obj_node, prop_name) => {
+                if !self.compile_node(obj_node) { return false; } // Push Object
+                let k_idx = self.add_constant(RelType::Str(prop_name.clone()));
+                self.instructions.push(OpCode::Constant(k_idx)); // Push Key
+                self.instructions.push(OpCode::GetProperty); // Pushes Extracted Value
+                true
+            }
+            Node::PropertySet(obj_node, prop_name, value_node) => {
+                if !self.compile_node(obj_node) { return false; } // Push Object
+                let k_idx = self.add_constant(RelType::Str(prop_name.clone()));
+                self.instructions.push(OpCode::Constant(k_idx)); // Push Key
+                if !self.compile_node(value_node) { return false; } // Push Value
+                self.instructions.push(OpCode::SetProperty); // Pushes Modified Object
                 true
             }
             _ => false,
