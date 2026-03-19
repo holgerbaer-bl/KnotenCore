@@ -18,6 +18,9 @@ pub enum OpCode {
     ExternCall { name_idx: usize, arg_count: usize },
     SetGlobal(usize),
     GetGlobal(usize),
+    SetLocal(usize),
+    GetLocal(usize),
+    Call(usize, usize),
     Print,
     Return,
 }

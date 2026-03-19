@@ -2,11 +2,19 @@ use crate::executor::{AgentPermissions, ExecutionEngine, RelType};
 use crate::vm::opcode::OpCode;
 use std::collections::HashMap;
 
+#[derive(Clone, Debug)]
+pub struct CallFrame {
+    pub ip: usize,
+    pub base_pointer: usize,
+}
+
 #[derive(Default)]
 pub struct VM {
     pub stack: Vec<RelType>,
     pub globals: HashMap<String, RelType>,
+    pub frames: Vec<CallFrame>,
     pub ip: usize,
+    pub base_pointer: usize,
 }
 
 impl VM {
@@ -14,7 +22,9 @@ impl VM {
         Self {
             stack: Vec::with_capacity(256),
             globals: HashMap::new(),
+            frames: Vec::with_capacity(64),
             ip: 0,
+            base_pointer: 0,
         }
     }
 
@@ -27,7 +37,9 @@ impl VM {
         bridge: Option<&dyn crate::natives::bridge::BridgeModule>,
     ) -> Result<RelType, String> {
         self.stack.clear();
+        self.frames.clear();
         self.ip = 0;
+        self.base_pointer = 0;
 
         while self.ip < instructions.len() {
             let op = &instructions[self.ip];
@@ -125,6 +137,27 @@ impl VM {
                     }
                 }
                 OpCode::Jump(target_ip) => {
+                    self.ip = *target_ip;
+                }
+                OpCode::SetLocal(idx) => {
+                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    let target_idx = self.base_pointer + *idx;
+                    // Dynamically allocate stack for isolated variables
+                    if target_idx >= self.stack.len() {
+                        self.stack.resize(target_idx + 1, RelType::Void);
+                    }
+                    self.stack[target_idx] = val;
+                }
+                OpCode::GetLocal(idx) => {
+                    let val = self.stack.get(self.base_pointer + *idx).cloned().unwrap_or(RelType::Void);
+                    self.stack.push(val);
+                }
+                OpCode::Call(target_ip, arg_count) => {
+                    self.frames.push(CallFrame {
+                        ip: self.ip,
+                        base_pointer: self.base_pointer,
+                    });
+                    self.base_pointer = self.stack.len().saturating_sub(*arg_count);
                     self.ip = *target_ip;
                 }
                 OpCode::SetGlobal(idx) => {
@@ -253,7 +286,18 @@ impl VM {
                     println!("{}", val);
                 }
                 OpCode::Return => {
-                    return Ok(self.stack.pop().unwrap_or(RelType::Void));
+                    let ret_val = self.stack.pop().unwrap_or(RelType::Void);
+                    self.stack.truncate(self.base_pointer); // Clean up the local variables / arguments frame
+
+                    if let Some(frame) = self.frames.pop() {
+                        // Return from function
+                        self.ip = frame.ip;
+                        self.base_pointer = frame.base_pointer;
+                        self.stack.push(ret_val);
+                    } else {
+                        // Top level return exit
+                        return Ok(ret_val);
+                    }
                 }
             }
         }

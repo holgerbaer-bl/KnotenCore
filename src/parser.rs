@@ -307,6 +307,7 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Node {
         match self.peek() {
+
             Token::KeywordLet => {
                 self.advance();
                 let ident = match self.advance() {

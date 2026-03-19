@@ -1,0 +1,42 @@
+print("==================================================");
+print("   Sprint 102 - CallFrames & Local Scope          ");
+print("==================================================");
+
+let base = 999;
+let multiplier = 5;
+let result = 0;
+let temp = 1000;
+
+print("Global base before call:");
+print(base);
+print("Global temp before call:");
+print(temp);
+print(" ");
+
+fn calculate_damage(base, multiplier) {
+    let temp = base * multiplier;
+    print("  [Inside Function] local base:");
+    print(base);
+    print("  [Inside Function] local multiplier:");
+    print(multiplier);
+    print("  [Inside Function] local temp:");
+    print(temp);
+    print(" ");
+    return temp;
+}
+
+result = calculate_damage(10, 2);
+
+print("--- After Function Call ---");
+print("Returned result:");
+print(result);
+print("Global base after call (Should be 999):");
+print(base);
+print("Global temp after call (Should be 1000):");
+print(temp);
+
+if (base == 999) {
+    print("SUCCESS: Global scope was completely preserved!");
+} else {
+    print("FAILURE: Scope bleeding detected!");
+}

@@ -6,6 +6,9 @@ use crate::vm::opcode::OpCode;
 pub struct Compiler {
     pub instructions: Vec<OpCode>,
     pub constants: Vec<RelType>,
+    pub functions: std::collections::HashMap<String, usize>,
+    pub locals: Vec<std::collections::HashMap<String, usize>>,
+    pub current_local_count: usize,
 }
 
 impl Compiler {
@@ -13,6 +16,9 @@ impl Compiler {
         Self {
             instructions: Vec::new(),
             constants: Vec::new(),
+            functions: std::collections::HashMap::new(),
+            locals: Vec::new(),
+            current_local_count: 0,
         }
     }
 
@@ -107,11 +113,31 @@ impl Compiler {
             }
             Node::Assign(ident, expr) => {
                 if !self.compile_node(expr) { return false; }
-                let idx = self.add_constant(RelType::Str(ident.clone()));
-                self.instructions.push(OpCode::SetGlobal(idx));
+                
+                if !self.locals.is_empty() {
+                    let idx = if let Some(idx) = self.resolve_local(&ident) {
+                        idx
+                    } else {
+                        // Declare new local
+                        let idx = self.current_local_count;
+                        self.locals.last_mut().unwrap().insert(ident.clone(), idx);
+                        self.current_local_count += 1;
+                        idx
+                    };
+                    self.instructions.push(OpCode::SetLocal(idx));
+                } else {
+                    let idx = self.add_constant(RelType::Str(ident.clone()));
+                    self.instructions.push(OpCode::SetGlobal(idx));
+                }
                 true
             }
             Node::Identifier(ident) => {
+                if !self.locals.is_empty() {
+                    if let Some(idx) = self.resolve_local(&ident) {
+                        self.instructions.push(OpCode::GetLocal(idx));
+                        return true;
+                    }
+                }
                 let idx = self.add_constant(RelType::Str(ident.clone()));
                 self.instructions.push(OpCode::GetGlobal(idx));
                 true
@@ -152,15 +178,23 @@ impl Compiler {
                         true
                     }
                     _ => {
-                        // FFI ExternCall Fallback
-                        // Compile arguments in normal order (left-to-right).
-                        // At runtime, the top of the stack will be the last argument.
-                        for arg in args {
-                            if !self.compile_node(arg) { return false; }
+                        if let Some(&target_ip) = self.functions.get(name) {
+                            for arg in args {
+                                if !self.compile_node(arg) { return false; }
+                            }
+                            self.instructions.push(OpCode::Call(target_ip, args.len()));
+                            true
+                        } else {
+                            // FFI ExternCall Fallback
+                            // Compile arguments in normal order (left-to-right).
+                            // At runtime, the top of the stack will be the last argument.
+                            for arg in args {
+                                if !self.compile_node(arg) { return false; }
+                            }
+                            let name_idx = self.add_constant(RelType::Str(name.clone()));
+                            self.instructions.push(OpCode::ExternCall { name_idx, arg_count: args.len() });
+                            true
                         }
-                        let name_idx = self.add_constant(RelType::Str(name.clone()));
-                        self.instructions.push(OpCode::ExternCall { name_idx, arg_count: args.len() });
-                        true
                     }
                 }
             }
@@ -174,8 +208,50 @@ impl Compiler {
                 self.instructions.push(OpCode::Return);
                 true
             }
+            Node::FnDef(name, args, body) => {
+                // Record jump to skip function body
+                let jump_over_idx = self.instructions.len();
+                self.instructions.push(OpCode::Jump(0));
+                
+                // Track start IP of the function
+                let func_ip = self.instructions.len();
+                self.functions.insert(name.clone(), func_ip);
+                
+                // Track execution context (isolate Local variables)
+                self.locals.push(std::collections::HashMap::new());
+                let mut previous_local_count = self.current_local_count;
+                self.current_local_count = 0;
+                
+                // Assign numerical indices to explicit arguments contextually mapped against base_pointer
+                for arg in args {
+                    self.locals.last_mut().unwrap().insert(arg.clone(), self.current_local_count);
+                    self.current_local_count += 1;
+                }
+                
+                if !self.compile_node(body) { return false; }
+                
+                // Auto-return if body doesn't terminate with one explicitly
+                self.instructions.push(OpCode::Return);
+                
+                // Restore outside context
+                self.locals.pop();
+                self.current_local_count = previous_local_count;
+                
+                // Backpatch Jump to skip execution block dynamically
+                self.instructions[jump_over_idx] = OpCode::Jump(self.instructions.len());
+                true
+            }
             _ => false,
         }
+    }
+
+    pub fn resolve_local(&self, name: &str) -> Option<usize> {
+        for scope in self.locals.iter().rev() {
+            if let Some(&idx) = scope.get(name) {
+                return Some(idx);
+            }
+        }
+        None
     }
 
     fn add_constant(&mut self, val: RelType) -> usize {

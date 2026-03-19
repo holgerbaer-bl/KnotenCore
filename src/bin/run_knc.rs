@@ -79,7 +79,7 @@ fn run() {
     println!("Loading KnotenCore Script: {}", file_path);
 
     let json_string = fs::read_to_string(&file_path).expect("Failed to read file");
-    let mut ast = if file_path.ends_with(".knoten") {
+    let mut ast = if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
         let mut parser = knoten_core::parser::Parser::new(&json_string);
         parser.parse()
     } else {
@@ -145,7 +145,25 @@ fn run() {
     std::thread::Builder::new()
         .stack_size(8 * 1024 * 1024)
         .spawn(move || {
-            let result = thread_engine.execute(&ast_for_thread);
+            let mut compiler = knoten_core::vm::compiler::Compiler::new();
+            if !compiler.compile_node(&ast_for_thread) {
+                eprintln!("\n[VM Crash] AST transpilation validation natively failed inline.");
+                std::process::exit(1);
+            }
+            
+            let mut vm = knoten_core::vm::machine::VM::new();
+            let raw_result = vm.run(
+                &compiler.instructions, 
+                &compiler.constants, 
+                &thread_engine.permissions, 
+                Some(&*thread_engine.bridge)
+            );
+            
+            let result = match raw_result {
+                Ok(v) => v.to_string(),
+                Err(e) => format!("VM Evaluation Fault: {}", e),
+            };
+
             println!("\nExecution Finished.\nResult: {}", result);
             knoten_core::natives::registry::exit_event_loop();
         })
