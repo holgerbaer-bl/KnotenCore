@@ -140,7 +140,7 @@ fn run() {
 
     let ast_arc = Arc::new(ast);
     let ast_for_thread = ast_arc.clone();
-    let mut thread_engine = engine; // Move the engine with set permissions
+    let thread_engine = engine; // Move the engine with set permissions
 
     std::thread::Builder::new()
         .stack_size(8 * 1024 * 1024)

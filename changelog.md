@@ -3,6 +3,25 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v1.0.3] - Sprint 104: Audit Fixes — Thread Safety, Stack Hygiene, Security Enforcement (2026-03-19)
+Hardened the Bytecode VM against critical issues identified in the Sprint 103 architecture audit.
+
+### Fixed — Thread Safety
+- **`RelType::Dict` → `Arc<Mutex>`**: Replaced `Rc<RefCell<HashMap>>` with `std::sync::Arc<std::sync::Mutex<HashMap>>` in `executor.rs` and all VM handler sites (`machine.rs`). The `unsafe impl Send for ExecutionEngine` is now sound. Updated `Display` impl and `AllocateDict`/`SetProperty`/`GetProperty` opcodes to use `.lock().unwrap()`.
+- **Manual `PartialEq` for `RelType`**: Removed `PartialEq` from the derive macro (Mutex doesn't implement it) and added a hand-written impl. Dict equality uses `Arc::ptr_eq` — two Dict values are equal if and only if they point to the same allocation.
+
+### Fixed — Stack Hygiene
+- **`OpCode::Pop`**: Added new opcode to the ISA (`opcode.rs`) and implemented in the VM dispatch loop.
+- **Compiler emits `Pop` after `PropertySet`**: The compiler (`compiler.rs`) now appends `OpCode::Pop` after every `Node::PropertySet` emission, discarding the dict reference that `SetProperty` re-pushes onto the stack. Prevents unbounded stack growth on repeated property assignments.
+
+### Fixed — Strict Error Handling
+- **Binary ops use `.ok_or_else(…)?`**: All seven binary/comparison opcodes (`Add`, `Subtract`, `Multiply`, `Divide`, `Equal`, `Less`, `Greater`) and `JumpIfFalse` now return `Err("Stack underflow in …")` on an empty stack instead of silently producing `Void`.
+
+### Fixed — Clippy Cleanup
+- Auto-applied Clippy suggestions to `run_knc.rs` (1 fix for unused `mut`). Manual fixes applied for remaining lib warnings where auto-fix was too aggressive.
+
+---
+
 ## [v1.0.2] - Sprint 103: Implement Dictionaries and Property Access (2026-03-19)
 Integrated a pure Native `Key-Value` Object structure directly onto the AOT constraints. The Bytecode Machine supports complete interior mutability arrays evaluating structural logic natively.
 

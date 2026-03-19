@@ -24,6 +24,7 @@ pub enum OpCode {
     AllocateDict,
     GetProperty,
     SetProperty,
+    Pop,
     Print,
     Return,
 }

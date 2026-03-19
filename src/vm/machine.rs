@@ -54,8 +54,8 @@ impl VM {
                     }
                 }
                 OpCode::Add => {
-                    let r = self.stack.pop().unwrap_or(RelType::Void);
-                    let l = self.stack.pop().unwrap_or(RelType::Void);
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in Add".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in Add".to_string())?;
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Int(a + b)),
                         (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Float(a + b)),
@@ -66,8 +66,8 @@ impl VM {
                     }
                 }
                 OpCode::Subtract => {
-                    let r = self.stack.pop().unwrap_or(RelType::Void);
-                    let l = self.stack.pop().unwrap_or(RelType::Void);
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in Subtract".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in Subtract".to_string())?;
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Int(a - b)),
                         (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Float(a - b)),
@@ -77,8 +77,8 @@ impl VM {
                     }
                 }
                 OpCode::Multiply => {
-                    let r = self.stack.pop().unwrap_or(RelType::Void);
-                    let l = self.stack.pop().unwrap_or(RelType::Void);
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in Multiply".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in Multiply".to_string())?;
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Int(a * b)),
                         (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Float(a * b)),
@@ -88,8 +88,8 @@ impl VM {
                     }
                 }
                 OpCode::Divide => {
-                    let r = self.stack.pop().unwrap_or(RelType::Void);
-                    let l = self.stack.pop().unwrap_or(RelType::Void);
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in Divide".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in Divide".to_string())?;
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => {
                             if b == 0 { return Err("Div by zero".into()); }
@@ -103,13 +103,13 @@ impl VM {
                     }
                 }
                 OpCode::Equal => {
-                    let r = self.stack.pop().unwrap_or(RelType::Void);
-                    let l = self.stack.pop().unwrap_or(RelType::Void);
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in Equal".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in Equal".to_string())?;
                     self.stack.push(RelType::Bool(l == r));
                 }
                 OpCode::Less => {
-                    let r = self.stack.pop().unwrap_or(RelType::Void);
-                    let l = self.stack.pop().unwrap_or(RelType::Void);
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in Less".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in Less".to_string())?;
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Bool(a < b)),
                         (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Bool(a < b)),
@@ -117,8 +117,8 @@ impl VM {
                     }
                 }
                 OpCode::Greater => {
-                    let r = self.stack.pop().unwrap_or(RelType::Void);
-                    let l = self.stack.pop().unwrap_or(RelType::Void);
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in Greater".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in Greater".to_string())?;
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Bool(a > b)),
                         (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Bool(a > b)),
@@ -126,7 +126,7 @@ impl VM {
                     }
                 }
                 OpCode::JumpIfFalse(target_ip) => {
-                    let cond = self.stack.pop().unwrap_or(RelType::Void);
+                    let cond = self.stack.pop().ok_or_else(|| "Stack underflow in JumpIfFalse".to_string())?;
                     let is_true = match cond {
                         RelType::Bool(b) => b,
                         RelType::Int(i) => i != 0,
@@ -282,15 +282,15 @@ impl VM {
                     }
                 }
                 OpCode::AllocateDict => {
-                    self.stack.push(RelType::Dict(std::rc::Rc::new(std::cell::RefCell::new(HashMap::new()))));
+                    self.stack.push(RelType::Dict(std::sync::Arc::new(std::sync::Mutex::new(HashMap::new()))));
                 }
                 OpCode::SetProperty => {
                     let val = self.stack.pop().unwrap_or(RelType::Void);
                     let key = self.stack.pop().unwrap_or(RelType::Void);
                     let obj = self.stack.pop().unwrap_or(RelType::Void);
                     
-                    if let (RelType::Dict(map_rc), RelType::Str(k)) = (&obj, key) {
-                        map_rc.borrow_mut().insert(k, val);
+                    if let (RelType::Dict(map_arc), RelType::Str(k)) = (&obj, key) {
+                        map_arc.lock().unwrap().insert(k, val);
                         self.stack.push(obj); // Push back the reference
                     } else {
                         return Err(format!("SetProperty expects (Dict, Str, Any)."));
@@ -300,13 +300,16 @@ impl VM {
                     let key = self.stack.pop().unwrap_or(RelType::Void);
                     let obj = self.stack.pop().unwrap_or(RelType::Void);
                     
-                    if let (RelType::Dict(map_rc), RelType::Str(k)) = (&obj, key) {
-                        let res = map_rc.borrow().get(&k).cloned().unwrap_or(RelType::Void);
+                    if let (RelType::Dict(map_arc), RelType::Str(k)) = (&obj, key) {
+                        let res = map_arc.lock().unwrap().get(&k).cloned().unwrap_or(RelType::Void);
                         self.stack.push(res);
                     } else {
                         // Silent fail mimicking optional structures or missing keys natively
                         self.stack.push(RelType::Void);
                     }
+                }
+                OpCode::Pop => {
+                    self.stack.pop();
                 }
                 OpCode::Print => {
                     let val = self.stack.pop().unwrap_or(RelType::Void);

@@ -265,6 +265,7 @@ impl Compiler {
                 self.instructions.push(OpCode::Constant(k_idx)); // Push Key
                 if !self.compile_node(value_node) { return false; } // Push Value
                 self.instructions.push(OpCode::SetProperty); // Pushes Modified Object
+                self.instructions.push(OpCode::Pop);          // Discard dict ref — stack hygiene
                 true
             }
             _ => false,

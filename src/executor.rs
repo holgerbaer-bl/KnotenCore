@@ -21,7 +21,7 @@ impl Drop for NativeHandle {
     }
 }
 
-#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum RelType {
     Int(i64),
     Float(f64),
@@ -29,11 +29,28 @@ pub enum RelType {
     Str(String),
     Array(Vec<RelType>),
     Object(HashMap<String, RelType>),
-    Dict(std::rc::Rc<std::cell::RefCell<HashMap<String, RelType>>>),
+    Dict(std::sync::Arc<std::sync::Mutex<HashMap<String, RelType>>>),
     Handle(NativeHandle),
     FnDef(String, Vec<String>, Box<Node>),
     Call(String, Vec<Node>),
     Void,
+}
+
+impl PartialEq for RelType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (RelType::Int(a),   RelType::Int(b))   => a == b,
+            (RelType::Float(a), RelType::Float(b)) => a == b,
+            (RelType::Bool(a),  RelType::Bool(b))  => a == b,
+            (RelType::Str(a),   RelType::Str(b))   => a == b,
+            (RelType::Array(a), RelType::Array(b)) => a == b,
+            (RelType::Object(a),RelType::Object(b))=> a == b,
+            // Dict equality: same Arc pointer means same object
+            (RelType::Dict(a),  RelType::Dict(b))  => std::sync::Arc::ptr_eq(a, b),
+            (RelType::Void,     RelType::Void)      => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -59,8 +76,8 @@ impl std::fmt::Display for RelType {
             RelType::Str(v) => write!(f, "{}", v),
             RelType::Array(v) => { let s: Vec<String> = v.iter().map(|i| i.to_string()).collect(); write!(f, "[{}]", s.join(", ")) }
             RelType::Object(map) => { let mut s = Vec::new(); for (k, v) in map { s.push(format!("{}: {}", k, v)); } write!(f, "{{{}}}", s.join(", ")) }
-            RelType::Dict(map_rc) => { 
-                let map = map_rc.borrow();
+            RelType::Dict(map_arc) => { 
+                let map = map_arc.lock().unwrap();
                 let mut s = Vec::new(); 
                 for (k, v) in map.iter() { s.push(format!("{}: {}", k, v)); } 
                 write!(f, "{{{}}}", s.join(", ")) 
