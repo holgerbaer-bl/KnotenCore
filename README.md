@@ -145,6 +145,33 @@ This confirms that the engine correctly identifies the failing AST node and repo
 
 ---
 
+## Visual Game Loop — Sprint 105
+KnotenCore can now script real-time visuals entirely from `.nod` bytecode:
+
+```js
+// examples/game_loop.nod — scripted entity animation via Stack-Machine FFI
+let win = registry_create_window(800, 600, "Sprint 105 - Visual Game Loop");
+let player = { x: 0.0, y: 0.0, speed: 0.05 };
+let is_open = true;
+
+while (is_open) {
+    is_open = registry_window_update(win);   // OS event pump
+    registry_fill_color(win, 20, 25, 30);   // Clear to dark navy
+    if (player.x > 10.0) {
+        player.x = 0.0 - 10.0;             // Wrap left edge
+    } else {
+        player.x = player.x + player.speed; // Advance position
+    }
+    registry_draw_entity(win, player.x, player.y); // Render via WGPU
+}
+
+registry_window_close(win);
+```
+
+This compiles to ~45 flat `OpCode` instructions — no GC, no heap allocation in the hot path.
+
+---
+
 ## Why it Exists — Agent First
 
 The current app development ecosystem is burdened with human-centric boilerplate, fragmented tooling, and bloated artifact pipelines. KnotenCore eliminates this overhead entirely. By providing a **deterministic, token-efficient runtime expressly designed for AI agents**, it shifts the paradigm from "AI writing React code for humans" to "AI writing Neural DSL code for a bare-metal Agent VM." It allows agents to read clear diagnostic JSON logs, self-heal instantly upon failure, and ship highly-optimized graphical applications under 5 MB.

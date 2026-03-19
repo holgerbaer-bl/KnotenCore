@@ -753,6 +753,32 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_draw_cylinder".into()
                     })
                 }
+                "registry_draw_entity" => {
+                    if args.len() == 3 {
+                        let get_float = |arg: &RelType| -> Option<f32> {
+                            match arg {
+                                RelType::Float(f) => Some(*f as f32),
+                                RelType::Int(i) => Some(*i as f32),
+                                _ => None,
+                            }
+                        };
+                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0] {
+                            if let (Some(x), Some(y)) = (
+                                get_float(&args[1]),
+                                get_float(&args[2]),
+                            ) {
+                                crate::natives::registry::registry_draw_entity(
+                                    *win, x, y,
+                                );
+                                return Some(ExecResult::Value(RelType::Void));
+                            }
+                        }
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_draw_entity expects (Handle win, Float x, Float y)".to_string(),
+                        node: "Native::Bridge::registry_draw_entity".into()
+                    })
+                }
                 "registry_set_camera" => {
                     if args.len() == 4 {
                         let get_float = |arg: &RelType| -> Option<f32> {

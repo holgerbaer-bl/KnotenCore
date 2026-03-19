@@ -1,0 +1,50 @@
+print("======================================");
+print("     KnotenCore VM - Game Loop        ");
+print("======================================");
+
+let win = registry_create_window(800, 600, "Sprint 105 - Visual Game Loop");
+
+let player = {
+    x: 0.0,
+    y: 0.0,
+    speed: 0.05
+};
+
+let is_open = true;
+let ticks = 0;
+let frame = 0;
+
+// Game Loop — bounded cap prevents headless stack overflow
+while (is_open) {
+    is_open = registry_window_update(win);
+
+    // Clear Background
+    registry_fill_color(win, 20, 25, 30);
+
+    // Logic: Move entity rightward, wrap around
+    if (player.x > 10.0) {
+        player.x = 0.0 - 10.0;
+    } else {
+        player.x = player.x + player.speed;
+    }
+
+    // Render: draw entity at current position
+    registry_draw_entity(win, player.x, player.y);
+
+    ticks = ticks + 1;
+    frame = frame + 1;
+    if (ticks == 60) {
+        print("Player Position:");
+        print(player.x);
+        ticks = 0;
+    }
+
+    // Safety cap for headless/test mode: stop after 3600 frames (~60s at 60fps)
+    if (frame == 3600) {
+        is_open = false;
+    }
+}
+
+print("Loop complete. Closing window.");
+registry_window_close(win);
+print("VM Boot down.");

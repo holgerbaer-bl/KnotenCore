@@ -3,6 +3,20 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v1.0.4] - Sprint 105: The Visual Game Loop (2026-03-19)
+Connected the Dictionary VM, Control Flow Bytecode, and FFI Bridge into a real animation loop.
+
+### Added
+- **`registry_draw_entity(win, x, y)`** in `registry.rs` + `bridge.rs`: Simplistic 2D entity rendering hook that projects a sphere onto the 3D camera plane at a fixed Z depth. Callable from `.nod` scripts via `OpExternCall`.
+- **`Node::While` bytecode compilation**: The `Compiler` now transpiles `while` loops into a jump-backpatch pattern (`JumpIfFalse` exit + `Jump` loop-back). Previously only supported in the AST tree-walking interpreter.
+- **`Node::NativeCall` bytecode compilation**: `NativeCall` is now aliased with `Call` in the compiler match arm — any call not in the known builtins list falls through to `OpExternCall` automatically.
+- **`examples/game_loop.nod`**: Full scripted game loop demonstrating Dictionary state (`player.x`/`player.speed`), per-frame FFI render calls, and stack-safe bounded frame cap (3600 frames).
+
+### Compiler Improvements
+- Removed a temporary `println!` debug line inadvertently left in the compiler fallback arm.
+
+---
+
 ## [v1.0.3] - Sprint 104: Audit Fixes — Thread Safety, Stack Hygiene, Security Enforcement (2026-03-19)
 Hardened the Bytecode VM against critical issues identified in the Sprint 103 architecture audit.
 

@@ -111,6 +111,19 @@ impl Compiler {
                 }
                 true
             }
+            Node::While(cond, body) => {
+                let loop_start_idx = self.instructions.len();
+                if !self.compile_node(cond) { return false; }
+                
+                let jump_if_false_idx = self.instructions.len();
+                self.instructions.push(OpCode::JumpIfFalse(0)); // Placeholder
+                
+                if !self.compile_node(body) { return false; }
+                
+                self.instructions.push(OpCode::Jump(loop_start_idx)); // Loop back
+                self.instructions[jump_if_false_idx] = OpCode::JumpIfFalse(self.instructions.len()); // Exit loop
+                true
+            }
             Node::Assign(ident, expr) => {
                 if !self.compile_node(expr) { return false; }
                 
@@ -142,7 +155,7 @@ impl Compiler {
                 self.instructions.push(OpCode::GetGlobal(idx));
                 true
             }
-            Node::Call(name, args) => {
+            Node::NativeCall(name, args) | Node::Call(name, args) => {
                 match name.as_str() {
                     "str_len" => {
                         if args.len() != 1 { return false; }

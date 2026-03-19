@@ -866,6 +866,18 @@ pub fn registry_draw_sphere(
     });
 }
 
+pub fn registry_draw_entity(
+    window_handle: i64,
+    x: f32,
+    y: f32,
+) {
+    if window_handle < 0 {
+        return;
+    }
+    // Simple 2D entity abstraction drawing a sphere at a fixed Z depth
+    registry_draw_sphere(window_handle, Default::default(), 0.5, 16, 16, x, y, -5.0);
+}
+
 fn generate_uv_sphere(rings: u32, sectors: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
