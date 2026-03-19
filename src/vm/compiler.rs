@@ -105,6 +105,35 @@ impl Compiler {
                 }
                 true
             }
+            Node::Assign(ident, expr) => {
+                if !self.compile_node(expr) { return false; }
+                let idx = self.add_constant(RelType::Str(ident.clone()));
+                self.instructions.push(OpCode::SetGlobal(idx));
+                true
+            }
+            Node::Identifier(ident) => {
+                let idx = self.add_constant(RelType::Str(ident.clone()));
+                self.instructions.push(OpCode::GetGlobal(idx));
+                true
+            }
+            Node::Call(name, args) => {
+                match name.as_str() {
+                    "str_len" => {
+                        if args.len() != 1 { return false; }
+                        if !self.compile_node(&args[0]) { return false; }
+                        self.instructions.push(OpCode::StringLength);
+                        true
+                    }
+                    "str_contains" => {
+                        if args.len() != 2 { return false; }
+                        if !self.compile_node(&args[0]) { return false; } // String source
+                        if !self.compile_node(&args[1]) { return false; } // Pattern / char class
+                        self.instructions.push(OpCode::StringContainsChars);
+                        true
+                    }
+                    _ => false, // Fallback for unsupported calls
+                }
+            }
             Node::Print(expr) => {
                 if !self.compile_node(expr) { return false; }
                 self.instructions.push(OpCode::Print);

@@ -1,9 +1,11 @@
 use crate::executor::RelType;
 use crate::vm::opcode::OpCode;
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct VM {
-    stack: Vec<RelType>,
+    pub stack: Vec<RelType>,
+    pub globals: HashMap<String, RelType>,
     pub ip: usize,
 }
 
@@ -11,6 +13,7 @@ impl VM {
     pub fn new() -> Self {
         Self {
             stack: Vec::with_capacity(256),
+            globals: HashMap::new(),
             ip: 0,
         }
     }
@@ -118,6 +121,49 @@ impl VM {
                 OpCode::Jump(target_ip) => {
                     self.ip = *target_ip;
                 }
+                OpCode::SetGlobal(idx) => {
+                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    if let Some(RelType::Str(name)) = constants.get(*idx) {
+                        self.globals.insert(name.clone(), val);
+                    } else {
+                        return Err("Invalid constant index for SetGlobal".into());
+                    }
+                }
+                OpCode::GetGlobal(idx) => {
+                    if let Some(RelType::Str(name)) = constants.get(*idx) {
+                        if let Some(val) = self.globals.get(name) {
+                            self.stack.push(val.clone());
+                        } else {
+                            self.stack.push(RelType::Void);
+                        }
+                    } else {
+                        return Err("Invalid constant index for GetGlobal".into());
+                    }
+                }
+                OpCode::StringLength => {
+                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    if let RelType::Str(s) = val {
+                        self.stack.push(RelType::Int(s.chars().count() as i64));
+                    } else {
+                        self.stack.push(RelType::Int(0));
+                    }
+                }
+                OpCode::StringContainsChars => {
+                    let pattern = self.stack.pop().unwrap_or(RelType::Void);
+                    let target = self.stack.pop().unwrap_or(RelType::Void);
+                    if let (RelType::Str(s), RelType::Str(p)) = (target, pattern) {
+                        let contains = match p.as_str() {
+                            "numbers" => s.chars().any(|c| c.is_ascii_digit()),
+                            "special" => s.chars().any(|c| !c.is_ascii_alphanumeric() && !c.is_whitespace()),
+                            "uppercase" => s.chars().any(|c| c.is_ascii_uppercase()),
+                            "lowercase" => s.chars().any(|c| c.is_ascii_lowercase()),
+                            other => s.contains(other),
+                        };
+                        self.stack.push(RelType::Bool(contains));
+                    } else {
+                        self.stack.push(RelType::Bool(false));
+                    }
+                }
                 OpCode::Print => {
                     let val = self.stack.pop().unwrap_or(RelType::Void);
                     println!("{}", val);
@@ -188,5 +234,31 @@ mod tests {
 
         let result = vm.run(&instructions, &constants).unwrap();
         assert_eq!(result, RelType::Int(20));
+    }
+
+    #[test]
+    fn test_vm_variables_and_strings() {
+        let mut vm = VM::new();
+        // script:
+        // let pwd = "Test1"
+        // let len = str_len(pwd)
+        // return len
+        let instructions = vec![
+            OpCode::Constant(0), // Push "Test1"
+            OpCode::SetGlobal(1), // Set 'pwd'
+            OpCode::GetGlobal(1), // Get 'pwd'
+            OpCode::StringLength, // Length -> 5
+            OpCode::SetGlobal(2), // Set 'len'
+            OpCode::GetGlobal(2), // Get 'len'
+            OpCode::Return,
+        ];
+        let constants = vec![
+            RelType::Str("Test1".to_string()),
+            RelType::Str("pwd".to_string()),
+            RelType::Str("len".to_string()),
+        ];
+        
+        let result = vm.run(&instructions, &constants).unwrap();
+        assert_eq!(result, RelType::Int(5));
     }
 }

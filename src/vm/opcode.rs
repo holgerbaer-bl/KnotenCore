@@ -10,6 +10,10 @@ pub enum OpCode {
     Less,
     Jump(usize),
     JumpIfFalse(usize),
+    StringLength,
+    StringContainsChars,
+    SetGlobal(usize),
+    GetGlobal(usize),
     Print,
     Return,
 }
