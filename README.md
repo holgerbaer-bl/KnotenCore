@@ -148,3 +148,17 @@ This confirms that the engine correctly identifies the failing AST node and repo
 ## Why it Exists — Agent First
 
 The current app development ecosystem is burdened with human-centric boilerplate, fragmented tooling, and bloated artifact pipelines. KnotenCore eliminates this overhead entirely. By providing a **deterministic, token-efficient runtime expressly designed for AI agents**, it shifts the paradigm from "AI writing React code for humans" to "AI writing Neural DSL code for a bare-metal Agent VM." It allows agents to read clear diagnostic JSON logs, self-heal instantly upon failure, and ship highly-optimized graphical applications under 5 MB.
+
+---
+
+## Compliance & Community Flow
+
+This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 
+
+### Community Guidelines
+Open-source contributors and autonomous agents interacting with this framework must strictly abide by our repository documents:
+- Review [CONTRIBUTING.md](CONTRIBUTING.md) to understand the AOT Stack Machine and Sandbox constraints before submitting `PULL_REQUEST` templates.
+- Consult [SECURITY.md](SECURITY.md) to privately report FileSystem/FFI escapes.
+- Follow the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+Reference `llm.md` for strict machine-readable constraints regarding runtime architecture and OS bindings.

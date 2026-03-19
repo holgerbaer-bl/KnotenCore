@@ -3,8 +3,21 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v0.98.0] - Sprint 98: Establish Community Standards and Security Policy (2026-03-19)
+Professionalized the GitHub repository to achieve 100% Community Health, supporting open-source contributions and autonomous agent onboarding.
+
+### Added — Architecture & Community
+- **`SECURITY.md`**: Formalized the engine's strict Sandbox boundaries (FFI restrictions / OS path validations) and established a private reporting route for critical vulnerabilities.
+- **`CONTRIBUTING.md`**: Outlined the architectural pillars of the new v1.0.0-alpha framework, explicitly directing contributors to the Bytecode VM `src/vm/` AOT transpiler, Reverse Polish Notation constraints, and Stack Machine dispatch logic.
+- **`CODE_OF_CONDUCT.md`**: Integrated the Contributor Covenant.
+- **GitHub Templates (`.github/`)**: Created `ISSUE_TEMPLATE/bug_report.md` specifying OS and environment prerequisites alongside `.github/PULL_REQUEST_TEMPLATE.md` enforcing structural checks regarding FFI/VM modifications.
+
+### Compliance
+- Git commit cleanly pushed by autonomous agent. Commit message: `Feat: Sprint 98 - Establish Community Standards and Security Policy`.
+
+---
+
 ## [v0.97.0] - Sprint 97: Implement Control Flow and Branching (2026-03-15)
-Achieved Turing completeness within the Bytecode VM by formalizing conditional jumps, logical operators, and compiler backpatching.
 
 ### Added — Architecture (Parallel Feature)
 - **Logical Operations (`vm/opcode.rs`)**: Integrated `OpEqual`, `OpGreater`, and `OpLess` directly into the Arithmetic Logic Unit, allowing inline boolean evaluations on the execution stack.
