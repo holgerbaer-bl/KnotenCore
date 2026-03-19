@@ -131,6 +131,26 @@ impl Compiler {
                         self.instructions.push(OpCode::StringContainsChars);
                         true
                     }
+                    "str_split" => {
+                        if args.len() != 2 { return false; }
+                        if !self.compile_node(&args[0]) { return false; } // Target String
+                        if !self.compile_node(&args[1]) { return false; } // Delimiter
+                        self.instructions.push(OpCode::StringSplit);
+                        true
+                    }
+                    "arr_contains" => {
+                        if args.len() != 2 { return false; }
+                        if !self.compile_node(&args[0]) { return false; } // Array
+                        if !self.compile_node(&args[1]) { return false; } // Search String
+                        self.instructions.push(OpCode::ArrayContains);
+                        true
+                    }
+                    "read_file" => {
+                        if args.len() != 1 { return false; }
+                        if !self.compile_node(&args[0]) { return false; }
+                        self.instructions.push(OpCode::ReadFile);
+                        true
+                    }
                     _ => false, // Fallback for unsupported calls
                 }
             }

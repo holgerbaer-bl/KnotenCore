@@ -1,4 +1,4 @@
-use crate::executor::RelType;
+use crate::executor::{AgentPermissions, ExecutionEngine, RelType};
 use crate::vm::opcode::OpCode;
 use std::collections::HashMap;
 
@@ -19,7 +19,12 @@ impl VM {
     }
 
     #[inline(always)]
-    pub fn run(&mut self, instructions: &[OpCode], constants: &[RelType]) -> Result<RelType, String> {
+    pub fn run(
+        &mut self,
+        instructions: &[OpCode],
+        constants: &[RelType],
+        permissions: &AgentPermissions,
+    ) -> Result<RelType, String> {
         self.stack.clear();
         self.ip = 0;
 
@@ -164,6 +169,46 @@ impl VM {
                         self.stack.push(RelType::Bool(false));
                     }
                 }
+                OpCode::StringSplit => {
+                    let delim = self.stack.pop().unwrap_or(RelType::Void);
+                    let target = self.stack.pop().unwrap_or(RelType::Void);
+                    if let (RelType::Str(s), RelType::Str(d)) = (target, delim) {
+                        let parts = s.split(&d).map(|part| RelType::Str(part.to_string())).collect();
+                        self.stack.push(RelType::Array(parts));
+                    } else {
+                        self.stack.push(RelType::Void);
+                    }
+                }
+                OpCode::ArrayContains => {
+                    let search = self.stack.pop().unwrap_or(RelType::Void);
+                    let array = self.stack.pop().unwrap_or(RelType::Void);
+                    if let (RelType::Array(arr), search_val) = (array, search) {
+                        self.stack.push(RelType::Bool(arr.contains(&search_val)));
+                    } else {
+                        self.stack.push(RelType::Bool(false));
+                    }
+                }
+                OpCode::ReadFile => {
+                    let path_val = self.stack.pop().unwrap_or(RelType::Void);
+                    if let RelType::Str(path) = path_val {
+                        if !permissions.allow_fs_read {
+                            self.stack.push(RelType::Void); // No permission
+                        } else {
+                            match ExecutionEngine::validate_fs_path(&path) {
+                                Ok(safe_path) => {
+                                    if let Ok(content) = std::fs::read_to_string(safe_path) {
+                                        self.stack.push(RelType::Str(content));
+                                    } else {
+                                        self.stack.push(RelType::Void);
+                                    }
+                                }
+                                Err(_) => self.stack.push(RelType::Void),
+                            }
+                        }
+                    } else {
+                        self.stack.push(RelType::Void);
+                    }
+                }
                 OpCode::Print => {
                     let val = self.stack.pop().unwrap_or(RelType::Void);
                     println!("{}", val);
@@ -196,7 +241,12 @@ mod tests {
         ];
         let constants = vec![RelType::Int(10), RelType::Int(5)];
 
-        let result = vm.run(&instructions, &constants).unwrap();
+        let result = vm.run(&instructions, &constants, &AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: true,
+            allow_fs_write: false,
+        }).unwrap();
         assert_eq!(result, RelType::Int(15));
     }
 
@@ -214,7 +264,12 @@ mod tests {
         ];
         let constants = vec![RelType::Int(10), RelType::Int(2), RelType::Int(3)];
 
-        let result = vm.run(&instructions, &constants).unwrap();
+        let result = vm.run(&instructions, &constants, &AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: true,
+            allow_fs_write: false,
+        }).unwrap();
         assert_eq!(result, RelType::Int(24));
     }
 
@@ -232,7 +287,12 @@ mod tests {
         ];
         let constants = vec![RelType::Bool(false), RelType::Int(10), RelType::Int(20)];
 
-        let result = vm.run(&instructions, &constants).unwrap();
+        let result = vm.run(&instructions, &constants, &AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: true,
+            allow_fs_write: false,
+        }).unwrap();
         assert_eq!(result, RelType::Int(20));
     }
 
@@ -258,7 +318,12 @@ mod tests {
             RelType::Str("len".to_string()),
         ];
         
-        let result = vm.run(&instructions, &constants).unwrap();
+        let result = vm.run(&instructions, &constants, &AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: true,
+            allow_fs_write: false,
+        }).unwrap();
         assert_eq!(result, RelType::Int(5));
     }
 }

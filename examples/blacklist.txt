@@ -1,0 +1,11 @@
+123456
+password
+admin
+qwerty
+12345678
+1234
+111111
+12345
+123456789
+mysecurepassword
+MySecurePassword123!
