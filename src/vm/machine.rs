@@ -113,7 +113,7 @@ impl VM {
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Bool(a < b)),
                         (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Bool(a < b)),
-                        _ => self.stack.push(RelType::Bool(false)),
+                        _ => return Err("Invalid types for Less comparison".into()),
                     }
                 }
                 OpCode::Greater => {
@@ -122,7 +122,7 @@ impl VM {
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Bool(a > b)),
                         (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Bool(a > b)),
-                        _ => self.stack.push(RelType::Bool(false)),
+                        _ => return Err("Invalid types for Greater comparison".into()),
                     }
                 }
                 OpCode::JumpIfFalse(target_ip) => {
@@ -161,7 +161,7 @@ impl VM {
                     self.ip = *target_ip;
                 }
                 OpCode::SetGlobal(idx) => {
-                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    let val = self.stack.pop().ok_or_else(|| "Stack underflow in SetGlobal".to_string())?;
                     if let Some(RelType::Str(name)) = constants.get(*idx) {
                         self.globals.insert(name.clone(), val);
                     } else {
@@ -223,10 +223,10 @@ impl VM {
                     }
                 }
                 OpCode::ReadFile => {
-                    let path_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let path_val = self.stack.pop().ok_or_else(|| "Stack underflow in ReadFile".to_string())?;
                     if let RelType::Str(path) = path_val {
                         if !permissions.allow_fs_read {
-                            self.stack.push(RelType::Void); // No permission
+                            return Err("Permission Denied: allow_fs_read is false (VM: ReadFile)".into());
                         } else {
                             match ExecutionEngine::validate_fs_path(&path) {
                                 Ok(safe_path) => {
@@ -312,11 +312,11 @@ impl VM {
                     self.stack.pop();
                 }
                 OpCode::Print => {
-                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    let val = self.stack.pop().ok_or_else(|| "Stack underflow in Print".to_string())?;
                     println!("{}", val);
                 }
                 OpCode::Return => {
-                    let ret_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let ret_val = self.stack.pop().ok_or_else(|| "Stack underflow in Return".to_string())?;
                     self.stack.truncate(self.base_pointer); // Clean up the local variables / arguments frame
 
                     if let Some(frame) = self.frames.pop() {

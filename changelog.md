@@ -3,6 +3,25 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v1.0.5] - Sprint 106: Zero Warnings & Strict Compliance (2026-03-19)
+Systematic hardening pass: every VM operation now fails loudly on misuse.
+
+### Fixed — Security
+- **`OpReadFile` full enforcement**: Executing `read_file` without `--allow-read` now returns `Err("Permission Denied: allow_fs_read is false (VM: ReadFile)")` instead of silently pushing `Void`. The VM halts immediately — no data leaks possible.
+
+### Fixed — Stack Safety
+- **`SetGlobal`, `Print`, `Return`**: Replaced `.unwrap_or(Void)` with `.ok_or_else(|| "Stack underflow")?`. Corrupt bytecode can no longer hide by operating on phantom `Void` values.
+- **`Less` / `Greater` type errors**: Comparing incompatible types now returns `Err("Invalid types for Less/Greater comparison")` instead of silently returning `false`.
+
+### Fixed — CLI
+- **`--transpile` flag**: No longer silently ignored. Prints `'--transpile' is not yet connected to the VM pipeline` and exits with code 1.
+
+### Fixed — Cosmetics
+- `let mut previous_local_count` → `let previous_local_count` in `compiler.rs` (Clippy: `unused_mut`).
+- `cargo fix --lib` applied 4 unused-import fixes (`registry.rs`, `window.rs`).
+
+---
+
 ## [v1.0.4] - Sprint 105: The Visual Game Loop (2026-03-19)
 Connected the Dictionary VM, Control Flow Bytecode, and FFI Bridge into a real animation loop.
 

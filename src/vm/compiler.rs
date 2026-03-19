@@ -232,7 +232,7 @@ impl Compiler {
                 
                 // Track execution context (isolate Local variables)
                 self.locals.push(std::collections::HashMap::new());
-                let mut previous_local_count = self.current_local_count;
+                let previous_local_count = self.current_local_count;
                 self.current_local_count = 0;
                 
                 // Assign numerical indices to explicit arguments contextually mapped against base_pointer

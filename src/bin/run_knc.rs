@@ -135,6 +135,11 @@ fn run() {
     let event_loop = builder.build().expect("Failed to create event loop");
 
     // ── Pre-Execution Setup ──────────────────────────────────────────
+    if transpile {
+        eprintln!("'--transpile' is not yet connected to the VM pipeline. Use the default bytecode path.");
+        std::process::exit(1);
+    }
+
     let proxy = event_loop.create_proxy();
     knoten_core::natives::registry::set_render_channel(proxy);
 

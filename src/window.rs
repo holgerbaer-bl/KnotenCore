@@ -1,4 +1,4 @@
-use crate::natives::registry::{RenderCommand, RegistryWindowState, InputState, WindowProxy, CachedMesh, RegistryVertex};
+use crate::natives::registry::{RenderCommand, RegistryWindowState, InputState, CachedMesh};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use winit::application::ApplicationHandler;

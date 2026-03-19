@@ -1,16 +1,14 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
-use wgpu::util::DeviceExt;
 use winit::window::Window as WinitWindow;
 
 use std::collections::HashSet;
 #[cfg(not(target_os = "windows"))]
 use winit::event_loop::EventLoop;
-use winit::keyboard::{KeyCode, PhysicalKey};
+use winit::keyboard::KeyCode;
 
 pub struct InputState {
     pub keys: HashSet<KeyCode>,
