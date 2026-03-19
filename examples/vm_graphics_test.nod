@@ -1,0 +1,25 @@
+print("======================================")
+print("  KnotenCore VM - FFI Graphics Bridge ")
+print("======================================")
+
+let win_handle = registry_create_window(800, 600, "Sprint 101 VM FFI Bridge")
+
+let ticks = 0
+let is_open = true
+
+while (is_open) {
+    is_open = registry_window_update(win_handle)
+    
+    // Fill the screen natively via FFI
+    registry_fill_color(win_handle, 30, 40, 60)
+    
+    ticks = ticks + 1
+    if ticks == 60 {
+        print("VM running flawlessly via FFI Bridge...")
+        ticks = 0
+    }
+}
+
+print("Loop broken. Destroying OS Visual Engine Node.")
+registry_window_close(win_handle)
+print("Memory freed. Boot down.")

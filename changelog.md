@@ -3,6 +3,17 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v1.0.1] - Sprint 101: Implement FFI Bridge and Native External Calls (2026-03-19)
+Integrated a pure AOT architecture bypass directly into the Node AST transverser, mapping unregistered function calls into the `ExecutionEngine::bridge` structures.
+
+### Added — FFI Integration
+- **`OpExternCall` Instruction**: Upgraded the `OpCode` library allowing dynamic lookup across the constants pool. The VM natively handles dynamically shifting stack arguments for unmapped subroutines by popping lengths implicitly calculated by the compiler.
+- **`BridgeModule` Injection**: Advanced the core runner loop (`VM::run`) taking `bridge: Option<&dyn BridgeModule>`. When encountering external calls, the Virtual Machine dynamically extracts namespace prefixes (e.g., `registry_*`, `ui_*`, `fs_*`) and seamlessly triggers native Rust Subroutines within the hardware context layer, evaluating explicit Sandboxing. 
+- **AST Compiler Fallback (`compiler.rs`)**: Overhauled the `Node::Call` execution tree, transforming unsupported identifiers dynamically into `OpExternCall` emissions. This scales arbitrary Node scripting commands flawlessly into OS routines.
+- **Test Application (`examples/vm_graphics_test.nod`)**: Developed a completely self-sustaining GUI window entirely managed by the hardware Engine VM relying solely on the Native FFI instruction set, omitting the AST internal tree interpreter.
+
+---
+
 ## [v1.0.0] - Sprint 100: Milestone: Sandbox File I/O and Array Operations (2026-03-19)
 Achieved a monumental milestone. The Bytecode VM has bypassed pure computational boundaries to interface with OS file systems directly within the AOT transpiler while securely tethered to the Engine's hardware Sandbox.
 

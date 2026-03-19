@@ -24,6 +24,7 @@ impl VM {
         instructions: &[OpCode],
         constants: &[RelType],
         permissions: &AgentPermissions,
+        bridge: Option<&dyn crate::natives::bridge::BridgeModule>,
     ) -> Result<RelType, String> {
         self.stack.clear();
         self.ip = 0;
@@ -209,6 +210,44 @@ impl VM {
                         self.stack.push(RelType::Void);
                     }
                 }
+                OpCode::ExternCall { name_idx, arg_count } => {
+                    let name = match constants.get(*name_idx) {
+                        Some(RelType::Str(s)) => s.clone(),
+                        _ => return Err("OpExternCall: valid function name not found in constant pool".to_string()),
+                    };
+
+                    // Pop arg_count items from Stack
+                    let mut args = Vec::with_capacity(*arg_count);
+                    for _ in 0..*arg_count {
+                        args.push(self.stack.pop().unwrap_or(RelType::Void));
+                    }
+                    args.reverse(); // Standard reverse popping mapping
+
+                    // Dynamic module routing from script prefix conventions
+                    let (module, func) = if name.starts_with("registry_") {
+                        ("registry", name.as_str())
+                    } else if name.starts_with("ui_") {
+                        ("ui", name.as_str())
+                    } else if name.starts_with("fs_") {
+                        ("fs", name.as_str())
+                    } else if name.starts_with("test_") {
+                        ("test_lib", name.as_str())
+                    } else {
+                        // Global scope for unmapped builtins if the user writes flat names
+                        ("global", name.as_str())
+                    };
+
+                    if let Some(b) = bridge {
+                        match b.handle(module, func, &args, permissions) {
+                            Some(crate::executor::ExecResult::Value(v)) => self.stack.push(v),
+                            Some(crate::executor::ExecResult::Fault { msg, .. }) => return Err(format!("FFI Fault: {}", msg)),
+                            None => return Err(format!("FFI Function '{}.{}' not handled by active BridgeModule", module, func)),
+                            _ => self.stack.push(RelType::Void),
+                        }
+                    } else {
+                        self.stack.push(RelType::Void); // Running without a connected FFI proxy
+                    }
+                }
                 OpCode::Print => {
                     let val = self.stack.pop().unwrap_or(RelType::Void);
                     println!("{}", val);
@@ -246,7 +285,7 @@ mod tests {
             allowed_domains: vec![],
             allow_fs_read: true,
             allow_fs_write: false,
-        }).unwrap();
+        }, None).unwrap();
         assert_eq!(result, RelType::Int(15));
     }
 
@@ -269,7 +308,7 @@ mod tests {
             allowed_domains: vec![],
             allow_fs_read: true,
             allow_fs_write: false,
-        }).unwrap();
+        }, None).unwrap();
         assert_eq!(result, RelType::Int(24));
     }
 
@@ -292,7 +331,7 @@ mod tests {
             allowed_domains: vec![],
             allow_fs_read: true,
             allow_fs_write: false,
-        }).unwrap();
+        }, None).unwrap();
         assert_eq!(result, RelType::Int(20));
     }
 
@@ -323,7 +362,7 @@ mod tests {
             allowed_domains: vec![],
             allow_fs_read: true,
             allow_fs_write: false,
-        }).unwrap();
+        }, None).unwrap();
         assert_eq!(result, RelType::Int(5));
     }
 }

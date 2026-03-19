@@ -15,6 +15,7 @@ pub enum OpCode {
     StringSplit,
     ArrayContains,
     ReadFile,
+    ExternCall { name_idx: usize, arg_count: usize },
     SetGlobal(usize),
     GetGlobal(usize),
     Print,

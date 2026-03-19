@@ -151,7 +151,17 @@ impl Compiler {
                         self.instructions.push(OpCode::ReadFile);
                         true
                     }
-                    _ => false, // Fallback for unsupported calls
+                    _ => {
+                        // FFI ExternCall Fallback
+                        // Compile arguments in normal order (left-to-right).
+                        // At runtime, the top of the stack will be the last argument.
+                        for arg in args {
+                            if !self.compile_node(arg) { return false; }
+                        }
+                        let name_idx = self.add_constant(RelType::Str(name.clone()));
+                        self.instructions.push(OpCode::ExternCall { name_idx, arg_count: args.len() });
+                        true
+                    }
                 }
             }
             Node::Print(expr) => {
