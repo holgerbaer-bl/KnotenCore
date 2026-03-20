@@ -13,6 +13,12 @@ pub struct Codegen {
     pub scopes: Vec<HashMap<String, VarKind>>,
 }
 
+impl Default for Codegen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Codegen {
     pub fn new() -> Self {
         Self {
@@ -84,7 +90,7 @@ impl Codegen {
                 if is_root {
                     out.push_str("}\n");
                 } else {
-                    out.push_str("}");
+                    out.push('}');
                 }
                 out
             }
@@ -97,7 +103,7 @@ impl Codegen {
                 let already_exists = self.scopes.iter().any(|s| s.contains_key(name));
 
                 let mut kind = VarKind::Normal;
-                if self.is_handle_expr(&**expr) {
+                if self.is_handle_expr(expr) {
                     if let Node::ArrayCreate(_) = &**expr {
                         kind = VarKind::HandleArray;
                     } else if let Node::Identifier(name) = &**expr {
@@ -203,7 +209,7 @@ impl Codegen {
                 )
             }
             Node::ArraySet(arr, index, val) => {
-                let is_handle = self.is_handle_expr(&**val);
+                let is_handle = self.is_handle_expr(val);
                 let arr_code = self.generate(arr, false);
                 let idx_code = self.generate(index, false);
                 let val_code = self.generate(val, false);
@@ -218,8 +224,8 @@ impl Codegen {
                 }
             }
             Node::ArrayPush(arr, val) => {
-                if self.is_handle_expr(&**val) {
-                    if let Node::Identifier(name) = &**arr {
+                if self.is_handle_expr(val)
+                    && let Node::Identifier(name) = &**arr {
                         for scope in self.scopes.iter_mut().rev() {
                             if scope.contains_key(name) {
                                 scope.insert(name.clone(), VarKind::HandleArray);
@@ -227,7 +233,6 @@ impl Codegen {
                             }
                         }
                     }
-                }
                 format!(
                     "{}.push({})",
                     self.generate(arr, false),
@@ -246,8 +251,8 @@ impl Codegen {
                 )
             }
             Node::MapSet(map, key, val) => {
-                if self.is_handle_expr(&**val) {
-                    if let Node::Identifier(name) = &**map {
+                if self.is_handle_expr(val)
+                    && let Node::Identifier(name) = &**map {
                         for scope in self.scopes.iter_mut().rev() {
                             if scope.contains_key(name) {
                                 scope.insert(name.clone(), VarKind::HandleMap);
@@ -255,7 +260,6 @@ impl Codegen {
                             }
                         }
                     }
-                }
                 format!(
                     "{}.insert({}, {})",
                     self.generate(map, false),

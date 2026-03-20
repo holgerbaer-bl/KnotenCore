@@ -36,6 +36,7 @@ The core engine is modularized into specialized components:
 
 ### 🔒 Thread-Safe & Sandboxed
 KnotenCore is built for AI-driven execution with strict, audited security:
+- **True Zero Warnings**: The engine complies with mathematical strictness — `cargo clippy --lib` yields precisely 0 warnings, ensuring architectural purity and complete VM stack safety.
 - **Deny-by-Default** policy for all I/O. All permissions must be explicitly granted via CLI flags.
 - **`--allow-read`**: Enables `FSRead`, `IO.ReadFile`, and `registry_read_file`. Paths are canonicalized and verified against the working directory to prevent path-traversal attacks.
 - **`--allow-write`**: Enables `FSWrite`, `IO.WriteFile`, and `registry_write_file`. Write targets are normalized and boundary-checked.

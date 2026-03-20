@@ -126,12 +126,11 @@ pub fn emit_dsl(node: &Node, indent: usize) -> String {
             let mut trailing_block = None;
 
             for (i, arg) in args.iter().enumerate() {
-                if i == args.len() - 1 {
-                    if let Node::Block(_) = arg {
+                if i == args.len() - 1
+                    && let Node::Block(_) = arg {
                         trailing_block = Some(emit_dsl(arg, indent));
                         continue;
                     }
-                }
                 arg_strs.push(emit_dsl(arg, indent));
             }
 

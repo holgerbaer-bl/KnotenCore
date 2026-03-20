@@ -5,11 +5,10 @@ use std::collections::HashMap;
 impl ExecutionEngine {
     pub fn evaluate(&mut self, node: &Node) -> ExecResult {
         let res = self.evaluate_inner(node);
-        if let ExecResult::Fault { ref msg, .. } = res {
-            if msg.contains("Permission Denied") || msg.contains("Sandbox") {
+        if let ExecResult::Fault { ref msg, .. } = res
+            && (msg.contains("Permission Denied") || msg.contains("Sandbox")) {
                 self.permission_fault = Some(msg.clone());
             }
-        }
         res
     }
 
@@ -267,7 +266,7 @@ impl ExecutionEngine {
                 ExecResult::Value(last_val)
             }
             Node::Return(expr) => {
-                let v = match self.evaluate_inner(&*expr) { ExecResult::Value(v) => v, err => return err };
+                let v = match self.evaluate_inner(expr) { ExecResult::Value(v) => v, err => return err };
                 ExecResult::ReturnBlockInfo(v)
             }
 
@@ -399,14 +398,13 @@ impl ExecutionEngine {
     }
 
     pub(crate) fn to_vec3(&self, val: RelType) -> Option<[f32; 3]> {
-        if let RelType::Array(arr) = val {
-            if arr.len() >= 3 {
+        if let RelType::Array(arr) = val
+            && arr.len() >= 3 {
                 let x = match arr[0] { RelType::Float(f) => f as f32, RelType::Int(i) => i as f32, _ => 0.0 };
                 let y = match arr[1] { RelType::Float(f) => f as f32, RelType::Int(i) => i as f32, _ => 0.0 };
                 let z = match arr[2] { RelType::Float(f) => f as f32, RelType::Int(i) => i as f32, _ => 0.0 };
                 return Some([x, y, z]);
             }
-        }
         None
     }
 }

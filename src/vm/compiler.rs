@@ -128,7 +128,7 @@ impl Compiler {
                 if !self.compile_node(expr) { return false; }
                 
                 if !self.locals.is_empty() {
-                    let idx = if let Some(idx) = self.resolve_local(&ident) {
+                    let idx = if let Some(idx) = self.resolve_local(ident) {
                         idx
                     } else {
                         // Declare new local
@@ -145,12 +145,11 @@ impl Compiler {
                 true
             }
             Node::Identifier(ident) => {
-                if !self.locals.is_empty() {
-                    if let Some(idx) = self.resolve_local(&ident) {
+                if !self.locals.is_empty()
+                    && let Some(idx) = self.resolve_local(ident) {
                         self.instructions.push(OpCode::GetLocal(idx));
                         return true;
                     }
-                }
                 let idx = self.add_constant(RelType::Str(ident.clone()));
                 self.instructions.push(OpCode::GetGlobal(idx));
                 true

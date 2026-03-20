@@ -191,7 +191,7 @@ unsafe impl Sync for SendVoxelWorld {}
 
 /// Scanline polygon fill for convex polygons (used for isometric cube faces).
 #[allow(dead_code)]
-fn fill_poly(buffer: &mut Vec<u32>, width: usize, height: usize, pts: &[(i32, i32)], color: u32) {
+fn fill_poly(buffer: &mut [u32], width: usize, height: usize, pts: &[(i32, i32)], color: u32) {
     let min_y = pts.iter().map(|&(_, y)| y).min().unwrap_or(0).max(0) as usize;
     let raw_max = pts.iter().map(|&(_, y)| y).max().unwrap_or(0) as usize;
     let max_y = raw_max.min(height.saturating_sub(1));
@@ -232,7 +232,7 @@ fn fill_poly(buffer: &mut Vec<u32>, width: usize, height: usize, pts: &[(i32, i3
 
 /// Isometric projection render — painters-sorted, 3-face-per-voxel.
 #[allow(dead_code)]
-fn iso_render(buffer: &mut Vec<u32>, width: usize, height: usize, voxels: &[[i32; 3]]) {
+fn iso_render(buffer: &mut [u32], width: usize, height: usize, voxels: &[[i32; 3]]) {
     buffer.iter_mut().for_each(|p| *p = 0x0d1b2a); // dark navy background
     let cx = (width as i32) / 2;
     let cy = (height as i32) * 5 / 8;
@@ -641,7 +641,6 @@ pub fn registry_gpu_init() -> i64 {
 
 pub fn registry_fill_color(window_handle: i64, _r: i64, _g: i64, _b: i64) {
     if window_handle < 0 {
-        return;
     }
     // Note: We could send a Command for this too.
 }
@@ -825,6 +824,7 @@ pub fn registry_draw_quad_3d(
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn registry_draw_sphere(
     window_handle: i64,
     texture_handle: i64,
@@ -913,6 +913,7 @@ fn generate_uv_sphere(rings: u32, sectors: u32) -> (Vec<RegistryVertex>, Vec<u32
     (vertices, indices)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn registry_draw_cube(
     window_handle: i64,
     texture_handle: i64,
@@ -949,6 +950,7 @@ pub fn registry_draw_cube(
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn registry_draw_cylinder(
     window_handle: i64,
     texture_handle: i64,
@@ -1035,6 +1037,7 @@ fn generate_cylinder(segments: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
 /// Sprint 85: Generate a unit cube with per-face flat normals.
 fn generate_cube() -> (Vec<RegistryVertex>, Vec<u32>) {
     // 6 faces × 4 vertices = 24 vertices; 6 faces × 2 triangles × 3 = 36 indices
+    #[allow(clippy::type_complexity)]
     let faces: [([f32; 3], [[f32; 3]; 4], [[f32; 2]; 4]); 6] = [
         // +Y top
         ([0.0, 1.0, 0.0],

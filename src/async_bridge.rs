@@ -23,6 +23,12 @@ pub struct AsyncBridge {
     rx_payload: Receiver<FetchPayload>,
 }
 
+impl Default for AsyncBridge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AsyncBridge {
     pub fn new() -> Self {
         let (tx_task, rx_task) = channel::<FetchTask>();

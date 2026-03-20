@@ -140,7 +140,7 @@ impl VM {
                     self.ip = *target_ip;
                 }
                 OpCode::SetLocal(idx) => {
-                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    let val = self.stack.pop().ok_or_else(|| "Stack underflow in SetLocal".to_string())?;
                     let target_idx = self.base_pointer + *idx;
                     // Dynamically allocate stack for isolated variables
                     if target_idx >= self.stack.len() {
@@ -149,7 +149,9 @@ impl VM {
                     self.stack[target_idx] = val;
                 }
                 OpCode::GetLocal(idx) => {
-                    let val = self.stack.get(self.base_pointer + *idx).cloned().unwrap_or(RelType::Void);
+                    let val = self.stack.get(self.base_pointer + *idx)
+                        .cloned()
+                        .ok_or_else(|| format!("Stack underflow in GetLocal({})", idx))?;
                     self.stack.push(val);
                 }
                 OpCode::Call(target_ip, arg_count) => {
@@ -180,16 +182,16 @@ impl VM {
                     }
                 }
                 OpCode::StringLength => {
-                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    let val = self.stack.pop().ok_or_else(|| "Stack underflow in StringLength".to_string())?;
                     if let RelType::Str(s) = val {
                         self.stack.push(RelType::Int(s.chars().count() as i64));
                     } else {
-                        self.stack.push(RelType::Int(0));
+                        return Err("StringLength expects a Str".into());
                     }
                 }
                 OpCode::StringContainsChars => {
-                    let pattern = self.stack.pop().unwrap_or(RelType::Void);
-                    let target = self.stack.pop().unwrap_or(RelType::Void);
+                    let pattern = self.stack.pop().ok_or_else(|| "Stack underflow in StringContainsChars".to_string())?;
+                    let target = self.stack.pop().ok_or_else(|| "Stack underflow in StringContainsChars".to_string())?;
                     if let (RelType::Str(s), RelType::Str(p)) = (target, pattern) {
                         let contains = match p.as_str() {
                             "numbers" => s.chars().any(|c| c.is_ascii_digit()),
@@ -204,8 +206,8 @@ impl VM {
                     }
                 }
                 OpCode::StringSplit => {
-                    let delim = self.stack.pop().unwrap_or(RelType::Void);
-                    let target = self.stack.pop().unwrap_or(RelType::Void);
+                    let delim = self.stack.pop().ok_or_else(|| "Stack underflow in StringSplit".to_string())?;
+                    let target = self.stack.pop().ok_or_else(|| "Stack underflow in StringSplit".to_string())?;
                     if let (RelType::Str(s), RelType::Str(d)) = (target, delim) {
                         let parts = s.split(&d).map(|part| RelType::Str(part.to_string())).collect();
                         self.stack.push(RelType::Array(parts));
@@ -214,8 +216,8 @@ impl VM {
                     }
                 }
                 OpCode::ArrayContains => {
-                    let search = self.stack.pop().unwrap_or(RelType::Void);
-                    let array = self.stack.pop().unwrap_or(RelType::Void);
+                    let search = self.stack.pop().ok_or_else(|| "Stack underflow in ArrayContains".to_string())?;
+                    let array = self.stack.pop().ok_or_else(|| "Stack underflow in ArrayContains".to_string())?;
                     if let (RelType::Array(arr), search_val) = (array, search) {
                         self.stack.push(RelType::Bool(arr.contains(&search_val)));
                     } else {
@@ -293,7 +295,7 @@ impl VM {
                         map_arc.lock().unwrap().insert(k, val);
                         self.stack.push(obj); // Push back the reference
                     } else {
-                        return Err(format!("SetProperty expects (Dict, Str, Any)."));
+                        return Err("SetProperty expects (Dict, Str, Any).".to_string());
                     }
                 }
                 OpCode::GetProperty => {

@@ -54,6 +54,7 @@ impl PartialEq for RelType {
 }
 
 #[derive(Clone)]
+#[derive(Default)]
 pub struct AgentPermissions {
     pub allow_network: bool,
     pub allowed_domains: Vec<String>,
@@ -61,11 +62,6 @@ pub struct AgentPermissions {
     pub allow_fs_write: bool,
 }
 
-impl Default for AgentPermissions {
-    fn default() -> Self {
-        Self { allow_network: false, allowed_domains: Vec::new(), allow_fs_read: false, allow_fs_write: false }
-    }
-}
 
 impl std::fmt::Display for RelType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -240,6 +236,12 @@ impl std::fmt::Display for ExecResult {
     }
 }
 
+impl Default for ExecutionEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExecutionEngine {
     pub fn new() -> Self {
         // ... (truncated for brevity, actual code below)
@@ -279,8 +281,8 @@ impl ExecutionEngine {
         // Walk the call stack from innermost → outermost looking for an existing binding.
         // If found, update in place (assignment to an already-declared variable).
         for frame in self.call_stack.iter_mut().rev() {
-            if frame.locals.contains_key(&name) {
-                frame.locals.insert(name, val);
+            if let Some(v) = frame.locals.get_mut(&name) {
+                *v = val;
                 return;
             }
         }

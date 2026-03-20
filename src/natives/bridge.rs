@@ -126,12 +126,10 @@ impl BridgeModule for CoreBridge {
                     }
                 }
                 "ui_clear" => {
-                    if args.len() == 1 {
-                        if let RelType::Int(c) = &args[0] {
+                    if args.len() == 1 && let RelType::Int(c) = &args[0] {
                             crate::natives::ui::ui_clear(*c);
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] ui_clear expects 1 Int arg (color)".to_string(),
                         node: "Native::Bridge::ui_clear".into()
@@ -245,12 +243,10 @@ impl BridgeModule for CoreBridge {
                     Some(ExecResult::Value(RelType::Bool(open)))
                 }
                 "ui_is_key_down" => {
-                    if args.len() == 1 {
-                        if let RelType::Str(key) = &args[0] {
+                    if args.len() == 1 && let RelType::Str(key) = &args[0] {
                             let down = crate::natives::ui::ui_is_key_down(key.clone());
                             return Some(ExecResult::Value(RelType::Bool(down)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] ui_is_key_down expects 1 String arg".to_string(),
                         node: "Native::Bridge::ui_is_key_down".into()
@@ -271,87 +267,73 @@ impl BridgeModule for CoreBridge {
                             node: "Bridge::fs.fs_read_file".into() 
                         });
                     }
-                    if args.len() == 1 {
-                        if let RelType::Str(path) = &args[0] {
+                    if args.len() == 1 && let RelType::Str(path) = &args[0] {
                             let content = crate::natives::fs::fs_read_file(path.clone());
                             return Some(ExecResult::Value(RelType::Str(content)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] fs_read_file expects 1 String arg (path)".to_string(),
                         node: "Native::Bridge::fs_read_file".into()
                     })
                 }
                 "fs_parse_json" => {
-                    if args.len() == 1 {
-                        if let RelType::Str(json_str) = &args[0] {
+                    if args.len() == 1 && let RelType::Str(json_str) = &args[0] {
                             let result = crate::natives::fs::fs_parse_json(json_str);
                             return Some(ExecResult::Value(result));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] fs_parse_json expects 1 String arg (json)".to_string(),
                         node: "Native::Bridge::fs_parse_json".into()
                     })
                 }
                 "obj_has_key" => {
-                    if args.len() == 2 {
-                        if let (RelType::Object(map), RelType::Str(key)) = (&args[0], &args[1]) {
+                    if args.len() == 2 && let (RelType::Object(map), RelType::Str(key)) = (&args[0], &args[1]) {
                             return Some(ExecResult::Value(RelType::Bool(map.contains_key(key))));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] obj_has_key expects (Object, String)".to_string(),
                         node: "Native::Bridge::obj_has_key".into()
                     })
                 }
                 "obj_set" => {
-                    if args.len() == 3 {
-                        if let (RelType::Object(map), RelType::Str(key)) = (&args[0], &args[1]) {
+                    if args.len() == 3 && let (RelType::Object(map), RelType::Str(key)) = (&args[0], &args[1]) {
                             let mut new_map = map.clone();
                             new_map.insert(key.clone(), args[2].clone());
                             return Some(ExecResult::Value(RelType::Object(new_map)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] obj_set expects (Object, String, Any)".to_string(),
                         node: "Native::Bridge::obj_set".into()
                     })
                 }
                 "obj_get" => {
-                    if args.len() == 2 {
-                        if let (RelType::Object(map), RelType::Str(key)) = (&args[0], &args[1]) {
+                    if args.len() == 2 && let (RelType::Object(map), RelType::Str(key)) = (&args[0], &args[1]) {
                             return Some(ExecResult::Value(
                                 map.get(key).cloned().unwrap_or(RelType::Void),
                             ));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] obj_get expects (Object, String)".to_string(),
                         node: "Native::Bridge::obj_get".into()
                     })
                 }
                 "array_length" => {
-                    if args.len() == 1 {
-                        if let RelType::Array(arr) = &args[0] {
+                    if args.len() == 1 && let RelType::Array(arr) = &args[0] {
                             return Some(ExecResult::Value(RelType::Int(arr.len() as i64)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] array_length expects 1 Array arg".to_string(),
                         node: "Native::Bridge::array_length".into()
                     })
                 }
                 "array_get" => {
-                    if args.len() == 2 {
-                        if let (RelType::Array(arr), RelType::Int(idx)) = (&args[0], &args[1]) {
+                    if args.len() == 2 && let (RelType::Array(arr), RelType::Int(idx)) = (&args[0], &args[1]) {
                             let i = *idx as usize;
                             if i < arr.len() {
                                 return Some(ExecResult::Value(arr[i].clone()));
                             }
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] array_get expects (Array, Int)".to_string(),
                         node: "Native::Bridge::array_get".into()
@@ -366,68 +348,57 @@ impl BridgeModule for CoreBridge {
                     Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))))
                 }
                 "registry_increment" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_increment(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_increment expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_increment".into()
                     })
                 }
                 "registry_get_value" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             let val = crate::natives::registry::registry_get_value(*id);
                             return Some(ExecResult::Value(RelType::Int(val)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_get_value expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_get_value".into()
                     })
                 }
                 "registry_free" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_free(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_free expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_free".into()
                     })
                 }
                 "registry_retain" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_retain(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_retain expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_retain".into()
                     })
                 }
                 "registry_release" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_release(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_release expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_release".into()
                     })
                 }
                 "registry_create_window" => {
-                    if args.len() == 3 {
-                        if let (RelType::Int(w), RelType::Int(h), RelType::Str(title)) =
+                    if args.len() == 3 && let (RelType::Int(w), RelType::Int(h), RelType::Str(title)) =
                             (&args[0], &args[1], &args[2])
                         {
                             let id = crate::natives::registry::registry_create_window(
@@ -437,31 +408,26 @@ impl BridgeModule for CoreBridge {
                             );
                             return Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_create_window expects (Int, Int, String)".to_string(),
                         node: "Native::Bridge::registry_create_window".into()
                     })
                 }
                 "registry_window_update" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             let open = crate::natives::registry::registry_window_update(*id);
                             return Some(ExecResult::Value(RelType::Bool(open)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_window_update expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_window_update".into()
                     })
                 }
                 "registry_window_close" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             crate::natives::registry::registry_window_close(*id);
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_window_close expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_window_close".into()
@@ -478,12 +444,10 @@ impl BridgeModule for CoreBridge {
                             node: "Bridge::registry.registry_file_create".into() 
                         });
                     }
-                    if args.len() == 1 {
-                        if let RelType::Str(path) = &args[0] {
+                    if args.len() == 1 && let RelType::Str(path) = &args[0] {
                             let id = crate::natives::registry::registry_file_create(path.clone());
                             return Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_file_create expects 1 String arg".to_string(),
                         node: "Native::Bridge::registry_file_create".into()
@@ -496,12 +460,10 @@ impl BridgeModule for CoreBridge {
                             node: "Bridge::registry.registry_file_write".into() 
                         });
                     }
-                    if args.len() == 2 {
-                        if let (RelType::Handle(crate::executor::NativeHandle(id)), RelType::Str(content)) = (&args[0], &args[1]) {
+                    if args.len() == 2 && let (RelType::Handle(crate::executor::NativeHandle(id)), RelType::Str(content)) = (&args[0], &args[1]) {
                             crate::natives::registry::registry_file_write(*id, content.clone());
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_file_write expects (Handle, String)".to_string(),
                         node: "Native::Bridge::registry_file_write".into()
@@ -512,12 +474,10 @@ impl BridgeModule for CoreBridge {
                     Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))))
                 }
                 "registry_elapsed_ms" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0] {
                             let ms = crate::natives::registry::registry_elapsed_ms(*id);
                             return Some(ExecResult::Value(RelType::Int(ms)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_elapsed_ms expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_elapsed_ms".into()
@@ -528,8 +488,7 @@ impl BridgeModule for CoreBridge {
                     Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))))
                 }
                 "registry_fill_color" => {
-                    if args.len() == 4 {
-                        if let (
+                    if args.len() == 4 && let (
                             RelType::Handle(crate::executor::NativeHandle(win)),
                             RelType::Int(r),
                             RelType::Int(g),
@@ -539,15 +498,13 @@ impl BridgeModule for CoreBridge {
                             crate::natives::registry::registry_fill_color(*win, *r, *g, *b);
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_fill_color expects (Handle, Int, Int, Int)".to_string(),
                         node: "Native::Bridge::registry_fill_color".into()
                     })
                 }
                 "registry_voxel_world_create" => {
-                    if args.len() == 3 {
-                        if let (RelType::Int(w), RelType::Int(h), RelType::Str(title)) =
+                    if args.len() == 3 && let (RelType::Int(w), RelType::Int(h), RelType::Str(title)) =
                             (&args[0], &args[1], &args[2])
                         {
                             let id = crate::natives::registry::registry_voxel_world_create(
@@ -557,15 +514,13 @@ impl BridgeModule for CoreBridge {
                             );
                             return Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_voxel_world_create expects (Int, Int, String)".to_string(),
                         node: "Native::Bridge::registry_voxel_world_create".into()
                     })
                 }
                 "registry_voxel_add_block" => {
-                    if args.len() == 4 {
-                        if let (
+                    if args.len() == 4 && let (
                             RelType::Handle(crate::executor::NativeHandle(world)),
                             RelType::Int(x),
                             RelType::Int(y),
@@ -575,7 +530,6 @@ impl BridgeModule for CoreBridge {
                             crate::natives::registry::registry_voxel_add_block(*world, *x, *y, *z);
                             return Some(ExecResult::Value(RelType::Void));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_voxel_add_block expects (Handle, Int, Int, Int)"
                             .to_string(),
@@ -583,13 +537,11 @@ impl BridgeModule for CoreBridge {
                     })
                 }
                 "registry_voxel_render_frame" => {
-                    if args.len() == 1 {
-                        if let RelType::Handle(crate::executor::NativeHandle(world)) = &args[0] {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(world)) = &args[0] {
                             let open =
                                 crate::natives::registry::registry_voxel_render_frame(*world);
                             return Some(ExecResult::Value(RelType::Bool(open)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_voxel_render_frame expects 1 Handle arg".to_string(),
                         node: "Native::Bridge::registry_voxel_render_frame".into()
@@ -602,12 +554,10 @@ impl BridgeModule for CoreBridge {
                             node: "Bridge::registry.registry_texture_load".into() 
                         });
                     }
-                    if args.len() == 1 {
-                        if let RelType::Str(path) = &args[0] {
+                    if args.len() == 1 && let RelType::Str(path) = &args[0] {
                             let id = crate::natives::registry::registry_texture_load(path.clone());
                             return Some(ExecResult::Value(RelType::Handle(crate::executor::NativeHandle(id))));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_texture_load expects 1 String arg".to_string(),
                         node: "Native::Bridge::registry_texture_load".into()
@@ -622,22 +572,20 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0] {
-                            if let (Some(x), Some(y), Some(z), Some(sx), Some(sy)) = (
+                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                            && let (Some(x), Some(y), Some(z), Some(sx), Some(sy)) = (
                                 get_float(&args[2]),
                                 get_float(&args[3]),
                                 get_float(&args[4]),
                                 get_float(&args[5]),
                                 get_float(&args[6]),
-                            ) {
-                                if let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1] {
+                            )
+                                && let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1] {
                                     crate::natives::registry::registry_draw_quad_3d(
                                         *win, *tex, x, y, z, sx, sy,
                                     );
                                     return Some(ExecResult::Value(RelType::Void));
                                 }
-                            }
-                        }
                     }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_draw_quad_3d expects (Handle, Handle, Float, Float, Float, Float, Float)"
@@ -661,9 +609,9 @@ impl BridgeModule for CoreBridge {
                             }
                         };
 
-                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0] {
-                            if let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1] {
-                                if let (Some(r), Some(rings), Some(sectors), Some(x), Some(y), Some(z)) = (
+                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                            && let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1]
+                                && let (Some(r), Some(rings), Some(sectors), Some(x), Some(y), Some(z)) = (
                                     get_float(&args[2]),
                                     get_int(&args[3]),
                                     get_int(&args[4]),
@@ -676,8 +624,6 @@ impl BridgeModule for CoreBridge {
                                     );
                                     return Some(ExecResult::Value(RelType::Void));
                                 }
-                            }
-                        }
                     }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_draw_sphere expects (Handle win, Handle tex, Float r, Int rings, Int sectors, Float x, Float y, Float z)"
@@ -694,8 +640,8 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let (RelType::Handle(crate::executor::NativeHandle(win)), RelType::Handle(crate::executor::NativeHandle(tex))) = (&args[0], &args[1]) {
-                            if let (Some(w), Some(h), Some(d), Some(x), Some(y), Some(z)) = (
+                        if let (RelType::Handle(crate::executor::NativeHandle(win)), RelType::Handle(crate::executor::NativeHandle(tex))) = (&args[0], &args[1])
+                            && let (Some(w), Some(h), Some(d), Some(x), Some(y), Some(z)) = (
                                 get_float(&args[2]),
                                 get_float(&args[3]),
                                 get_float(&args[4]),
@@ -708,7 +654,6 @@ impl BridgeModule for CoreBridge {
                                 );
                                 return Some(ExecResult::Value(RelType::Void));
                             }
-                        }
                     }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_draw_cube expects (Handle win, Handle tex, Float w, Float h, Float d, Float x, Float y, Float z)"
@@ -731,8 +676,8 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let (RelType::Handle(crate::executor::NativeHandle(win)), RelType::Handle(crate::executor::NativeHandle(tex))) = (&args[0], &args[1]) {
-                            if let (Some(r), Some(h), Some(s), Some(x), Some(y), Some(z)) = (
+                        if let (RelType::Handle(crate::executor::NativeHandle(win)), RelType::Handle(crate::executor::NativeHandle(tex))) = (&args[0], &args[1])
+                            && let (Some(r), Some(h), Some(s), Some(x), Some(y), Some(z)) = (
                                 get_float(&args[2]),
                                 get_float(&args[3]),
                                 get_int(&args[4]),
@@ -745,7 +690,6 @@ impl BridgeModule for CoreBridge {
                                 );
                                 return Some(ExecResult::Value(RelType::Void));
                             }
-                        }
                     }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_draw_cylinder expects (Handle win, Handle tex, Float r, Float h, Int segments, Float x, Float y, Float z)"
@@ -762,8 +706,8 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0] {
-                            if let (Some(x), Some(y)) = (
+                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                            && let (Some(x), Some(y)) = (
                                 get_float(&args[1]),
                                 get_float(&args[2]),
                             ) {
@@ -772,7 +716,6 @@ impl BridgeModule for CoreBridge {
                                 );
                                 return Some(ExecResult::Value(RelType::Void));
                             }
-                        }
                     }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_draw_entity expects (Handle win, Float x, Float y)".to_string(),
@@ -814,8 +757,8 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let RelType::Handle(crate::executor::NativeHandle(win_id)) = &args[0] {
-                            if let (Some(fov), Some(x), Some(y), Some(z)) = (
+                        if let RelType::Handle(crate::executor::NativeHandle(win_id)) = &args[0]
+                            && let (Some(fov), Some(x), Some(y), Some(z)) = (
                                 get_float(&args[1]),
                                 get_float(&args[2]),
                                 get_float(&args[3]),
@@ -826,7 +769,6 @@ impl BridgeModule for CoreBridge {
                                 );
                                 return Some(ExecResult::Value(RelType::Void));
                             }
-                        }
                     }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_set_camera_for_window expects (Handle win, Float fov, Float x, Float y, Float z)"
@@ -835,12 +777,10 @@ impl BridgeModule for CoreBridge {
                     })
                 }
                 "registry_is_key_pressed" => {
-                    if args.len() == 1 {
-                        if let RelType::Int(code) = &args[0] {
+                    if args.len() == 1 && let RelType::Int(code) = &args[0] {
                             let pressed = crate::natives::registry::registry_is_key_pressed(*code);
                             return Some(ExecResult::Value(RelType::Float(pressed as f64)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_is_key_pressed expects 1 Int arg".to_string(),
                         node: "Native::Bridge::registry_is_key_pressed".into()
@@ -883,12 +823,10 @@ impl BridgeModule for CoreBridge {
                             node: "Bridge::registry.registry_read_file".into() 
                         });
                     }
-                    if args.len() == 1 {
-                        if let RelType::Str(path) = &args[0] {
+                    if args.len() == 1 && let RelType::Str(path) = &args[0] {
                             let content = crate::natives::registry::registry_read_file(path.clone());
                             return Some(ExecResult::Value(RelType::Str(content)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_read_file expects 1 String arg".to_string(),
                         node: "Native::Bridge::registry_read_file".into()
@@ -901,12 +839,10 @@ impl BridgeModule for CoreBridge {
                             node: "Bridge::registry.registry_write_file".into() 
                         });
                     }
-                    if args.len() == 2 {
-                        if let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1]) {
+                    if args.len() == 2 && let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1]) {
                             let ok = crate::natives::registry::registry_write_file(path.clone(), content.clone());
                             return Some(ExecResult::Value(RelType::Bool(ok)));
                         }
-                    }
                     Some(ExecResult::Fault {
                         msg: "[FFI] registry_write_file expects (String, String)".to_string(),
                         node: "Native::Bridge::registry_write_file".into()

@@ -704,9 +704,7 @@ impl TypeChecker {
                 let lt = self.check(l)?;
                 let rt = self.check(r)?;
                 if lt == Type::Handle || rt == Type::Handle {
-                    self.errors.push(format!(
-                        "TypeError: Cannot perform mathematics on Handle pointers"
-                    ));
+                    self.errors.push("TypeError: Cannot perform mathematics on Handle pointers".to_string());
                 }
                 if lt != rt && lt != Type::Any && rt != Type::Any {
                     self.errors

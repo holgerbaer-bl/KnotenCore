@@ -5,7 +5,6 @@ use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window as WinitWindow, WindowId};
-use wgpu::util::DeviceExt;
 
 pub struct KnotenApp {
     pub windows: HashMap<usize, RegistryWindowState>,
