@@ -549,7 +549,23 @@ impl BridgeModule for CoreBridge {
                 }
                 "registry_is_key_pressed" => {
                     if args.len() == 1 && let RelType::Str(key) = &args[0] {
-                        let pressed = crate::natives::registry::registry_is_key_pressed(key.clone());
+                        let idx = match key.as_str() {
+                            "W" => Some(1),
+                            "A" => Some(2),
+                            "S" => Some(3),
+                            "D" => Some(4),
+                            "SPACE" => Some(5),
+                            "UP" => Some(6),
+                            "DOWN" => Some(7),
+                            "LEFT" => Some(8),
+                            "RIGHT" => Some(9),
+                            _ => None,
+                        };
+                        let pressed = if let Some(i) = idx {
+                            crate::natives::registry::GLOBAL_KEYS[i].load(std::sync::atomic::Ordering::Relaxed)
+                        } else {
+                            false
+                        };
                         return Some(ExecResult::Value(RelType::Bool(pressed)));
                     }
                     Some(ExecResult::Fault {

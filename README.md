@@ -146,6 +146,13 @@ This confirms that the engine correctly identifies the failing AST node and repo
 
 ---
 
+## Lock-Free Input Architecture — Sprint 109
+KnotenCore features a **Zero-Allocation Lock-Free Input System** designed for high-performance agentic environments. 
+Instead of heap-allocating strings or locking mutexes on hardware interrupts, Winit keystrokes are perfectly mapped via `AtomicBool` indices. 
+This $O(1)$ zero-allocation lock-free static array enables scripts to repeatedly poll hardware states (`registry_is_key_pressed("W")`) without triggering memory fragmentation or thread contention.
+
+---
+
 ## Interactive Game Loop — Sprint 108
 KnotenCore now supports real-time hardware input processing directly via FFI:
 

@@ -3,6 +3,16 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v1.0.8] - Sprint 109: Lock-Free Input & Zero Allocations (2026-03-22)
+Refactored the MVP Input Handling system into a massively performant, lock-free architecture utilizing zero heap allocations.
+
+### Added — High-Performance Input Architecture
+- **Lock-Free State Array**: Replaced the previous `OnceLock<Arc<Mutex<HashSet<String>>>>` with a `static GLOBAL_KEYS: [AtomicBool; 256]`. Hardware inputs are tracked without locking synchronization or heap fragmentation.
+- **Zero-Allocation Event Loop**: In `src/window.rs`, `VirtualKeyCode` inputs are deterministically mapped to fixed integer indices (0-255). Winit states are stored directly using `Ordering::Relaxed`.
+- **High-Performance FFI Bridge**: `registry_is_key_pressed` in the FFI bridge now parses the AST string arguments exactly once natively mapping to index positions, securely executing $O(1)$ lock-free boolean load calls. String cloning and collection allocations are entirely eradicated.
+
+---
+
 ## [v1.0.7] - Sprint 108: Input Handling & Interactivity (2026-03-22)
 Transformed the engine from a static renderer into an interactive 3D script host by coupling Winit keyboard events with the FFI bridge.
 

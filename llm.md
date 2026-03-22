@@ -252,7 +252,7 @@ Filesystem operations (including DSL nodes `FileRead`, `FileWrite`, `FSRead`, `F
 
 ## Keyboard Inputs & Interactivity
 
-KnotenCore VMs intercept `winit` window events automatically and route them to a thread-safe global `OnceLock`. You can poll the current state of any key at `O(1)` directly from a `.nod` script using the native `registry_is_key_pressed` FFI hook. 
+KnotenCore VMs intercept `winit` window events automatically and route them to a thread-safe, zero-allocation lock-free static array of `AtomicBool`s. You can poll the current state of any key at `O(1)` directly from a `.nod` script using the native `registry_is_key_pressed` FFI hook without triggering thread contention or heap allocations.
 
 **Supported Key Arguments:** 
 Standard physical keys correspond to uppercase strings (`"W"`, `"A"`, `"S"`, `"D"`, `"SPACE"`, `"UP"`, `"DOWN"`, `"LEFT"`, `"RIGHT"`, etc.).

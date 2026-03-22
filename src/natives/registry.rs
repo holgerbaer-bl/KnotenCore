@@ -10,19 +10,9 @@ use std::collections::HashSet;
 use winit::event_loop::EventLoop;
 use winit::keyboard::KeyCode;
 
-use std::sync::OnceLock;
+use std::sync::atomic::AtomicBool;
 
-pub static GLOBAL_INPUT_STATE: OnceLock<Arc<Mutex<HashSet<String>>>> = OnceLock::new();
-
-pub fn get_global_input_state() -> Arc<Mutex<HashSet<String>>> {
-    GLOBAL_INPUT_STATE.get_or_init(|| Arc::new(Mutex::new(HashSet::new()))).clone()
-}
-
-pub fn registry_is_key_pressed(key: String) -> bool {
-    let state = get_global_input_state();
-    let lock = state.lock().unwrap();
-    lock.contains(&key)
-}
+pub static GLOBAL_KEYS: [AtomicBool; 256] = [const { AtomicBool::new(false) }; 256];
 
 pub struct InputState {
     pub keys: HashSet<KeyCode>,

@@ -401,28 +401,25 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                         input.keys.remove(&code);
                     }
 
-                    // Sprint 108: Update global string map for FFI VM access
-                    let key_str = match code {
-                        winit::keyboard::KeyCode::KeyW => Some("W"),
-                        winit::keyboard::KeyCode::KeyA => Some("A"),
-                        winit::keyboard::KeyCode::KeyS => Some("S"),
-                        winit::keyboard::KeyCode::KeyD => Some("D"),
-                        winit::keyboard::KeyCode::Space => Some("SPACE"),
-                        winit::keyboard::KeyCode::ArrowUp => Some("UP"),
-                        winit::keyboard::KeyCode::ArrowDown => Some("DOWN"),
-                        winit::keyboard::KeyCode::ArrowLeft => Some("LEFT"),
-                        winit::keyboard::KeyCode::ArrowRight => Some("RIGHT"),
+                    // Sprint 109: Lock-free global input array
+                    let key_idx = match code {
+                        winit::keyboard::KeyCode::KeyW => Some(1),
+                        winit::keyboard::KeyCode::KeyA => Some(2),
+                        winit::keyboard::KeyCode::KeyS => Some(3),
+                        winit::keyboard::KeyCode::KeyD => Some(4),
+                        winit::keyboard::KeyCode::Space => Some(5),
+                        winit::keyboard::KeyCode::ArrowUp => Some(6),
+                        winit::keyboard::KeyCode::ArrowDown => Some(7),
+                        winit::keyboard::KeyCode::ArrowLeft => Some(8),
+                        winit::keyboard::KeyCode::ArrowRight => Some(9),
                         _ => None,
                     };
 
-                    if let Some(s) = key_str {
-                        let global_input = crate::natives::registry::get_global_input_state();
-                        let mut glock = global_input.lock().unwrap();
-                        if key_ev.state == winit::event::ElementState::Pressed {
-                            glock.insert(s.to_string());
-                        } else {
-                            glock.remove(s);
-                        }
+                    if let Some(idx) = key_idx {
+                        crate::natives::registry::GLOBAL_KEYS[idx].store(
+                            key_ev.state == winit::event::ElementState::Pressed,
+                            std::sync::atomic::Ordering::Relaxed
+                        );
                     }
                 }
             }
