@@ -368,6 +368,15 @@ impl Parser {
                 self.expect(Token::Semi);
                 Node::Return(Box::new(expr))
             }
+            Token::KeywordImport => {
+                self.advance();
+                let file_path = match self.advance() {
+                    Token::Str(s) => s,
+                    _ => self.diagnostic_panic("Expected string literal after import"),
+                };
+                self.expect(Token::Semi);
+                Node::Import(file_path)
+            }
             Token::LBrace => self.parse_block(),
             _ => {
                 let expr = self.parse_expression();

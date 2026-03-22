@@ -146,11 +146,17 @@ fn run() {
     let ast_arc = Arc::new(ast);
     let ast_for_thread = ast_arc.clone();
     let thread_engine = engine; // Move the engine with set permissions
+    let file_path_clone = file_path.clone();
 
     std::thread::Builder::new()
         .stack_size(8 * 1024 * 1024)
         .spawn(move || {
             let mut compiler = knoten_core::vm::compiler::Compiler::new();
+            if let Some(parent) = std::path::Path::new(&file_path_clone).parent() {
+                if !parent.as_os_str().is_empty() {
+                    compiler.current_dir = parent.to_path_buf();
+                }
+            }
             if !compiler.compile_node(&ast_for_thread) {
                 eprintln!("\n[VM Crash] AST transpilation validation natively failed inline.");
                 std::process::exit(1);

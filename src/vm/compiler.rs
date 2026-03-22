@@ -9,6 +9,8 @@ pub struct Compiler {
     pub functions: std::collections::HashMap<String, usize>,
     pub locals: Vec<std::collections::HashMap<String, usize>>,
     pub current_local_count: usize,
+    pub imported_files: std::collections::HashSet<String>,
+    pub current_dir: std::path::PathBuf,
 }
 
 impl Compiler {
@@ -19,6 +21,8 @@ impl Compiler {
             functions: std::collections::HashMap::new(),
             locals: Vec::new(),
             current_local_count: 0,
+            imported_files: std::collections::HashSet::new(),
+            current_dir: std::env::current_dir().unwrap_or_default(),
         }
     }
 
@@ -279,6 +283,44 @@ impl Compiler {
                 self.instructions.push(OpCode::SetProperty); // Pushes Modified Object
                 self.instructions.push(OpCode::Pop);          // Discard dict ref — stack hygiene
                 true
+            }
+            Node::Import(file_path) => {
+                let path = self.current_dir.join(file_path);
+                let Ok(abs_path) = std::fs::canonicalize(&path) else {
+                    eprintln!("AOT Compiler Error: Cannot resolve import path: {}", path.display());
+                    return false;
+                };
+                
+                let path_str = abs_path.to_string_lossy().to_string();
+                if self.imported_files.contains(&path_str) {
+                    return true; // Prevent circular dependencies / duplicate imports
+                }
+                self.imported_files.insert(path_str);
+                
+                let source = match std::fs::read_to_string(&abs_path) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("AOT Compiler Error: Cannot read file {}: {}", abs_path.display(), e);
+                        return false;
+                    }
+                };
+                
+                let mut parser = crate::parser::Parser::new(&source);
+                let child_ast = parser.parse();
+                
+                // Track execution context (isolate Local variables) but share Functions and Globals
+                let old_dir = self.current_dir.clone();
+                if let Some(parent) = abs_path.parent() {
+                    self.current_dir = parent.to_path_buf();
+                }
+                
+                let success = self.compile_node(&child_ast);
+                self.current_dir = old_dir;
+                
+                if !success {
+                    eprintln!("AOT Compiler Error: Failed to link imported file {}", abs_path.display());
+                }
+                success
             }
             _ => false,
         }

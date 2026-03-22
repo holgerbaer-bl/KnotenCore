@@ -3,6 +3,16 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v1.0.9] - Sprint 110: AOT Module Linking and Import System (2026-03-22)
+Transformed KnotenCore into an enterprise-scalable General-Purpose Language by introducing Ahead-Of-Time Module Linking. The compiler now seamlessly bridges segmented scripts.
+
+### Added — AOT Module Linking
+- **`Token::KeywordImport`**: Expanded the Lexer and Parser natively analyzing `import "module.nod";` directly via the AST as a `Node::Import(String)`.
+- **Recursive AOT Composition**: The Bytecode Compiler now intercepts `Node::Import`, reading from the local disk and resolving the absolute path. It instantly links the lexed child AST instructions synchronously into the primary execution stack without dropping context. 
+- **Circular Dependency Protection**: The engine maintains an `imported_files` HashSet, actively blocking recursive `A imports B -> B imports A` end-of-memory cascades during AOT transpilation.
+
+---
+
 ## [v1.0.8] - Sprint 109: Lock-Free Input & Zero Allocations (2026-03-22)
 Refactored the MVP Input Handling system into a massively performant, lock-free architecture utilizing zero heap allocations.
 
