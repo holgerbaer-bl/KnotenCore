@@ -3,6 +3,16 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v1.0.10] - Sprint 111: The Standard Library (StdLib) Core (2026-03-22)
+Established the official overarching Standard Library. By leveraging the AOT infrastructure from Sprint 110, we've deployed isolated `core/` modules resolving elegantly bypassing directory trees.
+
+### Added — The Standard Library (`core/`)
+- **`core/math.nod`**: Bundles universally expected math logic explicitly written in native code natively evaluated (`abs`, `min`, `max`, `clamp`).
+- **`core/system.nod`**: Safely packages generic OS integrations. Includes `is_pressed(key)` as an idiomatic functional wrapper abstracting explicit `registry_is_key_pressed` FFI.
+- **Global Path Resolution**: Extended the `Compiler` AOT file-resolver natively detecting `"core/"` module directives rendering execution flawlessly ubiquitous globally. 
+
+---
+
 ## [v1.0.9] - Sprint 110: AOT Module Linking and Import System (2026-03-22)
 Transformed KnotenCore into an enterprise-scalable General-Purpose Language by introducing Ahead-Of-Time Module Linking. The compiler now seamlessly bridges segmented scripts.
 

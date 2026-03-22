@@ -285,7 +285,12 @@ impl Compiler {
                 true
             }
             Node::Import(file_path) => {
-                let path = self.current_dir.join(file_path);
+                let path = if file_path.starts_with("core/") || file_path.starts_with("core\\") {
+                    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(file_path)
+                } else {
+                    self.current_dir.join(file_path)
+                };
+
                 let Ok(abs_path) = std::fs::canonicalize(&path) else {
                     eprintln!("AOT Compiler Error: Cannot resolve import path: {}", path.display());
                     return false;

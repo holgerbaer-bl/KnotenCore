@@ -72,10 +72,22 @@ graph TD
     B -.->|JSON Diagnostic Log| I[AI Agent Self-Healing Loop]
 ```
 
-#### AOT Module Linking & Import System — Sprint 110
-KnotenCore serves as a strictly typed **General-Purpose Language** powered by seamless Ahead-Of-Time Module Linking. Scripts dynamically import other `.nod` and `.knoten` artifacts into their global execution environments using the `import "module.nod";` keyword.
+#### Core Standard Library (StdLib) & AOT Linking — Sprint 110 / 111
+KnotenCore serves as a strictly typed **General-Purpose Language** powered by seamless Ahead-Of-Time Module Linking. Scripts dynamically import other `.nod` and `.knoten` artifacts into their global execution environments using the `import "core/module.nod";` keyword.
 
-The core architecture natively protects against Circular Dependencies and evaluates the imported Abstract Syntax Trees directly into the primary contiguous bytecode stream before a single native machine pulse executes. This transforms atomic scripts into enterprise-scalable agentic deployments natively across the VM.
+**Example: StdLib Event Polling:**
+```javascript
+import "core/system.nod";
+import "core/math.nod";
+
+while (true) {
+    if (is_pressed("W")) {
+        // Native idiomatic system wrapper
+    }
+}
+```
+
+The core architecture natively protects against Circular Dependencies and evaluates the imported Abstract Syntax Trees directly into the primary contiguous bytecode stream before a single native machine pulse executes. The compiler inherently resolves `"core/..."` directives globally to natively expose the unified Standard Library anywhere.
 
 High-level UI declarations remain in the AST (JIT). Intensive mathematical expressions bypass the tree evaluator and compile directly into flat **Opcodes** for a Register VM. The AOT pipeline leverages **LLVM Constant Folding** — pure computation loops that evaluate to a constant at compile time are entirely eliminated in the release binary.
 

@@ -1,0 +1,3 @@
+fn is_pressed(key) {
+    return registry_is_key_pressed(key);
+}
