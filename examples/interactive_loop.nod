@@ -1,0 +1,38 @@
+// Sprint 108: Interactive Game Loop
+// WASD Steuerung für das Entity
+
+let math_pi = 3.14159265;
+
+let win = registry_create_window("KnotenCore - Interactive Loop", 800, 600);
+let tex = registry_texture_load("assets/textures/uv_checker.png");
+
+// 60 Grad FOV, Kamera auf (0, 0, 10)
+registry_set_camera_for_window(win, 60.0, 0.0, 0.0, 10.0);
+
+let player = {
+    x: 0.0,
+    y: 0.0,
+    speed: 0.1
+};
+
+// Main Game Loop (1000 iterationen für den Showcase)
+let i = 0;
+while (i < 1000) {
+    if (registry_is_key_pressed("W")) {
+        player.y = player.y + player.speed;
+    }
+    if (registry_is_key_pressed("S")) {
+        player.y = player.y - player.speed;
+    }
+    if (registry_is_key_pressed("A")) {
+        player.x = player.x - player.speed;
+    }
+    if (registry_is_key_pressed("D")) {
+        player.x = player.x + player.speed;
+    }
+
+    registry_draw_cube(win, tex, player.x, player.y, 0.0, 1.0, 1.0, 1.0);
+    
+    registry_window_render_frame(win);
+    i = i + 1;
+}

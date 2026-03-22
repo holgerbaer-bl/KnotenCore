@@ -10,6 +10,20 @@ use std::collections::HashSet;
 use winit::event_loop::EventLoop;
 use winit::keyboard::KeyCode;
 
+use std::sync::OnceLock;
+
+pub static GLOBAL_INPUT_STATE: OnceLock<Arc<Mutex<HashSet<String>>>> = OnceLock::new();
+
+pub fn get_global_input_state() -> Arc<Mutex<HashSet<String>>> {
+    GLOBAL_INPUT_STATE.get_or_init(|| Arc::new(Mutex::new(HashSet::new()))).clone()
+}
+
+pub fn registry_is_key_pressed(key: String) -> bool {
+    let state = get_global_input_state();
+    let lock = state.lock().unwrap();
+    lock.contains(&key)
+}
+
 pub struct InputState {
     pub keys: HashSet<KeyCode>,
     pub mouse_dx: f32,
@@ -1105,23 +1119,7 @@ pub fn registry_set_camera_for_window(window_id: i64, fov_degrees: f32, cam_x: f
     });
 }
 
-pub fn registry_is_key_pressed(keycode: i64) -> f32 {
-    let mut pressed = false;
-    with_registry(|registry| {
-        for entry in registry.values() {
-            if let NativeHandle::Window(proxy) = &entry.handle {
-                let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
-                for k in &input.keys {
-                    if *k as i64 == keycode {
-                        pressed = true;
-                        break;
-                    }
-                }
-            }
-        }
-    });
-    if pressed { 1.0 } else { 0.0 }
-}
+
 
 pub fn registry_get_mouse_delta_x() -> f32 {
     let mut acc = 0.0;

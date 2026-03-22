@@ -547,6 +547,16 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_voxel_render_frame".into()
                     })
                 }
+                "registry_is_key_pressed" => {
+                    if args.len() == 1 && let RelType::Str(key) = &args[0] {
+                        let pressed = crate::natives::registry::registry_is_key_pressed(key.clone());
+                        return Some(ExecResult::Value(RelType::Bool(pressed)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_is_key_pressed expects 1 String arg (key_name)".to_string(),
+                        node: "Native::Bridge::registry_is_key_pressed".into()
+                    })
+                }
                 "registry_texture_load" => {
                     if !permissions.allow_fs_read {
                         return Some(ExecResult::Fault { 
@@ -776,16 +786,7 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_set_camera_for_window".into()
                     })
                 }
-                "registry_is_key_pressed" => {
-                    if args.len() == 1 && let RelType::Int(code) = &args[0] {
-                            let pressed = crate::natives::registry::registry_is_key_pressed(*code);
-                            return Some(ExecResult::Value(RelType::Float(pressed as f64)));
-                        }
-                    Some(ExecResult::Fault {
-                        msg: "[FFI] registry_is_key_pressed expects 1 Int arg".to_string(),
-                        node: "Native::Bridge::registry_is_key_pressed".into()
-                    })
-                }
+
                 "registry_get_mouse_delta_x" => {
                     if args.is_empty() {
                         let dx = crate::natives::registry::registry_get_mouse_delta_x();

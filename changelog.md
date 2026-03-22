@@ -3,6 +3,20 @@
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 **Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
 
+## [v1.0.7] - Sprint 108: Input Handling & Interactivity (2026-03-22)
+Transformed the engine from a static renderer into an interactive 3D script host by coupling Winit keyboard events with the FFI bridge.
+
+### Added — Interactivity
+- **Global Input State**: Implemented a thread-safe Singleton `OnceLock<Arc<Mutex<HashSet<String>>>>` in `registry.rs` to track physical keyboard states across all OS events.
+- **FFI Input Hook**: Registered `registry_is_key_pressed(key: String)` in the `.nod` VM bridge. Scripts can now poll specific keys (e.g. `"W"`, `"A"`, `"UP"`, `"SPACE"`) with zero block delays.
+- **WASD Example**: Added `examples/interactive_loop.nod`, a real-time WGPU loop where the entity's coordinates are driven natively by keyboard inputs without JavaScript bindings.
+
+### Fixed & Maintained
+- Safely purged duplicate legacy `registry_is_key_pressed(i64)` implementations.
+- Engine successfully retains absolute Math-Proven Zero Warnings (`cargo clippy --lib`).
+
+---
+
 ## [v1.0.6] - Sprint 107: True Zero Warnings and Full Stack Hygiene (2026-03-20)
 Mathematically proven zero warnings and complete VM stack safety.
 

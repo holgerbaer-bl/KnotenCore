@@ -146,6 +146,30 @@ This confirms that the engine correctly identifies the failing AST node and repo
 
 ---
 
+## Interactive Game Loop — Sprint 108
+KnotenCore now supports real-time hardware input processing directly via FFI:
+
+```js
+// examples/interactive_loop.nod — real-time WASD entity control
+let win = registry_create_window("KnotenCore", 800, 600);
+let tex = registry_texture_load("assets/textures/uv_checker.png");
+let player = { x: 0.0, y: 0.0, speed: 0.1 };
+
+let i = 0;
+while (i < 1000) {
+    if (registry_is_key_pressed("W")) { player.y = player.y + player.speed; }
+    if (registry_is_key_pressed("S")) { player.y = player.y - player.speed; }
+    if (registry_is_key_pressed("A")) { player.x = player.x - player.speed; }
+    if (registry_is_key_pressed("D")) { player.x = player.x + player.speed; }
+
+    registry_draw_cube(win, tex, player.x, player.y, 0.0, 1.0, 1.0, 1.0);
+    registry_window_render_frame(win);
+    i = i + 1;
+}
+```
+
+---
+
 ## Visual Game Loop — Sprint 105
 KnotenCore can now script real-time visuals entirely from `.nod` bytecode:
 

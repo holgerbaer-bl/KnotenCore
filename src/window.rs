@@ -400,6 +400,30 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     } else {
                         input.keys.remove(&code);
                     }
+
+                    // Sprint 108: Update global string map for FFI VM access
+                    let key_str = match code {
+                        winit::keyboard::KeyCode::KeyW => Some("W"),
+                        winit::keyboard::KeyCode::KeyA => Some("A"),
+                        winit::keyboard::KeyCode::KeyS => Some("S"),
+                        winit::keyboard::KeyCode::KeyD => Some("D"),
+                        winit::keyboard::KeyCode::Space => Some("SPACE"),
+                        winit::keyboard::KeyCode::ArrowUp => Some("UP"),
+                        winit::keyboard::KeyCode::ArrowDown => Some("DOWN"),
+                        winit::keyboard::KeyCode::ArrowLeft => Some("LEFT"),
+                        winit::keyboard::KeyCode::ArrowRight => Some("RIGHT"),
+                        _ => None,
+                    };
+
+                    if let Some(s) = key_str {
+                        let global_input = crate::natives::registry::get_global_input_state();
+                        let mut glock = global_input.lock().unwrap();
+                        if key_ev.state == winit::event::ElementState::Pressed {
+                            glock.insert(s.to_string());
+                        } else {
+                            glock.remove(s);
+                        }
+                    }
                 }
             }
             WindowEvent::Resized(physical_size) => {

@@ -250,6 +250,22 @@ Filesystem operations (including DSL nodes `FileRead`, `FileWrite`, `FSRead`, `F
 
 ---
 
+## Keyboard Inputs & Interactivity
+
+KnotenCore VMs intercept `winit` window events automatically and route them to a thread-safe global `OnceLock`. You can poll the current state of any key at `O(1)` directly from a `.nod` script using the native `registry_is_key_pressed` FFI hook. 
+
+**Supported Key Arguments:** 
+Standard physical keys correspond to uppercase strings (`"W"`, `"A"`, `"S"`, `"D"`, `"SPACE"`, `"UP"`, `"DOWN"`, `"LEFT"`, `"RIGHT"`, etc.).
+
+```js
+// DSL Polling Example
+if (registry_is_key_pressed("W")) { 
+    player.y = player.y + speed; 
+}
+```
+
+---
+
 ## Native 3D Primitives
 
 To render standard shapes without manual vertex management, use the native registry calls via `ExternCall`. All primitives use internal **Geometry Caching** — vertices and indices are calculated once per unique configuration and stored in VRAM.
