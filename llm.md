@@ -4,6 +4,10 @@
 >
 > This document teaches you, an AI coding assistant, how to understand and extend KnotenCore. Follow these instructions precisely.
 
+# LLM Guide: KnotenCore Script Execution
+
+*Note: As of Sprint 113, KnotenCore actively encourages external contributions. Please reference `CONTRIBUTING.md` and `docs/good_first_issues.md` for strictly partitioned foundational tasks targeting the FFI Standard Library mapping layer.*
+
 ---
 
 ## Architecture Overview

@@ -1,24 +1,40 @@
 # Contributing to KnotenCore
 
-Welcome, and thank you for your interest in contributing to KnotenCore! 
+First off, thank you for considering contributing to KnotenCore! It's people like you that make KnotenCore an enterprise-grade Virtual Machine architecture.
 
-This repository is maintained by the architect and often evolved by autonomous agents. To ensure the integrity of the project, please review these architectural foundations taking precedence over all PRs.
+## Getting Started
 
-## Our Architectural Pillars
+1. **Fork & Clone:** Fork the repository on GitHub and clone your fork locally.
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/KnotenCore.git
+   cd KnotenCore
+   ```
+2. **Setup Rust:** Ensure you have the latest stable Rust compiler installed via [rustup](https://rustup.rs/).
+3. **Build the Engine:** Run the following command from the `aether_compiler` root to verify your workspace is intact.
+   ```bash
+   cargo build
+   ```
 
-KnotenCore is a high-performance hybrid language (JIT/AOT) offering native WGPU hardware rendering and deterministic memory management.
+## Finding an Issue
+We curate issues labeled `good first issue` to help you onboard without needing deep knowledge of the AOT Compiler or Virtual Machine internals. These issues explicitly target the `core/` Standard Library. 
 
-Before contributing, you **must** understand the Execution Backend:
-1. **The Bytecode VM (`src/vm/`)**: Following the v1.0.0-alpha architecture, KnotenCore is migrating towards an Ahead-of-Time (AOT) Virtual Machine. 
-2. **The Transpiler (`compiler.rs`)**: We compile AST nodes using **Reverse Polish Notation (RPN)** logic (evaluating Left, evaluating Right, then evaluating Operator). Control flow evaluates via `Compiler Backpatching`.
-3. **The Dispatcher (`machine.rs`)**: The engine runs as a blisteringly fast **Stack Machine**. It maintains zero heap allocations computationally, operating via an Arithmetic Logic Unit (ALU) that explicitly pops values off the stack, calculates native Rust mathematics, and repushes.
-4. **The Sandbox (`executor.rs`)**: File system access and OS operations are stringently whitelisted. Never bypass `validate_fs_path`.
+## Testing Your Changes
+The KnotenCore engine relies heavily on its integration safety sandbox.
+Before submitting your Pull Request, you **must** ensure the compiler unit tests and deterministic sandbox validation checks pass successfully:
+```bash
+cargo clippy --lib
+cargo test --lib
+```
 
-## Pull Request Process
+If your changes involve new `.nod` script functionality:
+```bash
+cargo run --bin run_knc -- examples/your_test_script.nod
+```
 
-1. **Ensure Tests Pass**: Run `cargo test` prior to opening your PR. With over 50 native Knotencore scripts in test coverage, breaking the JIT evaluator or the AOT Bytecode machine will cause the CI to fail immediately.
-2. **Review the PR Template**: Our repository uses a `.github/PULL_REQUEST_TEMPLATE.md`. You must fill out the checklist confirming whether or not your code modifies the FFI permissions or the VM Core (`src/vm/`).
-3. **Draft Meaningful Commits**: The repository follows strict, descriptive sprint commit messages natively managed by AI agents.
-4. **Code Format**: Always run `cargo fmt` and `cargo clippy`. We enforce zero-latency cross-thread patterns (Winit EventLoopProxies) over slow channels.
+## Submitting a Pull Request
+1. Create a branch (`git checkout -b feature/your-feature-name`).
+2. Make your logical, isolated commits.
+3. Push your branch to your fork.
+4. Open a Pull Request targeting our `main` branch. Provide a clear summary of your changes.
 
-Thank you for expanding the engine!
+Happy Coding!

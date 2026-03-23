@@ -140,6 +140,15 @@ win = UIWindow("main_nav", "Control Panel") -> {
 
 ---
 
+## Open Source Contribution
+KnotenCore is actively transitioning into the Open Source community. If you want to refine a General-Purpose AOT VM Engine, you are highly encouraged to contribute!
+
+**Getting Started:**
+1. Check out our [CONTRIBUTING.md](CONTRIBUTING.md) guide to learn how to clone, strictly compile, and run the sandbox test suite natively.
+2. Grab a specifically formulated isolation task from our curated **"Good First Issues"** natively tracking the `core/` Standard Library layer.
+
+We embrace both compiler enthusiasts expanding the AOT instruction set and casual developers looking to write idiomatic `.nod` wrappers evaluating natively under the Rust FFI framework.
+
 ## Supported Platforms
 
 | Platform | Architecture |

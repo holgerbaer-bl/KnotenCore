@@ -1,6 +1,11 @@
 # Changelog: KnotenCore Engine
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
+
+## [v1.0.12] - Sprint 113: Open Source Onboarding & Good First Issues (2026-03-23)
+Established the formal foundation to transition the engine towards the global open-source community by producing strictly curated and heavily isolated "Good First Issues."
+- **`CONTRIBUTING.md`**: Implemented strict local setup, architecture compilation (`cargo build`), and deterministic Sandbox regression evaluations (`cargo test --lib`) specifically for external onboarding.
+- **`docs/good_first_issues.md`**: Curated strictly bounded execution tracks isolating external modifications strictly to the Standard Library (`core/string.nod`, `core/fs.nod`) bypassing immediate structural adjustments to the overarching AOT evaluation tree compiler.
 ## [v1.0.11] - Sprint 112: StdLib Expansion - Strings & File System (2026-03-23)
 Expanded the Standard Library ecosystem to support enterprise-grade data processing pipelines by surfacing string manipulation and synchronous filesystem I/O wrappers.
 - **`core/string.nod`**: Maps native C-string operations directly into script context (`len`, `contains`, `split`).
