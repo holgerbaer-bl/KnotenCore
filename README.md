@@ -75,7 +75,7 @@ graph TD
 #### Core Standard Library (StdLib) & AOT Linking — Sprint 110 / 111
 KnotenCore serves as a strictly typed **General-Purpose Language** powered by seamless Ahead-Of-Time Module Linking. Scripts dynamically import other `.nod` and `.knoten` artifacts into their global execution environments using the `import "core/module.nod";` keyword.
 
-**Example: StdLib Event Polling:**
+**Example 1: StdLib Event Polling:**
 ```javascript
 import "core/system.nod";
 import "core/math.nod";
@@ -85,6 +85,18 @@ while (true) {
         // Native idiomatic system wrapper
     }
 }
+```
+
+**Example 2: Data Processing (Strings & FS):**
+```javascript
+import "core/fs.nod";
+import "core/string.nod";
+import "core/array.nod";
+
+let content = read_text("data.csv");
+let rows = split(content, "\n");
+print("Processed Rows: ");
+print(length(rows));
 ```
 
 The core architecture natively protects against Circular Dependencies and evaluates the imported Abstract Syntax Trees directly into the primary contiguous bytecode stream before a single native machine pulse executes. The compiler inherently resolves `"core/..."` directives globally to natively expose the unified Standard Library anywhere.

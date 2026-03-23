@@ -1,0 +1,3 @@
+fn length(arr) {
+    return array_length(arr);
+}

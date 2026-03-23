@@ -1,7 +1,13 @@
 # Changelog: KnotenCore Engine
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
-**Development Standard:** To ensure absolute version integrity, the architect must guarantee that every single sprint is cleanly pushed to the Git repository by the autonomous agent. This successful push must be explicitly documented in every sprint report.
+## [v1.0.11] - Sprint 112: StdLib Expansion - Strings & File System (2026-03-23)
+Expanded the Standard Library ecosystem to support enterprise-grade data processing pipelines by surfacing string manipulation and synchronous filesystem I/O wrappers.
+- **`core/string.nod`**: Maps native C-string operations directly into script context (`len`, `contains`, `split`).
+- **`core/fs.nod`**: Provides `read_text(path)` for idiomatic filesystem intake natively governed by the AOT Security Permissions Sandbox (`--allow-read`).
+- **`core/array.nod`**: Exposes array utilities (e.g., `length(arr)`) fixing underlying module-evaluator routing bugs inside the FFI Bridge. 
+
+---
 
 ## [v1.0.10] - Sprint 111: The Standard Library (StdLib) Core (2026-03-22)
 Established the official overarching Standard Library. By leveraging the AOT infrastructure from Sprint 110, we've deployed isolated `core/` modules resolving elegantly bypassing directory trees.

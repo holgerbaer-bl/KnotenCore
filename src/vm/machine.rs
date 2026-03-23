@@ -267,6 +267,8 @@ impl VM {
                         ("fs", name.as_str())
                     } else if name.starts_with("test_") {
                         ("test_lib", name.as_str())
+                    } else if name.starts_with("array_") || name.starts_with("obj_") {
+                        ("fs", name.as_str())
                     } else {
                         // Global scope for unmapped builtins if the user writes flat names
                         ("global", name.as_str())

@@ -35,6 +35,9 @@ KnotenCore supports splitting scripts into modules via the `import "module.nod";
 The engine globally hosts the **Standard Library** in the `core/` directory. Import paths prefixed with `"core/"` (`import "core/math.nod"`) resolve automatically without requiring relative path notation:
 - **`core/math.nod`**: `abs(x)`, `min(a, b)`, `max(a, b)`, `clamp(val, min_val, max_val)`
 - **`core/system.nod`**: Native functionality wrappers such as `is_pressed(key)`.
+- **`core/string.nod`**: Idiomatic text manipulation wrappers such as `len(str)`, `contains(str, substr)`, and `split(str, delimiter)`.
+- **`core/fs.nod`**: Filesystem interfaces such as `read_text(path)`. Validated defensively by Sandbox permissions (`--allow-read`).
+- **`core/array.nod`**: Utility wrappers mapping Arrays efficiently, such as `length(arr)`.
 
 ---
 

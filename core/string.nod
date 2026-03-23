@@ -1,0 +1,11 @@
+fn len(str) {
+    return str_len(str);
+}
+
+fn contains(str, substr) {
+    return str_contains(str, substr);
+}
+
+fn split(str, delimiter) {
+    return str_split(str, delimiter);
+}

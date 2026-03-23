@@ -1,0 +1,3 @@
+fn read_text(path) {
+    return read_file(path);
+}
