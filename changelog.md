@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.14] - Sprint 115: Native JSON Parsing & core/json.nod (2026-03-24)
+Further scaling the standard library by tightly coupling `serde_json` into the VM's native engine mapping loop.
+- **`core/json.nod`**: New standard module exposing `parse(payload)` and `stringify(obj)` mapping raw dynamic nested networks abstractly into structured iterators.
+- **FFI Data Serialization**: Introduced strict mathematical traversal logic natively inside `src/natives/fs.rs` avoiding JSON parsing failures causing unexpected panics gracefully escaping directly into `ExecResult::Fault` chains.
+
+## [v1.0.13] - Sprint 114: Zero-Trust Networking & core/net.nod (2026-03-24)
+Upgraded KnotenCore's execution paradigm by integrating deterministic, blocking HTTP network request infrastructure without violating the isolated VM pipeline.
+- **`core/net.nod`**: Provided the `fetch(url)` standard module explicitly mapped to Rust's lightweight `ureq` client natively bridging via the FFI registry.
+- **`--allow-net` Gateway**: Engineered a strict Zero-Trust flag enforcement preventing unauthorized network egress seamlessly verified by structural sandbox panic testing.
 ## [v1.0.12] - Sprint 113: Open Source Onboarding & Good First Issues (2026-03-23)
 Established the formal foundation to transition the engine towards the global open-source community by producing strictly curated and heavily isolated "Good First Issues."
 - **`CONTRIBUTING.md`**: Implemented strict local setup, architecture compilation (`cargo build`), and deterministic Sandbox regression evaluations (`cargo test --lib`) specifically for external onboarding.
