@@ -41,6 +41,7 @@ The engine globally hosts the **Standard Library** in the `core/` directory. Imp
 - **`core/system.nod`**: Native functionality wrappers such as `is_pressed(key)`.
 - **`core/string.nod`**: Idiomatic text manipulation wrappers such as `len(str)`, `contains(str, substr)`, and `split(str, delimiter)`.
 - **`core/fs.nod`**: Filesystem interfaces such as `read_text(path)`. Validated defensively by Sandbox permissions (`--allow-read`).
+- **`core/net.nod`**: Synchronous API querying (`fetch(url)`). Blocked fundamentally by Sandbox permissions (`--allow-net`).
 - **`core/array.nod`**: Utility wrappers mapping Arrays efficiently, such as `length(arr)`.
 
 ---

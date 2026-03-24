@@ -269,6 +269,8 @@ impl VM {
                         ("test_lib", name.as_str())
                     } else if name.starts_with("array_") || name.starts_with("obj_") {
                         ("fs", name.as_str())
+                    } else if name.starts_with("net_") {
+                        ("net", name.as_str())
                     } else {
                         // Global scope for unmapped builtins if the user writes flat names
                         ("global", name.as_str())
@@ -442,5 +444,30 @@ mod tests {
             allow_fs_write: false,
         }, None).unwrap();
         assert_eq!(result, RelType::Int(5));
+    }
+    #[test]
+    fn test_vm_network_sandbox_block() {
+        let mut vm = VM::new();
+        let instructions = vec![
+            OpCode::Constant(0), // Push "https://api.github.com"
+            OpCode::ExternCall(1, 2, 1), // "net", "net_fetch", 1 arg
+            OpCode::Return,
+        ];
+        let constants = vec![
+            RelType::Str("https://api.github.com".to_string()),
+            RelType::Str("net".to_string()),
+            RelType::Str("net_fetch".to_string()),
+        ];
+        
+        let result = vm.run(&instructions, &constants, &AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: true,
+            allow_fs_write: false,
+        }, None);
+        
+        // Assert the fault is securely caught
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Permission Denied: allow_network is false"));
     }
 }

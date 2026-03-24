@@ -99,6 +99,18 @@ print("Processed Rows: ");
 print(length(rows));
 ```
 
+**Example 3: Zero-Trust Networking (APIs):**
+```javascript
+import "core/net.nod";
+import "core/string.nod";
+
+// Securely fetch JSON payloads with --allow-net
+let response = fetch("https://api.github.com/repos/holgerbaer-bl/KnotenCore");
+if (contains(response, "KnotenCore")) {
+    print("API Data Loaded Natively!");
+}
+```
+
 The core architecture natively protects against Circular Dependencies and evaluates the imported Abstract Syntax Trees directly into the primary contiguous bytecode stream before a single native machine pulse executes. The compiler inherently resolves `"core/..."` directives globally to natively expose the unified Standard Library anywhere.
 
 High-level UI declarations remain in the AST (JIT). Intensive mathematical expressions bypass the tree evaluator and compile directly into flat **Opcodes** for a Register VM. The AOT pipeline leverages **LLVM Constant Folding** — pure computation loops that evaluate to a constant at compile time are entirely eliminated in the release binary.

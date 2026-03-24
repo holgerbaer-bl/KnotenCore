@@ -52,7 +52,7 @@ fn run() {
             engine.permissions.allow_fs_read = true;
         } else if arg == "--allow-write" {
             engine.permissions.allow_fs_write = true;
-        } else if arg == "--allow-network" {
+        } else if arg == "--allow-net" {
             engine.permissions.allow_network = true;
         } else {
             file_path = arg.clone();

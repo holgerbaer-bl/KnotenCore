@@ -83,6 +83,41 @@ impl BridgeModule for CoreBridge {
                 }
                 _ => None,
             }
+        } else if module == "net" {
+            match function {
+                "net_fetch" => {
+                    if !permissions.allow_network {
+                        return Some(ExecResult::Fault {
+                            msg: "Permission Denied: allow_network is false (VM: net_fetch). Use --allow-net flag.".to_string(),
+                            node: "Native::Bridge::net_fetch".into()
+                        });
+                    }
+                    if args.len() == 1
+                        && let RelType::Str(url) = &args[0]
+                    {
+                            match ureq::get(url).call() {
+                                Ok(response) => {
+                                    match response.into_string() {
+                                        Ok(body) => return Some(ExecResult::Value(RelType::Str(body))),
+                                        Err(e) => return Some(ExecResult::Fault {
+                                            msg: format!("Network Error: Failed to read response body: {}", e),
+                                            node: "Native::Bridge::net_fetch".into()
+                                        }),
+                                    }
+                                }
+                                Err(e) => return Some(ExecResult::Fault {
+                                    msg: format!("Network Error: HTTP Request Failed: {}", e),
+                                    node: "Native::Bridge::net_fetch".into()
+                                }),
+                            }
+                        }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] net_fetch expects 1 String arg (url)".to_string(),
+                        node: "Native::Bridge::net_fetch".into()
+                    })
+                }
+                _ => None,
+            }
         } else if module == "ui" {
             match function {
                 "ui_init_window" => {

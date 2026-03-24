@@ -1,0 +1,6 @@
+// core/net.nod
+// Standard Library: Networking Operations
+
+fn fetch(url) {
+    return net_fetch(url);
+}
