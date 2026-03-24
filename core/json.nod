@@ -1,0 +1,10 @@
+// core/json.nod
+// Standard Library: JSON Parsing & Stringification
+
+fn parse(payload) {
+    return json_parse(payload);
+}
+
+fn stringify(obj) {
+    return json_stringify(obj);
+}

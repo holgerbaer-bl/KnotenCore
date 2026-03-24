@@ -271,6 +271,8 @@ impl VM {
                         ("fs", name.as_str())
                     } else if name.starts_with("net_") {
                         ("net", name.as_str())
+                    } else if name.starts_with("json_") {
+                        ("json", name.as_str())
                     } else {
                         // Global scope for unmapped builtins if the user writes flat names
                         ("global", name.as_str())
@@ -469,5 +471,52 @@ mod tests {
         // Assert the fault is securely caught
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Permission Denied: allow_network is false"));
+    }
+
+    #[test]
+    fn test_vm_json_parsing() {
+        let mut vm = VM::new();
+        // Valid JSON Test
+        let instructions = vec![
+            OpCode::Constant(0), // Push Valid JSON Object
+            OpCode::ExternCall(1, 2, 1), // block: json, json_parse
+            OpCode::Return,
+        ];
+        let constants = vec![
+            RelType::Str("{\"api_version\":\"1.0\"}".to_string()),
+            RelType::Str("json".to_string()),
+            RelType::Str("json_parse".to_string()),
+        ];
+        
+        let result = vm.run(&instructions, &constants, &AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: true,
+            allow_fs_write: false,
+        }, None).unwrap();
+        
+        // Ensure Map parses flawlessly capturing "api_version" natively
+        if let RelType::Object(map) = result {
+            assert_eq!(map.get("api_version").unwrap(), &RelType::Str("1.0".to_string()));
+        } else {
+            panic!("Expected JSON to parse into an Object natively!");
+        }
+
+        // Invalid JSON Test capturing gracefully Without Panics
+        let mut vm_err = VM::new();
+        let constants_err = vec![
+            RelType::Str("{ invalid...".to_string()),
+            RelType::Str("json".to_string()),
+            RelType::Str("json_parse".to_string()),
+        ];
+        let err_result = vm_err.run(&instructions, &constants_err, &AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: true,
+            allow_fs_write: false,
+        }, None);
+        
+        assert!(err_result.is_err());
+        assert!(err_result.unwrap_err().contains("JSON Parse Error:"));
     }
 }

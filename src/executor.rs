@@ -616,7 +616,10 @@ impl ExecutionEngine {
             Node::Extract { .. } => ExecResult::Fault { msg: "Extract not implemented".into(), node: "Node::Extract".into() },
             Node::EvalJSONNative(json_expr) => {
                 if let ExecResult::Value(RelType::Str(json)) = self.evaluate(json_expr) {
-                    ExecResult::Value(crate::natives::fs::fs_parse_json(&json))
+                    match crate::natives::fs::fs_parse_json(&json) {
+                         Ok(r) => ExecResult::Value(r),
+                         Err(e) => ExecResult::Fault { msg: format!("JSON Parse error: {}", e), node: "Node::EvalJSONNative".into() }
+                    }
                 } else { ExecResult::Fault { msg: "EvalJSONNative expects string".into(), node: "Node::EvalJSONNative".into() } }
             }
             Node::ToString(expr) => {

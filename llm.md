@@ -42,6 +42,7 @@ The engine globally hosts the **Standard Library** in the `core/` directory. Imp
 - **`core/string.nod`**: Idiomatic text manipulation wrappers such as `len(str)`, `contains(str, substr)`, and `split(str, delimiter)`.
 - **`core/fs.nod`**: Filesystem interfaces such as `read_text(path)`. Validated defensively by Sandbox permissions (`--allow-read`).
 - **`core/net.nod`**: Synchronous API querying (`fetch(url)`). Blocked fundamentally by Sandbox permissions (`--allow-net`).
+- **`core/json.nod`**: Native FFI execution converting valid JSON structures symmetrically mapping strictly into relational `Array`s or `Object` maps using `parse(payload)` safely.
 - **`core/array.nod`**: Utility wrappers mapping Arrays efficiently, such as `length(arr)`.
 
 ---

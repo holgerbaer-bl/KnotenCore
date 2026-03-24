@@ -22,17 +22,14 @@ pub fn fs_read_file(path: String) -> String {
 /// - JSON Number → RelType::Int or RelType::Float
 /// - JSON Bool → RelType::Bool
 /// - JSON Null → RelType::Void
-pub fn fs_parse_json(json_str: &str) -> RelType {
+pub fn fs_parse_json(json_str: &str) -> Result<RelType, String> {
     match serde_json::from_str::<serde_json::Value>(json_str) {
-        Ok(value) => json_value_to_reltype(&value),
-        Err(e) => {
-            eprintln!("[KnotenCore FS] JSON parse error: {}", e);
-            RelType::Void
-        }
+        Ok(value) => Ok(json_value_to_reltype(&value)),
+        Err(e) => Err(format!("JSON parse error: {}", e)),
     }
 }
 
-fn json_value_to_reltype(value: &serde_json::Value) -> RelType {
+pub fn json_value_to_reltype(value: &serde_json::Value) -> RelType {
     match value {
         serde_json::Value::Null => RelType::Void,
         serde_json::Value::Bool(b) => RelType::Bool(*b),
@@ -56,5 +53,36 @@ fn json_value_to_reltype(value: &serde_json::Value) -> RelType {
             }
             RelType::Object(map)
         }
+    }
+}
+
+pub fn reltype_to_json_value(rel: &RelType) -> serde_json::Value {
+    match rel {
+        RelType::Int(i) => serde_json::Value::Number(serde_json::Number::from(*i)),
+        RelType::Float(f) => serde_json::Number::from_f64(*f).map(serde_json::Value::Number).unwrap_or(serde_json::Value::Null),
+        RelType::Bool(b) => serde_json::Value::Bool(*b),
+        RelType::Str(s) => serde_json::Value::String(s.clone()),
+        RelType::Array(arr) => serde_json::Value::Array(arr.iter().map(reltype_to_json_value).collect()),
+        RelType::Object(obj) => {
+            let mut map = serde_json::Map::new();
+            for (k, v) in obj {
+                map.insert(k.clone(), reltype_to_json_value(v));
+            }
+            serde_json::Value::Object(map)
+        }
+        RelType::Dict(dict) => {
+            if let Ok(map_guard) = dict.lock() {
+                let mut map = serde_json::Map::new();
+                for (k, v) in map_guard.iter() {
+                    map.insert(k.clone(), reltype_to_json_value(v));
+                }
+                serde_json::Value::Object(map)
+            } else {
+                serde_json::Value::Null
+            }
+        }
+        RelType::Void => serde_json::Value::Null,
+        // Fallback for native execution handles and functions which cannot serialize cleanly
+        _ => serde_json::Value::String(format!("[Unserializable: {}]", rel))
     }
 }

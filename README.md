@@ -99,16 +99,20 @@ print("Processed Rows: ");
 print(length(rows));
 ```
 
-**Example 3: Zero-Trust Networking (APIs):**
+**Example 3: Zero-Trust Networking (APIs) & Native JSON Parsing:**
 ```javascript
 import "core/net.nod";
 import "core/string.nod";
+import "core/json.nod";
 
 // Securely fetch JSON payloads with --allow-net
 let response = fetch("https://api.github.com/repos/holgerbaer-bl/KnotenCore");
-if (contains(response, "KnotenCore")) {
-    print("API Data Loaded Natively!");
-}
+
+// Parse natively into iterable Engine Maps via FFI
+let data = parse(response);
+
+print("API Repository Name:");
+print(data.name);
 ```
 
 The core architecture natively protects against Circular Dependencies and evaluates the imported Abstract Syntax Trees directly into the primary contiguous bytecode stream before a single native machine pulse executes. The compiler inherently resolves `"core/..."` directives globally to natively expose the unified Standard Library anywhere.

@@ -83,6 +83,37 @@ impl BridgeModule for CoreBridge {
                 }
                 _ => None,
             }
+        } else if module == "json" {
+            match function {
+                "json_parse" => {
+                    if args.len() == 1
+                        && let RelType::Str(payload) = &args[0]
+                    {
+                            match crate::natives::fs::fs_parse_json(payload) {
+                                Ok(parsed) => return Some(ExecResult::Value(parsed)),
+                                Err(e) => return Some(ExecResult::Fault {
+                                    msg: format!("JSON Parse Error: {}", e),
+                                    node: "Native::Bridge::json_parse".into()
+                                }),
+                            }
+                        }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] json_parse expects 1 String arg (payload)".to_string(),
+                        node: "Native::Bridge::json_parse".into()
+                    })
+                }
+                "json_stringify" => {
+                    if args.len() == 1 {
+                        let json_val = crate::natives::fs::reltype_to_json_value(&args[0]);
+                        return Some(ExecResult::Value(RelType::Str(json_val.to_string())));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] json_stringify expects 1 Object/Array argument".to_string(),
+                        node: "Native::Bridge::json_stringify".into()
+                    })
+                }
+                _ => None,
+            }
         } else if module == "net" {
             match function {
                 "net_fetch" => {
@@ -313,8 +344,13 @@ impl BridgeModule for CoreBridge {
                 }
                 "fs_parse_json" => {
                     if args.len() == 1 && let RelType::Str(json_str) = &args[0] {
-                            let result = crate::natives::fs::fs_parse_json(json_str);
-                            return Some(ExecResult::Value(result));
+                            match crate::natives::fs::fs_parse_json(json_str) {
+                                Ok(parsed) => return Some(ExecResult::Value(parsed)),
+                                Err(e) => return Some(ExecResult::Fault {
+                                    msg: format!("JSON Parse Error: {}", e),
+                                    node: "Native::Bridge::fs_parse_json".into()
+                                }),
+                            }
                         }
                     Some(ExecResult::Fault {
                         msg: "[FFI] fs_parse_json expects 1 String arg (json)".to_string(),
