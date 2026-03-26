@@ -115,6 +115,30 @@ print("API Repository Name:");
 print(data.name);
 ```
 
+**Example 4: Immediate-Mode Native GUI (egui over WGPU):**
+```javascript
+// Native WGPU engine bindings
+import "core/system.nod";
+import "core/time.nod";
+
+// Bootstrap the Immediate-Mode egui Context
+ui_init_window(800, 600, "KnotenCore Minimal UI App");
+
+let active = true;
+while (active) {
+    if (ui_button("Click Me!")) {
+        print("Button clicked natively over WGPU!");
+        active = false;
+    }
+    
+    // CRITICAL: Flush the Draw Queue and yield to the Video Sync 
+    ui_present();
+
+    // CPU Throttling: Enforce ~60 FPS frame pacing
+    sleep(16);
+}
+```
+
 The core architecture natively protects against Circular Dependencies and evaluates the imported Abstract Syntax Trees directly into the primary contiguous bytecode stream before a single native machine pulse executes. The compiler inherently resolves `"core/..."` directives globally to natively expose the unified Standard Library anywhere.
 
 High-level UI declarations remain in the AST (JIT). Intensive mathematical expressions bypass the tree evaluator and compile directly into flat **Opcodes** for a Register VM. The AOT pipeline leverages **LLVM Constant Folding** — pure computation loops that evaluate to a constant at compile time are entirely eliminated in the release binary.

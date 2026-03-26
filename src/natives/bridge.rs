@@ -114,6 +114,24 @@ impl BridgeModule for CoreBridge {
                 }
                 _ => None,
             }
+        } else if module == "time" {
+            match function {
+                "time_sleep_ms" => {
+                    if args.len() == 1 {
+                        if let RelType::Int(ms) = &args[0] {
+                            if *ms > 0 {
+                                std::thread::sleep(std::time::Duration::from_millis(*ms as u64));
+                            }
+                            return Some(ExecResult::Value(RelType::Void));
+                        }
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] time_sleep_ms expects 1 Int arg (milliseconds)".to_string(),
+                        node: "Native::Bridge::time_sleep_ms".into()
+                    })
+                }
+                _ => None,
+            }
         } else if module == "net" {
             match function {
                 "net_fetch" => {

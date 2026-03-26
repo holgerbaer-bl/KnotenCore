@@ -273,6 +273,8 @@ impl VM {
                         ("net", name.as_str())
                     } else if name.starts_with("json_") {
                         ("json", name.as_str())
+                    } else if name.starts_with("time_") {
+                        ("time", name.as_str())
                     } else {
                         // Global scope for unmapped builtins if the user writes flat names
                         ("global", name.as_str())
@@ -452,7 +454,7 @@ mod tests {
         let mut vm = VM::new();
         let instructions = vec![
             OpCode::Constant(0), // Push "https://api.github.com"
-            OpCode::ExternCall(1, 2, 1), // "net", "net_fetch", 1 arg
+            OpCode::ExternCall { name_idx: 2, arg_count: 1 }, // "net", "net_fetch", 1 arg
             OpCode::Return,
         ];
         let constants = vec![
@@ -461,12 +463,13 @@ mod tests {
             RelType::Str("net_fetch".to_string()),
         ];
         
+        let bridge = crate::natives::bridge::CoreBridge;
         let result = vm.run(&instructions, &constants, &AgentPermissions {
             allow_network: false,
             allowed_domains: vec![],
             allow_fs_read: true,
             allow_fs_write: false,
-        }, None);
+        }, Some(&bridge));
         
         // Assert the fault is securely caught
         assert!(result.is_err());
@@ -479,7 +482,7 @@ mod tests {
         // Valid JSON Test
         let instructions = vec![
             OpCode::Constant(0), // Push Valid JSON Object
-            OpCode::ExternCall(1, 2, 1), // block: json, json_parse
+            OpCode::ExternCall { name_idx: 2, arg_count: 1 }, // block: json, json_parse
             OpCode::Return,
         ];
         let constants = vec![
@@ -488,12 +491,13 @@ mod tests {
             RelType::Str("json_parse".to_string()),
         ];
         
+        let bridge = crate::natives::bridge::CoreBridge;
         let result = vm.run(&instructions, &constants, &AgentPermissions {
             allow_network: false,
             allowed_domains: vec![],
             allow_fs_read: true,
             allow_fs_write: false,
-        }, None).unwrap();
+        }, Some(&bridge)).unwrap();
         
         // Ensure Map parses flawlessly capturing "api_version" natively
         if let RelType::Object(map) = result {
@@ -509,12 +513,13 @@ mod tests {
             RelType::Str("json".to_string()),
             RelType::Str("json_parse".to_string()),
         ];
+        let bridge = crate::natives::bridge::CoreBridge;
         let err_result = vm_err.run(&instructions, &constants_err, &AgentPermissions {
             allow_network: false,
             allowed_domains: vec![],
             allow_fs_read: true,
             allow_fs_write: false,
-        }, None);
+        }, Some(&bridge));
         
         assert!(err_result.is_err());
         assert!(err_result.unwrap_err().contains("JSON Parse Error:"));

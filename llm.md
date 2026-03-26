@@ -43,6 +43,7 @@ The engine globally hosts the **Standard Library** in the `core/` directory. Imp
 - **`core/fs.nod`**: Filesystem interfaces such as `read_text(path)`. Validated defensively by Sandbox permissions (`--allow-read`).
 - **`core/net.nod`**: Synchronous API querying (`fetch(url)`). Blocked fundamentally by Sandbox permissions (`--allow-net`).
 - **`core/json.nod`**: Native FFI execution converting valid JSON structures symmetrically mapping strictly into relational `Array`s or `Object` maps using `parse(payload)` safely.
+- **`core/time.nod`**: Hardware synchronization utilities wrapping OS threading abstractions natively throttling compute loops, such as `sleep(ms)`.
 - **`core/array.nod`**: Utility wrappers mapping Arrays efficiently, such as `length(arr)`.
 
 ---
@@ -362,6 +363,45 @@ To create physical barriers, register AABB (Axis-Aligned Bounding Box) volumes i
     "min": { "ArrayCreate": [{ "FloatLiteral": -1.0 }, { "FloatLiteral": 0.0 }, { "FloatLiteral": -1.0 }] },
     "max": { "ArrayCreate": [{ "FloatLiteral": 1.0 }, { "FloatLiteral": 2.0 }, { "FloatLiteral": 1.0 }] }
   }
+}
+```
+
+---
+
+## UI Rendering Pipeline (egui Integration)
+
+KnotenCore provides a fully integrated, high-performance Immediate-Mode GUI via `egui`, rendered natively over WGPU. Understanding the strict boundaries between the AST Executor (`evaluator.rs`/`vm.rs`) and the Window Loop (`window.rs`) is critical for building interface layouts.
+
+### 1. The Window Loop (`window.rs`)
+The engine spawns a highly optimized `winit` EventLoop. Because `egui` is an Immediate-Mode GUI, the UI must be redrawn every single frame. `window.rs` owns the `eframe`/`egui` context. The script evaluator runs synchronously in the background producing state, while the foreground loop repaints the UI. 
+
+### 2. Executor Mapping (AST to Immediate-Mode GUI)
+Unlike object-oriented DOM interfaces (where you "create" a button once), KnotenCore translates UI nodes iteratively. 
+When the backend executes a UI node (e.g., `Node::UIButton`), it does **not** persist a UI element. Instead, it emits an immediate `RenderCommand` message over a high-speed mpsc channel to the WGPU rendering thread (`window.rs`).
+
+### 3. Mandatory Native Calls (Avoiding an Empty Window)
+An Immediate-Mode script loop strictly requires explicit initialization and synchronization barriers. If you fail to trigger the draw sequence, you will only see an empty or unresponsive window.
+- `ui_init_window(width, height, title)`: Bootstraps the WGPU Context and Winit loop.
+- `ui_present()`: Flushes the frame instruction queue to `egui` and yields the execution block until the next VSYNC. **Without this, the UI never renders.**
+
+### Minimal UI Script Example
+This is the minimal idiomatic UI loop rendering a central button:
+```javascript
+// Native WGPU engine bindings
+import "core/system.nod";
+
+// Bootstrap the Immediate-Mode egui Context
+ui_init_window(800, 600, "KnotenCore Minimal UI App");
+
+let active = true;
+while (active) {
+    if (ui_button("Click Me!")) {
+        print("Button clicked natively over WGPU!");
+        active = false;
+    }
+    
+    // CRITICAL: Flush the Draw Queue and yield to the Video Sync 
+    ui_present();
 }
 ```
 

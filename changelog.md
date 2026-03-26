@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.16] - Sprint 117: core/time.nod & CPU Throttling (2026-03-26)
+Introduced standard hardware synchronization enabling efficient 60 FPS pacing via the `std::thread` FFI.
+- **`core/time.nod`**: New standard module exposing `sleep(ms)` tightly coupled to `std::thread::sleep` natively, drastically reducing uncapped CPU cycling inside immediate-mode render loops.
+
+## [v1.0.15] - Sprint 116: UI Rendering Pipeline Documentation (2026-03-25)
+A structural documentation iteration explicitly codifying the theoretical boundaries between the AST executor loop mapping into the asynchronous `winit` WGPU immediate-mode layout frontend (`egui`) natively.
+- **`llm.md`**: Implemented a comprehensive guide abstracting layout pipelines strictly for external agents evaluating future UI node implementations seamlessly without tracking raw OS threads defensively.
+- **`README.md`**: Integrated an Option 1 idiomatic minimal UI block demonstrating immediate-mode layout processing elegantly over WGPU natively.
 ## [v1.0.14] - Sprint 115: Native JSON Parsing & core/json.nod (2026-03-24)
 Further scaling the standard library by tightly coupling `serde_json` into the VM's native engine mapping loop.
 - **`core/json.nod`**: New standard module exposing `parse(payload)` and `stringify(obj)` mapping raw dynamic nested networks abstractly into structured iterators.

@@ -1,0 +1,6 @@
+// core/time.nod
+// Standard Library: Time & Synchronization
+
+fn sleep(ms) {
+    return time_sleep_ms(ms);
+}
