@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.17] - Sprint 118: UITextInput Widget & egui State Binding (2026-03-28)
+Complete the interactive UI surface by wiring a thread-safe string buffer between the AST executor and the egui rendering pipeline.
+- **`src/natives/ui.rs`**: Introduced `static UI_TEXT_INPUT_BUFFER: Mutex<String>` as the ground truth for text input state, plus `ui_text_input_get()` and `ui_text_input_set()` public helpers.
+- **`src/natives/bridge.rs`**: Registered `"ui_text_input_get"` and `"ui_text_input_set"` FFI handlers in the `"ui"` bridge module, exposing the buffer to any `.nod` script via `ExternCall`.
+- **`src/executor.rs`**: Upgraded `Node::UITextInput` from a dead no-op stub to a stateful implementation: on the first call the seed value (script variable) populates the buffer; all subsequent calls return the live buffer value. Enables the idiomatic `text = UITextInput(text)` assignment pattern.
+- **`stdlib/ui.nod`**: Added `fn UITextInput(initial_text)` stdlib entry delegating to `ui_text_input_get` natively.
+- **`examples/form_demo.nod`**: Added interactive form example demonstrating text input + submit button.
+- **Test 55** (`integration_tests.rs`): `test_55_ui_text_input_seed_and_read` — verifies the seed/read round-trip returns `RelType::Str`.
+
 ## [v1.0.16] - Sprint 117: core/time.nod & CPU Throttling (2026-03-26)
 Introduced standard hardware synchronization enabling efficient 60 FPS pacing via the `std::thread` FFI.
 - **`core/time.nod`**: New standard module exposing `sleep(ms)` tightly coupled to `std::thread::sleep` natively, drastically reducing uncapped CPU cycling inside immediate-mode render loops.

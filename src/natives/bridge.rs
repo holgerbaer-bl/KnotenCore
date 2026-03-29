@@ -117,13 +117,13 @@ impl BridgeModule for CoreBridge {
         } else if module == "time" {
             match function {
                 "time_sleep_ms" => {
-                    if args.len() == 1 {
-                        if let RelType::Int(ms) = &args[0] {
-                            if *ms > 0 {
-                                std::thread::sleep(std::time::Duration::from_millis(*ms as u64));
-                            }
-                            return Some(ExecResult::Value(RelType::Void));
+                    if args.len() == 1
+                        && let RelType::Int(ms) = &args[0]
+                    {
+                        if *ms > 0 {
+                            std::thread::sleep(std::time::Duration::from_millis(*ms as u64));
                         }
+                        return Some(ExecResult::Value(RelType::Void));
                     }
                     Some(ExecResult::Fault {
                         msg: "[FFI] time_sleep_ms expects 1 Int arg (milliseconds)".to_string(),
@@ -339,6 +339,21 @@ impl BridgeModule for CoreBridge {
                 "ui_get_key_pressed" => {
                     let key = crate::natives::ui::ui_get_key_pressed();
                     Some(ExecResult::Value(RelType::Str(key)))
+                }
+                // Sprint 118: Text input state binding
+                "ui_text_input_get" => {
+                    let val = crate::natives::ui::ui_text_input_get();
+                    Some(ExecResult::Value(RelType::Str(val)))
+                }
+                "ui_text_input_set" => {
+                    if args.len() == 1 && let RelType::Str(s) = &args[0] {
+                        crate::natives::ui::ui_text_input_set(s.clone());
+                        return Some(ExecResult::Value(RelType::Void));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] ui_text_input_set expects 1 String arg".to_string(),
+                        node: "Native::Bridge::ui_text_input_set".into()
+                    })
                 }
                 _ => None,
             }

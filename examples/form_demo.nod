@@ -1,0 +1,34 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "text",
+        { "StringLiteral": "Type something here..." }
+      ]
+    },
+    {
+      "Assign": [
+        "output",
+        { "StringLiteral": "" }
+      ]
+    },
+    {
+      "Comment": "Sprint 118 — Form Demo: UITextInput + UIButton state binding"
+    },
+    {
+      "UITextInput": { "Identifier": "text" }
+    },
+    {
+      "Assign": [
+        "text",
+        { "UITextInput": { "Identifier": "text" } }
+      ]
+    },
+    {
+      "UIButton": { "StringLiteral": "Submit" }
+    },
+    {
+      "Print": { "Identifier": "text" }
+    }
+  ]
+}

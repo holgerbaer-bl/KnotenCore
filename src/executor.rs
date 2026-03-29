@@ -598,7 +598,19 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Bool(false))
             }
             Node::UILabel(text) => { self.evaluate(text); ExecResult::Value(RelType::Void) }
-            Node::UITextInput(_) => ExecResult::Value(RelType::Str("".into())) ,
+            Node::UITextInput(initial) => {
+                // Sprint 118: State-binding pattern — text = UITextInput(text)
+                // Seed the buffer from the script variable on the first call (when buffer is empty).
+                // Thereafter, return whatever is in the shared buffer
+                // (which egui will write into on each frame via ui_text_input_set).
+                if let ExecResult::Value(RelType::Str(seed)) = self.evaluate(initial) {
+                    let current = crate::natives::ui::ui_text_input_get();
+                    if current.is_empty() && !seed.is_empty() {
+                        crate::natives::ui::ui_text_input_set(seed);
+                    }
+                }
+                ExecResult::Value(RelType::Str(crate::natives::ui::ui_text_input_get()))
+            }
             Node::UISetStyle(_,_,_,_,_,_) => ExecResult::Value(RelType::Void),
             Node::UIHorizontal(body) | Node::UIFullscreen(body) | Node::UIGrid(_,_,body) | Node::UIScrollArea(_,body) => self.evaluate(body),
             Node::UIFixed { body, .. } => self.evaluate(body),

@@ -198,6 +198,25 @@
           ]
         }
       ]
+    },
+    {
+      "FnDef": [
+        "UITextInput",
+        ["initial_text"],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "ui",
+                  "function": "ui_text_input_get",
+                  "args": []
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

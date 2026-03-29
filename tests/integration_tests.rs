@@ -630,3 +630,13 @@ knoten_test!(
     ),
     "Return: \"hello world\" (String)"
 );
+
+// ------------------------------------------------------------------
+// Test 55: Sprint 118 — UITextInput state binding
+// ------------------------------------------------------------------
+knoten_test!(
+    test_55_ui_text_input_seed_and_read,
+    // UITextInput with a non-empty seed should populate the buffer and return it.
+    Node::UITextInput(Box::new(Node::StringLiteral("hello".to_string()))),
+    "Return: \"hello\" (String)"
+);

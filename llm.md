@@ -405,7 +405,43 @@ while (active) {
 }
 ```
 
----
+### UITextInput — State Binding (Sprint 118)
+
+`UITextInput` is an interactive text field backed by a **global thread-safe string buffer** (`Mutex<String>` in `ui.rs`). The evaluator and the egui render loop share this buffer:
+
+| Direction | Actor | Call |
+|-----------|-------|------|
+| Script → Buffer | Executor (`Node::UITextInput`) | `ui_text_input_get()` / seed via `ui_text_input_set()` |
+| User → Buffer | egui render loop | `ui_text_input_set(new_value)` |
+
+**State-binding idiom** (`.nod` DSL):
+```javascript
+let text = "Placeholder...";
+while (running) {
+    text = UITextInput(text);       // first call seeds; all calls read live buffer
+    if (ui_button("Submit")) {
+        print(text);
+    }
+    ui_present();
+}
+```
+
+**JSON AST usage** (direct ExternCall, no stdlib import needed):
+```json
+{
+  "Assign": ["text", {
+    "UITextInput": { "Identifier": "text" }
+  }]
+}
+```
+
+**Important:** The buffer is process-global and persists across frames. Reset it explicitly with `ui_text_input_set("")` when opening a new form. The `initial_text` argument only populates the buffer if the buffer is currently empty — subsequent frames always return the live egui-updated value.
+
+**stdlib shorthand** (requires `import "stdlib/ui.nod"`):
+```javascript
+text = UITextInput(text);
+```
+
 
 ## Structured Fault Reporting
 

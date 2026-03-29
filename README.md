@@ -139,6 +139,30 @@ while (active) {
 }
 ```
 
+**Example 5: Interactive Form — UITextInput State Binding (Sprint 118):**
+```javascript
+import "stdlib/ui.nod";
+import "core/time.nod";
+
+ui_init_window(600, 220, "KnotenCore Form Demo");
+
+let text = "Enter your query here...";
+let running = true;
+while (running) {
+    // State-binding: reads the live egui buffer each frame;
+    // seeds from the script variable on the very first call.
+    text = UITextInput(text);
+
+    if (ui_button("Submit")) {
+        print(text);
+        running = false;
+    }
+
+    ui_present();
+    sleep(16);
+}
+```
+
 The core architecture natively protects against Circular Dependencies and evaluates the imported Abstract Syntax Trees directly into the primary contiguous bytecode stream before a single native machine pulse executes. The compiler inherently resolves `"core/..."` directives globally to natively expose the unified Standard Library anywhere.
 
 High-level UI declarations remain in the AST (JIT). Intensive mathematical expressions bypass the tree evaluator and compile directly into flat **Opcodes** for a Register VM. The AOT pipeline leverages **LLVM Constant Folding** — pure computation loops that evaluate to a constant at compile time are entirely eliminated in the release binary.
