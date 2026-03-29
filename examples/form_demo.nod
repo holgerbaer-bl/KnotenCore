@@ -7,28 +7,30 @@
       ]
     },
     {
-      "Assign": [
-        "output",
-        { "StringLiteral": "" }
+      "UIWindow": [
+        "MainMenu",
+        { "StringLiteral": "KnotenCore UI Demo" },
+        {
+          "Block": [
+            {
+              "UIHBox": [
+                {
+                  "Assign": [
+                    "text",
+                    { "UITextInput": { "Identifier": "text" } }
+                  ]
+                },
+                {
+                  "UIButton": { "StringLiteral": "Submit" }
+                }
+              ]
+            },
+            {
+              "UILabel": { "Identifier": "text" }
+            }
+          ]
+        }
       ]
-    },
-    {
-      "Comment": "Sprint 118 — Form Demo: UITextInput + UIButton state binding"
-    },
-    {
-      "UITextInput": { "Identifier": "text" }
-    },
-    {
-      "Assign": [
-        "text",
-        { "UITextInput": { "Identifier": "text" } }
-      ]
-    },
-    {
-      "UIButton": { "StringLiteral": "Submit" }
-    },
-    {
-      "Print": { "Identifier": "text" }
     }
   ]
 }

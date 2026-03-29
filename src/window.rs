@@ -514,19 +514,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     .frame(egui::Frame::none().fill(egui::Color32::from_black_alpha(0)))
                     .show(&state.egui_ctx, |ui| {
                         for node in &state.ui_tree {
-                            match node {
-                                crate::ast::Node::UITextInput(_) => {
-                                    if let Ok(mut buffer) = crate::natives::ui::UI_TEXT_INPUT_BUFFER.lock() {
-                                        ui.text_edit_singleline(&mut *buffer);
-                                    }
-                                }
-                                crate::ast::Node::UILabel(text_node) => {
-                                    if let crate::ast::Node::StringLiteral(s) = &**text_node {
-                                        ui.label(s);
-                                    }
-                                }
-                                _ => {}
-                            }
+                            render_egui_node(ui, node);
                         }
                     });
 
@@ -648,4 +636,34 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
     }
 
     // UserEvent natively replaces `about_to_wait` polling
+}
+
+fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {
+    match node {
+        crate::ast::Node::UITextInput(_) => {
+            if let Ok(mut buffer) = crate::natives::ui::UI_TEXT_INPUT_BUFFER.lock() {
+                ui.text_edit_singleline(&mut *buffer);
+            }
+        }
+        crate::ast::Node::UILabel(text_node) => {
+            if let crate::ast::Node::StringLiteral(s) = &**text_node {
+                ui.label(s);
+            }
+        }
+        crate::ast::Node::UIHBox(children) => {
+            ui.horizontal(|ui| {
+                for child in children {
+                    render_egui_node(ui, child);
+                }
+            });
+        }
+        crate::ast::Node::UIVBox(children) => {
+            ui.vertical(|ui| {
+                for child in children {
+                    render_egui_node(ui, child);
+                }
+            });
+        }
+        _ => {}
+    }
 }

@@ -265,6 +265,11 @@ impl Validator {
             | Node::UIScrollArea(_, b) => {
                 self.check_node(b);
             }
+            Node::UIHBox(nodes) | Node::UIVBox(nodes) => {
+                for n in nodes {
+                    self.check_node(n);
+                }
+            }
             Node::DrawText(t, x, y, s, c) => {
                 self.check_node(t);
                 self.check_node(x);

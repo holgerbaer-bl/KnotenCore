@@ -137,6 +137,11 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::UIScrollArea(_, b) => {
             count += count_nodes(b);
         }
+        Node::UIHBox(nodes) | Node::UIVBox(nodes) => {
+            for n in nodes {
+                count += count_nodes(n);
+            }
+        }
         Node::ArraySet(a, b, c) | Node::MapSet(a, b, c) => {
             count += count_nodes(a) + count_nodes(b) + count_nodes(c);
         }
@@ -416,6 +421,8 @@ pub fn optimize(node: Node) -> Node {
             bh.map(|n| Box::new(optimize(*n))),
         ),
         Node::UIHorizontal(b) => Node::UIHorizontal(Box::new(optimize(*b))),
+        Node::UIHBox(nodes) => Node::UIHBox(nodes.into_iter().map(optimize).collect()),
+        Node::UIVBox(nodes) => Node::UIVBox(nodes.into_iter().map(optimize).collect()),
         Node::UIFullscreen(b) => Node::UIFullscreen(Box::new(optimize(*b))),
         Node::UIGrid(cols, id, body) => Node::UIGrid(cols, id, Box::new(optimize(*body))),
         Node::UIScrollArea(id, body) => Node::UIScrollArea(id, Box::new(optimize(*body))),

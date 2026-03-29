@@ -679,6 +679,22 @@ impl Parser {
                 Box::new(args.remove(0)),
             ),
             "UIHorizontal" => Node::UIHorizontal(Box::new(args.remove(0))),
+            "UIHBox" => {
+                let body = args.remove(0);
+                if let Node::Block(stmts) = body {
+                    Node::UIHBox(stmts)
+                } else {
+                    Node::UIHBox(vec![body])
+                }
+            }
+            "UIVBox" => {
+                let body = args.remove(0);
+                if let Node::Block(stmts) = body {
+                    Node::UIVBox(stmts)
+                } else {
+                    Node::UIVBox(vec![body])
+                }
+            }
             "UIFullscreen" => Node::UIFullscreen(Box::new(args.remove(0))),
             "UIGrid" => Node::UIGrid(
                 if let Node::IntLiteral(i) = args.remove(0) {

@@ -338,7 +338,7 @@ impl ExecutionEngine {
             Node::PlayAudioFile(_) | Node::LoadMesh(_) | Node::LoadTexture(_) | Node::RenderAsset(_, _, _, _) |
             Node::LoadFont(_) | Node::DrawText(_, _, _, _, _) | Node::GetLastKeypress |
             Node::UIWindow(_, _, _) | Node::UILabel(_) | Node::UIButton(_) | Node::UITextInput(_) |
-            Node::UISetStyle(_, _, _, _, _, _) | Node::UIHorizontal(_) | Node::UIFullscreen(_) |
+            Node::UISetStyle(_, _, _, _, _, _) | Node::UIHBox(_) | Node::UIVBox(_) | Node::UIHorizontal(_) | Node::UIFullscreen(_) |
             Node::UIGrid(_, _, _) | Node::UIScrollArea(_, _) | Node::InitCamera(_) |
             Node::DrawVoxelGrid(_) | Node::LoadTextureAtlas(_, _) | Node::LoadSample(_, _) |
             Node::PlaySample(_, _, _) | Node::InitVoxelMap | Node::SetVoxel(_, _, _, _) |

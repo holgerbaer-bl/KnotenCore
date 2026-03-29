@@ -599,6 +599,7 @@ impl ExecutionEngine {
                     }
                     _ => ui_nodes.push(*body.clone()),
                 }
+                ui_nodes = self.resolve_ui_nodes(ui_nodes);
                 crate::natives::registry::send_ui_nodes(ui_nodes);
                 self.evaluate(body)
             }
@@ -621,6 +622,12 @@ impl ExecutionEngine {
             }
             Node::UISetStyle(_,_,_,_,_,_) => ExecResult::Value(RelType::Void),
             Node::UIHorizontal(body) | Node::UIFullscreen(body) | Node::UIGrid(_,_,body) | Node::UIScrollArea(_,body) => self.evaluate(body),
+            Node::UIHBox(children) | Node::UIVBox(children) => {
+                for child in children {
+                    self.evaluate(child);
+                }
+                ExecResult::Value(RelType::Void)
+            }
             Node::UIFixed { body, .. } => self.evaluate(body),
             Node::UIFillParent => ExecResult::Value(RelType::Void),
             Node::Fetch { method, url, callback } => {
@@ -711,5 +718,35 @@ impl ExecutionEngine {
             ));
         }
         Ok(normalized)
+    }
+
+    fn resolve_ui_nodes(&mut self, nodes: Vec<Node>) -> Vec<Node> {
+        let mut resolved = Vec::new();
+        for node in nodes {
+            match node {
+                Node::UILabel(text) => {
+                    let mut s = String::new();
+                    if let ExecResult::Value(val) = self.evaluate(&text) {
+                        if let RelType::Str(val_str) = val {
+                            s = val_str;
+                        } else {
+                            s = format!("{}", val);
+                        }
+                    }
+                    resolved.push(Node::UILabel(Box::new(Node::StringLiteral(s))));
+                }
+                Node::UIHBox(children) => {
+                    resolved.push(Node::UIHBox(self.resolve_ui_nodes(children)));
+                }
+                Node::UIVBox(children) => {
+                    resolved.push(Node::UIVBox(self.resolve_ui_nodes(children)));
+                }
+                Node::UIHorizontal(body) => {
+                    resolved.push(Node::UIHorizontal(body));
+                }
+                _ => resolved.push(node),
+            }
+        }
+        resolved
     }
 }

@@ -442,6 +442,29 @@ while (running) {
 text = UITextInput(text);
 ```
 
+### UI Components and Layouts (Sprint 120)
+KnotenCore provides structural nodes mapping directly to egui layouts natively:
+- `Node::UIHBox(Vec<Node>)`: Wraps children in an `egui::Ui::horizontal` row layout.
+- `Node::UIVBox(Vec<Node>)`: Wraps children in an `egui::Ui::vertical` column layout.
+- `Node::UILabel(StringLiteral)`: Native egui text rendering inside layouts, updating in real-time when tracking state variables.
+
+**Example Form Demo Usage** (JSON AST):
+```json
+{
+  "UIWindow": ["Form", { "StringLiteral": "Login" }, {
+    "Block": [
+      {
+        "UIHBox": [
+          { "Assign": ["user", { "UITextInput": { "Identifier": "user" } }] },
+          { "UIButton": { "StringLiteral": "Send" } }
+        ]
+      },
+      { "UILabel": { "Identifier": "user" } }
+    ]
+  }]
+}
+```
+
 
 ## Structured Fault Reporting
 

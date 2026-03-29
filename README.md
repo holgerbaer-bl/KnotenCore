@@ -139,9 +139,10 @@ while (active) {
 }
 ```
 
-**Example 5: Interactive Form — UITextInput State Binding (Sprint 118):**
+**Example 5: Interactive Form — UI Layouts & State Binding (Sprint 120):**
 ```javascript
 import "stdlib/ui.nod";
+import "core/system.nod";
 import "core/time.nod";
 
 ui_init_window(600, 220, "KnotenCore Form Demo");
@@ -149,14 +150,17 @@ ui_init_window(600, 220, "KnotenCore Form Demo");
 let text = "Enter your query here...";
 let running = true;
 while (running) {
-    // State-binding: reads the live egui buffer each frame;
-    // seeds from the script variable on the very first call.
-    text = UITextInput(text);
-
-    if (ui_button("Submit")) {
-        print(text);
-        running = false;
-    }
+    // Nested UI Layouts binding natively to egui elements
+    UIWindow("Form", "Login", {
+        UIHBox({
+            text = UITextInput(text);
+            if (UIButton("Submit")) {
+                print(text);
+                running = false;
+            }
+        });
+        UILabel(text);
+    });
 
     ui_present();
     sleep(16);

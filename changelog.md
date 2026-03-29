@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.19] - Sprint 120: UI Layouts (HBox/VBox) & UILabel (2026-03-29)
+Finalized the structural layout foundation for the `egui` native integration.
+- **AST Extension**: Introduced `Node::UIHBox(Vec<Node>)`, `Node::UIVBox(Vec<Node>)`, and completed `Node::UILabel(Box<Node>)` support in `src/ast.rs`, `src/parser.rs`, and the evaluation engines.
+- **Evaluation Loop Synchronization**: Implemented `resolve_ui_nodes` in `src/executor.rs` to deeply evaluate variables before streaming the UI payload across thread boundaries. `UILabel` natively tracks text inputs in real-time.
+- **Egui Render Context**: Built a native recursive iterator mapping (`render_egui_node`) inside `src/window.rs` binding to `ui.horizontal()` and `ui.vertical()`.
+- **Form Demo Update**: Upgraded `examples/form_demo.nod` to nest the interactive text buffer alongside the button inside a native `UIHBox` and dynamically reflect the string back within a `UILabel`.
+
 ## [v1.0.18] - Sprint 119: Visual egui Text Rendering & Pipeline (2026-03-29)
 Established the foundational architecture for rendering `egui` inside the isolated `winit`/`wgpu` hardware loop natively.
 - **`src/window.rs`**: Built the `RegistryWindowState` extensions directly managing the Egui context trinity (`egui::Context`, `egui_winit::State`, `egui_wgpu::Renderer`).

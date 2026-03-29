@@ -186,6 +186,8 @@ pub enum Node {
         Option<Box<Node>>,
     ), // Rounding, Spacing, Accent RGBA, Fill RGBA, Button Idle RGBA (opt), Button Hover RGBA (opt)
     UIHorizontal(Box<Node>), // Render children side-by-side (horizontal layout)
+    UIHBox(Vec<Node>),       // Render children side-by-side (horizontal layout)
+    UIVBox(Vec<Node>),       // Render children top-to-bottom (vertical layout)
     UIFullscreen(Box<Node>), // Render children in a full-canvas borderless panel
     UIGrid(i64, String, Box<Node>), // Columns, ID, Body
     UIScrollArea(String, Box<Node>), // ID, Body for native scrolling view
