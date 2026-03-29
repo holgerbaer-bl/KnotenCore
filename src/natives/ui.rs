@@ -4,7 +4,7 @@
 // Sprint 118: Thread-safe buffer for UITextInput state binding.
 // The evaluator reads/writes this buffer via ui_text_input_get/set.
 // Future egui integration will push keyboard events into this buffer.
-static UI_TEXT_INPUT_BUFFER: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+pub static UI_TEXT_INPUT_BUFFER: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
 
 /// Sprint 118: Returns the current text-input value.
 pub fn ui_text_input_get() -> String {

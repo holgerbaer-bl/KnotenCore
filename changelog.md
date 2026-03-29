@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.18] - Sprint 119: Visual egui Text Rendering & Pipeline (2026-03-29)
+Established the foundational architecture for rendering `egui` inside the isolated `winit`/`wgpu` hardware loop natively.
+- **`src/window.rs`**: Built the `RegistryWindowState` extensions directly managing the Egui context trinity (`egui::Context`, `egui_winit::State`, `egui_wgpu::Renderer`).
+- **`src/natives/registry.rs`**: Introduced `RenderCommand::UpdateUI` specifically serving to transport AST node snapshots natively across thread boundaries from the background VM into the UI loop.
+- **`src/executor.rs`**: Refactored `Node::UIWindow` iteration to seamlessly clone internal bodies synchronously over to the Render Channel, solving immediate-mode syncs dynamically.
+- **`UITextInput` Binding**: Re-tooled the inner evaluation matching within `RedrawRequested` to literally execute `ui.text_edit_singleline` targeting the thread-locked `UI_TEXT_INPUT_BUFFER`. Interactive string modifications now render perfectly at 60FPS.
+
 ## [v1.0.17] - Sprint 118: UITextInput Widget & egui State Binding (2026-03-28)
 Complete the interactive UI surface by wiring a thread-safe string buffer between the AST executor and the egui rendering pipeline.
 - **`src/natives/ui.rs`**: Introduced `static UI_TEXT_INPUT_BUFFER: Mutex<String>` as the ground truth for text input state, plus `ui_text_input_get()` and `ui_text_input_set()` public helpers.

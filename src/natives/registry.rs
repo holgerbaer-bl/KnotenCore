@@ -60,6 +60,10 @@ pub enum RenderCommand {
         view_proj: [[f32; 4]; 4],
     },
     UpdateWindow(usize),
+    UpdateUI {
+        window_id: usize,
+        nodes: Vec<crate::ast::Node>,
+    },
     CloseWindow(usize),
     AddMesh {
         name: String,
@@ -86,6 +90,11 @@ fn send_render_command(cmd: RenderCommand) {
     if let Some(tx) = guard.as_ref() {
         let _ = tx.send_event(cmd);
     }
+}
+
+pub fn send_ui_nodes(nodes: Vec<crate::ast::Node>) {
+    // For now, hardcode broadcast to window id 1
+    send_render_command(RenderCommand::UpdateUI { window_id: 1, nodes });
 }
 
 // Proxy for a Window to be used by the background executor.
@@ -123,6 +132,11 @@ pub struct RegistryWindowState {
     pub texture_cache: HashMap<usize, wgpu::BindGroup>,
     pub default_texture_bind_group: wgpu::BindGroup,
     pub commands: Vec<RenderCommand>,
+    // Egui State
+    pub egui_ctx: egui::Context,
+    pub egui_state: egui_winit::State,
+    pub egui_renderer: egui_wgpu::Renderer,
+    pub ui_tree: Vec<crate::ast::Node>,
 }
 
 #[repr(C)]

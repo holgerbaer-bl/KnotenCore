@@ -592,6 +592,14 @@ impl ExecutionEngine {
                 ExecResult::Fault { msg: format!("Extern function '{}.{}' not found", module, function), node: "Node::ExternCall".into() }
             }
             Node::UIWindow(_id, _title, body) => {
+                let mut ui_nodes = Vec::new();
+                match &**body {
+                    Node::Block(statements) => {
+                        for stmt in statements { ui_nodes.push(stmt.clone()); }
+                    }
+                    _ => ui_nodes.push(*body.clone()),
+                }
+                crate::natives::registry::send_ui_nodes(ui_nodes);
                 self.evaluate(body)
             }
             Node::UIButton(_text) => {

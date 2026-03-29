@@ -270,6 +270,25 @@ impl KnotenApp {
                     last_char: 0,
                 }));
 
+                // Initialize Egui
+                let egui_ctx = egui::Context::default();
+                let viewport_id = egui::ViewportId::ROOT;
+                let egui_state = egui_winit::State::new(
+                    egui_ctx.clone(),
+                    viewport_id,
+                    &window,
+                    Some(window.scale_factor() as f32),
+                    None,
+                    None
+                );
+                let egui_renderer = egui_wgpu::Renderer::new(
+                    &device,
+                    config.format,
+                    None,
+                    1,
+                    false
+                );
+
                 self.windows.insert(id, RegistryWindowState {
                     window,
                     input,
@@ -294,11 +313,21 @@ impl KnotenApp {
                     texture_cache: HashMap::new(),
                     default_texture_bind_group,
                     commands: Vec::new(),
+                    egui_ctx,
+                    egui_state,
+                    egui_renderer,
+                    ui_tree: Vec::new(),
                 });
 
             }
             RenderCommand::UpdateWindow(id) => {
                 if let Some(state) = self.windows.get_mut(&id) {
+                    state.window.request_redraw();
+                }
+            }
+            RenderCommand::UpdateUI { window_id, nodes } => {
+                if let Some(state) = self.windows.get_mut(&window_id) {
+                    state.ui_tree = nodes;
                     state.window.request_redraw();
                 }
             }
@@ -384,6 +413,13 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
             Some(s) => s,
             None => return,
         };
+
+        // Feed egui
+        let egui_response = state.egui_state.on_window_event(&state.window, &event);
+        if egui_response.consumed {
+            // Egui consumed this event, you might want to early-return for certain events 
+            // if you don't want 3D logic to also process them. For now, we continue.
+        }
 
         match event {
             WindowEvent::CloseRequested => {
@@ -471,6 +507,58 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
                 let mut encoder = state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
                 
+                let raw_input = state.egui_state.take_egui_input(&state.window);
+                state.egui_ctx.begin_pass(raw_input);
+
+                egui::CentralPanel::default()
+                    .frame(egui::Frame::none().fill(egui::Color32::from_black_alpha(0)))
+                    .show(&state.egui_ctx, |ui| {
+                        for node in &state.ui_tree {
+                            match node {
+                                crate::ast::Node::UITextInput(_) => {
+                                    if let Ok(mut buffer) = crate::natives::ui::UI_TEXT_INPUT_BUFFER.lock() {
+                                        ui.text_edit_singleline(&mut *buffer);
+                                    }
+                                }
+                                crate::ast::Node::UILabel(text_node) => {
+                                    if let crate::ast::Node::StringLiteral(s) = &**text_node {
+                                        ui.label(s);
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    });
+
+                let egui::FullOutput {
+                    platform_output,
+                    textures_delta,
+                    shapes,
+                    pixels_per_point,
+                    ..
+                } = state.egui_ctx.end_pass();
+
+                state.egui_state.handle_platform_output(&state.window, platform_output);
+                let paint_jobs = state.egui_ctx.tessellate(shapes, pixels_per_point);
+
+                // Update Egui Textures & Buffers
+                for (id, image_delta) in &textures_delta.set {
+                    state.egui_renderer.update_texture(&state.device, &state.queue, *id, image_delta);
+                }
+                
+                let screen_desc = egui_wgpu::ScreenDescriptor {
+                    size_in_pixels: [state.config.width, state.config.height],
+                    pixels_per_point,
+                };
+                
+                state.egui_renderer.update_buffers(
+                    &state.device,
+                    &state.queue,
+                    &mut encoder,
+                    &paint_jobs,
+                    &screen_desc,
+                );
+
                 // Drain commands for this frame
                 let frame_cmds = std::mem::take(&mut state.commands);
 
@@ -532,6 +620,26 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                         }
                     }
                 }
+
+                // Render Egui directly onto the screen (load, don't clear)
+                let mut egui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Egui UI Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                }).forget_lifetime();
+                state.egui_renderer.render(&mut egui_pass, &paint_jobs, &screen_desc);
+                drop(egui_pass);
+
+                for id in textures_delta.free {
+                    state.egui_renderer.free_texture(&id);
+                }
+
                 state.queue.submit(Some(encoder.finish()));
                 output.present();
             }
