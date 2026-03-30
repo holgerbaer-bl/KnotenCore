@@ -1,0 +1,178 @@
+// ================================================================
+// FILE:    docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod
+// PURPOSE: Explicit DO / DON'T guide for AI code agents.
+//          Every block below shows a WRONG pattern followed by
+//          the correct KnotenCore equivalent.
+//          This file is NOT executable — it is a JSON comment file
+//          for agent training and schema validation testing.
+// ================================================================
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 1: Wrong node name for variable assignment
+// ----------------------------------------------------------------
+
+// ❌ WRONG — "Let" does not exist in KnotenCore. Rust / JS syntax
+//            is not valid in .nod files.
+// { "Let":  ["x", 42] }
+// { "let":  ["x", {"IntLiteral": 42}] }
+// { "Var":  ["x", {"IntLiteral": 42}] }
+// { "Const":["x", {"IntLiteral": 42}] }
+
+// ✅ CORRECT — Variable assignment always uses the "Assign" node.
+//              The name is a plain JSON string; the value must be
+//              a fully wrapped node.
+// { "Assign": ["x", { "IntLiteral": 42 }] }
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 2: Bare scalar values instead of literal nodes
+// ----------------------------------------------------------------
+
+// ❌ WRONG — Bare strings, numbers, and booleans are not valid
+//            as node values. The engine expects a node object.
+// { "Assign": ["name", "Hello"] }
+// { "Assign": ["score", 100] }
+// { "Assign": ["active", true] }
+
+// ✅ CORRECT — Every value must be wrapped in its literal node.
+// { "Assign": ["name",   { "StringLiteral": "Hello" }] }
+// { "Assign": ["score",  { "IntLiteral": 100 }] }
+// { "Assign": ["active", { "BoolLiteral": true }] }
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 3: Hallucinated function names
+// ----------------------------------------------------------------
+
+// ❌ WRONG — These function names do not exist in the engine.
+//            Calling them returns ExecResult::Fault at runtime.
+// { "Call": ["file_open",    [{ "StringLiteral": "test.txt" }]] }
+// { "Call": ["readFile",     [{ "StringLiteral": "test.txt" }]] }
+// { "Call": ["open_window",  [{ "IntLiteral": 800 }, { "IntLiteral": 600 }]] }
+// { "Call": ["createWindow", [{ "IntLiteral": 800 }, { "IntLiteral": 600 }]] }
+// { "Call": ["http_get",     [{ "StringLiteral": "https://example.com" }]] }
+// { "Call": ["sleep",        [{ "IntLiteral": 16 }]] }
+
+// ✅ CORRECT — Only call functions listed in native_functions.json.
+//              Use ExternCall with explicit module + function fields.
+// { "ExternCall": { "module": "registry", "function": "registry_file_create",    "args": [{ "StringLiteral": "out.txt" }] } }
+// { "ExternCall": { "module": "registry", "function": "registry_read_file",      "args": [{ "StringLiteral": "data.txt" }] } }
+// { "ExternCall": { "module": "registry", "function": "registry_create_window",  "args": [{ "IntLiteral": 800 }, { "IntLiteral": 600 }, { "StringLiteral": "App" }] } }
+// { "ExternCall": { "module": "net",      "function": "net_fetch",               "args": [{ "StringLiteral": "https://example.com" }] } }
+// { "ExternCall": { "module": "time",     "function": "time_sleep_ms",           "args": [{ "IntLiteral": 16 }] } }
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 4: Wrong outer structure for ExternCall
+// ----------------------------------------------------------------
+
+// ❌ WRONG — ExternCall payload is a nested object, not an array.
+//            Invented keys ("fn", "arguments") are rejected by
+//            additionalProperties:false in the JSON Schema.
+// { "ExternCall": ["registry", "registry_create_window", [800, 600, "App"]] }
+// { "ExternCall": { "fn": "registry_create_window", "arguments": [] } }
+
+// ✅ CORRECT — ExternCall always has exactly: module, function, args.
+// {
+//   "ExternCall": {
+//     "module":   "registry",
+//     "function": "registry_create_window",
+//     "args": [
+//       { "IntLiteral": 800 },
+//       { "IntLiteral": 600 },
+//       { "StringLiteral": "My App" }
+//     ]
+//   }
+// }
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 5: Inlining raw object literals where a node is expected
+// ----------------------------------------------------------------
+
+// ❌ WRONG — ObjectLiteral must be wrapped in the "ObjectLiteral" key.
+//            A raw JSON object at node position is not valid.
+// { "Assign": ["player", { "x": 0.0, "y": 0.0 }] }
+
+// ✅ CORRECT — Use the ObjectLiteral node; values must be nodes too.
+// {
+//   "Assign": ["player", {
+//     "ObjectLiteral": {
+//       "x": { "FloatLiteral": 0.0 },
+//       "y": { "FloatLiteral": 0.0 }
+//     }
+//   }]
+// }
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 6: Missing else-branch null in If tuples
+// ----------------------------------------------------------------
+
+// ❌ WRONG — If with only 2 elements but where a 3rd was intended.
+//            Structural ambiguity. Always be explicit.
+// { "If": [{ "BoolLiteral": true }, { "Print": { "StringLiteral": "yes" } }] }
+
+// ✅ CORRECT — Omit the 3rd element (maxItems:3) only if truly
+//              no else branch is needed. 2-element arrays are valid.
+// { "If": [
+//     { "Identifier": "is_running" },
+//     { "Print": { "StringLiteral": "still going" } }
+// ]}
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 7: Arithmetic directly on Identifier without node wrapping
+// ----------------------------------------------------------------
+
+// ❌ WRONG — Cannot embed bare identifiers or numbers in Add.
+// { "Add": ["x", 1] }
+
+// ✅ CORRECT — Every argument to math nodes must be a node object.
+// { "Add": [{ "Identifier": "x" }, { "IntLiteral": 1 }] }
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 8: Using UITextInput without state-binding assignment
+// ----------------------------------------------------------------
+
+// ❌ WRONG — Calling UITextInput and discarding the return value
+//            means the script variable is never updated from the
+//            egui buffer. The text field appears to do nothing.
+// { "UITextInput": { "Identifier": "text" } }
+
+// ✅ CORRECT — ALWAYS assign the return value back to the variable.
+//              This is the idiomatic state-binding pattern.
+// { "Assign": ["text", { "UITextInput": { "Identifier": "text" } }] }
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 9: Using I/O without permission flags
+// ----------------------------------------------------------------
+
+// ❌ WRONG — Running a script that calls registry_read_file without
+//            passing --allow-read returns ERR_IO_PERMISSION Fault.
+// cargo run --bin run_knc -- my_script.nod
+
+// ✅ CORRECT — Always pass the required flag.
+// cargo run --bin run_knc -- my_script.nod --allow-read
+// cargo run --bin run_knc -- my_script.nod --allow-read --allow-write
+// cargo run --bin run_knc -- my_script.nod --allow-net
+
+
+// ----------------------------------------------------------------
+// ANTI-PATTERN 10: Invented Return type in ExternCall
+// ----------------------------------------------------------------
+
+// ❌ WRONG — ExternCall has no "returns" field in the AST node.
+//            Return types are documented in native_functions.json
+//            for reference only; they are NOT part of the .nod syntax.
+// {
+//   "ExternCall": {
+//     "module": "registry", "function": "registry_now",
+//     "args": [], "returns": "Handle"
+//   }
+// }
+
+// ✅ CORRECT — ExternCall has exactly three keys: module, function, args.
+// { "ExternCall": { "module": "registry", "function": "registry_now", "args": [] } }

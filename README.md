@@ -17,17 +17,19 @@
 
 ---
 
-## 🤖 AI-Readiness Foundation (Sprint 121)
+## 🤖 AI-Readiness Foundation (Sprints 121–122)
 
-KnotenCore is purpose-built for autonomous AI agents. Every node in the language is formally specified and machine-validated:
+KnotenCore is purpose-built for autonomous AI agents. Every node and native function is formally specified and machine-validated:
 
 | Artifact | Path | Purpose |
 |----------|------|---------|
 | **EBNF Grammar** | [`docs/LANGUAGE_REFERENCE/nod_grammar.ebnf`](docs/LANGUAGE_REFERENCE/nod_grammar.ebnf) | Normative structural grammar of every `.nod` JSON node. Eliminates ambiguity for LLM code generation. |
-| **JSON Schema** | [`docs/LANGUAGE_REFERENCE/node_types.json`](docs/LANGUAGE_REFERENCE/node_types.json) | Full Draft-07 JSON Schema with `additionalProperties: false` enforced on every object node. AI-generated code is validated before execution — **hallucinated fields are rejected at runtime**. |
-| **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references and documenting all engine constraints. |
+| **JSON Schema** | [`docs/LANGUAGE_REFERENCE/node_types.json`](docs/LANGUAGE_REFERENCE/node_types.json) | Full Draft-07 JSON Schema with `additionalProperties: false` on every object node. **Hallucinated fields are rejected at runtime.** |
+| **Function Registry** | [`docs/LANGUAGE_REFERENCE/native_functions.json`](docs/LANGUAGE_REFERENCE/native_functions.json) | Machine-readable registry of every native FFI function (30+), with parameter types, return types, required permissions, and live AST call examples. |
+| **Anti-Pattern Guide** | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | 10 explicit DO/DON'T patterns for AI agents covering wrong node names, bare scalars, hallucinated functions, and ExternCall misuse. |
+| **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references above and documenting all engine constraints. |
 
-> **For AI Agents:** Always validate generated `.nod` AST against `docs/LANGUAGE_REFERENCE/node_types.json` before emitting code.
+> **For AI Agents:** Read `native_functions.json` and `99_antipatterns.nod` before generating any `.nod` code. Always validate output against `node_types.json`.
 
 ---
 

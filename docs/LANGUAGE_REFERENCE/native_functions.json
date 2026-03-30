@@ -1,0 +1,681 @@
+{
+  "registry_version": "v1.1.0",
+  "_comment": "Machine-readable registry of every native FFI function exposed by KnotenCore. All functions are invoked via ExternCall { module, function, args } or the equivalent stdlib wrapper. AI agents MUST only call functions listed here — hallucinated names will return ExecResult::Fault at runtime.",
+  "modules": {
+    "registry": "WGPU window management, textures, 3D rendering, input, timers, physics",
+    "ui":       "egui immediate-mode GUI (legacy shim + UITextInput buffer)",
+    "fs":       "Filesystem utilities, JSON parsing, array/object helpers",
+    "net":      "HTTP networking (sandboxed)",
+    "json":     "JSON serialisation helpers (alias layer over fs module)",
+    "time":     "CPU throttling via std::thread::sleep"
+  },
+  "functions": [
+    {
+      "name": "registry_create_window",
+      "module": "registry",
+      "description": "Bootstraps a WGPU egui window and returns an opaque Handle. This is the preferred window creation path for interactive UI scripts.",
+      "parameters": [
+        { "name": "width",  "type": "Int",    "required": true, "description": "Window width in pixels"  },
+        { "name": "height", "type": "Int",    "required": true, "description": "Window height in pixels" },
+        { "name": "title",  "type": "String", "required": true, "description": "Window title bar string" }
+      ],
+      "returns": "Handle",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_create_window",
+          "args": [
+            { "IntLiteral": 800 },
+            { "IntLiteral": 600 },
+            { "StringLiteral": "My App" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_window_update",
+      "module": "registry",
+      "description": "Pumps the OS event loop and redraws the WGPU frame. Returns Bool(true) while the window is open; false when the user closes it. Call once per loop iteration.",
+      "parameters": [
+        { "name": "window", "type": "Handle", "required": true, "description": "Handle from registry_create_window" }
+      ],
+      "returns": "Bool",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "Assign": ["open", {
+          "ExternCall": {
+            "module": "registry",
+            "function": "registry_window_update",
+            "args": [ { "Identifier": "win" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "registry_window_close",
+      "module": "registry",
+      "description": "Destroys the window and releases its GPU resources from the ARC registry.",
+      "parameters": [
+        { "name": "window", "type": "Handle", "required": true, "description": "Handle from registry_create_window" }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_window_close",
+          "args": [ { "Identifier": "win" } ]
+        }
+      }
+    },
+    {
+      "name": "registry_fill_color",
+      "module": "registry",
+      "description": "Clears the frame buffer to a solid RGB colour (0–255 per channel). Call at the start of each render loop before drawing primitives.",
+      "parameters": [
+        { "name": "window", "type": "Handle", "required": true  },
+        { "name": "r",      "type": "Int",    "required": true, "description": "Red   0–255" },
+        { "name": "g",      "type": "Int",    "required": true, "description": "Green 0–255" },
+        { "name": "b",      "type": "Int",    "required": true, "description": "Blue  0–255" }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_fill_color",
+          "args": [
+            { "Identifier": "win" },
+            { "IntLiteral": 20 },
+            { "IntLiteral": 25 },
+            { "IntLiteral": 30 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_texture_load",
+      "module": "registry",
+      "description": "Loads an image file from disk into VRAM and returns a texture Handle. Path must be relative to the working directory.",
+      "parameters": [
+        { "name": "path", "type": "String", "required": true, "description": "Relative path to PNG/JPEG/BMP file" }
+      ],
+      "returns": "Handle",
+      "permissions": ["--allow-read"],
+      "errors": ["ERR_IO_PERMISSION", "ERR_FILE_NOT_FOUND", "ERR_PATH_ESCAPE"],
+      "example": {
+        "Assign": ["tex", {
+          "ExternCall": {
+            "module": "registry",
+            "function": "registry_texture_load",
+            "args": [ { "StringLiteral": "assets/textures/uv_checker.png" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "registry_draw_quad_3d",
+      "module": "registry",
+      "description": "Renders a textured quad in 3D world space. Uses geometry caching — vertices computed once per unique scale.",
+      "parameters": [
+        { "name": "window",   "type": "Handle", "required": true },
+        { "name": "texture",  "type": "Handle", "required": true },
+        { "name": "x",        "type": "Float",  "required": true },
+        { "name": "y",        "type": "Float",  "required": true },
+        { "name": "z",        "type": "Float",  "required": true },
+        { "name": "scale_x",  "type": "Float",  "required": true },
+        { "name": "scale_y",  "type": "Float",  "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_draw_quad_3d",
+          "args": [
+            { "Identifier": "win" }, { "Identifier": "tex" },
+            { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 },
+            { "FloatLiteral": 1.0 }, { "FloatLiteral": 1.0 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_draw_sphere",
+      "module": "registry",
+      "description": "Renders a UV-sphere in 3D world space. Geometry is cached per (radius, rings, sectors) combination.",
+      "parameters": [
+        { "name": "window",  "type": "Handle", "required": true },
+        { "name": "texture", "type": "Handle", "required": true },
+        { "name": "radius",  "type": "Float",  "required": true },
+        { "name": "rings",   "type": "Int",    "required": true, "description": "Latitude subdivisions (min 4)" },
+        { "name": "sectors", "type": "Int",    "required": true, "description": "Longitude subdivisions (min 4)" },
+        { "name": "x",       "type": "Float",  "required": true },
+        { "name": "y",       "type": "Float",  "required": true },
+        { "name": "z",       "type": "Float",  "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_draw_sphere",
+          "args": [
+            { "Identifier": "win" }, { "Identifier": "tex" },
+            { "FloatLiteral": 1.0 }, { "IntLiteral": 16 }, { "IntLiteral": 16 },
+            { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_draw_cube",
+      "module": "registry",
+      "description": "Renders a textured box in 3D world space.",
+      "parameters": [
+        { "name": "window",  "type": "Handle", "required": true },
+        { "name": "texture", "type": "Handle", "required": true },
+        { "name": "width",   "type": "Float",  "required": true },
+        { "name": "height",  "type": "Float",  "required": true },
+        { "name": "depth",   "type": "Float",  "required": true },
+        { "name": "x",       "type": "Float",  "required": true },
+        { "name": "y",       "type": "Float",  "required": true },
+        { "name": "z",       "type": "Float",  "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_draw_cube",
+          "args": [
+            { "Identifier": "win" }, { "Identifier": "tex" },
+            { "FloatLiteral": 1.0 }, { "FloatLiteral": 1.0 }, { "FloatLiteral": 1.0 },
+            { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_file_create",
+      "module": "registry",
+      "description": "Creates a new file at the given path and returns a writable file Handle. Path must be within the working directory.",
+      "parameters": [
+        { "name": "path", "type": "String", "required": true, "description": "Relative file path to create" }
+      ],
+      "returns": "Handle",
+      "permissions": ["--allow-write"],
+      "errors": ["ERR_IO_PERMISSION", "ERR_PATH_ESCAPE"],
+      "example": {
+        "Assign": ["fh", {
+          "ExternCall": {
+            "module": "registry",
+            "function": "registry_file_create",
+            "args": [ { "StringLiteral": "output/result.txt" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "registry_file_write",
+      "module": "registry",
+      "description": "Appends or writes content to an open file Handle.",
+      "parameters": [
+        { "name": "handle",  "type": "Handle", "required": true },
+        { "name": "content", "type": "String", "required": true }
+      ],
+      "returns": "Void",
+      "permissions": ["--allow-write"],
+      "errors": ["ERR_IO_PERMISSION", "ERR_INVALID_HANDLE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_file_write",
+          "args": [
+            { "Identifier": "fh" },
+            { "StringLiteral": "Hello, World!" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_read_file",
+      "module": "registry",
+      "description": "Reads the entire contents of a file and returns a String. Path is canonicalized and must remain within the working directory.",
+      "parameters": [
+        { "name": "path", "type": "String", "required": true }
+      ],
+      "returns": "String",
+      "permissions": ["--allow-read"],
+      "errors": ["ERR_IO_PERMISSION", "ERR_FILE_NOT_FOUND", "ERR_PATH_ESCAPE"],
+      "example": {
+        "Assign": ["content", {
+          "ExternCall": {
+            "module": "registry",
+            "function": "registry_read_file",
+            "args": [ { "StringLiteral": "data/config.json" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "registry_write_file",
+      "module": "registry",
+      "description": "Writes a String to a file, creating it if it does not exist. Returns Bool(true) on success.",
+      "parameters": [
+        { "name": "path",    "type": "String", "required": true },
+        { "name": "content", "type": "String", "required": true }
+      ],
+      "returns": "Bool",
+      "permissions": ["--allow-write"],
+      "errors": ["ERR_IO_PERMISSION", "ERR_PATH_ESCAPE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_write_file",
+          "args": [
+            { "StringLiteral": "output/result.txt" },
+            { "StringLiteral": "42" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_is_key_pressed",
+      "module": "registry",
+      "description": "Polls the lock-free AtomicBool key table at O(1). Returns Bool(true) if the physical key is currently held. Supported keys: W A S D SPACE UP DOWN LEFT RIGHT.",
+      "parameters": [
+        { "name": "key", "type": "String", "required": true, "description": "Uppercase key name: 'W', 'A', 'S', 'D', 'SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT'" }
+      ],
+      "returns": "Bool",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "If": [
+          { "ExternCall": { "module": "registry", "function": "registry_is_key_pressed", "args": [ { "StringLiteral": "W" } ] } },
+          { "Assign": ["y", { "Add": [ { "Identifier": "y" }, { "FloatLiteral": 0.1 } ] }] },
+          null
+        ]
+      }
+    },
+    {
+      "name": "registry_get_mouse_delta_x",
+      "module": "registry",
+      "description": "Returns the horizontal mouse movement delta (Float) since the last frame. Used for FPS camera look.",
+      "parameters": [],
+      "returns": "Float",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["dx", {
+          "ExternCall": { "module": "registry", "function": "registry_get_mouse_delta_x", "args": [] }
+        }]
+      }
+    },
+    {
+      "name": "registry_get_mouse_delta_y",
+      "module": "registry",
+      "description": "Returns the vertical mouse movement delta (Float) since the last frame.",
+      "parameters": [],
+      "returns": "Float",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["dy", {
+          "ExternCall": { "module": "registry", "function": "registry_get_mouse_delta_y", "args": [] }
+        }]
+      }
+    },
+    {
+      "name": "registry_get_last_char",
+      "module": "registry",
+      "description": "Returns the Unicode codepoint (Int) of the last character typed by the user, or 0 if none.",
+      "parameters": [],
+      "returns": "Int",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["ch", {
+          "ExternCall": { "module": "registry", "function": "registry_get_last_char", "args": [] }
+        }]
+      }
+    },
+    {
+      "name": "registry_now",
+      "module": "registry",
+      "description": "Captures the current monotonic timestamp and returns a timer Handle. Use with registry_elapsed_ms to measure durations.",
+      "parameters": [],
+      "returns": "Handle",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["t0", {
+          "ExternCall": { "module": "registry", "function": "registry_now", "args": [] }
+        }]
+      }
+    },
+    {
+      "name": "registry_elapsed_ms",
+      "module": "registry",
+      "description": "Returns the elapsed milliseconds (Int) since the timestamp captured by registry_now.",
+      "parameters": [
+        { "name": "timer", "type": "Handle", "required": true, "description": "Handle from registry_now" }
+      ],
+      "returns": "Int",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "Assign": ["ms", {
+          "ExternCall": {
+            "module": "registry",
+            "function": "registry_elapsed_ms",
+            "args": [ { "Identifier": "t0" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "registry_set_camera",
+      "module": "registry",
+      "description": "Configures the global perspective camera with field-of-view and eye position. Affects all subsequent draw calls.",
+      "parameters": [
+        { "name": "fov", "type": "Float", "required": true, "description": "Field of view in degrees" },
+        { "name": "x",   "type": "Float", "required": true },
+        { "name": "y",   "type": "Float", "required": true },
+        { "name": "z",   "type": "Float", "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_set_camera",
+          "args": [
+            { "FloatLiteral": 60.0 },
+            { "FloatLiteral": 0.0 }, { "FloatLiteral": 1.0 }, { "FloatLiteral": -5.0 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_dump",
+      "module": "registry",
+      "description": "Returns the total number of live handles in the ARC registry (Int). Useful for diagnosing handle leaks.",
+      "parameters": [],
+      "returns": "Int",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["n", {
+          "ExternCall": { "module": "registry", "function": "registry_dump", "args": [] }
+        }]
+      }
+    },
+    {
+      "name": "net_fetch",
+      "module": "net",
+      "description": "Sends a synchronous HTTP GET request and returns the response body as a String. Requires --allow-net.",
+      "parameters": [
+        { "name": "url", "type": "String", "required": true }
+      ],
+      "returns": "String",
+      "permissions": ["--allow-net"],
+      "errors": ["ERR_NET_PERMISSION", "ERR_HTTP_FAILED"],
+      "example": {
+        "Assign": ["body", {
+          "ExternCall": {
+            "module": "net",
+            "function": "net_fetch",
+            "args": [ { "StringLiteral": "https://api.github.com/repos/holgerbaer-bl/KnotenCore" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "fs_read_file",
+      "module": "fs",
+      "description": "Reads a file and returns its full content as a String. Path must be relative and within the working directory.",
+      "parameters": [
+        { "name": "path", "type": "String", "required": true }
+      ],
+      "returns": "String",
+      "permissions": ["--allow-read"],
+      "errors": ["ERR_IO_PERMISSION", "ERR_FILE_NOT_FOUND"],
+      "example": {
+        "Assign": ["data", {
+          "ExternCall": {
+            "module": "fs",
+            "function": "fs_read_file",
+            "args": [ { "StringLiteral": "data/input.txt" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "fs_parse_json",
+      "module": "fs",
+      "description": "Parses a JSON string into a native KnotenCore value (Object, Array, Int, Float, Bool, or String).",
+      "parameters": [
+        { "name": "json", "type": "String", "required": true }
+      ],
+      "returns": "Any",
+      "permissions": [],
+      "errors": ["ERR_JSON_PARSE"],
+      "example": {
+        "Assign": ["parsed", {
+          "ExternCall": {
+            "module": "fs",
+            "function": "fs_parse_json",
+            "args": [ { "Identifier": "raw_json" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "json_parse",
+      "module": "json",
+      "description": "Alias for fs_parse_json. Parses a JSON string into a native KnotenCore value.",
+      "parameters": [
+        { "name": "payload", "type": "String", "required": true }
+      ],
+      "returns": "Any",
+      "permissions": [],
+      "errors": ["ERR_JSON_PARSE"],
+      "example": {
+        "Assign": ["obj", {
+          "ExternCall": {
+            "module": "json",
+            "function": "json_parse",
+            "args": [ { "Identifier": "response_body" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "json_stringify",
+      "module": "json",
+      "description": "Serialises any KnotenCore value into a JSON string.",
+      "parameters": [
+        { "name": "value", "type": "Any", "required": true }
+      ],
+      "returns": "String",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["s", {
+          "ExternCall": {
+            "module": "json",
+            "function": "json_stringify",
+            "args": [ { "Identifier": "my_object" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "array_length",
+      "module": "fs",
+      "description": "Returns the length of an Array as Int.",
+      "parameters": [
+        { "name": "array", "type": "Array", "required": true }
+      ],
+      "returns": "Int",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["n", {
+          "ExternCall": {
+            "module": "fs",
+            "function": "array_length",
+            "args": [ { "Identifier": "items" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "array_get",
+      "module": "fs",
+      "description": "Returns the element at index from an Array. Returns Void if index is out of bounds.",
+      "parameters": [
+        { "name": "array", "type": "Array", "required": true },
+        { "name": "index", "type": "Int",   "required": true }
+      ],
+      "returns": "Any",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["item", {
+          "ExternCall": {
+            "module": "fs",
+            "function": "array_get",
+            "args": [ { "Identifier": "items" }, { "IntLiteral": 0 } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "obj_get",
+      "module": "fs",
+      "description": "Returns the value for a key from an Object map. Returns Void if key is absent.",
+      "parameters": [
+        { "name": "object", "type": "Object", "required": true },
+        { "name": "key",    "type": "String", "required": true }
+      ],
+      "returns": "Any",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["name", {
+          "ExternCall": {
+            "module": "fs",
+            "function": "obj_get",
+            "args": [ { "Identifier": "data" }, { "StringLiteral": "name" } ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "obj_set",
+      "module": "fs",
+      "description": "Returns a new Object with the given key set to the given value (immutable update pattern).",
+      "parameters": [
+        { "name": "object", "type": "Object", "required": true },
+        { "name": "key",    "type": "String", "required": true },
+        { "name": "value",  "type": "Any",    "required": true }
+      ],
+      "returns": "Object",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["data2", {
+          "ExternCall": {
+            "module": "fs",
+            "function": "obj_set",
+            "args": [
+              { "Identifier": "data" },
+              { "StringLiteral": "score" },
+              { "IntLiteral": 42 }
+            ]
+          }
+        }]
+      }
+    },
+    {
+      "name": "obj_has_key",
+      "module": "fs",
+      "description": "Returns Bool(true) if the Object contains the given key.",
+      "parameters": [
+        { "name": "object", "type": "Object", "required": true },
+        { "name": "key",    "type": "String", "required": true }
+      ],
+      "returns": "Bool",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "fs",
+          "function": "obj_has_key",
+          "args": [ { "Identifier": "data" }, { "StringLiteral": "name" } ]
+        }
+      }
+    },
+    {
+      "name": "time_sleep_ms",
+      "module": "time",
+      "description": "Blocks the executor thread for at least the given number of milliseconds. Use for frame pacing (~16ms = 60 FPS cap). No-op if ms <= 0.",
+      "parameters": [
+        { "name": "milliseconds", "type": "Int", "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "time",
+          "function": "time_sleep_ms",
+          "args": [ { "IntLiteral": 16 } ]
+        }
+      }
+    },
+    {
+      "name": "ui_text_input_get",
+      "module": "ui",
+      "description": "Reads the current value of the global UI_TEXT_INPUT_BUFFER. Returns String. Part of the UITextInput state-binding pattern.",
+      "parameters": [],
+      "returns": "String",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["text", {
+          "ExternCall": { "module": "ui", "function": "ui_text_input_get", "args": [] }
+        }]
+      }
+    },
+    {
+      "name": "ui_text_input_set",
+      "module": "ui",
+      "description": "Overwrites the global UI_TEXT_INPUT_BUFFER. Call to pre-seed a text field before the render loop starts.",
+      "parameters": [
+        { "name": "value", "type": "String", "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "ui",
+          "function": "ui_text_input_set",
+          "args": [ { "StringLiteral": "Initial text..." } ]
+        }
+      }
+    }
+  ]
+}

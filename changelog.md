@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.21] - Sprint 122: AI-Readiness Foundation Phase 1 Completion (2026-03-30)
+Completes the machine-readable AI-Readiness reference stack with a native function registry and explicit anti-pattern guard-rails.
+- **`docs/LANGUAGE_REFERENCE/native_functions.json`** *(new)*: Machine-readable registry of every FFI function exposed via `ExternCall`. 30+ entries across 6 modules (`registry`, `ui`, `fs`, `net`, `json`, `time`). Each entry documents: parameter names + types, return type, required permission flags, and a live JSON AST call example. AI agents **must only call functions listed here**.
+- **`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`** *(new)*: 10 explicit DO/DON'T patterns covering: wrong node names (`Let`, `Var`), bare scalar values, hallucinated function names, malformed `ExternCall` structure, raw object literals, `UITextInput` state-binding errors, missing permission flags, and invented return fields.
+- **`llm.md`**: Routing table extended with direct links to both new files, completing the 5-document Phase 1 reference stack.
+- **`README.md`**: AI-Readiness section updated to "Sprints 121–122", with the full 5-entry reference table and an updated agent directive.
+- **Git**: Committed and pushed cleanly to `origin/main` via standard (non-force) push. No divergence.
+
 ## [v1.0.20] - Sprint 121: AI-Readiness Foundation — EBNF & JSON Schemas (2026-03-30)
 Establishes a hallucination-resistant, machine-readable language specification for autonomous AI agents.
 - **`docs/LANGUAGE_REFERENCE/nod_grammar.ebnf`** *(new)*: Normative EBNF grammar covering every `Node` variant derived directly from `src/ast.rs`. Eliminates structural ambiguity for LLM code generation.
