@@ -1,0 +1,281 @@
+(* ============================================================ *)
+(*  KnotenCore .nod Grammar — Normative Reference v1.0          *)
+(*  Derived from: src/ast.rs                                     *)
+(*  Sprint 121 — AI-Readiness Foundation                         *)
+(*  A .nod file is a single JSON object that serialises to one   *)
+(*  Node variant below. All keys are verbatim Rust enum names.   *)
+(* ============================================================ *)
+
+program     ::= node ;
+
+node        ::= literal
+              | identifier
+              | assign
+              | math-bin
+              | math-un
+              | logic-bin
+              | logic-un
+              | array-op
+              | string-op
+              | object-op
+              | map-op
+              | bitwise-op
+              | fn-def
+              | call
+              | extern-call
+              | native-call
+              | io-node
+              | control-flow
+              | ui-node
+              | graphics-3d
+              | audio-node
+              | voxel-node
+              | physics-node
+              | system-node
+              ;
+
+(* ─── Literals ──────────────────────────────────────────────── *)
+literal     ::= int-lit | float-lit | bool-lit | string-lit ;
+int-lit     ::= '{"IntLiteral":'   integer   '}' ;
+float-lit   ::= '{"FloatLiteral":' number    '}' ;
+bool-lit    ::= '{"BoolLiteral":'  boolean   '}' ;
+string-lit  ::= '{"StringLiteral":' string   '}' ;
+
+(* ─── Identifier / Memory ───────────────────────────────────── *)
+identifier  ::= '{"Identifier":'  string '}' ;
+
+assign      ::= '{"Assign":' '[' string ',' node ']' '}' ;
+
+(* Persistent KV-store (Sprint 64) *)
+store-node  ::= '{"Store":' '{"key":' string ',"value":' node '}}' ;
+load-node   ::= '{"Load":'  '{"key":' string                  '}}' ;
+
+(* ─── Math (binary) ─────────────────────────────────────────── *)
+math-bin    ::= add | sub | mul | div | mat4-mul ;
+add         ::= '{"Add":'     '[' node ',' node ']' '}' ;
+sub         ::= '{"Sub":'     '[' node ',' node ']' '}' ;
+mul         ::= '{"Mul":'     '[' node ',' node ']' '}' ;
+div         ::= '{"Div":'     '[' node ',' node ']' '}' ;
+mat4-mul    ::= '{"Mat4Mul":' '[' node ',' node ']' '}' ;
+
+(* Math (unary) *)
+math-un     ::= sin | cos | abs | neg ;
+sin         ::= '{"Sin":' node '}' ;
+cos         ::= '{"Cos":' node '}' ;
+abs         ::= '{"Abs":' node '}' ;
+
+(* Time constants *)
+system-node ::= '{"Time":null}' | '"Time"'
+              | '{"GlobalTime":null}' | '"GlobalTime"'
+              | '{"InitGraphics":null}' | '"InitGraphics"'
+              | '{"GetLastKeypress":null}' | '"GetLastKeypress"'
+              | '{"UIFillParent":null}' | '"UIFillParent"'
+              | '{"MapCreate":null}' | '"MapCreate"'
+              | '{"InitAudio":null}' | '"InitAudio"'
+              | '{"InitVoxelMap":null}' | '"InitVoxelMap"'
+              | '{"RaycastSimple":null}' | '"RaycastSimple"'
+              ;
+
+(* ─── Logic / Comparison ────────────────────────────────────── *)
+logic-bin   ::= eq | lt | gt ;
+eq          ::= '{"Eq":'  '[' node ',' node ']' '}' ;
+lt          ::= '{"Lt":'  '[' node ',' node ']' '}' ;
+gt          ::= '{"Gt":'  '[' node ',' node ']' '}' ;
+
+logic-un    ::= to-string | eval-json ;
+to-string   ::= '{"ToString":'      node '}' ;
+eval-json   ::= '{"EvalJSONNative":' node '}' ;
+
+(* ─── Bitwise ───────────────────────────────────────────────── *)
+bitwise-op  ::= bit-and | bit-shl | bit-shr ;
+bit-and     ::= '{"BitAnd":'        '[' node ',' node ']' '}' ;
+bit-shl     ::= '{"BitShiftLeft":'  '[' node ',' node ']' '}' ;
+bit-shr     ::= '{"BitShiftRight":' '[' node ',' node ']' '}' ;
+
+(* ─── Arrays ────────────────────────────────────────────────── *)
+array-op    ::= arr-create | arr-get | arr-set | arr-push | arr-len | index ;
+arr-create  ::= '{"ArrayCreate":' '[' node-list-opt ']' '}' ;
+arr-get     ::= '{"ArrayGet":'    '[' node ',' node ']' '}' ;       (* array, index *)
+arr-set     ::= '{"ArraySet":'    '[' node ',' node ',' node ']' '}' ; (* array, index, value *)
+arr-push    ::= '{"ArrayPush":'   '[' node ',' node ']' '}' ;       (* array, value *)
+arr-len     ::= '{"ArrayLen":'    node '}' ;
+index       ::= '{"Index":'       '[' node ',' node ']' '}' ;       (* expr, index *)
+
+(* ─── Strings ───────────────────────────────────────────────── *)
+string-op   ::= concat ;
+concat      ::= '{"Concat":' '[' node ',' node ']' '}' ;
+
+(* ─── Objects (dot-access syntax) ───────────────────────────── *)
+object-op   ::= obj-literal | prop-get | prop-set ;
+obj-literal ::= '{"ObjectLiteral":' obj-map '}' ;
+obj-map     ::= '{' string ':' node ( ',' string ':' node )* '}' | '{}' ;
+prop-get    ::= '{"PropertyGet":' '[' node ',' string ']' '}' ;
+prop-set    ::= '{"PropertySet":' '[' node ',' string ',' node ']' '}' ;
+
+(* ─── Maps (explicit HashMap ops) ───────────────────────────── *)
+map-op      ::= map-get | map-set | map-has ;
+map-get     ::= '{"MapGet":'    '[' node ',' node ']' '}' ;
+map-set     ::= '{"MapSet":'    '[' node ',' node ',' node ']' '}' ;
+map-has     ::= '{"MapHasKey":' '[' node ',' node ']' '}' ;
+
+(* ─── Functions ─────────────────────────────────────────────── *)
+fn-def      ::= '{"FnDef":' '[' string ',' param-list ',' node ']' '}' ;
+param-list  ::= '[' ( string ( ',' string )* )? ']' ;
+
+call        ::= '{"Call":' '[' string ',' '[' node-list-opt ']' ']' '}' ;
+
+extern-call ::= '{"ExternCall":' '{'
+                  '"module":' string ','
+                  '"function":' string ','
+                  '"args":' '[' node-list-opt ']'
+                '}}' ;
+
+native-call ::= '{"NativeCall":' '[' string ',' '[' node-list-opt ']' ']' '}' ;
+
+(* ─── Control Flow ───────────────────────────────────────────── *)
+control-flow ::= if-node | while-node | block | return-node | import-node ;
+
+block       ::= '{"Block":' '[' node-list-opt ']' '}' ;
+if-node     ::= '{"If":'    '[' node ',' node ( ',' node )? ']' '}' ;
+                (* [condition, then-branch, else-branch?] *)
+while-node  ::= '{"While":' '[' node ',' node ']' '}' ;
+return-node ::= '{"Return":' node '}' ;
+import-node ::= '{"Import":' string '}' ;
+
+(* ─── I/O ────────────────────────────────────────────────────── *)
+io-node     ::= print | file-read | file-write | fs-read | fs-write | fetch | extract ;
+print       ::= '{"Print":'     node '}' ;
+file-read   ::= '{"FileRead":'  node '}' ;
+file-write  ::= '{"FileWrite":' '[' node ',' node ']' '}' ;
+fs-read     ::= '{"FSRead":'    node '}' ;
+fs-write    ::= '{"FSWrite":'   '[' node ',' node ']' '}' ;
+
+fetch       ::= '{"Fetch":' '{'
+                  '"method":' string ','
+                  '"url":' string ','
+                  '"callback":' node
+                '}}' ;
+
+extract     ::= '{"Extract":' '{"source":' node ',"path":' node '}}' ;
+
+(* ─── UI (egui) ──────────────────────────────────────────────── *)
+ui-node     ::= ui-window | ui-label | ui-button | ui-text-input
+              | ui-set-style | ui-horizontal | ui-hbox | ui-vbox
+              | ui-fullscreen | ui-grid | ui-scroll-area
+              | ui-fixed | ui-fill-parent | draw-rect ;
+
+ui-window   ::= '{"UIWindow":' '[' string ',' node ',' node ']' '}' ;
+              (* [id:String, title:node, children:Block] *)
+ui-label    ::= '{"UILabel":'     node '}' ;
+ui-button   ::= '{"UIButton":'    node '}' ;
+              (* Evaluates to BoolLiteral(true) when clicked this frame *)
+ui-text-input ::= '{"UITextInput":' node '}' ;
+              (* State-binding: text = UITextInput(text)              *)
+              (* Reads from thread-safe UI_TEXT_INPUT_BUFFER           *)
+
+ui-hbox     ::= '{"UIHBox":' '[' node-list-opt ']' '}' ;
+ui-vbox     ::= '{"UIVBox":' '[' node-list-opt ']' '}' ;
+ui-horizontal ::= '{"UIHorizontal":' node '}' ;
+ui-fullscreen ::= '{"UIFullscreen":' node '}' ;
+ui-grid     ::= '{"UIGrid":' '[' integer ',' string ',' node ']' '}' ;
+              (* [columns:Int, id:String, body:Block] *)
+ui-scroll-area ::= '{"UIScrollArea":' '[' string ',' node ']' '}' ;
+              (* [id:String, body:Block] *)
+ui-fixed    ::= '{"UIFixed":' '{"width":' node ',"height":' node ',"body":' node '}}' ;
+ui-fill-parent ::= '"UIFillParent"' ;
+
+draw-rect   ::= '{"DrawRect":' '{'
+                  '"x":' node ','
+                  '"y":' node ','
+                  '"width":' node ','
+                  '"height":' node ','
+                  '"color":' node
+                '}}' ;
+
+ui-set-style ::= '{"UISetStyle":' '[' node ',' node ',' node ',' node
+                   ( ',' node ( ',' node )? )? ']' '}' ;
+               (* [rounding, spacing, accent_rgba, fill_rgba, btn_idle?, btn_hover?] *)
+
+(* ─── 3D Graphics ────────────────────────────────────────────── *)
+graphics-3d ::= init-window | load-shader | render-mesh | poll-events
+              | load-mesh | load-texture | render-asset
+              | camera-3d | mesh-3d | mesh-instance | point-light | material-3d
+              | fps-camera | mouse-grab | weapon-vm
+              | render-canvas | transform-2d | sprite-2d
+              | load-font | draw-text
+              | init-camera | draw-voxel | load-tex-atlas
+              ;
+
+init-window ::= '{"InitWindow":' '[' node ',' node ',' node ']' '}' ;
+load-shader ::= '{"LoadShader":' node '}' ;
+render-mesh ::= '{"RenderMesh":' '[' node ',' node ',' node ']' '}' ;
+poll-events ::= '{"PollEvents":' node '}' ;
+load-mesh   ::= '{"LoadMesh":'   node '}' ;
+load-texture ::= '{"LoadTexture":' node '}' ;
+load-font   ::= '{"LoadFont":'   node '}' ;
+draw-text   ::= '{"DrawText":'   '[' node ',' node ',' node ',' node ',' node ']' '}' ;
+              (* [text, x, y, size, color_array] *)
+render-asset ::= '{"RenderAsset":' '[' node ',' node ',' node ',' node ']' '}' ;
+
+camera-3d   ::= '{"Camera3D":' '{'
+                  '"pos_x":' node ',"pos_y":' node ',"pos_z":' node ','
+                  '"target_x":' node ',"target_y":' node ',"target_z":' node ','
+                  '"fov":' node
+                '}}' ;
+
+mesh-3d     ::= '{"Mesh3D":' '{"primitive":' node ',"material":' node '}}' ;
+material-3d ::= '{"Material3D":' '{'
+                  '"r":' node ',"g":' node ',"b":' node ',"a":' node ','
+                  '"metallic":' node ',"roughness":' node
+                  ( ',"texture_id":' node )? '}}' ;
+point-light ::= '{"PointLight3D":' '{'
+                  '"x":' node ',"y":' node ',"z":' node ','
+                  '"r":' node ',"g":' node ',"b":' node ','
+                  '"intensity":' node '}}' ;
+
+mesh-instance ::= '{"MeshInstance3D":' '{'
+                    '"mesh_id":' node ',"transform":' node ','
+                    '"color_offset":' node ',"pbr":' node '}}' ;
+fps-camera  ::= '{"FPSCamera":' '{"fov":' node '}}' ;
+mouse-grab  ::= '{"MouseGrab":' '{"enabled":' node '}}' ;
+weapon-vm   ::= '{"WeaponViewModel":' '{"mesh":' node ',"tex":' node '}}' ;
+
+render-canvas ::= '{"RenderCanvas":' '{"body":' node '}}' ;
+transform-2d  ::= '{"Transform2D":' '{'
+                    '"x":' node ',"y":' node ',"rotation":' node ','
+                    '"scale":' node ',"body":' node '}}' ;
+sprite-2d   ::= '{"Sprite2D":' '{"texture_id":' node ',"transform":' node '}}' ;
+
+(* ─── Audio ──────────────────────────────────────────────────── *)
+audio-node  ::= play-note | stop-note | play-audio | load-sample | play-sample ;
+play-note   ::= '{"PlayNote":'  '[' node ',' node ',' node ']' '}' ;
+stop-note   ::= '{"StopNote":' node '}' ;
+play-audio  ::= '{"PlayAudioFile":' node '}' ;
+load-sample ::= '{"LoadSample":' '[' node ',' node ']' '}' ;
+play-sample ::= '{"PlaySample":' '[' node ',' node ',' node ']' '}' ;
+
+(* ─── Voxel Engine ───────────────────────────────────────────── *)
+voxel-node  ::= init-camera | draw-voxel | load-tex-atlas
+              | set-voxel | enable-interaction | enable-physics ;
+init-camera ::= '{"InitCamera":' node '}' ;
+draw-voxel  ::= '{"DrawVoxelGrid":' node '}' ;
+load-tex-atlas ::= '{"LoadTextureAtlas":' '[' node ',' node ']' '}' ;
+set-voxel   ::= '{"SetVoxel":' '[' node ',' node ',' node ',' node ']' '}' ;
+enable-interaction ::= '{"EnableInteraction":' node '}' ;
+enable-physics ::= '{"EnablePhysics":' node '}' ;
+
+(* ─── Physics ────────────────────────────────────────────────── *)
+physics-node ::= add-world-aabb | check-collision ;
+add-world-aabb ::= '{"AddWorldAABB":' '{"min":' node ',"max":' node '}}' ;
+check-collision ::= '{"CheckCollision":' '{'
+                      '"a_min":' node ',"a_max":' node ','
+                      '"b_min":' node ',"b_max":' node '}}' ;
+
+(* ─── Shared helpers ─────────────────────────────────────────── *)
+node-list-opt ::= ε | node ( ',' node )* ;
+
+string  ::= '"' { any-char } '"' ;  (* JSON string *)
+integer ::= [ '-' ] digit { digit } ;
+number  ::= integer [ '.' digit { digit } ] ;
+boolean ::= 'true' | 'false' ;
+digit   ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;

@@ -17,6 +17,20 @@
 
 ---
 
+## 🤖 AI-Readiness Foundation (Sprint 121)
+
+KnotenCore is purpose-built for autonomous AI agents. Every node in the language is formally specified and machine-validated:
+
+| Artifact | Path | Purpose |
+|----------|------|---------|
+| **EBNF Grammar** | [`docs/LANGUAGE_REFERENCE/nod_grammar.ebnf`](docs/LANGUAGE_REFERENCE/nod_grammar.ebnf) | Normative structural grammar of every `.nod` JSON node. Eliminates ambiguity for LLM code generation. |
+| **JSON Schema** | [`docs/LANGUAGE_REFERENCE/node_types.json`](docs/LANGUAGE_REFERENCE/node_types.json) | Full Draft-07 JSON Schema with `additionalProperties: false` enforced on every object node. AI-generated code is validated before execution — **hallucinated fields are rejected at runtime**. |
+| **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references and documenting all engine constraints. |
+
+> **For AI Agents:** Always validate generated `.nod` AST against `docs/LANGUAGE_REFERENCE/node_types.json` before emitting code.
+
+---
+
 ## Engine Architecture
 
 The core engine is modularized into specialized components:

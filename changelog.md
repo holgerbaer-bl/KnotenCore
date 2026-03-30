@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.20] - Sprint 121: AI-Readiness Foundation — EBNF & JSON Schemas (2026-03-30)
+Establishes a hallucination-resistant, machine-readable language specification for autonomous AI agents.
+- **`docs/LANGUAGE_REFERENCE/nod_grammar.ebnf`** *(new)*: Normative EBNF grammar covering every `Node` variant derived directly from `src/ast.rs`. Eliminates structural ambiguity for LLM code generation.
+- **`docs/LANGUAGE_REFERENCE/node_types.json`** *(new)*: Full Draft-07 JSON Schema with `"additionalProperties": false` enforced on every object node. Covers all 60+ node variants — hallucinated fields are rejected at runtime by the schema validator.
+- **`llm.md`**: Redesigned from a tutorial document to a lean **routing hub**. All AI agents are now directed to `LANGUAGE_REFERENCE/` for authoritative source-of-truth references. Retained: security sandbox table, 4-touchpoint extension checklist, fault format, and key constraints for code generation.
+- **`README.md`**: Added **🤖 AI-Readiness Foundation** section as a top-level feature, with a reference table linking to the EBNF, JSON Schema, and agent guide.
+- **Git**: Committed and pushed cleanly to `origin/main` via standard (non-force) push. No divergence.
+
 ## [v1.0.19] - Sprint 120: UI Layouts (HBox/VBox) & UILabel (2026-03-29)
 Finalized the structural layout foundation for the `egui` native integration.
 - **AST Extension**: Introduced `Node::UIHBox(Vec<Node>)`, `Node::UIVBox(Vec<Node>)`, and completed `Node::UILabel(Box<Node>)` support in `src/ast.rs`, `src/parser.rs`, and the evaluation engines.

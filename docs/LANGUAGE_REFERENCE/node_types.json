@@ -1,0 +1,1225 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/holgerbaer-bl/KnotenCore/docs/LANGUAGE_REFERENCE/node_types.json",
+  "title": "KnotenCore AST Node",
+  "description": "Normative JSON Schema for every Node variant in KnotenCore. additionalProperties:false is enforced on every object node to eliminate AI hallucinations. Sprint 121 — v1.0.0.",
+  "version": "1.0.0",
+  "oneOf": [
+    {
+      "description": "Integer constant",
+      "type": "object",
+      "required": ["IntLiteral"],
+      "properties": { "IntLiteral": { "type": "integer" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Floating-point constant",
+      "type": "object",
+      "required": ["FloatLiteral"],
+      "properties": { "FloatLiteral": { "type": "number" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Boolean constant",
+      "type": "object",
+      "required": ["BoolLiteral"],
+      "properties": { "BoolLiteral": { "type": "boolean" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "String constant",
+      "type": "object",
+      "required": ["StringLiteral"],
+      "properties": { "StringLiteral": { "type": "string" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Variable read — resolves name from engine memory",
+      "type": "object",
+      "required": ["Identifier"],
+      "properties": { "Identifier": { "type": "string" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Variable write — [name:string, value:node]",
+      "type": "object",
+      "required": ["Assign"],
+      "properties": {
+        "Assign": {
+          "type": "array",
+          "prefixItems": [ { "type": "string" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Sequential execution. Returns value of last node.",
+      "type": "object",
+      "required": ["Block"],
+      "properties": {
+        "Block": { "type": "array", "items": { "$ref": "#" } }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Conditional. else-branch is optional. [cond, then, else?]",
+      "type": "object",
+      "required": ["If"],
+      "properties": {
+        "If": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Pre-condition loop. [condition, body]",
+      "type": "object",
+      "required": ["While"],
+      "properties": {
+        "While": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Early return from function body",
+      "type": "object",
+      "required": ["Return"],
+      "properties": { "Return": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Import a .nod or .knoten module at compile time",
+      "type": "object",
+      "required": ["Import"],
+      "properties": { "Import": { "type": "string" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Print value to stdout",
+      "type": "object",
+      "required": ["Print"],
+      "properties": { "Print": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Addition. [left, right]",
+      "type": "object",
+      "required": ["Add"],
+      "properties": {
+        "Add": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Subtraction. [left, right]",
+      "type": "object",
+      "required": ["Sub"],
+      "properties": {
+        "Sub": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Multiplication. [left, right]",
+      "type": "object",
+      "required": ["Mul"],
+      "properties": {
+        "Mul": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Division. Returns Fault on division by zero. [left, right]",
+      "type": "object",
+      "required": ["Div"],
+      "properties": {
+        "Div": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "4x4 matrix multiplication (3D transforms). [mat_a, mat_b] — both are Array[16 floats]",
+      "type": "object",
+      "required": ["Mat4Mul"],
+      "properties": {
+        "Mat4Mul": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Sine (radians)",
+      "type": "object",
+      "required": ["Sin"],
+      "properties": { "Sin": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Cosine (radians)",
+      "type": "object",
+      "required": ["Cos"],
+      "properties": { "Cos": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Absolute value",
+      "type": "object",
+      "required": ["Abs"],
+      "properties": { "Abs": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Equality comparison. Returns Bool. [left, right]",
+      "type": "object",
+      "required": ["Eq"],
+      "properties": {
+        "Eq": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Less-than comparison. Returns Bool. [left, right]",
+      "type": "object",
+      "required": ["Lt"],
+      "properties": {
+        "Lt": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Greater-than comparison. Returns Bool. [left, right]",
+      "type": "object",
+      "required": ["Gt"],
+      "properties": {
+        "Gt": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Bitwise AND. [left, right]",
+      "type": "object",
+      "required": ["BitAnd"],
+      "properties": {
+        "BitAnd": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Bitwise left-shift. [value, shift_amount]",
+      "type": "object",
+      "required": ["BitShiftLeft"],
+      "properties": {
+        "BitShiftLeft": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Bitwise right-shift. [value, shift_amount]",
+      "type": "object",
+      "required": ["BitShiftRight"],
+      "properties": {
+        "BitShiftRight": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "String concatenation. [left, right]",
+      "type": "object",
+      "required": ["Concat"],
+      "properties": {
+        "Concat": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Convert any value to its string representation",
+      "type": "object",
+      "required": ["ToString"],
+      "properties": { "ToString": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Array literal construction",
+      "type": "object",
+      "required": ["ArrayCreate"],
+      "properties": {
+        "ArrayCreate": { "type": "array", "items": { "$ref": "#" } }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Array element read. [array, index:Int]",
+      "type": "object",
+      "required": ["ArrayGet"],
+      "properties": {
+        "ArrayGet": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Array element write. [array, index:Int, value]",
+      "type": "object",
+      "required": ["ArraySet"],
+      "properties": {
+        "ArraySet": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Append element to array. [array, value]",
+      "type": "object",
+      "required": ["ArrayPush"],
+      "properties": {
+        "ArrayPush": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Get array length. Returns Int.",
+      "type": "object",
+      "required": ["ArrayLen"],
+      "properties": { "ArrayLen": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Generic index expression. [collection, index]",
+      "type": "object",
+      "required": ["Index"],
+      "properties": {
+        "Index": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Object literal. Keys are strings, values are nodes.",
+      "type": "object",
+      "required": ["ObjectLiteral"],
+      "properties": {
+        "ObjectLiteral": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#" }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Read object property. [object, property_name:string]",
+      "type": "object",
+      "required": ["PropertyGet"],
+      "properties": {
+        "PropertyGet": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "type": "string" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Write object property. [object, property_name:string, value]",
+      "type": "object",
+      "required": ["PropertySet"],
+      "properties": {
+        "PropertySet": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "type": "string" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Create an empty HashMap",
+      "type": "string",
+      "enum": ["MapCreate"]
+    },
+    {
+      "description": "Read HashMap value. [map, key]",
+      "type": "object",
+      "required": ["MapGet"],
+      "properties": {
+        "MapGet": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Write HashMap value. [map, key, value]",
+      "type": "object",
+      "required": ["MapSet"],
+      "properties": {
+        "MapSet": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Test if HashMap contains key. [map, key] → Bool",
+      "type": "object",
+      "required": ["MapHasKey"],
+      "properties": {
+        "MapHasKey": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Function definition. [name:string, params:[string…], body:node]",
+      "type": "object",
+      "required": ["FnDef"],
+      "properties": {
+        "FnDef": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } },
+            { "$ref": "#" }
+          ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Function call. [name:string, args:[node…]]",
+      "type": "object",
+      "required": ["Call"],
+      "properties": {
+        "Call": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "string" },
+            { "type": "array", "items": { "$ref": "#" } }
+          ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Foreign FFI call routed through BridgeModule dispatch.",
+      "type": "object",
+      "required": ["ExternCall"],
+      "properties": {
+        "ExternCall": {
+          "type": "object",
+          "required": ["module", "function", "args"],
+          "properties": {
+            "module":   { "type": "string" },
+            "function": { "type": "string" },
+            "args":     { "type": "array", "items": { "$ref": "#" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Direct native Rust function call (legacy). [name:string, args:[node…]]",
+      "type": "object",
+      "required": ["NativeCall"],
+      "properties": {
+        "NativeCall": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "string" },
+            { "type": "array", "items": { "$ref": "#" } }
+          ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Read file contents to String. Requires --allow-read.",
+      "type": "object",
+      "required": ["FileRead"],
+      "properties": { "FileRead": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Write String to file. Requires --allow-write. [path, content]",
+      "type": "object",
+      "required": ["FileWrite"],
+      "properties": {
+        "FileWrite": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Agent specialised read. Requires --allow-read.",
+      "type": "object",
+      "required": ["FSRead"],
+      "properties": { "FSRead": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Agent specialised write. Requires --allow-write. [path, content]",
+      "type": "object",
+      "required": ["FSWrite"],
+      "properties": {
+        "FSWrite": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Async HTTP fetch. Requires --allow-net.",
+      "type": "object",
+      "required": ["Fetch"],
+      "properties": {
+        "Fetch": {
+          "type": "object",
+          "required": ["method", "url", "callback"],
+          "properties": {
+            "method":   { "type": "string", "enum": ["GET", "POST", "PUT", "DELETE"] },
+            "url":      { "type": "string" },
+            "callback": { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Extract a value from a fetched payload by path. [source, path]",
+      "type": "object",
+      "required": ["Extract"],
+      "properties": {
+        "Extract": {
+          "type": "object",
+          "required": ["source", "path"],
+          "properties": {
+            "source": { "$ref": "#" },
+            "path":   { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Persistent KV store write.",
+      "type": "object",
+      "required": ["Store"],
+      "properties": {
+        "Store": {
+          "type": "object",
+          "required": ["key", "value"],
+          "properties": {
+            "key":   { "type": "string" },
+            "value": { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Persistent KV store read.",
+      "type": "object",
+      "required": ["Load"],
+      "properties": {
+        "Load": {
+          "type": "object",
+          "required": ["key"],
+          "properties": { "key": { "type": "string" } },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Evaluate a JSON string natively into a RelType value.",
+      "type": "object",
+      "required": ["EvalJSONNative"],
+      "properties": { "EvalJSONNative": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "egui window container. [id:string, title:node, children:Block]",
+      "type": "object",
+      "required": ["UIWindow"],
+      "properties": {
+        "UIWindow": {
+          "type": "array",
+          "prefixItems": [ { "type": "string" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "egui text label.",
+      "type": "object",
+      "required": ["UILabel"],
+      "properties": { "UILabel": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "egui button. Evaluates to Bool(true) when clicked this frame.",
+      "type": "object",
+      "required": ["UIButton"],
+      "properties": { "UIButton": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "egui single-line text field. State-binding: text = UITextInput(text). Reads from UI_TEXT_INPUT_BUFFER.",
+      "type": "object",
+      "required": ["UITextInput"],
+      "properties": { "UITextInput": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Horizontal layout list of children.",
+      "type": "object",
+      "required": ["UIHBox"],
+      "properties": {
+        "UIHBox": { "type": "array", "items": { "$ref": "#" } }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Vertical layout list of children.",
+      "type": "object",
+      "required": ["UIVBox"],
+      "properties": {
+        "UIVBox": { "type": "array", "items": { "$ref": "#" } }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Horizontal layout (single body block).",
+      "type": "object",
+      "required": ["UIHorizontal"],
+      "properties": { "UIHorizontal": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Full-canvas borderless panel.",
+      "type": "object",
+      "required": ["UIFullscreen"],
+      "properties": { "UIFullscreen": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Grid layout. [columns:Int, id:string, body:Block]",
+      "type": "object",
+      "required": ["UIGrid"],
+      "properties": {
+        "UIGrid": {
+          "type": "array",
+          "prefixItems": [ { "type": "integer" }, { "type": "string" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Scrollable container. [id:string, body:Block]",
+      "type": "object",
+      "required": ["UIScrollArea"],
+      "properties": {
+        "UIScrollArea": {
+          "type": "array",
+          "prefixItems": [ { "type": "string" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Fixed-size container.",
+      "type": "object",
+      "required": ["UIFixed"],
+      "properties": {
+        "UIFixed": {
+          "type": "object",
+          "required": ["width", "height", "body"],
+          "properties": {
+            "width":  { "$ref": "#" },
+            "height": { "$ref": "#" },
+            "body":   { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Expand to fill parent container dimensions.",
+      "type": "string",
+      "enum": ["UIFillParent"]
+    },
+    {
+      "description": "Global visual style. [rounding, spacing, accent_rgba, fill_rgba, btn_idle?, btn_hover?]",
+      "type": "object",
+      "required": ["UISetStyle"],
+      "properties": {
+        "UISetStyle": {
+          "type": "array",
+          "items": { "$ref": "#" },
+          "minItems": 4, "maxItems": 6
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "2D GPU rectangle. color is Array[R,G,B,A] floats 0.0–1.0.",
+      "type": "object",
+      "required": ["DrawRect"],
+      "properties": {
+        "DrawRect": {
+          "type": "object",
+          "required": ["x", "y", "width", "height", "color"],
+          "properties": {
+            "x":      { "$ref": "#" },
+            "y":      { "$ref": "#" },
+            "width":  { "$ref": "#" },
+            "height": { "$ref": "#" },
+            "color":  { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Bootstrap WGPU window. [width:Int, height:Int, title:String]",
+      "type": "object",
+      "required": ["InitWindow"],
+      "properties": {
+        "InitWindow": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Bootstrap WGPU context (unit node).",
+      "type": "string",
+      "enum": ["InitGraphics"]
+    },
+    {
+      "description": "Load WGSL shader source string. Returns shader handle.",
+      "type": "object",
+      "required": ["LoadShader"],
+      "properties": { "LoadShader": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Render a mesh with a shader. [shader_id, vertices, mvp_matrix]",
+      "type": "object",
+      "required": ["RenderMesh"],
+      "properties": {
+        "RenderMesh": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Poll winit events and yield control. [body]",
+      "type": "object",
+      "required": ["PollEvents"],
+      "properties": { "PollEvents": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Load OBJ/GLTF mesh from path.",
+      "type": "object",
+      "required": ["LoadMesh"],
+      "properties": { "LoadMesh": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Load image texture from path.",
+      "type": "object",
+      "required": ["LoadTexture"],
+      "properties": { "LoadTexture": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Load TrueType font from path.",
+      "type": "object",
+      "required": ["LoadFont"],
+      "properties": { "LoadFont": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Draw text. [text, x, y, size, color_array]",
+      "type": "object",
+      "required": ["DrawText"],
+      "properties": {
+        "DrawText": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 5, "maxItems": 5
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Render full asset pipeline. [shader_id, mesh_id, texture_id, mvp_matrix]",
+      "type": "object",
+      "required": ["RenderAsset"],
+      "properties": {
+        "RenderAsset": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 4, "maxItems": 4
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Perspective camera node.",
+      "type": "object",
+      "required": ["Camera3D"],
+      "properties": {
+        "Camera3D": {
+          "type": "object",
+          "required": ["pos_x","pos_y","pos_z","target_x","target_y","target_z","fov"],
+          "properties": {
+            "pos_x":    { "$ref": "#" }, "pos_y":    { "$ref": "#" }, "pos_z":    { "$ref": "#" },
+            "target_x": { "$ref": "#" }, "target_y": { "$ref": "#" }, "target_z": { "$ref": "#" },
+            "fov":      { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "3D mesh node. primitive: 'cube'|'sphere'|'plane'.",
+      "type": "object",
+      "required": ["Mesh3D"],
+      "properties": {
+        "Mesh3D": {
+          "type": "object",
+          "required": ["primitive", "material"],
+          "properties": {
+            "primitive": { "$ref": "#" },
+            "material":  { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "PBR material definition.",
+      "type": "object",
+      "required": ["Material3D"],
+      "properties": {
+        "Material3D": {
+          "type": "object",
+          "required": ["r","g","b","a","metallic","roughness"],
+          "properties": {
+            "r": { "$ref": "#" }, "g": { "$ref": "#" }, "b": { "$ref": "#" }, "a": { "$ref": "#" },
+            "metallic":   { "$ref": "#" },
+            "roughness":  { "$ref": "#" },
+            "texture_id": { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Point light in world space.",
+      "type": "object",
+      "required": ["PointLight3D"],
+      "properties": {
+        "PointLight3D": {
+          "type": "object",
+          "required": ["x","y","z","r","g","b","intensity"],
+          "properties": {
+            "x": { "$ref": "#" }, "y": { "$ref": "#" }, "z": { "$ref": "#" },
+            "r": { "$ref": "#" }, "g": { "$ref": "#" }, "b": { "$ref": "#" },
+            "intensity": { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Instanced 3D mesh with transform, PBR and color offset.",
+      "type": "object",
+      "required": ["MeshInstance3D"],
+      "properties": {
+        "MeshInstance3D": {
+          "type": "object",
+          "required": ["mesh_id","transform","color_offset","pbr"],
+          "properties": {
+            "mesh_id":      { "$ref": "#" },
+            "transform":    { "$ref": "#" },
+            "color_offset": { "$ref": "#" },
+            "pbr":          { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Gravity-aware FPS camera. fov in degrees.",
+      "type": "object",
+      "required": ["FPSCamera"],
+      "properties": {
+        "FPSCamera": {
+          "type": "object",
+          "required": ["fov"],
+          "properties": { "fov": { "$ref": "#" } },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Capture / release mouse cursor.",
+      "type": "object",
+      "required": ["MouseGrab"],
+      "properties": {
+        "MouseGrab": {
+          "type": "object",
+          "required": ["enabled"],
+          "properties": { "enabled": { "$ref": "#" } },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Screen-space weapon view model.",
+      "type": "object",
+      "required": ["WeaponViewModel"],
+      "properties": {
+        "WeaponViewModel": {
+          "type": "object",
+          "required": ["mesh","tex"],
+          "properties": {
+            "mesh": { "$ref": "#" },
+            "tex":  { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "WGPU 2D render canvas root.",
+      "type": "object",
+      "required": ["RenderCanvas"],
+      "properties": {
+        "RenderCanvas": {
+          "type": "object",
+          "required": ["body"],
+          "properties": { "body": { "$ref": "#" } },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "2D transform node.",
+      "type": "object",
+      "required": ["Transform2D"],
+      "properties": {
+        "Transform2D": {
+          "type": "object",
+          "required": ["x","y","rotation","scale","body"],
+          "properties": {
+            "x":        { "$ref": "#" },
+            "y":        { "$ref": "#" },
+            "rotation": { "$ref": "#" },
+            "scale":    { "$ref": "#" },
+            "body":     { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "2D textured sprite.",
+      "type": "object",
+      "required": ["Sprite2D"],
+      "properties": {
+        "Sprite2D": {
+          "type": "object",
+          "required": ["texture_id","transform"],
+          "properties": {
+            "texture_id": { "$ref": "#" },
+            "transform":  { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Activate 3D FPS camera (voxel engine). fov in degrees.",
+      "type": "object",
+      "required": ["InitCamera"],
+      "properties": { "InitCamera": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Render voxel grid from position array.",
+      "type": "object",
+      "required": ["DrawVoxelGrid"],
+      "properties": { "DrawVoxelGrid": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Load tiled texture atlas. [path, tile_size:Float]",
+      "type": "object",
+      "required": ["LoadTextureAtlas"],
+      "properties": {
+        "LoadTextureAtlas": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Set a voxel at position. [x, y, z, voxel_id]",
+      "type": "object",
+      "required": ["SetVoxel"],
+      "properties": {
+        "SetVoxel": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 4, "maxItems": 4
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Toggle raycasting + mouse-block interaction.",
+      "type": "object",
+      "required": ["EnableInteraction"],
+      "properties": { "EnableInteraction": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Toggle gravity and AABB collision physics.",
+      "type": "object",
+      "required": ["EnablePhysics"],
+      "properties": { "EnablePhysics": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Register world AABB collision barrier.",
+      "type": "object",
+      "required": ["AddWorldAABB"],
+      "properties": {
+        "AddWorldAABB": {
+          "type": "object",
+          "required": ["min","max"],
+          "properties": {
+            "min": { "$ref": "#" },
+            "max": { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "AABB vs AABB collision check. Returns Bool.",
+      "type": "object",
+      "required": ["CheckCollision"],
+      "properties": {
+        "CheckCollision": {
+          "type": "object",
+          "required": ["a_min","a_max","b_min","b_max"],
+          "properties": {
+            "a_min": { "$ref": "#" }, "a_max": { "$ref": "#" },
+            "b_min": { "$ref": "#" }, "b_max": { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Load audio sample. [id:Int, path:String]",
+      "type": "object",
+      "required": ["LoadSample"],
+      "properties": {
+        "LoadSample": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Play audio sample. [id, volume, pitch]",
+      "type": "object",
+      "required": ["PlaySample"],
+      "properties": {
+        "PlaySample": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Play synthesised note. [channel, frequency, waveform]",
+      "type": "object",
+      "required": ["PlayNote"],
+      "properties": {
+        "PlayNote": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
+          "minItems": 3, "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Stop synthesised note on channel.",
+      "type": "object",
+      "required": ["StopNote"],
+      "properties": { "StopNote": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Play audio file from path.",
+      "type": "object",
+      "required": ["PlayAudioFile"],
+      "properties": { "PlayAudioFile": { "$ref": "#" } },
+      "additionalProperties": false
+    },
+    {
+      "description": "Initialise CPAL audio engine (unit node).",
+      "type": "string",
+      "enum": ["InitAudio"]
+    },
+    {
+      "description": "Transfer voxel state to mutable HashMap (unit node).",
+      "type": "string",
+      "enum": ["InitVoxelMap"]
+    },
+    {
+      "description": "Engine uptime float in seconds (unit node).",
+      "type": "string",
+      "enum": ["Time"]
+    },
+    {
+      "description": "Monotonic global time float (unit node).",
+      "type": "string",
+      "enum": ["GlobalTime"]
+    },
+    {
+      "description": "Last keyboard character as String (unit node).",
+      "type": "string",
+      "enum": ["GetLastKeypress"]
+    },
+    {
+      "description": "Perform a single raycasting query at screen centre (unit node).",
+      "type": "string",
+      "enum": ["RaycastSimple"]
+    }
+  ]
+}
