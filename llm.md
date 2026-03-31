@@ -95,7 +95,7 @@ AI agents: parse `node` first; it pinpoints the failing AST location for immedia
 
 ---
 
-## Verification
+## Verification & Testing
 
 ```bash
 cargo clippy --lib           # 0 warnings required
@@ -103,6 +103,8 @@ cargo test                   # all 55+ integration tests must pass
 cargo run --bin run_knc -- tests/intentional_crash.knoten
 # Expected: Fault: Div by zero (at Node::MathDiv)
 ```
+
+**Autonomous Testing**: External agents must utilize the [`tests/ai_test_suite/`](tests/ai_test_suite/) directory evaluating strictly controlled structural `.nod` files demonstrating self-healing CLI loop outputs deterministically natively.
 
 ---
 

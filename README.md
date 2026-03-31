@@ -28,6 +28,7 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 | **Function Registry** | [`docs/LANGUAGE_REFERENCE/native_functions.json`](docs/LANGUAGE_REFERENCE/native_functions.json) | Machine-readable registry of every native FFI function (30+), with parameter types, return types, required permissions, and live AST call examples. |
 | **Anti-Pattern Guide** | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | 10 explicit DO/DON'T patterns for AI agents covering wrong node names, bare scalars, hallucinated functions, and ExternCall misuse. |
 | **Error Catalog** | [`docs/LANGUAGE_REFERENCE/error_catalog.json`](docs/LANGUAGE_REFERENCE/error_catalog.json) | Registry of execution fault codes and self-healing hints for AI agents. |
+| **Self-Healing Validator** | `--output-format json` | CLI flag hardening AST evaluation blocks dynamically intercepting syntax faults, emitting strict JSON structs mapping recovery context loops back to generative agents. |
 | **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references above and documenting all engine constraints. |
 
 > **For AI Agents:** Read `native_functions.json` and `99_antipatterns.nod` before generating any `.nod` code. Always validate output against `node_types.json`.

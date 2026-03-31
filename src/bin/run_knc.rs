@@ -39,9 +39,15 @@ fn run() {
     let mut is_check = false;
     let mut no_opt = false;
     let mut transpile = false;
+    let mut output_format_json = false;
     let mut file_path = String::new();
 
-    for arg in args.iter().skip(1) {
+    let mut skip_next = false;
+    for (i, arg) in args.iter().enumerate().skip(1) {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
         if arg == "--check" {
             is_check = true;
         } else if arg == "--no-opt" {
@@ -54,9 +60,22 @@ fn run() {
             engine.permissions.allow_fs_write = true;
         } else if arg == "--allow-net" {
             engine.permissions.allow_network = true;
+        } else if arg == "--output-format" {
+            if let Some(next_arg) = args.get(i + 1) {
+                if next_arg == "json" {
+                    output_format_json = true;
+                }
+                skip_next = true;
+            }
+        } else if arg.starts_with("--output-format=") && arg.ends_with("json") {
+            output_format_json = true;
         } else {
             file_path = arg.clone();
         }
+    }
+
+    if output_format_json {
+        std::panic::set_hook(Box::new(|_| {}));
     }
 
     // Check if we are bundled (Sprint 11) - Respects permissions set above
@@ -75,35 +94,76 @@ fn run() {
         std::process::exit(1);
     }
 
-    println!("CWD: {:?}", env::current_dir().unwrap());
-    println!("Loading KnotenCore Script: {}", file_path);
+    if !output_format_json {
+        println!("CWD: {:?}", env::current_dir().unwrap());
+        println!("Loading KnotenCore Script: {}", file_path);
+    }
+    let json_string = match fs::read_to_string(&file_path) {
+        Ok(s) => s,
+        Err(e) => {
+            if output_format_json {
+                println!(r#"{{"status": "error", "errors": [{{"code": "ERR_IO_PERMISSION", "message": "{}", "agent_hint": "Check if file exists or permissions are set."}}]}}"#, e.to_string().replace("\"", "\\\""));
+                std::process::exit(1);
+            } else {
+                eprintln!("Failed to read file: {}", e);
+                std::process::exit(1);
+            }
+        }
+    };
+    
+    // Explicit syntax catch block gracefully handling panic faults internally yielding JSON validation outputs mapping ERR_UNKNOWN_NODE natively.
+    let ast_result = std::panic::catch_unwind(|| {
+        if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
+            // For AI Test Suite FAIL_01_unknown_node.nod JSON tests natively parse JSON properly
+            if json_string.trim_start().starts_with('{') {
+                serde_json::from_str(&json_string).unwrap()
+            } else {
+                let mut parser = knoten_core::parser::Parser::new(&json_string);
+                parser.parse()
+            }
+        } else {
+            serde_json::from_str(&json_string).unwrap()
+        }
+    });
 
-    let json_string = fs::read_to_string(&file_path).expect("Failed to read file");
-    let mut ast = if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
-        let mut parser = knoten_core::parser::Parser::new(&json_string);
-        parser.parse()
-    } else {
-        serde_json::from_str(&json_string).expect("Failed to parse KnotenCore AST")
+    let mut ast = match ast_result {
+        Ok(node) => node,
+        Err(_) => {
+            if output_format_json {
+                println!(r#"{{"status": "error", "errors": [{{"code": "ERR_UNKNOWN_NODE", "message": "Unrecognized node type or parser fault", "agent_hint": "Check node_types.json! You probably emitted a hallucinated or deprecated node type instead of a valid AST node."}}]}}"#);
+                std::process::exit(1);
+            } else {
+                eprintln!("Failed to parse KnotenCore AST.");
+                std::process::exit(1);
+            }
+        }
     };
 
     let mut typer = knoten_core::optimizer::TypeChecker::new();
     let _ = typer.check(&ast);
     if !typer.errors.is_empty() {
-        eprintln!("\n[TypeError] Static Type Inference Failed:");
-        for err in typer.errors {
-            eprintln!(" - {}", err);
+        if output_format_json {
+            println!(r#"{{"status": "error", "errors": [{{"code": "ERR_ARITY_MISMATCH", "message": "{}", "agent_hint": "Check the exact array structure for this node in node_types.json or nod_grammar.ebnf. Some parameters must be present, some can be optional."}}]}}"#, typer.errors[0].replace("\"", "\\\""));
+            std::process::exit(1);
+        } else {
+            eprintln!("\n[TypeError] Static Type Inference Failed:");
+            for err in typer.errors {
+                eprintln!(" - {}", err);
+            }
+            std::process::exit(1);
         }
-        std::process::exit(1);
     }
 
     if !no_opt {
         let before_nodes = knoten_core::optimizer::count_nodes(&ast);
         ast = knoten_core::optimizer::optimize(ast);
         let after_nodes = knoten_core::optimizer::count_nodes(&ast);
-        println!(
-            "Compiler Optimization: Reduced AST from {} to {} nodes.",
-            before_nodes, after_nodes
-        );
+        if !output_format_json {
+            println!(
+                "Compiler Optimization: Reduced AST from {} to {} nodes.",
+                before_nodes, after_nodes
+            );
+        }
     }
 
     if is_check {
@@ -111,15 +171,22 @@ fn run() {
         let mut validator = Validator::new();
         match validator.validate(&ast) {
             Ok(_) => {
-                println!("\nSyntax OK");
+                if !output_format_json {
+                    println!("\nSyntax OK");
+                }
                 std::process::exit(0);
             }
             Err(errors) => {
-                eprintln!("\nValidation Failed:");
-                for err in errors {
-                    eprintln!(" - {}", err);
+                if output_format_json {
+                    println!(r#"{{"status": "error", "errors": [{{"code": "ERR_UNKNOWN_NODE", "message": "{}", "agent_hint": "Check node_types.json! You probably emitted a hallucinated or deprecated node type instead of a valid AST node."}}]}}"#, errors[0].replace("\"", "\\\""));
+                    std::process::exit(1);
+                } else {
+                    eprintln!("\nValidation Failed:");
+                    for err in errors {
+                        eprintln!(" - {}", err);
+                    }
+                    std::process::exit(1);
                 }
-                std::process::exit(1);
             }
         }
     }

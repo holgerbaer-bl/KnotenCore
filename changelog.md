@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.23] - Sprint 124: AI-Readiness Phase 2 (Tooling & Self-Healing Validator) (2026-03-31)
+Enabled robust self-healing feedback loops equipping the standard Engine executor dynamically shielding structural JSON schemas natively isolating parser panic events gracefully!
+- **`run_knc` JSON Validation**: Implemented the `--output-format json` CLI override coercing syntactical evaluation faults and Node validation failures logically into strict `{"status": "error", "errors": []}` JSON structures mapped entirely to `error_catalog.json` natively.
+- **`ai_test_suite` Autonomous Regression**: Created the deterministic testing block structurally proving `ERR_UNKNOWN_NODE` triggers natively isolating evaluation paths reliably.
+- **`generate_ai_context` Generative Tooling**: Engineered a standalone structural rust tool aggressively compacting entire semantic EBNF dictionaries implicitly into `docs/knoten_ai_context_v124.md`.
+
 ## [v1.0.22] - Sprint 123: AI-Readiness Delta-Review v2.0 & Hotfixes (2026-03-31)
 Resolves critical inconsistencies found during the AI-Readiness Delta-Review, strictly adhering to the Rust Source-of-Truth.
 - **`docs/LANGUAGE_REFERENCE/error_catalog.json`** *(new)*: Created structured self-healing loop error catalog covering `ERR_UNKNOWN_NODE`, `ERR_ARITY_MISMATCH`, `ERR_INVALID_HANDLE`, `ERR_IO_PERMISSION`, `ERR_NET_PERMISSION`, and `ERR_JSON_PARSE`.
