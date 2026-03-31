@@ -27,6 +27,7 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 | **JSON Schema** | [`docs/LANGUAGE_REFERENCE/node_types.json`](docs/LANGUAGE_REFERENCE/node_types.json) | Full Draft-07 JSON Schema with `additionalProperties: false` on every object node. **Hallucinated fields are rejected at runtime.** |
 | **Function Registry** | [`docs/LANGUAGE_REFERENCE/native_functions.json`](docs/LANGUAGE_REFERENCE/native_functions.json) | Machine-readable registry of every native FFI function (30+), with parameter types, return types, required permissions, and live AST call examples. |
 | **Anti-Pattern Guide** | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | 10 explicit DO/DON'T patterns for AI agents covering wrong node names, bare scalars, hallucinated functions, and ExternCall misuse. |
+| **Error Catalog** | [`docs/LANGUAGE_REFERENCE/error_catalog.json`](docs/LANGUAGE_REFERENCE/error_catalog.json) | Registry of execution fault codes and self-healing hints for AI agents. |
 | **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references above and documenting all engine constraints. |
 
 > **For AI Agents:** Read `native_functions.json` and `99_antipatterns.nod` before generating any `.nod` code. Always validate output against `node_types.json`.
@@ -92,6 +93,7 @@ graph TD
 KnotenCore serves as a strictly typed **General-Purpose Language** powered by seamless Ahead-Of-Time Module Linking. Scripts dynamically import other `.nod` and `.knoten` artifacts into their global execution environments using the `import "core/module.nod";` keyword.
 
 **Example 1: StdLib Event Polling:**
+// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 ```javascript
 import "core/system.nod";
 import "core/math.nod";
@@ -104,6 +106,7 @@ while (true) {
 ```
 
 **Example 2: Data Processing (Strings & FS):**
+// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 ```javascript
 import "core/fs.nod";
 import "core/string.nod";
@@ -116,6 +119,7 @@ print(length(rows));
 ```
 
 **Example 3: Zero-Trust Networking (APIs) & Native JSON Parsing:**
+// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 ```javascript
 import "core/net.nod";
 import "core/string.nod";
@@ -132,6 +136,7 @@ print(data.name);
 ```
 
 **Example 4: Immediate-Mode Native GUI (egui over WGPU):**
+// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 ```javascript
 // Native WGPU engine bindings
 import "core/system.nod";
@@ -156,6 +161,7 @@ while (active) {
 ```
 
 **Example 5: Interactive Form — UI Layouts & State Binding (Sprint 120):**
+// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 ```javascript
 import "stdlib/ui.nod";
 import "core/system.nod";
@@ -209,6 +215,7 @@ This enables AI agents to pinpoint failures instantly and self-correct without m
 KnotenCore uses an ultra-dense Neural Syntax (`.knoten`) — a closure-based DSL designed for maximum structural compression and token efficiency:
 
 ```rust
+// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 // An elegant snippet in Neural DSL
 win = UIWindow("main_nav", "Control Panel") -> {
     grid(2, "layout_grid") -> {
@@ -279,6 +286,7 @@ This $O(1)$ zero-allocation lock-free static array enables scripts to repeatedly
 KnotenCore now supports real-time hardware input processing directly via FFI:
 
 ```js
+// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 // examples/interactive_loop.nod — real-time WASD entity control
 let win = registry_create_window("KnotenCore", 800, 600);
 let tex = registry_texture_load("assets/textures/uv_checker.png");
@@ -292,6 +300,7 @@ while (i < 1000) {
     if (registry_is_key_pressed("D")) { player.x = player.x + player.speed; }
 
     registry_draw_cube(win, tex, player.x, player.y, 0.0, 1.0, 1.0, 1.0);
+    // Sprint 105 — Legacy API
     registry_window_render_frame(win);
     i = i + 1;
 }
@@ -303,6 +312,7 @@ while (i < 1000) {
 KnotenCore can now script real-time visuals entirely from `.nod` bytecode:
 
 ```js
+// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 // examples/game_loop.nod — scripted entity animation via Stack-Machine FFI
 let win = registry_create_window(800, 600, "Sprint 105 - Visual Game Loop");
 let player = { x: 0.0, y: 0.0, speed: 0.05 };

@@ -739,7 +739,7 @@
       "enum": ["UIFillParent"]
     },
     {
-      "description": "Global visual style. [rounding, spacing, accent_rgba, fill_rgba, btn_idle?, btn_hover?]",
+      "description": "Global visual style. Arity 4 to 6 arguments allowed. Optional: btn_idle, btn_hover. [rounding, spacing, accent_rgba, fill_rgba, btn_idle?, btn_hover?]",
       "type": "object",
       "required": ["UISetStyle"],
       "properties": {

@@ -2,6 +2,19 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.22] - Sprint 123: AI-Readiness Delta-Review v2.0 & Hotfixes (2026-03-31)
+Resolves critical inconsistencies found during the AI-Readiness Delta-Review, strictly adhering to the Rust Source-of-Truth.
+- **`docs/LANGUAGE_REFERENCE/error_catalog.json`** *(new)*: Created structured self-healing loop error catalog covering `ERR_UNKNOWN_NODE`, `ERR_ARITY_MISMATCH`, `ERR_INVALID_HANDLE`, `ERR_IO_PERMISSION`, `ERR_NET_PERMISSION`, and `ERR_JSON_PARSE`.
+- **`llm.md`**: Added a decision routing table mapping Execution Nodes (`Direct AST Node` vs `ExternCall`) to "Key Constraints", deprecating `NativeCall`.
+- **`README.md`**: Added explicit `// Neural DSL (.knoten) — NOT JSON-AST` language annotations to all code blocks to avoid AST hallucination.
+- **`node_types.json`**: Fixed `UISetStyle` to correctly reflect arity 4 to 6 (btn_idle and btn_hover are optional).
+- **`native_functions.json`**: Added `registry_draw_entity` and `registry_draw_cylinder` based on true function signatures.
+- **`AGENT_EXTENSION_MANUAL.md`**: Marked `DrawSprite` as a hypothetical example.
+
+### Documentation Corrections
+- **Pre-Flight Conflict Resolved**: Instruction requested adding a `Neg` node to `nod_grammar.ebnf` and `node_types.json`. Pre-Flight check confirmed `Neg(Box<Node>)` does **NOT** exist in `src/ast.rs` (`MathUn` only has `Sin`, `Cos`, `Abs`). The Rust source won. The documentation was explicitly NOT updated.
+- **Pre-Flight Conflict Resolved**: Instruction requested verifying `registry_window_render_frame`. Pre-Flight check confirmed it does **NOT** exist in `src/natives/(bridge|registry).rs`. It was NOT added to the function registry, and the Sprint 105 loop in `README.md` was correctly marked as Legacy API.
+
 ## [v1.0.21] - Sprint 122: AI-Readiness Foundation Phase 1 Completion (2026-03-30)
 Completes the machine-readable AI-Readiness reference stack with a native function registry and explicit anti-pattern guard-rails.
 - **`docs/LANGUAGE_REFERENCE/native_functions.json`** *(new)*: Machine-readable registry of every FFI function exposed via `ExternCall`. 30+ entries across 6 modules (`registry`, `ui`, `fs`, `net`, `json`, `time`). Each entry documents: parameter names + types, return type, required permission flags, and a live JSON AST call example. AI agents **must only call functions listed here**.

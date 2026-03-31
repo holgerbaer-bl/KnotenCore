@@ -138,6 +138,7 @@ Node::NativeCall(fn_name, _) => {
 The JSON representation for calling your new node:
 
 ```json
+// HYPOTHETICAL EXAMPLE: DrawSprite is NOT implemented in the engine.
 {
   "DrawSprite": [
     { "Identifier": "my_texture" },

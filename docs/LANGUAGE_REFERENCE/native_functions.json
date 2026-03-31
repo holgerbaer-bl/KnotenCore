@@ -205,6 +205,58 @@
       }
     },
     {
+      "name": "registry_draw_cylinder",
+      "module": "registry",
+      "description": "Renders a textured cylinder in 3D world space.",
+      "parameters": [
+        { "name": "window",  "type": "Handle", "required": true },
+        { "name": "texture", "type": "Handle", "required": true },
+        { "name": "radius",  "type": "Float",  "required": true },
+        { "name": "height",  "type": "Float",  "required": true },
+        { "name": "segments","type": "Int",    "required": true },
+        { "name": "x",       "type": "Float",  "required": true },
+        { "name": "y",       "type": "Float",  "required": true },
+        { "name": "z",       "type": "Float",  "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_draw_cylinder",
+          "args": [
+            { "Identifier": "win" }, { "Identifier": "tex" },
+            { "FloatLiteral": 1.0 }, { "FloatLiteral": 2.0 }, { "IntLiteral": 16 },
+            { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_draw_entity",
+      "module": "registry",
+      "description": "Renders an entity in 3D world space.",
+      "parameters": [
+        { "name": "window", "type": "Handle", "required": true },
+        { "name": "x",      "type": "Float",  "required": true },
+        { "name": "y",      "type": "Float",  "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_INVALID_HANDLE"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_draw_entity",
+          "args": [
+            { "Identifier": "win" },
+            { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }
+          ]
+        }
+      }
+    },
+    {
       "name": "registry_file_create",
       "module": "registry",
       "description": "Creates a new file at the given path and returns a writable file Handle. Path must be within the working directory.",

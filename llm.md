@@ -16,6 +16,7 @@
 | [`docs/LANGUAGE_REFERENCE/nod_grammar.ebnf`](docs/LANGUAGE_REFERENCE/nod_grammar.ebnf) | **Formal EBNF Grammar** — structural grammar of the `.nod` JSON AST. |
 | [`docs/LANGUAGE_REFERENCE/native_functions.json`](docs/LANGUAGE_REFERENCE/native_functions.json) | **Native Function Registry** — every FFI function by module, with parameter types, return types, required permissions, and live AST examples. AI agents MUST only call functions listed here. |
 | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | **Anti-Pattern Reference** — 10 explicit DO/DON'T patterns for AI code generation. Read before emitting any `.nod` code. |
+| [`docs/LANGUAGE_REFERENCE/error_catalog.json`](docs/LANGUAGE_REFERENCE/error_catalog.json) | **Error Catalog** — registry of execution fault codes and self-healing hints for AI agents. |
 | [`src/ast.rs`](src/ast.rs) | **Rust source of truth** — `pub enum Node` is the canonical definition. If schema and source diverge, source wins. |
 
 ---
@@ -80,7 +81,14 @@ AI agents: parse `node` first; it pinpoints the failing AST location for immedia
 
 1. **Validate against schema** — `docs/LANGUAGE_REFERENCE/node_types.json` before emitting any node.
 2. **No invented keys** — `additionalProperties: false` will reject hallucinated fields at runtime.
-3. **Use `ExternCall` for FFI** — prefer `{"ExternCall": {"module": "ui", "function": "ui_text_input_get", "args": []}}` over deprecated `NativeCall`.
+3. **Execution Node Routing** — Choose the correct execution path based on this table:
+
+| Scenario | Must Use | Example |
+|----------|----------|---------|
+| Control flow, math, basic UI | Direct AST Node | `{"If": [...]}` or `{"UITextInput": ...}` |
+| Legacy FFI functions | `NativeCall` (Deprecated) | `{"NativeCall": ["print", ...]}` |
+| All modern native FFI / I/O | `ExternCall` | `{"ExternCall": {"module": "registry", "function": "registry_create_window", "args": []}}` |
+
 4. **State-binding pattern** — `text = UITextInput(text)` seeds the buffer on first call; subsequent calls read the live egui buffer.
 5. **Never force-push git** — use `git push origin main` only.
 6. **Zero warnings policy** — `cargo clippy --lib` must produce 0 warnings before any commit.

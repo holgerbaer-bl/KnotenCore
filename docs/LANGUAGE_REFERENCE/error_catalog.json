@@ -1,0 +1,42 @@
+{
+  "catalog_version": "v1.0.0",
+  "description": "Fehlerkatalog für strukturierte Self-Healing-Loops durch KI-Agenten.",
+  "errors": [
+    {
+      "code": "ERR_UNKNOWN_NODE",
+      "category": "Syntax",
+      "message_pattern": "Unrecognized node type: {}",
+      "agent_hint": "Check node_types.json! You probably emitted a hallucinated or deprecated node type instead of a valid AST node."
+    },
+    {
+      "code": "ERR_ARITY_MISMATCH",
+      "category": "Syntax",
+      "message_pattern": "Node {} expects {} arguments but got {}",
+      "agent_hint": "Check the exact array structure for this node in node_types.json or nod_grammar.ebnf. Some parameters must be present, some can be optional."
+    },
+    {
+      "code": "ERR_INVALID_HANDLE",
+      "category": "Runtime",
+      "message_pattern": "Invalid or expired Handle provided to {}",
+      "agent_hint": "Ensure the handle was properly created (e.g., registry_create_window) before passing it to this function."
+    },
+    {
+      "code": "ERR_IO_PERMISSION",
+      "category": "Security",
+      "message_pattern": "I/O operation blocked: Requires --allow-{}",
+      "agent_hint": "You attempted an external file or system operation without the correct permission flag. Ask the user to restart the agent/executor with --allow-read or --allow-write."
+    },
+    {
+      "code": "ERR_NET_PERMISSION",
+      "category": "Security",
+      "message_pattern": "Network operation blocked: Requires --allow-net",
+      "agent_hint": "You attempted an external network request without the correct permission flag. Ask the user to restart the agent/executor with --allow-net."
+    },
+    {
+      "code": "ERR_JSON_PARSE",
+      "category": "Runtime",
+      "message_pattern": "Failed to parse JSON string in {}",
+      "agent_hint": "The provided string cannot be parsed as valid JSON. Check string escaping and format."
+    }
+  ]
+}
