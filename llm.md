@@ -77,6 +77,31 @@ AI agents: parse `node` first; it pinpoints the failing AST location for immedia
 
 ---
 
+## Sprint 125: New Comparison & Logic Operators
+
+Six new AST nodes completing the Boolean algebra. All accept `Box<Node>` operands and return `Bool`. They compile to dedicated VM opcodes (`LessEqual`, `GreaterEqual`, `NotEqual`, `And`, `Or`, `Not`).
+
+| Node | Op | Signature | JSON-AST Example |
+|------|----|-----------|-----------------|
+| `Lte` | `<=` | `Lte(Box<Node>, Box<Node>)` | `{"Lte": [{"Identifier": "x"}, {"IntLiteral": 5}]}` |
+| `Gte` | `>=` | `Gte(Box<Node>, Box<Node>)` | `{"Gte": [{"Identifier": "hp"}, {"IntLiteral": 0}]}` |
+| `NotEq` | `!=` | `NotEq(Box<Node>, Box<Node>)` | `{"NotEq": [{"Identifier": "mode"}, {"StringLiteral": "off"}]}` |
+| `And` | `&&` | `And(Box<Node>, Box<Node>)` | `{"And": [{"BoolLiteral": true}, {"Identifier": "flag"}]}` |
+| `Or` | `\|\|` | `Or(Box<Node>, Box<Node>)` | `{"Or": [{"Identifier": "flag"}, {"BoolLiteral": false}]}` |
+| `Not` | `!` | `Not(Box<Node>)` | `{"Not": {"Identifier": "active"}}` |
+
+**Usage pattern for agents:**
+```json
+{"If": [
+  {"And": [{"Gte": [{"Identifier": "hp"}, {"IntLiteral": 1}]},
+           {"NotEq": [{"Identifier": "state"}, {"StringLiteral": "dead"}]}]},
+  {"Block": [{"Print": {"StringLiteral": "alive"}}]},
+  null
+]}
+```
+
+---
+
 ## Key Constraints for AI Code Generation
 
 1. **Validate against schema** — `docs/LANGUAGE_REFERENCE/node_types.json` before emitting any node.

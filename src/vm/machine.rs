@@ -125,6 +125,52 @@ impl VM {
                         _ => return Err("Invalid types for Greater comparison".into()),
                     }
                 }
+                OpCode::NotEqual => {
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in NotEqual".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in NotEqual".to_string())?;
+                    self.stack.push(RelType::Bool(l != r));
+                }
+                OpCode::LessEqual => {
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in LessEqual".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in LessEqual".to_string())?;
+                    match (l, r) {
+                        (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Bool(a <= b)),
+                        (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Bool(a <= b)),
+                        _ => return Err("Invalid types for LessEqual comparison".into()),
+                    }
+                }
+                OpCode::GreaterEqual => {
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in GreaterEqual".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in GreaterEqual".to_string())?;
+                    match (l, r) {
+                        (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Bool(a >= b)),
+                        (RelType::Float(a), RelType::Float(b)) => self.stack.push(RelType::Bool(a >= b)),
+                        _ => return Err("Invalid types for GreaterEqual comparison".into()),
+                    }
+                }
+                OpCode::And => {
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in And".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in And".to_string())?;
+                    match (l, r) {
+                        (RelType::Bool(a), RelType::Bool(b)) => self.stack.push(RelType::Bool(a && b)),
+                        _ => return Err("And expects two booleans".into()),
+                    }
+                }
+                OpCode::Or => {
+                    let r = self.stack.pop().ok_or_else(|| "Stack underflow in Or".to_string())?;
+                    let l = self.stack.pop().ok_or_else(|| "Stack underflow in Or".to_string())?;
+                    match (l, r) {
+                        (RelType::Bool(a), RelType::Bool(b)) => self.stack.push(RelType::Bool(a || b)),
+                        _ => return Err("Or expects two booleans".into()),
+                    }
+                }
+                OpCode::Not => {
+                    let v = self.stack.pop().ok_or_else(|| "Stack underflow in Not".to_string())?;
+                    match v {
+                        RelType::Bool(b) => self.stack.push(RelType::Bool(!b)),
+                        _ => return Err("Not expects a boolean".into()),
+                    }
+                }
                 OpCode::JumpIfFalse(target_ip) => {
                     let cond = self.stack.pop().ok_or_else(|| "Stack underflow in JumpIfFalse".to_string())?;
                     let is_true = match cond {
@@ -523,5 +569,119 @@ mod tests {
         
         assert!(err_result.is_err());
         assert!(err_result.unwrap_err().contains("JSON Parse Error:"));
+    }
+
+    fn run_logic_ops(ops: Vec<OpCode>, constants: Vec<RelType>) -> Result<RelType, String> {
+        let mut vm = VM::new();
+        let perms = AgentPermissions { allow_network: false, allowed_domains: vec![], allow_fs_read: false, allow_fs_write: false };
+        vm.run(&ops, &constants, &perms, None)
+    }
+
+    #[test]
+    fn test_vm_lte() {
+        // 3 <= 5 → true
+        let r = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(1), OpCode::LessEqual, OpCode::Return],
+            vec![RelType::Int(3), RelType::Int(5)],
+        ).unwrap();
+        assert_eq!(r, RelType::Bool(true));
+        // 5 <= 5 → true (boundary)
+        let r2 = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(0), OpCode::LessEqual, OpCode::Return],
+            vec![RelType::Int(5)],
+        ).unwrap();
+        assert_eq!(r2, RelType::Bool(true));
+        // 7 <= 5 → false
+        let r3 = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(1), OpCode::LessEqual, OpCode::Return],
+            vec![RelType::Int(7), RelType::Int(5)],
+        ).unwrap();
+        assert_eq!(r3, RelType::Bool(false));
+    }
+
+    #[test]
+    fn test_vm_gte() {
+        // 5 >= 3 → true
+        let r = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(1), OpCode::GreaterEqual, OpCode::Return],
+            vec![RelType::Int(5), RelType::Int(3)],
+        ).unwrap();
+        assert_eq!(r, RelType::Bool(true));
+        // 5 >= 5 → true (boundary)
+        let r2 = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(0), OpCode::GreaterEqual, OpCode::Return],
+            vec![RelType::Int(5)],
+        ).unwrap();
+        assert_eq!(r2, RelType::Bool(true));
+        // 3 >= 5 → false
+        let r3 = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(1), OpCode::GreaterEqual, OpCode::Return],
+            vec![RelType::Int(3), RelType::Int(5)],
+        ).unwrap();
+        assert_eq!(r3, RelType::Bool(false));
+    }
+
+    #[test]
+    fn test_vm_not_equal() {
+        // 1 != 2 → true
+        let r = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(1), OpCode::NotEqual, OpCode::Return],
+            vec![RelType::Int(1), RelType::Int(2)],
+        ).unwrap();
+        assert_eq!(r, RelType::Bool(true));
+        // 2 != 2 → false
+        let r2 = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(0), OpCode::NotEqual, OpCode::Return],
+            vec![RelType::Int(2)],
+        ).unwrap();
+        assert_eq!(r2, RelType::Bool(false));
+    }
+
+    #[test]
+    fn test_vm_and() {
+        // true && true → true
+        let r = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(0), OpCode::And, OpCode::Return],
+            vec![RelType::Bool(true)],
+        ).unwrap();
+        assert_eq!(r, RelType::Bool(true));
+        // true && false → false
+        let r2 = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(1), OpCode::And, OpCode::Return],
+            vec![RelType::Bool(true), RelType::Bool(false)],
+        ).unwrap();
+        assert_eq!(r2, RelType::Bool(false));
+    }
+
+    #[test]
+    fn test_vm_or() {
+        // false || true → true
+        let r = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(1), OpCode::Or, OpCode::Return],
+            vec![RelType::Bool(false), RelType::Bool(true)],
+        ).unwrap();
+        assert_eq!(r, RelType::Bool(true));
+        // false || false → false
+        let r2 = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Constant(0), OpCode::Or, OpCode::Return],
+            vec![RelType::Bool(false)],
+        ).unwrap();
+        assert_eq!(r2, RelType::Bool(false));
+    }
+
+    #[test]
+    fn test_vm_not() {
+        // !true → false
+        let r = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Not, OpCode::Return],
+            vec![RelType::Bool(true)],
+        ).unwrap();
+        assert_eq!(r, RelType::Bool(false));
+        // !false → true
+        let r2 = run_logic_ops(
+            vec![OpCode::Constant(0), OpCode::Not, OpCode::Return],
+            vec![RelType::Bool(false)],
+        ).unwrap();
+        assert_eq!(r2, RelType::Bool(true));
     }
 }

@@ -30,6 +30,16 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::Concat(l, r) => {
             count += count_nodes(l) + count_nodes(r);
         }
+        Node::Lte(l, r)
+        | Node::Gte(l, r)
+        | Node::NotEq(l, r)
+        | Node::And(l, r)
+        | Node::Or(l, r) => {
+            count += count_nodes(l) + count_nodes(r);
+        }
+        Node::Not(n) => {
+            count += count_nodes(n);
+        }
         Node::Sin(n) | Node::Cos(n) | Node::Abs(n) => {
             count += count_nodes(n);
         }
@@ -254,6 +264,12 @@ pub fn optimize(node: Node) -> Node {
         Node::Eq(l, r) => optimize_eq(*l, *r),
         Node::Lt(l, r) => optimize_lt(*l, *r),
         Node::Gt(l, r) => optimize_gt(*l, *r),
+        Node::Lte(l, r) => Node::Lte(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::Gte(l, r) => Node::Gte(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::NotEq(l, r) => Node::NotEq(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::And(l, r) => Node::And(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::Or(l, r) => Node::Or(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::Not(n) => Node::Not(Box::new(optimize(*n))),
 
         // Bitwise Folding
         Node::BitAnd(l, r) => optimize_bitwise(*l, *r, '&'),

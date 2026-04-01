@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.24] - Sprint 125: Native Boolean Algebra & Comparison Operators (2026-04-01)
+Completes the engine's Boolean algebra — AI agents can now express all relational and logical conditions natively in the JSON-AST without workarounds.
+- **`ast.rs`**: Added 6 new `Node` variants — `Lte`, `Gte`, `NotEq`, `And`, `Or`, `Not` — each with the same `Box<Node>` operand pattern as existing operators.
+- **`evaluator.rs`**: Extended `do_compare` with `<=`, `>=`, `!=` arms; added short-circuit-safe match arms for `And`, `Or`, `Not` returning `ExecResult::Fault` on type mismatch.
+- **`vm/opcode.rs`**: Added `LessEqual`, `GreaterEqual`, `NotEqual`, `And`, `Or`, `Not` opcodes.
+- **`vm/compiler.rs`**: Added corresponding `compile_node` arms mapping AST → Bytecode.
+- **`vm/machine.rs`**: Implemented all 6 opcodes in the stack machine; added 6 unit tests (14 tests total, all green).
+- **`optimizer.rs` / `validator.rs`**: Updated for exhaustive pattern coverage.
+
+
 ## [v1.0.23] - Sprint 124: AI-Readiness Phase 2 (Tooling & Self-Healing Validator) (2026-03-31)
 Enabled robust self-healing feedback loops equipping the standard Engine executor dynamically shielding structural JSON schemas natively isolating parser panic events gracefully!
 - **`run_knc` JSON Validation**: Implemented the `--output-format json` CLI override coercing syntactical evaluation faults and Node validation failures logically into strict `{"status": "error", "errors": []}` JSON structures mapped entirely to `error_catalog.json` natively.

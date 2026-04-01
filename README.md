@@ -17,7 +17,7 @@
 
 ---
 
-## 🤖 AI-Readiness Foundation (Sprints 121–122)
+## 🤖 AI-Readiness Foundation (Sprints 121–125)
 
 KnotenCore is purpose-built for autonomous AI agents. Every node and native function is formally specified and machine-validated:
 
@@ -32,6 +32,21 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 | **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references above and documenting all engine constraints. |
 
 > **For AI Agents:** Read `native_functions.json` and `99_antipatterns.nod` before generating any `.nod` code. Always validate output against `node_types.json`.
+
+---
+
+## 🔬 Boolean Algebra & Comparison Operators (Sprint 125)
+
+A complete set of native logical and relational operators is now available in the JSON-AST. These compile to dedicated AOT Bytecode (`LessEqual`, `GreaterEqual`, `NotEqual`, `And`, `Or`, `Not`) for maximum performance.
+
+| Node | Operator | Example JSON-AST |
+|------|----------|-----------------|
+| `Lte` | `<=` | `{"Lte": [{"Identifier": "x"}, {"IntLiteral": 10}]}` |
+| `Gte` | `>=` | `{"Gte": [{"Identifier": "score"}, {"IntLiteral": 100}]}` |
+| `NotEq` | `!=` | `{"NotEq": [{"Identifier": "state"}, {"StringLiteral": "idle"}]}` |
+| `And` | `&&` | `{"And": [{"BoolLiteral": true}, {"BoolLiteral": false}]}` |
+| `Or` | `\|\|` | `{"Or": [{"BoolLiteral": false}, {"BoolLiteral": true}]}` |
+| `Not` | `!` | `{"Not": {"BoolLiteral": true}}` |
 
 ---
 

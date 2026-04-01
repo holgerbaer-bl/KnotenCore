@@ -61,6 +61,11 @@ impl Validator {
             | Node::Eq(l, r)
             | Node::Lt(l, r)
             | Node::Gt(l, r)
+            | Node::Lte(l, r)
+            | Node::Gte(l, r)
+            | Node::NotEq(l, r)
+            | Node::And(l, r)
+            | Node::Or(l, r)
             | Node::Concat(l, r)
             | Node::BitAnd(l, r)
             | Node::BitShiftLeft(l, r)
@@ -69,6 +74,9 @@ impl Validator {
             | Node::LoadSample(l, r) => {
                 self.check_node(l);
                 self.check_node(r);
+            }
+            Node::Not(n) => {
+                self.check_node(n);
             }
             Node::Fetch {
                 method: _,

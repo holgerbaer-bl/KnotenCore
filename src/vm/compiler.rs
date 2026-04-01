@@ -85,6 +85,36 @@ impl Compiler {
                 self.instructions.push(OpCode::Less);
                 true
             }
+            Node::Lte(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) { return false; }
+                self.instructions.push(OpCode::LessEqual);
+                true
+            }
+            Node::Gte(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) { return false; }
+                self.instructions.push(OpCode::GreaterEqual);
+                true
+            }
+            Node::NotEq(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) { return false; }
+                self.instructions.push(OpCode::NotEqual);
+                true
+            }
+            Node::And(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) { return false; }
+                self.instructions.push(OpCode::And);
+                true
+            }
+            Node::Or(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) { return false; }
+                self.instructions.push(OpCode::Or);
+                true
+            }
+            Node::Not(expr) => {
+                if !self.compile_node(expr) { return false; }
+                self.instructions.push(OpCode::Not);
+                true
+            }
             Node::Block(stmts) => {
                 for stmt in stmts {
                     if !self.compile_node(stmt) { return false; }

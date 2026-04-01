@@ -63,6 +63,29 @@ impl ExecutionEngine {
             Node::Eq(l, r) => self.do_compare(l, "==", r),
             Node::Lt(l, r) => self.do_compare(l, "<", r),
             Node::Gt(l, r) => self.do_compare(l, ">", r),
+            Node::Lte(l, r) => self.do_compare(l, "<=", r),
+            Node::Gte(l, r) => self.do_compare(l, ">=", r),
+            Node::NotEq(l, r) => self.do_compare(l, "!=", r),
+            Node::And(l, r) => {
+                match (self.evaluate_inner(l), self.evaluate_inner(r)) {
+                    (ExecResult::Value(RelType::Bool(a)), ExecResult::Value(RelType::Bool(b))) =>
+                        ExecResult::Value(RelType::Bool(a && b)),
+                    _ => ExecResult::Fault { msg: "And expects two booleans".into(), node: "Node::And".into() },
+                }
+            }
+            Node::Or(l, r) => {
+                match (self.evaluate_inner(l), self.evaluate_inner(r)) {
+                    (ExecResult::Value(RelType::Bool(a)), ExecResult::Value(RelType::Bool(b))) =>
+                        ExecResult::Value(RelType::Bool(a || b)),
+                    _ => ExecResult::Fault { msg: "Or expects two booleans".into(), node: "Node::Or".into() },
+                }
+            }
+            Node::Not(expr) => {
+                match self.evaluate_inner(expr) {
+                    ExecResult::Value(RelType::Bool(v)) => ExecResult::Value(RelType::Bool(!v)),
+                    _ => ExecResult::Fault { msg: "Not expects a boolean".into(), node: "Node::Not".into() },
+                }
+            }
             Node::Time | Node::GlobalTime => ExecResult::Value(RelType::Float(self.startup_time.elapsed().as_secs_f64())),
             Node::Mat4Mul(l, r) => {
                 let lv = match self.evaluate_inner(l) { ExecResult::Value(RelType::Array(v)) => v, _ => return ExecResult::Fault { msg: "Mat4Mul expects array".into(), node: "Node::Mat4Mul".into() } };
@@ -382,6 +405,7 @@ impl ExecutionEngine {
         let rv = match self.evaluate_inner(right) { ExecResult::Value(v) => v, err => return err };
         let res = match op {
             "==" => RelType::Bool(lv == rv),
+            "!=" => RelType::Bool(lv != rv),
             "<" => match (lv, rv) {
                 (RelType::Int(a), RelType::Int(b)) => RelType::Bool(a < b),
                 (RelType::Float(a), RelType::Float(b)) => RelType::Bool(a < b),
@@ -391,6 +415,16 @@ impl ExecutionEngine {
                 (RelType::Int(a), RelType::Int(b)) => RelType::Bool(a > b),
                 (RelType::Float(a), RelType::Float(b)) => RelType::Bool(a > b),
                 _ => return ExecResult::Fault { msg: "Invalid types for >".into(), node: "Node::Gt".into() },
+            },
+            "<=" => match (lv, rv) {
+                (RelType::Int(a), RelType::Int(b)) => RelType::Bool(a <= b),
+                (RelType::Float(a), RelType::Float(b)) => RelType::Bool(a <= b),
+                _ => return ExecResult::Fault { msg: "Invalid types for <=".into(), node: "Node::Lte".into() },
+            },
+            ">=" => match (lv, rv) {
+                (RelType::Int(a), RelType::Int(b)) => RelType::Bool(a >= b),
+                (RelType::Float(a), RelType::Float(b)) => RelType::Bool(a >= b),
+                _ => return ExecResult::Fault { msg: "Invalid types for >=".into(), node: "Node::Gte".into() },
             },
             _ => return ExecResult::Fault { msg: format!("Unknown comparison: {}", op), node: "Unknown".into() },
         };

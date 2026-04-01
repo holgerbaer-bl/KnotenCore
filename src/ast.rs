@@ -26,6 +26,12 @@ pub enum Node {
     Eq(Box<Node>, Box<Node>),
     Lt(Box<Node>, Box<Node>),
     Gt(Box<Node>, Box<Node>),
+    Lte(Box<Node>, Box<Node>),
+    Gte(Box<Node>, Box<Node>),
+    NotEq(Box<Node>, Box<Node>),
+    And(Box<Node>, Box<Node>),
+    Or(Box<Node>, Box<Node>),
+    Not(Box<Node>),
 
     // Arrays, Strings, Objects & Maps
     ArrayCreate(Vec<Node>),
