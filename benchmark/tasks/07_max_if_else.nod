@@ -1,0 +1,44 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "a",
+        {
+          "IntLiteral": 5
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "b",
+        {
+          "IntLiteral": 10
+        }
+      ]
+    },
+    {
+      "If": [
+        {
+          "Gt": [
+            {
+              "Identifier": "a"
+            },
+            {
+              "Identifier": "b"
+            }
+          ]
+        },
+        {
+          "Print": {
+            "Identifier": "a"
+          }
+        },
+        {
+          "Print": {
+            "Identifier": "b"
+          }
+        }
+      ]
+    }
+  ]
+}

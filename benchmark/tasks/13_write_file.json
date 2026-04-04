@@ -1,0 +1,5 @@
+{
+  "description": "Schreibe 'Hello KnotenCore' in einer FileWrite-Node in eine Datei. (--allow-write)",
+  "expected_output": "Datei benchmark/tasks/test_out.txt erstellt",
+  "evaluation_criteria": "PASS wenn FileWrite erfolgreich ausgefuehrt wird."
+}

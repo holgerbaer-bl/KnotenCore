@@ -1,0 +1,100 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "win",
+        {
+          "Call": [
+            "registry_create_window",
+            [
+              {
+                "IntLiteral": 640
+              },
+              {
+                "IntLiteral": 480
+              },
+              {
+                "StringLiteral": "Task 11"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "timer",
+        {
+          "Call": [
+            "registry_now",
+            []
+          ]
+        }
+      ]
+    },
+    {
+      "While": [
+        {
+          "And": [
+            {
+              "Call": [
+                "registry_window_update",
+                [
+                  {
+                    "Identifier": "win"
+                  }
+                ]
+              ]
+            },
+            {
+              "Lte": [
+                {
+                  "Call": [
+                    "registry_elapsed_ms",
+                    [
+                      {
+                        "Identifier": "timer"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "IntLiteral": 3000
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Call": [
+            "registry_fill_color",
+            [
+              {
+                "Identifier": "win"
+              },
+              {
+                "IntLiteral": 30
+              },
+              {
+                "IntLiteral": 10
+              },
+              {
+                "IntLiteral": 60
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Call": [
+        "registry_window_close",
+        [
+          {
+            "Identifier": "win"
+          }
+        ]
+      ]
+    }
+  ]
+}

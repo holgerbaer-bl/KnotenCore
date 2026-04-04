@@ -1,0 +1,5 @@
+{
+  "description": "Zaehle mit einer While-Schleife von 1 bis 10 und Print jede Zahl.",
+  "expected_output": "Zahlen 1..10 auf stdout",
+  "evaluation_criteria": "PASS wenn alle 10 Zahlen sequenziell erscheinen."
+}

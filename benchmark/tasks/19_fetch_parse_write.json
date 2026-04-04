@@ -1,0 +1,5 @@
+{
+  "description": "Fetch jsonplaceholder/posts/1, parse JSON, obj_get 'title', FileWrite title in Datei. (--allow-net --allow-write)",
+  "expected_output": "write_result.txt mit Post-Title erstellt",
+  "evaluation_criteria": "PASS wenn alle drei Phasen (net -> json -> fs) verbunden sind."
+}

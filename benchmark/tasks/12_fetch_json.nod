@@ -1,0 +1,49 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "body",
+        {
+          "Call": [
+            "net_fetch",
+            [
+              {
+                "StringLiteral": "https://jsonplaceholder.typicode.com/todos/1"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "parsed",
+        {
+          "Call": [
+            "fs_parse_json",
+            [
+              {
+                "Identifier": "body"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Print": {
+        "Call": [
+          "obj_get",
+          [
+            {
+              "Identifier": "parsed"
+            },
+            {
+              "StringLiteral": "title"
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}

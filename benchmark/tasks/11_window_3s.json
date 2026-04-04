@@ -1,0 +1,5 @@
+{
+  "description": "registry_create_window -> While(registry_window_update && elapsed<=3000) -> registry_window_close. Kein InitWindow!",
+  "expected_output": "Fenster oeffnet und schliesst sich nach ~3s",
+  "evaluation_criteria": "PASS wenn korrekte Registry-Pipeline ohne InitWindow/sleep benutzt wird."
+}

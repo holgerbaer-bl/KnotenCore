@@ -8,6 +8,35 @@
 
 ---
 
+## 🎯 AI-Readiness Benchmark — Sprint 126
+
+KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
+generating `.nod` programs, your output can be tested against 20 standardised tasks.
+
+**Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
+
+**⚠️ Critical VM Compiler Constraint (Sprint 126 finding):**
+The following AST nodes are accepted by the parser and documented in `node_types.json` but
+**are NOT compiled by the VM** — they return `false` in `compiler.rs` and cause `[VM Crash]`:
+
+> `UIWindow` `UILabel` `UIButton` `UIVBox` `UIHBox` `UIHorizontal` `UIFullscreen`
+> `ArrayCreate` `ArrayGet` `ArraySet` `ArrayPush` `ArrayLen`
+> `FileRead` `FileWrite` `Concat` `ToString` `ExternCall`
+
+**Use `Call["function_name", [args]]` for all FFI calls.** The VM routes by function name prefix
+(`registry_*`, `fs_*`, `net_*`, `json_*`, `time_*`, `array_*`, `obj_*`).
+
+```json
+{"Call": ["registry_now", []]}
+{"Call": ["fs_parse_json", [{"Identifier": "body"}]]}
+{"Call": ["registry_write_file", [{"StringLiteral": "out.txt"}, {"Identifier": "data"}]]}
+{"Call": ["read_file", [{"StringLiteral": "input.txt"}]]}
+```
+
+**AG Baseline Score: 17/20 (85%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)
+
+---
+
 ## ⚡ Primary References (Read These First)
 
 | Document | Purpose |

@@ -1,0 +1,5 @@
+{
+  "description": "Finde mit If/Gt das Maximum von a=5 und b=10.",
+  "expected_output": "10 auf stdout",
+  "evaluation_criteria": "PASS wenn die groessere Zahl ausgegeben wird."
+}

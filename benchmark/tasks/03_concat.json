@@ -1,0 +1,5 @@
+{
+  "description": "Erstelle zwei Strings und konkateniere sie, dann Print.",
+  "expected_output": "'Hello KnotenCore' auf stdout",
+  "evaluation_criteria": "PASS wenn zusammengesetzter String ausgegeben wird."
+}

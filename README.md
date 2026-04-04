@@ -35,6 +35,30 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 
 ---
 
+## 🎯 AI-Readiness Benchmark (Sprint 126) — AG Baseline: 17/20
+
+KnotenCore is the **first DSL project with a public, reproducible AI-Readiness Score** —
+measuring how reliably external LLMs generate correct `.nod` programs without human correction.
+
+| Score | Threshold |
+|-------|-----------|
+| **AG (Antigravity)** | **85% — 17/20 ✅**  Productive AI-Ready |
+| < 60% | Not AI-Ready |
+| 60–79% | Basic AI-Ready |
+| 80–89% | Productive AI-Ready ← Target |
+| 90%+ | Benchmark Leader |
+
+The AG agent used **only `llm.md` + `node_types.json` + `native_functions.json`** as context
+(no Rust source). See [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md) for the full
+per-task breakdown and self-healing analysis.
+
+> **Test your model:** Clone → prompt with the 3 docs → run `benchmark/validator.sh`
+> → submit your score via PR to `benchmark/results/`.
+
+---
+
+
+
 ## 🔬 Boolean Algebra & Comparison Operators (Sprint 125)
 
 A complete set of native logical and relational operators is now available in the JSON-AST. These compile to dedicated AOT Bytecode (`LessEqual`, `GreaterEqual`, `NotEqual`, `And`, `Or`, `Not`) for maximum performance.

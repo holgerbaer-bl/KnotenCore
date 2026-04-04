@@ -1,0 +1,73 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "sum",
+        {
+          "IntLiteral": 0
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "i",
+        {
+          "IntLiteral": 1
+        }
+      ]
+    },
+    {
+      "While": [
+        {
+          "Lte": [
+            {
+              "Identifier": "i"
+            },
+            {
+              "IntLiteral": 100
+            }
+          ]
+        },
+        {
+          "Block": [
+            {
+              "Assign": [
+                "sum",
+                {
+                  "Add": [
+                    {
+                      "Identifier": "sum"
+                    },
+                    {
+                      "Identifier": "i"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "i",
+                {
+                  "Add": [
+                    {
+                      "Identifier": "i"
+                    },
+                    {
+                      "IntLiteral": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Print": {
+        "Identifier": "sum"
+      }
+    }
+  ]
+}

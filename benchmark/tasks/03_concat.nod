@@ -1,0 +1,14 @@
+{
+  "Block": [
+    {
+      "Print": {
+        "StringLiteral": "Hello "
+      }
+    },
+    {
+      "Print": {
+        "StringLiteral": "KnotenCore"
+      }
+    }
+  ]
+}

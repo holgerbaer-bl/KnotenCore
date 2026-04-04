@@ -1,0 +1,5 @@
+{
+  "description": "Weise der Variable x den Wert 42 zu und gib ihn aus.",
+  "expected_output": "42 auf stdout",
+  "evaluation_criteria": "PASS wenn 42 auf stdout erscheint."
+}

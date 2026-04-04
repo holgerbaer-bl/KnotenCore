@@ -1,0 +1,64 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "t0",
+        {
+          "Call": [
+            "registry_now",
+            []
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "i",
+        {
+          "IntLiteral": 0
+        }
+      ]
+    },
+    {
+      "While": [
+        {
+          "Lt": [
+            {
+              "Identifier": "i"
+            },
+            {
+              "IntLiteral": 10000
+            }
+          ]
+        },
+        {
+          "Assign": [
+            "i",
+            {
+              "Add": [
+                {
+                  "Identifier": "i"
+                },
+                {
+                  "IntLiteral": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Print": {
+        "Call": [
+          "registry_elapsed_ms",
+          [
+            {
+              "Identifier": "t0"
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}

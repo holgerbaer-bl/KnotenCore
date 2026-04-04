@@ -1,0 +1,5 @@
+{
+  "description": "File Pipeline: FileWrite JSON-String, FileRead, fs_parse_json, obj_set 'ver'->2, json_stringify, FileWrite Ergebnis. (--allow-read --allow-write)",
+  "expected_output": "pipe_out.json mit ver:2 erstellt",
+  "evaluation_criteria": "PASS wenn die vollstaendige Read-Modify-Write Pipeline laeuft."
+}

@@ -1,0 +1,5 @@
+{
+  "description": "Lese benchmark/fixtures/test_input.txt und gib Inhalt aus. (--allow-read)",
+  "expected_output": "'Hello KnotenCore Benchmark' auf stdout",
+  "evaluation_criteria": "PASS wenn Dateiinhalt via FileRead ausgegeben wird."
+}

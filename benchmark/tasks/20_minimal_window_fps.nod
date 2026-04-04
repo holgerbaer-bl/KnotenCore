@@ -1,0 +1,179 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "win",
+        {
+          "Call": [
+            "registry_create_window",
+            [
+              {
+                "IntLiteral": 400
+              },
+              {
+                "IntLiteral": 200
+              },
+              {
+                "StringLiteral": "FPS Monitor"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "frame_timer",
+        {
+          "Call": [
+            "registry_now",
+            []
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "fps",
+        {
+          "IntLiteral": 0
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "total_timer",
+        {
+          "Call": [
+            "registry_now",
+            []
+          ]
+        }
+      ]
+    },
+    {
+      "While": [
+        {
+          "And": [
+            {
+              "Call": [
+                "registry_window_update",
+                [
+                  {
+                    "Identifier": "win"
+                  }
+                ]
+              ]
+            },
+            {
+              "Lte": [
+                {
+                  "Call": [
+                    "registry_elapsed_ms",
+                    [
+                      {
+                        "Identifier": "total_timer"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "IntLiteral": 3000
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Block": [
+            {
+              "Call": [
+                "registry_fill_color",
+                [
+                  {
+                    "Identifier": "win"
+                  },
+                  {
+                    "IntLiteral": 10
+                  },
+                  {
+                    "IntLiteral": 10
+                  },
+                  {
+                    "IntLiteral": 20
+                  }
+                ]
+              ]
+            },
+            {
+              "Assign": [
+                "ms",
+                {
+                  "Call": [
+                    "registry_elapsed_ms",
+                    [
+                      {
+                        "Identifier": "frame_timer"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "frame_timer",
+                {
+                  "Call": [
+                    "registry_now",
+                    []
+                  ]
+                }
+              ]
+            },
+            {
+              "If": [
+                {
+                  "Gt": [
+                    {
+                      "Identifier": "ms"
+                    },
+                    {
+                      "IntLiteral": 0
+                    }
+                  ]
+                },
+                {
+                  "Assign": [
+                    "fps",
+                    {
+                      "Div": [
+                        {
+                          "IntLiteral": 1000
+                        },
+                        {
+                          "Identifier": "ms"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                null
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Call": [
+        "registry_window_close",
+        [
+          {
+            "Identifier": "win"
+          }
+        ]
+      ]
+    }
+  ]
+}

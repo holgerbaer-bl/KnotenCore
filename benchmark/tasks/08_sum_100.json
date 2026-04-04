@@ -1,0 +1,5 @@
+{
+  "description": "Summiere alle Zahlen von 1 bis 100 in einer Schleife und Print.",
+  "expected_output": "5050 auf stdout",
+  "evaluation_criteria": "PASS wenn exakt 5050 ausgegeben wird."
+}

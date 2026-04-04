@@ -1,0 +1,50 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "i",
+        {
+          "IntLiteral": 1
+        }
+      ]
+    },
+    {
+      "While": [
+        {
+          "Lte": [
+            {
+              "Identifier": "i"
+            },
+            {
+              "IntLiteral": 10
+            }
+          ]
+        },
+        {
+          "Block": [
+            {
+              "Print": {
+                "Identifier": "i"
+              }
+            },
+            {
+              "Assign": [
+                "i",
+                {
+                  "Add": [
+                    {
+                      "Identifier": "i"
+                    },
+                    {
+                      "IntLiteral": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

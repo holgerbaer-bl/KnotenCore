@@ -1,0 +1,5 @@
+{
+  "description": "Fetch https://jsonplaceholder.typicode.com/todos/1 und Print den 'title' Wert. (--allow-net)",
+  "expected_output": "Todo-Title auf stdout",
+  "evaluation_criteria": "PASS wenn net_fetch + fs_parse_json + obj_get korrekt kombiniert werden."
+}

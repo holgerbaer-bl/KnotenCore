@@ -1,0 +1,26 @@
+{
+  "Block": [
+    {
+      "UIWindow": [
+        "task14",
+        {
+          "StringLiteral": "Task 14 - Label & Button"
+        },
+        {
+          "Block": [
+            {
+              "UILabel": {
+                "StringLiteral": "Hello from KnotenCore UI"
+              }
+            },
+            {
+              "UIButton": {
+                "StringLiteral": "Click Me"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

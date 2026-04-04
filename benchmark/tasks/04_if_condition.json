@@ -1,0 +1,5 @@
+{
+  "description": "Schreibe eine If-Bedingung die 'yes' bei true und 'no' bei false ausgibt.",
+  "expected_output": "'yes' auf stdout",
+  "evaluation_criteria": "PASS wenn eine funktionierende if/else Verzweigung ausgefuehrt wird."
+}

@@ -1,0 +1,101 @@
+{
+  "Block": [
+    {
+      "Call": [
+        "registry_write_file",
+        [
+          {
+            "StringLiteral": "benchmark/tasks/pipe_in.json"
+          },
+          {
+            "StringLiteral": "{\"name\":\"Node\",\"ver\":1}"
+          }
+        ]
+      ]
+    },
+    {
+      "Assign": [
+        "raw",
+        {
+          "Call": [
+            "read_file",
+            [
+              {
+                "StringLiteral": "benchmark/tasks/pipe_in.json"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "parsed",
+        {
+          "Call": [
+            "fs_parse_json",
+            [
+              {
+                "Identifier": "raw"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "modified",
+        {
+          "Call": [
+            "obj_set",
+            [
+              {
+                "Identifier": "parsed"
+              },
+              {
+                "StringLiteral": "ver"
+              },
+              {
+                "IntLiteral": 2
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "out",
+        {
+          "Call": [
+            "json_stringify",
+            [
+              {
+                "Identifier": "modified"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Call": [
+        "registry_write_file",
+        [
+          {
+            "StringLiteral": "benchmark/tasks/pipe_out.json"
+          },
+          {
+            "Identifier": "out"
+          }
+        ]
+      ]
+    },
+    {
+      "Print": {
+        "StringLiteral": "Pipeline OK"
+      }
+    }
+  ]
+}

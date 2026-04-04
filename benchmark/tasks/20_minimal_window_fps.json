@@ -1,0 +1,5 @@
+{
+  "description": "Minimal FPS: registry_create_window, While-Loop mit registry_now/elapsed_ms, FPS in UIWindow UILabel.",
+  "expected_output": "Fenster mit aktualisiertem FPS-Label",
+  "evaluation_criteria": "PASS wenn die Loop-Schleife FPS korrekt berechnet und im UIWindow zeigt."
+}

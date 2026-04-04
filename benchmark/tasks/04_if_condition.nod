@@ -1,0 +1,17 @@
+{
+  "If": [
+    {
+      "BoolLiteral": true
+    },
+    {
+      "Print": {
+        "StringLiteral": "yes"
+      }
+    },
+    {
+      "Print": {
+        "StringLiteral": "no"
+      }
+    }
+  ]
+}

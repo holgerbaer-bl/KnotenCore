@@ -1,0 +1,5 @@
+{
+  "description": "Rechner-GUI: UIWindow + UIHorizontal + UILabel(val) + UIButton('+1') + UIButton('-1').",
+  "expected_output": "Rechner-App mit Buttons sichtbar",
+  "evaluation_criteria": "PASS wenn UIButton-Aktionen val modifizieren."
+}

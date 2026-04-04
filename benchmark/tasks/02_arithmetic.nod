@@ -1,0 +1,16 @@
+{
+  "Block": [
+    {
+      "Print": {
+        "Add": [
+          {
+            "IntLiteral": 20
+          },
+          {
+            "IntLiteral": 22
+          }
+        ]
+      }
+    }
+  ]
+}

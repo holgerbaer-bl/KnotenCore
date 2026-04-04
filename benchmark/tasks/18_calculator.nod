@@ -1,0 +1,87 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "val",
+        {
+          "IntLiteral": 0
+        }
+      ]
+    },
+    {
+      "UIWindow": [
+        "calc18",
+        {
+          "StringLiteral": "Calculator"
+        },
+        {
+          "Block": [
+            {
+              "UIHorizontal": {
+                "Block": [
+                  {
+                    "UILabel": {
+                      "ToString": {
+                        "Identifier": "val"
+                      }
+                    }
+                  },
+                  {
+                    "If": [
+                      {
+                        "UIButton": {
+                          "StringLiteral": "+1"
+                        }
+                      },
+                      {
+                        "Assign": [
+                          "val",
+                          {
+                            "Add": [
+                              {
+                                "Identifier": "val"
+                              },
+                              {
+                                "IntLiteral": 1
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      null
+                    ]
+                  },
+                  {
+                    "If": [
+                      {
+                        "UIButton": {
+                          "StringLiteral": "-1"
+                        }
+                      },
+                      {
+                        "Assign": [
+                          "val",
+                          {
+                            "Sub": [
+                              {
+                                "Identifier": "val"
+                              },
+                              {
+                                "IntLiteral": 1
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      null
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

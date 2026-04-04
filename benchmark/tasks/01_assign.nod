@@ -1,0 +1,17 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "x",
+        {
+          "IntLiteral": 42
+        }
+      ]
+    },
+    {
+      "Print": {
+        "Identifier": "x"
+      }
+    }
+  ]
+}

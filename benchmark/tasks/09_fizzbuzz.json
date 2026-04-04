@@ -1,0 +1,5 @@
+{
+  "description": "FizzBuzz fuer 1-20 mit Print (keine UI).",
+  "expected_output": "FizzBuzz-Folge auf stdout",
+  "evaluation_criteria": "PASS wenn FizzBuzz-Regeln von 1 bis 20 korrekt ausgegeben werden."
+}

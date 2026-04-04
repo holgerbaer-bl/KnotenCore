@@ -1,0 +1,5 @@
+{
+  "description": "Erstelle ein Array mit drei Integers [10,20,30] und gib das zweite aus.",
+  "expected_output": "20 auf stdout",
+  "evaluation_criteria": "PASS wenn ArrayGet den korrekten Index-1-Wert ausgibt."
+}

@@ -1,0 +1,5 @@
+{
+  "description": "Addiere die Zahlen 20 und 22 und gib das Ergebnis aus.",
+  "expected_output": "42 auf stdout",
+  "evaluation_criteria": "PASS wenn 42 auf stdout erscheint."
+}

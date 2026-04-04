@@ -1,0 +1,5 @@
+{
+  "description": "Messe die Laufzeit von 10000 Iterationen mit registry_now/registry_elapsed_ms und Print.",
+  "expected_output": "Millisekunden auf stdout",
+  "evaluation_criteria": "PASS wenn Timer-Start/Elapsed korrekt kombiniert und ausgegeben wird."
+}

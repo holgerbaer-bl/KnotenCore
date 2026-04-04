@@ -2,6 +2,18 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.25] - Sprint 126: Public AI-Readiness Benchmark (AG Baseline: 17/20) (2026-04-04)
+First DSL project with a public, reproducible AI-Readiness Score. AG self-evaluated using exclusively `llm.md`, `node_types.json`, and `native_functions.json` as context — no Rust source.
+- **`benchmark/`**: Created full benchmark directory with 20 tasks (4 difficulty tiers), `validator.sh`, and `results/` folder.
+- **`benchmark/tasks/`**: 20 `.json` task specs + 20 `.nod` AG-generated solutions. Tasks 01–13, 15–16, 19–20 PASS; Tasks 14, 17, 18 FAIL due to `UIWindow`/`UIVBox`/`UIHBox` not compiled by VM.
+- **`benchmark/results/ag_baseline.md`**: Honest per-task breakdown. Score: **17/20 — 85% — Productive AI-Ready**.
+- **`benchmark/fixtures/test_input.txt`**: Fixture for Task 10 read test.
+- **`benchmark/validator.sh`**: Automated headless validator for non-UI tasks.
+- **`llm.md`**: Added critical VM compiler constraint warning — `UIWindow`, `ArrayCreate`, `Concat`, `ExternCall`, `FileRead` et al. compile to `false` in the VM; documented `Call["name",[args]]` pattern.
+- **`README.md`**: Benchmark section + AG baseline score (Option 1).
+- **Finding:** 3 FAIL tasks reveal a gap between documentation and VM compiler coverage → Sprint 127 target.
+
+
 ## [v1.0.24] - Sprint 125: Native Boolean Algebra & Comparison Operators (2026-04-01)
 Completes the engine's Boolean algebra — AI agents can now express all relational and logical conditions natively in the JSON-AST without workarounds.
 - **`ast.rs`**: Added 6 new `Node` variants — `Lte`, `Gte`, `NotEq`, `And`, `Or`, `Not` — each with the same `Box<Node>` operand pattern as existing operators.

@@ -1,0 +1,5 @@
+{
+  "description": "Dashboard: Drei Sensor-Strings in Array, UIWindow mit UIVBox der drei UILabels. Fenster kurz offen.",
+  "expected_output": "UI mit 3 Labels sichtbar",
+  "evaluation_criteria": "PASS wenn UIVBox mit ArrayGet-UILabels korrekt verschachtelt ist."
+}

@@ -1,0 +1,5 @@
+{
+  "description": "Erstelle ein UIWindow mit UILabel und UIButton.",
+  "expected_output": "Fenster mit Label+Button sichtbar",
+  "evaluation_criteria": "PASS wenn UIWindow/UILabel/UIButton korrekt verschachtelt sind."
+}

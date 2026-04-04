@@ -1,0 +1,22 @@
+{
+  "Block": [
+    {
+      "Call": [
+        "registry_write_file",
+        [
+          {
+            "StringLiteral": "benchmark/tasks/test_out.txt"
+          },
+          {
+            "StringLiteral": "Hello KnotenCore"
+          }
+        ]
+      ]
+    },
+    {
+      "Print": {
+        "StringLiteral": "Written"
+      }
+    }
+  ]
+}

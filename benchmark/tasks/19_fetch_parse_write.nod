@@ -1,0 +1,70 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "body",
+        {
+          "Call": [
+            "net_fetch",
+            [
+              {
+                "StringLiteral": "https://jsonplaceholder.typicode.com/posts/1"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "parsed",
+        {
+          "Call": [
+            "fs_parse_json",
+            [
+              {
+                "Identifier": "body"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "title",
+        {
+          "Call": [
+            "obj_get",
+            [
+              {
+                "Identifier": "parsed"
+              },
+              {
+                "StringLiteral": "title"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Call": [
+        "registry_write_file",
+        [
+          {
+            "StringLiteral": "benchmark/tasks/write_result.txt"
+          },
+          {
+            "Identifier": "title"
+          }
+        ]
+      ]
+    },
+    {
+      "Print": {
+        "Identifier": "title"
+      }
+    }
+  ]
+}

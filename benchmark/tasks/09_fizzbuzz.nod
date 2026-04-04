@@ -1,0 +1,179 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "i",
+        {
+          "IntLiteral": 1
+        }
+      ]
+    },
+    {
+      "While": [
+        {
+          "Lte": [
+            {
+              "Identifier": "i"
+            },
+            {
+              "IntLiteral": 20
+            }
+          ]
+        },
+        {
+          "Block": [
+            {
+              "Assign": [
+                "m3",
+                {
+                  "Sub": [
+                    {
+                      "Identifier": "i"
+                    },
+                    {
+                      "Mul": [
+                        {
+                          "Div": [
+                            {
+                              "Identifier": "i"
+                            },
+                            {
+                              "IntLiteral": 3
+                            }
+                          ]
+                        },
+                        {
+                          "IntLiteral": 3
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "m5",
+                {
+                  "Sub": [
+                    {
+                      "Identifier": "i"
+                    },
+                    {
+                      "Mul": [
+                        {
+                          "Div": [
+                            {
+                              "Identifier": "i"
+                            },
+                            {
+                              "IntLiteral": 5
+                            }
+                          ]
+                        },
+                        {
+                          "IntLiteral": 5
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "If": [
+                {
+                  "And": [
+                    {
+                      "Eq": [
+                        {
+                          "Identifier": "m3"
+                        },
+                        {
+                          "IntLiteral": 0
+                        }
+                      ]
+                    },
+                    {
+                      "Eq": [
+                        {
+                          "Identifier": "m5"
+                        },
+                        {
+                          "IntLiteral": 0
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Print": {
+                    "StringLiteral": "FizzBuzz"
+                  }
+                },
+                {
+                  "If": [
+                    {
+                      "Eq": [
+                        {
+                          "Identifier": "m3"
+                        },
+                        {
+                          "IntLiteral": 0
+                        }
+                      ]
+                    },
+                    {
+                      "Print": {
+                        "StringLiteral": "Fizz"
+                      }
+                    },
+                    {
+                      "If": [
+                        {
+                          "Eq": [
+                            {
+                              "Identifier": "m5"
+                            },
+                            {
+                              "IntLiteral": 0
+                            }
+                          ]
+                        },
+                        {
+                          "Print": {
+                            "StringLiteral": "Buzz"
+                          }
+                        },
+                        {
+                          "Print": {
+                            "Identifier": "i"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Assign": [
+                "i",
+                {
+                  "Add": [
+                    {
+                      "Identifier": "i"
+                    },
+                    {
+                      "IntLiteral": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "items",
+        {
+          "ArrayCreate": [
+            {
+              "StringLiteral": "CPU: 45%"
+            },
+            {
+              "StringLiteral": "RAM: 12 GB"
+            },
+            {
+              "StringLiteral": "Net: Online"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "UIWindow": [
+        "dash17",
+        {
+          "StringLiteral": "Dashboard"
+        },
+        {
+          "Block": [
+            {
+              "UIVBox": [
+                {
+                  "UILabel": {
+                    "ArrayGet": [
+                      {
+                        "Identifier": "items"
+                      },
+                      {
+                        "IntLiteral": 0
+                      }
+                    ]
+                  }
+                },
+                {
+                  "UILabel": {
+                    "ArrayGet": [
+                      {
+                        "Identifier": "items"
+                      },
+                      {
+                        "IntLiteral": 1
+                      }
+                    ]
+                  }
+                },
+                {
+                  "UILabel": {
+                    "ArrayGet": [
+                      {
+                        "Identifier": "items"
+                      },
+                      {
+                        "IntLiteral": 2
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "Block": [
+    {
+      "Print": {
+        "Call": [
+          "read_file",
+          [
+            {
+              "StringLiteral": "benchmark/fixtures/test_input.txt"
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}
