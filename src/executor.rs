@@ -33,6 +33,7 @@ pub enum RelType {
     Handle(NativeHandle),
     FnDef(String, Vec<String>, Box<Node>),
     Call(String, Vec<Node>),
+    ASTNode(Box<Node>),
     Void,
 }
 
@@ -47,6 +48,7 @@ impl PartialEq for RelType {
             (RelType::Object(a),RelType::Object(b))=> a == b,
             // Dict equality: same Arc pointer means same object
             (RelType::Dict(a),  RelType::Dict(b))  => std::sync::Arc::ptr_eq(a, b),
+            (RelType::ASTNode(a), RelType::ASTNode(b)) => a == b,
             (RelType::Void,     RelType::Void)      => true,
             _ => false,
         }
@@ -81,6 +83,7 @@ impl std::fmt::Display for RelType {
             RelType::Handle(h) => write!(f, "<NativeHandle:{}>", h.0),
             RelType::FnDef(_, _, _) => write!(f, "<Function>"),
             RelType::Call(_, _) => write!(f, "<Function Call>"),
+            RelType::ASTNode(_) => write!(f, "<AST Node>"),
             RelType::Void => write!(f, ""),
         }
     }

@@ -357,6 +357,112 @@ impl Compiler {
                 }
                 success
             }
+            Node::ArrayCreate(items) => {
+                for item in items {
+                    if !self.compile_node(item) { return false; }
+                }
+                self.instructions.push(OpCode::ArrayCreate(items.len()));
+                true
+            }
+            Node::ArrayGet(arr_node, idx_node) => {
+                if !self.compile_node(arr_node) { return false; }
+                if !self.compile_node(idx_node) { return false; }
+                self.instructions.push(OpCode::ArrayGet);
+                true
+            }
+            Node::ArraySet(arr_node, idx_node, val_node) => {
+                if !self.compile_node(arr_node) { return false; }
+                if !self.compile_node(idx_node) { return false; }
+                if !self.compile_node(val_node) { return false; }
+                self.instructions.push(OpCode::ArraySet);
+                true
+            }
+            Node::ArrayPush(arr_node, val_node) => {
+                if !self.compile_node(arr_node) { return false; }
+                if !self.compile_node(val_node) { return false; }
+                self.instructions.push(OpCode::ArrayPush);
+                true
+            }
+            Node::ArrayLen(arr_node) => {
+                if !self.compile_node(arr_node) { return false; }
+                self.instructions.push(OpCode::ArrayLen);
+                true
+            }
+            Node::Concat(left, right) => {
+                if !self.compile_node(left) { return false; }
+                if !self.compile_node(right) { return false; }
+                self.instructions.push(OpCode::Concat);
+                true
+            }
+            Node::ToString(expr) => {
+                if !self.compile_node(expr) { return false; }
+                self.instructions.push(OpCode::ToString);
+                true
+            }
+            Node::FileRead(path_expr) => {
+                if !self.compile_node(path_expr) { return false; }
+                self.instructions.push(OpCode::ReadFile);
+                true
+            }
+            Node::FileWrite(path_expr, data_expr) => {
+                if !self.compile_node(path_expr) { return false; }
+                if !self.compile_node(data_expr) { return false; }
+                self.instructions.push(OpCode::WriteFile);
+                true
+            }
+            Node::ExternCall { module, function, args } => {
+                for arg in args {
+                    if !self.compile_node(arg) { return false; }
+                }
+                let mod_idx = self.add_constant(RelType::Str(module.clone()));
+                let fn_idx = self.add_constant(RelType::Str(function.clone()));
+                self.instructions.push(OpCode::NativeExternCall { module_idx: mod_idx, func_idx: fn_idx, arg_count: args.len() });
+                true
+            }
+            Node::UILabel(text_node) => {
+                if !self.compile_node(text_node) { return false; }
+                self.instructions.push(OpCode::UILabel);
+                true
+            }
+            Node::UIButton(text_node) => {
+                if !self.compile_node(text_node) { return false; }
+                self.instructions.push(OpCode::UIButton);
+                true
+            }
+            Node::UIHorizontal(body) => {
+                let count = if let Node::Block(children) = &**body {
+                    for child in children { if !self.compile_node(child) { return false; } }
+                    children.len()
+                } else {
+                    if !self.compile_node(body) { return false; }
+                    1
+                };
+                self.instructions.push(OpCode::UIHBox(count));
+                true
+            }
+            Node::UIHBox(children) => {
+                for child in children { if !self.compile_node(child) { return false; } }
+                self.instructions.push(OpCode::UIHBox(children.len()));
+                true
+            }
+            Node::UIVBox(children) => {
+                for child in children { if !self.compile_node(child) { return false; } }
+                self.instructions.push(OpCode::UIVBox(children.len()));
+                true
+            }
+            Node::UIWindow(id_str, title_node, body_node) => {
+                if !self.compile_node(title_node) { return false; }
+                let count = if let Node::Block(children) = &**body_node {
+                    for child in children { if !self.compile_node(child) { return false; } }
+                    children.len()
+                } else {
+                    if !self.compile_node(body_node) { return false; }
+                    1
+                };
+                let id_idx = self.add_constant(RelType::Str(id_str.clone()));
+                self.instructions.push(OpCode::UIWindow(id_idx, count));
+                true
+            }
             _ => false,
         }
     }

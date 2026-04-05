@@ -35,18 +35,18 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 
 ---
 
-## 🎯 AI-Readiness Benchmark (Sprint 126) — AG Baseline: 17/20
+## 🎯 AI-Readiness Benchmark (Sprint 126/127) — AG Baseline: 20/20
 
 KnotenCore is the **first DSL project with a public, reproducible AI-Readiness Score** —
 measuring how reliably external LLMs generate correct `.nod` programs without human correction.
 
 | Score | Threshold |
 |-------|-----------|
-| **AG (Antigravity)** | **85% — 17/20 ✅**  Productive AI-Ready |
+| **AG (Antigravity)** | **100% — 20/20 ✅**  Benchmark Leader |
 | < 60% | Not AI-Ready |
 | 60–79% | Basic AI-Ready |
-| 80–89% | Productive AI-Ready ← Target |
-| 90%+ | Benchmark Leader |
+| 80–89% | Productive AI-Ready |
+| 90%+ | Benchmark Leader ← Target Reached |
 
 The AG agent used **only `llm.md` + `node_types.json` + `native_functions.json`** as context
 (no Rust source). See [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md) for the full

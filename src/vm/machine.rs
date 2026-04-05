@@ -291,6 +291,169 @@ impl VM {
                         self.stack.push(RelType::Void);
                     }
                 }
+                OpCode::ArrayCreate(count) => {
+                    let mut elements = Vec::with_capacity(*count);
+                    for _ in 0..*count {
+                        elements.push(self.stack.pop().unwrap_or(RelType::Void));
+                    }
+                    elements.reverse();
+                    self.stack.push(RelType::Array(elements));
+                }
+                OpCode::ArrayGet => {
+                    let idx_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let arr_val = self.stack.pop().unwrap_or(RelType::Void);
+                    if let (RelType::Array(arr), RelType::Int(idx)) = (arr_val, idx_val) {
+                        if idx >= 0 && (idx as usize) < arr.len() {
+                            self.stack.push(arr[idx as usize].clone());
+                        } else {
+                            return Err(format!("ArrayGet index out of bounds: {}", idx));
+                        }
+                    } else {
+                        return Err("ArrayGet expects Array and Int".into());
+                    }
+                }
+                OpCode::ArraySet => {
+                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    let idx_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let arr_val = self.stack.pop().unwrap_or(RelType::Void);
+                    if let (RelType::Array(mut arr), RelType::Int(idx)) = (arr_val, idx_val) {
+                        if idx >= 0 && (idx as usize) < arr.len() {
+                            arr[idx as usize] = val;
+                            self.stack.push(RelType::Array(arr));
+                        } else {
+                            return Err(format!("ArraySet index out of bounds: {}", idx));
+                        }
+                    } else {
+                        return Err("ArraySet expects Array and Int".into());
+                    }
+                }
+                OpCode::ArrayPush => {
+                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    let arr_val = self.stack.pop().unwrap_or(RelType::Void);
+                    if let RelType::Array(mut arr) = arr_val {
+                        arr.push(val);
+                        self.stack.push(RelType::Array(arr));
+                    } else {
+                        return Err("ArrayPush expects Array".into());
+                    }
+                }
+                OpCode::ArrayLen => {
+                    let arr_val = self.stack.pop().unwrap_or(RelType::Void);
+                    if let RelType::Array(arr) = arr_val {
+                        self.stack.push(RelType::Int(arr.len() as i64));
+                    } else {
+                        return Err("ArrayLen expects Array".into());
+                    }
+                }
+                OpCode::Concat => {
+                    let r_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let l_val = self.stack.pop().unwrap_or(RelType::Void);
+                    match (l_val, r_val) {
+                        (RelType::Str(a), RelType::Str(b)) => self.stack.push(RelType::Str(a + &b)),
+                        (RelType::Array(mut a), RelType::Array(b)) => {
+                            a.extend(b);
+                            self.stack.push(RelType::Array(a));
+                        }
+                        _ => return Err("Concat expects Strings or Arrays".into()),
+                    }
+                }
+                OpCode::ToString => {
+                    let val = self.stack.pop().unwrap_or(RelType::Void);
+                    self.stack.push(RelType::Str(val.to_string()));
+                }
+                OpCode::WriteFile => {
+                    let data_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let path_val = self.stack.pop().unwrap_or(RelType::Void);
+                    
+                    if !permissions.allow_fs_write {
+                        return Err("Permission Denied: allow_fs_write is false (VM: WriteFile)".into());
+                    }
+                    
+                    if let (RelType::Str(path), RelType::Str(data)) = (path_val, data_val) {
+                        match crate::executor::ExecutionEngine::validate_fs_path_write(&path) {
+                            Ok(safe_path) => {
+                                if let Err(e) = std::fs::write(&safe_path, data) {
+                                    return Err(format!("File write error: {}", e));
+                                }
+                            }
+                            Err(e) => return Err(format!("Security: {}", e)),
+                        }
+                    } else {
+                        return Err("WriteFile expects string path and data".into());
+                    }
+                    self.stack.push(RelType::Void);
+                }
+                OpCode::NativeExternCall { module_idx, func_idx, arg_count } => {
+                    let module = match constants.get(*module_idx) {
+                        Some(RelType::Str(s)) => s.clone(),
+                        _ => "global".to_string(),
+                    };
+                    let func = match constants.get(*func_idx) {
+                        Some(RelType::Str(s)) => s.clone(),
+                        _ => "unknown".to_string(),
+                    };
+
+                    let mut args = Vec::with_capacity(*arg_count);
+                    for _ in 0..*arg_count {
+                        args.push(self.stack.pop().unwrap_or(RelType::Void));
+                    }
+                    args.reverse();
+
+                    if let Some(b) = bridge {
+                        match b.handle(&module, &func, &args, permissions) {
+                            Some(crate::executor::ExecResult::Value(v)) => self.stack.push(v),
+                            Some(crate::executor::ExecResult::Fault { msg, .. }) => return Err(format!("FFI Fault: {}", msg)),
+                            None => return Err(format!("FFI Function '{}.{}' not handled by active BridgeModule", module, func)),
+                            _ => self.stack.push(RelType::Void),
+                        }
+                    } else {
+                        self.stack.push(RelType::Void);
+                    }
+                }
+                OpCode::UILabel => {
+                    let text_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let text = match text_val { RelType::Str(s) => s, v => v.to_string() };
+                    self.stack.push(RelType::ASTNode(Box::new(crate::ast::Node::UILabel(Box::new(crate::ast::Node::StringLiteral(text))))));
+                }
+                OpCode::UIButton => {
+                    let text_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let text = match text_val { RelType::Str(s) => s, v => v.to_string() };
+                    self.stack.push(RelType::ASTNode(Box::new(crate::ast::Node::UIButton(Box::new(crate::ast::Node::StringLiteral(text))))));
+                }
+                OpCode::UIHBox(count) => {
+                    let mut children = Vec::with_capacity(*count);
+                    for _ in 0..*count {
+                        if let RelType::ASTNode(node) = self.stack.pop().unwrap_or(RelType::Void) {
+                            children.push(*node);
+                        }
+                    }
+                    children.reverse();
+                    self.stack.push(RelType::ASTNode(Box::new(crate::ast::Node::UIHBox(children))));
+                }
+                OpCode::UIVBox(count) => {
+                    let mut children = Vec::with_capacity(*count);
+                    for _ in 0..*count {
+                        if let RelType::ASTNode(node) = self.stack.pop().unwrap_or(RelType::Void) {
+                            children.push(*node);
+                        }
+                    }
+                    children.reverse();
+                    self.stack.push(RelType::ASTNode(Box::new(crate::ast::Node::UIVBox(children))));
+                }
+                OpCode::UIWindow(_id_idx, count) => {
+                    let mut children = Vec::with_capacity(*count);
+                    for _ in 0..*count {
+                        if let RelType::ASTNode(node) = self.stack.pop().unwrap_or(RelType::Void) {
+                            children.push(*node);
+                        }
+                    }
+                    children.reverse();
+                    
+                    let _title_val = self.stack.pop().unwrap_or(RelType::Void);
+                    
+                    crate::natives::registry::send_ui_nodes(children);
+                    self.stack.push(RelType::Void);
+                }
                 OpCode::ExternCall { name_idx, arg_count } => {
                     let name = match constants.get(*name_idx) {
                         Some(RelType::Str(s)) => s.clone(),
