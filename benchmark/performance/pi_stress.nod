@@ -1,0 +1,18 @@
+{
+  "Block": [
+    { "Assign": ["pi", {"FloatLiteral": 0.0}] },
+    { "Assign": ["i", {"FloatLiteral": 0.0}] },
+    { "Assign": ["sign", {"FloatLiteral": 1.0}] },
+    { "While": [
+        { "Lte": [{"Identifier": "i"}, {"FloatLiteral": 1000000.0}] },
+        { "Block": [
+            { "Assign": ["denom", {"Add": [{"Mul": [{"FloatLiteral": 2.0}, {"Identifier": "i"}]}, {"FloatLiteral": 1.0}]}] },
+            { "Assign": ["term", {"Div": [{"Identifier": "sign"}, {"Identifier": "denom"}]}] },
+            { "Assign": ["pi", {"Add": [{"Identifier": "pi"}, {"Identifier": "term"}]}] },
+            { "Assign": ["sign", {"Mul": [{"Identifier": "sign"}, {"FloatLiteral": -1.0}]}] },
+            { "Assign": ["i", {"Add": [{"Identifier": "i"}, {"FloatLiteral": 1.0}]}] }
+        ]}
+    ]},
+    { "Return": {"Mul": [{"Identifier": "pi"}, {"FloatLiteral": 4.0}]} }
+  ]
+}

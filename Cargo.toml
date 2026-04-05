@@ -10,6 +10,10 @@ name = "run_knc"
 path = "src/bin/run_knc.rs"
 
 [[bin]]
+name = "bench_knc"
+path = "src/bin/bench_knc.rs"
+
+[[bin]]
 name = "knoten_build"
 path = "src/bin/knoten_build.rs"
 

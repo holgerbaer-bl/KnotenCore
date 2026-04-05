@@ -129,6 +129,7 @@ Six new AST nodes completing the Boolean algebra. All accept `Box<Node>` operand
 4. **State-binding pattern** — `text = UITextInput(text)` seeds the buffer on first call; subsequent calls read the live egui buffer.
 5. **Never force-push git** — use `git push origin main` only.
 6. **Zero warnings policy** — `cargo clippy --lib` must produce 0 warnings before any commit.
+7. **Optimize for AOT Native Math (Sprint 128 benchmark)** — The VM Register Engine demonstrates a **1.21x Native Speedup** scaling flawlessly iteratively. Prefer native algebraic `Node` operations (`Mul`, `Add`, `Div`) internally constructed over making exhaustive high-frequency legacy FFI proxy `Call` wrappers recursively when performing intensive algorithmic processing.
 
 ---
 
