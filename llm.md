@@ -46,6 +46,7 @@ KnotenCore is a **hybrid JIT/AOT engine** written in Rust:
 - **Pure math / computation loops** → compiled to flat **Opcodes** and run by the **Register VM** (`src/vm/`)
 - **egui UI** → rendered per-frame over WGPU; UI nodes emit `RenderCommand` messages across a channel to `src/window.rs`
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
+- **GitHub Linguist** → For repository context and proper Github rendering, `.nod` targets `JSON` and `.knoten` targets `JavaScript`.
 
 ---
 

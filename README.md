@@ -265,9 +265,9 @@ This enables AI agents to pinpoint failures instantly and self-correct without m
 
 ## The Neural DSL
 
-KnotenCore uses an ultra-dense Neural Syntax (`.knoten`) — a closure-based DSL designed for maximum structural compression and token efficiency:
+KnotenCore uses an ultra-dense Neural Syntax (`.knoten`) — a closure-based DSL designed for maximum structural compression and token efficiency. Both `.knoten` (JavaScript logic) and `.nod` (JSON definitions) natively support syntax highlighting across GitHub out of the box via Linguist.
 
-```rust
+```javascript
 // Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 // An elegant snippet in Neural DSL
 win = UIWindow("main_nav", "Control Panel") -> {

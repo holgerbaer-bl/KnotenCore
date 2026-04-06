@@ -2,6 +2,10 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.29] - Sprint 131: GitHub Linguist Configuration (The Syntax Fix) (2026-04-06)
+Configured GitHub Linguist to correctly parse and syntax-highlight custom DSL configurations.
+- **`.gitattributes`**: Explicitly forced `.nod` files to render as JSON and `.knoten` files as JavaScript natively within the GitHub interface, ensuring the source graphs report accurate engine language statistics.
+
 ## [v1.0.28] - Sprint 129: The Tactile World (3D Raycasting & Interactivity) (2026-04-06)
 Bridges the gap between the 2D window space and 3D world space by implementing Screen-to-World unprojection and AABB geometric intersection testing for the JVM/AOT.
 - **`src/natives/registry.rs`**: Expanded `InputState` to natively track `mouse_x`, `mouse_y`, optical left click downs, and continuously mirrored 3D `view_projection` matrix pipelines directly off the window loop. 
