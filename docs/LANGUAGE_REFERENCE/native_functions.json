@@ -728,6 +728,53 @@
           "args": [ { "StringLiteral": "Initial text..." } ]
         }
       }
+    },
+    {
+      "name": "registry_get_mouse_ray",
+      "module": "registry",
+      "description": "Calculates the Screen-to-World unprojected 3D ray of the mouse cursor relative to the window's view-projection matrix.",
+      "parameters": [
+        { "name": "window_id", "type": "Handle", "required": true }
+      ],
+      "returns": "Array<Float>",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["ray", {
+          "ExternCall": { "module": "registry", "function": "registry_get_mouse_ray", "args": [{"Variable": "win"}] }
+        }]
+      }
+    },
+    {
+      "name": "registry_is_mouse_down",
+      "module": "registry",
+      "description": "Returns true if the user's primary mouse button (left click) is currently pressed.",
+      "parameters": [],
+      "returns": "Bool",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["pressed", {
+          "ExternCall": { "module": "registry", "function": "registry_is_mouse_down", "args": [] }
+        }]
+      }
+    },
+    {
+      "name": "registry_raycast_aabb",
+      "module": "registry",
+      "description": "Performs geometric spatial intersection against all registered global AABBs. Returns the index of the first struck AABB, or -1 if no collision occurs.",
+      "parameters": [
+        { "name": "ray_origin", "type": "Array<Float>", "required": true },
+        { "name": "ray_dir", "type": "Array<Float>", "required": true }
+      ],
+      "returns": "Int",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["hit_id", {
+          "ExternCall": { "module": "registry", "function": "registry_raycast_aabb", "args": [{"Variable": "origin"}, {"Variable": "dir"}] }
+        }]
+      }
     }
   ]
 }

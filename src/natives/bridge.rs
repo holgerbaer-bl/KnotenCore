@@ -677,6 +677,20 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_is_key_pressed".into()
                     })
                 }
+                "registry_is_mouse_down" => {
+                    let pressed = crate::natives::registry::registry_is_mouse_down();
+                    Some(ExecResult::Value(RelType::Bool(pressed)))
+                }
+                "registry_get_mouse_ray" => {
+                    if args.len() == 1 && let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0] {
+                        let ray = crate::natives::registry::registry_get_mouse_ray(*win);
+                        return Some(ExecResult::Value(RelType::Array(ray)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_get_mouse_ray expects 1 Handle arg".to_string(),
+                        node: "Native::Bridge::registry_get_mouse_ray".into()
+                    })
+                }
                 "registry_texture_load" => {
                     if !permissions.allow_fs_read {
                         return Some(ExecResult::Fault { 

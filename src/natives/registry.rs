@@ -18,6 +18,12 @@ pub struct InputState {
     pub keys: HashSet<KeyCode>,
     pub mouse_dx: f32,
     pub mouse_dy: f32,
+    pub mouse_x: f32,
+    pub mouse_y: f32,
+    pub mouse_left_down: bool,
+    pub view_proj: [[f32; 4]; 4],
+    pub window_width: f32,
+    pub window_height: f32,
     pub last_char: u32,
 }
 
@@ -27,6 +33,7 @@ pub enum RenderCommand {
         title: String,
         width: u32,
         height: u32,
+        input: Arc<Mutex<InputState>>,
     },
     DrawSphere {
         window_id: usize,
@@ -503,19 +510,31 @@ pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
     let w = width as u32;
     let h = height as u32;
 
+    let input = Arc::new(Mutex::new(InputState {
+        keys: HashSet::new(),
+        mouse_dx: 0.0,
+        mouse_dy: 0.0,
+        mouse_x: 0.0,
+        mouse_y: 0.0,
+        mouse_left_down: false,
+        view_proj: [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        window_width: w as f32,
+        window_height: h as f32,
+        last_char: 0,
+    }));
+
     send_render_command(RenderCommand::CreateWindow {
         id,
         title,
         width: w,
         height: h,
+        input: input.clone(),
     });
-
-    let input = Arc::new(Mutex::new(InputState {
-        keys: HashSet::new(),
-        mouse_dx: 0.0,
-        mouse_dy: 0.0,
-        last_char: 0,
-    }));
 
     with_registry(|registry| {
         registry.insert(
@@ -1149,6 +1168,64 @@ pub fn registry_get_mouse_delta_y() -> f32 {
         }
     });
     acc
+}
+
+pub fn registry_is_mouse_down() -> bool {
+    let mut pressed = false;
+    with_registry(|registry| {
+        for entry in registry.values() {
+            if let NativeHandle::Window(proxy) = &entry.handle {
+                let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
+                if input.mouse_left_down {
+                    pressed = true;
+                }
+            }
+        }
+    });
+    pressed
+}
+
+pub fn registry_get_mouse_ray(window_handle: i64) -> Vec<crate::executor::RelType> {
+    use glam::{Mat4, Vec3};
+    if window_handle < 0 { return vec![]; }
+    let id = window_handle as usize;
+    let mut ray_origin = Vec3::ZERO;
+    let mut ray_dir = Vec3::Z; // Default into screen
+    
+    with_registry(|registry| {
+        if let Some(entry) = registry.get(&id)
+            && let NativeHandle::Window(proxy) = &entry.handle {
+                let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
+                let mx = input.mouse_x;
+                let my = input.mouse_y;
+                let w = input.window_width.max(1.0);
+                let h = input.window_height.max(1.0);
+                let vp = Mat4::from_cols_array_2d(&input.view_proj);
+                
+                // Screen to NDC (Normalized Device Coordinates [-1, 1])
+                // Y goes down in window, but up in NDC
+                let ndc_x = (2.0 * mx) / w - 1.0;
+                let ndc_y = 1.0 - (2.0 * my) / h;
+                
+                let inv_vp = vp.inverse();
+                
+                // Project points at near and far plane
+                let near_pt = inv_vp.project_point3(Vec3::new(ndc_x, ndc_y, 0.0));
+                let far_pt = inv_vp.project_point3(Vec3::new(ndc_x, ndc_y, 1.0));
+                
+                ray_origin = near_pt;
+                ray_dir = (far_pt - near_pt).normalize();
+            }
+    });
+    
+    vec![
+        crate::executor::RelType::Float(ray_origin.x as f64),
+        crate::executor::RelType::Float(ray_origin.y as f64),
+        crate::executor::RelType::Float(ray_origin.z as f64),
+        crate::executor::RelType::Float(ray_dir.x as f64),
+        crate::executor::RelType::Float(ray_dir.y as f64),
+        crate::executor::RelType::Float(ray_dir.z as f64),
+    ]
 }
 
 pub fn registry_get_last_char() -> i64 {

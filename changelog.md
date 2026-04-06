@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.28] - Sprint 129: The Tactile World (3D Raycasting & Interactivity) (2026-04-06)
+Bridges the gap between the 2D window space and 3D world space by implementing Screen-to-World unprojection and AABB geometric intersection testing for the JVM/AOT.
+- **`src/natives/registry.rs`**: Expanded `InputState` to natively track `mouse_x`, `mouse_y`, optical left click downs, and continuously mirrored 3D `view_projection` matrix pipelines directly off the window loop. 
+- **Inverse Matrix Mathematics**: Leveraged `glam` to perform mathematically pure linear unprojection mapping 2D screen coordinates into 3D normalized device coordinates (NDC), allowing extraction of precise depth-origin ray vectors.
+- **`src/window.rs`**: Wired up real-time `CursorMoved` and `MouseInput` polling within the native `winit` event loop dynamically feeding structural context directly back into the executor tree.
+- **Ray-AABB Intersection (`src/executor.rs` & `src/math.rs`)**: Established `registry_raycast_aabb` hook inside the `ExternCall` fallback mapping into the native optimized AABB engine for lightning-fast volume intersections.
+- **Demo Script**: Created `examples/raycast_demo.nod` testing the pipeline from un-projection coordinates against the sandbox physics layer visually.
+
 ## [v1.0.27] - Sprint 128: The Crucible (AOT vs JIT Performance Benchmark) (2026-04-05)
 Introduces deterministic performance benchmarking proving the superiority of the AOT Bytecode Register VM against the legacy AST JIT Evaluator. Evaluated using a computationally aggressive 1,000,000-iteration Pi calculations Leibniz formula mathematically constrained pipeline. 
 - **`bench_knc.rs`**: Built and integrated the `bench_knc` standalone native binary directly executing identical AST configurations through parallel evaluator engines to calculate execution latency disparities transparently.

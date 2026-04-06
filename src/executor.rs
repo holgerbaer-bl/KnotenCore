@@ -591,6 +591,44 @@ impl ExecutionEngine {
                     }
                 }
 
+                if module == "registry" && function == "registry_raycast_aabb" {
+                    if v_args.len() == 2 
+                        && let RelType::Array(origin) = &v_args[0]
+                        && let RelType::Array(dir) = &v_args[1] 
+                        && origin.len() >= 3 && dir.len() >= 3
+                    {
+                            let get_f = |val: &RelType| -> f32 {
+                                match val {
+                                    RelType::Float(f) => *f as f32,
+                                    RelType::Int(i) => *i as f32,
+                                    _ => 0.0,
+                                }
+                            };
+                            let ox = get_f(&origin[0]);
+                            let oy = get_f(&origin[1]);
+                            let oz = get_f(&origin[2]);
+                            
+                            let dx = get_f(&dir[0]);
+                            let dy = get_f(&dir[1]);
+                            let dz = get_f(&dir[2]);
+                            
+                            let ray_origin = glam::Vec3::new(ox, oy, oz);
+                            let ray_dir = glam::Vec3::new(dx, dy, dz);
+
+                            let mut hit_idx: i64 = -1;
+                            let mut t_min = f32::MAX;
+                            for (idx, aabb) in self.world_aabbs.iter().enumerate() {
+                                if let Some(t) = aabb.intersect_ray(ray_origin, ray_dir) 
+                                    && t < t_min {
+                                        t_min = t;
+                                        hit_idx = idx as i64;
+                                }
+                            }
+                            return ExecResult::Value(RelType::Int(hit_idx));
+                    }
+                    return ExecResult::Fault { msg: "[FFI] registry_raycast_aabb expects (Array, Array) of size >= 3".to_string(), node: "Node::ExternCall".into() };
+                }
+
                 if let Some(res) = self.bridge.handle(module, function, &v_args, &self.permissions) { return res; }
                 ExecResult::Fault { msg: format!("Extern function '{}.{}' not found", module, function), node: "Node::ExternCall".into() }
             }

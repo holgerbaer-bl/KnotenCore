@@ -1,6 +1,6 @@
-use crate::natives::registry::{RenderCommand, RegistryWindowState, InputState, CachedMesh};
+use crate::natives::registry::{RenderCommand, RegistryWindowState, CachedMesh};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
@@ -27,7 +27,7 @@ impl KnotenApp {
 
     fn handle_command(&mut self, event_loop: &ActiveEventLoop, cmd: RenderCommand) {
         match cmd {
-            RenderCommand::CreateWindow { id, title, width, height } => {
+            RenderCommand::CreateWindow { id, title, width, height, input } => {
                 let window_attributes = WinitWindow::default_attributes()
                     .with_title(title)
                     .with_inner_size(winit::dpi::PhysicalSize::new(width, height));
@@ -263,12 +263,7 @@ impl KnotenApp {
                     ],
                 });
 
-                let input = Arc::new(Mutex::new(InputState {
-                    keys: std::collections::HashSet::new(),
-                    mouse_dx: 0.0,
-                    mouse_dy: 0.0,
-                    last_char: 0,
-                }));
+                // We use the input directly provided by the registry instead of making a new one
 
                 // Initialize Egui
                 let egui_ctx = egui::Context::default();
@@ -370,6 +365,8 @@ impl KnotenApp {
                             0,
                             bytemuck::cast_slice(view_proj.as_flattened()),
                         );
+                        let mut input = state.input.lock().unwrap();
+                        input.view_proj = view_proj;
                     }
                 } else if let Some(state) = self.windows.get_mut(&window_id) {
                     state.queue.write_buffer(
@@ -377,6 +374,8 @@ impl KnotenApp {
                         0,
                         bytemuck::cast_slice(view_proj.as_flattened()),
                     );
+                    let mut input = state.input.lock().unwrap();
+                    input.view_proj = view_proj;
                 }
             }
             draw_cmd => {
@@ -459,10 +458,24 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     }
                 }
             }
+            WindowEvent::CursorMoved { position, .. } => {
+                let mut input = state.input.lock().unwrap();
+                input.mouse_x = position.x as f32;
+                input.mouse_y = position.y as f32;
+            }
+            WindowEvent::MouseInput { state: element_state, button: winit::event::MouseButton::Left, .. } => {
+                let mut input = state.input.lock().unwrap();
+                input.mouse_left_down = element_state == winit::event::ElementState::Pressed;
+            }
             WindowEvent::Resized(physical_size) => {
                 if physical_size.width > 0 && physical_size.height > 0 {
                     state.width  = physical_size.width;
                     state.height = physical_size.height;
+                    {
+                        let mut input = state.input.lock().unwrap();
+                        input.window_width = physical_size.width as f32;
+                        input.window_height = physical_size.height as f32;
+                    }
                     // Sprint 86 FIX: mutate stored config and reconfigure — no hardcoded format
                     state.config.width  = physical_size.width;
                     state.config.height = physical_size.height;
@@ -493,6 +506,10 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 // Write the 64-byte view_proj into the camera UBO at offset 0.
                 // If the script already called registry_set_camera_for_window, it overwrites this.
                 state.queue.write_buffer(&state.camera_buffer, 0, bytemuck::cast_slice(&view_proj.to_cols_array()));
+                {
+                    let mut input = state.input.lock().unwrap();
+                    input.view_proj = view_proj.to_cols_array_2d();
+                }
 
                 // Drain and process all pending RenderCommands for this window
                 let output = match state.surface.get_current_texture() {

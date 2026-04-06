@@ -254,10 +254,12 @@ All runtime failures produce a structured `ExecResult::Fault` containing:
 
 This enables AI agents to pinpoint failures instantly and self-correct without manual intervention.
 
-### 🌐 Unified Physics (AABB)
+### 🌐 Unified Physics & Interactivity (AABB)
 - **`AddWorldAABB`**: Scripts register arbitrary physical barriers as collision volumes.
 - **FPS Camera Integration**: Camera movement automatically respects all registered world-AABBs.
-- **Performance**: Optimized for hundreds of active collision volumes per frame.
+- **3D Raycasting (Screen-to-World)**: Agents can convert a 2D mouse click into a 3D ray (`registry_get_mouse_ray`) mathematically unprojecting coordinate positions through inverse matrices.
+- **Geometric Ray-Intersection**: Built-in support to perform instantaneous point-and-click collision resolutions across the native world volume via `registry_raycast_aabb`.
+- **Performance**: Optimized for hundreds of active collision volumes per frame dynamically scaling AABB tests natively.
 
 ---
 

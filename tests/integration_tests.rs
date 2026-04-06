@@ -54,6 +54,7 @@ macro_rules! knoten_test {
                         knoten_core::executor::RelType::FnDef(_, _, _) => "fn",
                         knoten_core::executor::RelType::Call(_, _) => "call",
                         knoten_core::executor::RelType::Handle(_) => "handle",
+                        knoten_core::executor::RelType::ASTNode(_) => "ASTNode",
                         knoten_core::executor::RelType::Void => "void",
                     };
                     if let knoten_core::executor::RelType::Str(s) = val {
