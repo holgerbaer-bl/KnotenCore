@@ -1,0 +1,100 @@
+{
+  "KnotenCore - Registry Window": {
+    "prefix": "kc-window",
+    "body": [
+      "registry.registry_create_window(${1:800}, ${2:600}, \"${3:KnotenCore App}\")",
+      "win = registry.registry_now()",
+      "",
+      "running = true",
+      "while running == true {",
+      "\tif registry.registry_window_update(win) == false {",
+      "\t\trunning = false",
+      "\t}",
+      "",
+      "\tregistry.registry_fill_color(win, ${4:20}, ${5:20}, ${6:30})",
+      "",
+      "\t$0",
+      "",
+      "\tui.ui_present()",
+      "\tsystem.sleep(16)",
+      "}"
+    ],
+    "description": "Create a WGPU window with a standard game loop"
+  },
+  "KnotenCore - AABB Raycast": {
+    "prefix": "kc-raycast",
+    "body": [
+      "ray = registry.registry_get_mouse_ray(${1:win})",
+      "origin = [ray[0], ray[1], ray[2]]",
+      "dir = [ray[3], ray[4], ray[5]]",
+      "hit_id = registry.registry_raycast_aabb(origin, dir)",
+      "if hit_id == ${2:0} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Perform a 3D AABB raycast from mouse position"
+  },
+  "KnotenCore - egui UIWindow": {
+    "prefix": "kc-uiwindow",
+    "body": [
+      "UIWindow(\"${1:main}\", \"${2:My Window}\", {",
+      "\tUILabel(\"${3:Hello, KnotenCore!}\")",
+      "\tif UIButton(\"${4:Click Me}\") {",
+      "\t\t$0",
+      "\t}",
+      "})"
+    ],
+    "description": "Create an egui UIWindow with a label and button"
+  },
+  "KnotenCore - Function Definition": {
+    "prefix": "kc-fn",
+    "body": [
+      "fn ${1:my_function}(${2:arg1}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Define a KnotenCore function"
+  },
+  "KnotenCore - Import Module": {
+    "prefix": "kc-import",
+    "body": [
+      "import \"${1:core/system.nod}\";"
+    ],
+    "description": "Import a KnotenCore standard library module"
+  },
+  "KnotenCore - While Loop": {
+    "prefix": "kc-while",
+    "body": [
+      "while ${1:condition} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "KnotenCore while loop"
+  },
+  "KnotenCore - If/Else": {
+    "prefix": "kc-if",
+    "body": [
+      "if ${1:condition} {",
+      "\t$2",
+      "} else {",
+      "\t$0",
+      "}"
+    ],
+    "description": "KnotenCore if/else block"
+  },
+  "KnotenCore - AABB World Object": {
+    "prefix": "kc-aabb",
+    "body": [
+      "sys.add_world_aabb([${1:-0.5}, ${2:-0.5}, ${3:-2.5}], [${4:0.5}, ${5:0.5}, ${6:-1.5}])"
+    ],
+    "description": "Register an AABB collision volume in the world"
+  },
+  "KnotenCore - Draw Rect + Text": {
+    "prefix": "kc-drawrect",
+    "body": [
+      "ui.ui_draw_rect(${1:100}, ${2:100}, ${3:200}, ${4:50}, ${5:0xFFFFFF})",
+      "ui.ui_draw_text(${1:100}, ${6:80}, \"${7:Label}\", 0xFFFFFF)"
+    ],
+    "description": "Draw a colored rectangle with a label above it"
+  }
+}

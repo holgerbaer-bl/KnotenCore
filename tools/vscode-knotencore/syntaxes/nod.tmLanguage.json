@@ -1,0 +1,121 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "KnotenCore AST (NOD)",
+  "scopeName": "source.nod",
+  "fileTypes": [".nod"],
+  "comment": "NOD files are JSON-ASTs. This grammar extends standard JSON highlighting with KnotenCore-specific opcode/node-name highlighting.",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#ast-node-keys" },
+    { "include": "#string-values" },
+    { "include": "#numeric-literals" },
+    { "include": "#booleans" },
+    { "include": "#null-literal" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "name": "comment.line.hash.nod",
+      "match": "#.*$"
+    },
+
+    "ast-node-keys": {
+      "comment": "Highlight JSON keys that are valid KnotenCore AST opcodes/node names",
+      "patterns": [
+        {
+          "name": "keyword.control.flow.nod",
+          "match": "\"(If|While|Block|Return|Import|Assign|AddWorldAABB|CheckCollision)\""
+        },
+        {
+          "name": "support.function.math.nod",
+          "match": "\"(Add|Sub|Mul|Div|Sin|Cos|Abs|Mat4Mul|Time|GlobalTime|BitAnd|BitShiftLeft|BitShiftRight)\""
+        },
+        {
+          "name": "keyword.operator.comparison.nod",
+          "match": "\"(Eq|Lt|Gt|Lte|Gte|NotEq|And|Or|Not)\""
+        },
+        {
+          "name": "support.class.data.nod",
+          "match": "\"(ArrayCreate|ArrayGet|ArraySet|ArrayPush|ArrayLen|MapCreate|MapGet|MapSet|MapHasKey|Index|Concat|ObjectLiteral|PropertyGet|PropertySet)\""
+        },
+        {
+          "name": "variable.language.literal.nod",
+          "match": "\"(IntLiteral|FloatLiteral|BoolLiteral|StringLiteral|Identifier)\""
+        },
+        {
+          "name": "entity.name.function.ffi.nod",
+          "match": "\"(ExternCall|NativeCall|EvalJSONNative|ToString|Call|FnDef)\""
+        },
+        {
+          "name": "entity.name.function.io.nod",
+          "match": "\"(FileRead|FileWrite|FSRead|FSWrite|Print|Store|Load|Fetch|Extract)\""
+        },
+        {
+          "name": "entity.name.tag.ui.nod",
+          "match": "\"(UIWindow|UILabel|UIButton|UITextInput|UISetStyle|UIHorizontal|UIHBox|UIVBox|UIFullscreen|UIGrid|UIScrollArea|UIFixed|UIFillParent|RenderCanvas|Transform2D|Sprite2D)\""
+        },
+        {
+          "name": "support.function.graphics.nod",
+          "match": "\"(InitWindow|InitGraphics|LoadShader|RenderMesh|PollEvents|DrawRect|Camera3D|Mesh3D|PointLight3D|Material3D|MeshInstance3D|FPSCamera|MouseGrab|RaycastSimple|WeaponViewModel)\""
+        },
+        {
+          "name": "support.function.graphics.nod",
+          "match": "\"(LoadMesh|LoadTexture|PlayAudioFile|RenderAsset|LoadFont|DrawText|GetLastKeypress)\""
+        },
+        {
+          "name": "support.function.audio.nod",
+          "match": "\"(InitAudio|PlayNote|StopNote|LoadSample|PlaySample)\""
+        },
+        {
+          "name": "support.function.voxel.nod",
+          "match": "\"(InitCamera|DrawVoxelGrid|LoadTextureAtlas|InitVoxelMap|SetVoxel|EnableInteraction|EnablePhysics)\""
+        },
+        {
+          "name": "entity.name.function.registry.nod",
+          "match": "\"registry_[a-z_]+\""
+        },
+        {
+          "name": "support.type.property-name.nod",
+          "match": "\"(module|function|args|method|url|callback|source|path|key|value|min|max|a_min|a_max|b_min|b_max|mesh_id|transform|color_offset|pbr|fov|enabled|mesh|tex|primitive|material|pos_x|pos_y|pos_z|target_x|target_y|target_z|r|g|b|a|metallic|roughness|texture_id|intensity|x|y|z|width|height|body|rotation|scale|columns|id|enabled)\""
+        }
+      ]
+    },
+
+    "string-values": {
+      "name": "string.quoted.double.nod",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.nod", "match": "\\\\." }
+      ]
+    },
+
+    "numeric-literals": {
+      "patterns": [
+        { "name": "constant.numeric.float.nod", "match": "-?[0-9]+\\.[0-9]+" },
+        { "name": "constant.numeric.integer.nod", "match": "-?[0-9]+" }
+      ]
+    },
+
+    "booleans": {
+      "name": "constant.language.boolean.nod",
+      "match": "\\b(true|false)\\b"
+    },
+
+    "null-literal": {
+      "name": "constant.language.null.nod",
+      "match": "\\bnull\\b"
+    },
+
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.definition.object.begin.nod", "match": "\\{" },
+        { "name": "punctuation.definition.object.end.nod", "match": "\\}" },
+        { "name": "punctuation.definition.array.begin.nod", "match": "\\[" },
+        { "name": "punctuation.definition.array.end.nod", "match": "\\]" },
+        { "name": "punctuation.separator.colon.nod", "match": ":" },
+        { "name": "punctuation.separator.comma.nod", "match": "," }
+      ]
+    }
+  }
+}

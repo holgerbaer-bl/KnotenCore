@@ -1,0 +1,266 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "KnotenCore DSL",
+  "scopeName": "source.knoten",
+  "fileTypes": [".knoten"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#hex-literals" },
+    { "include": "#numeric-literals" },
+    { "include": "#booleans" },
+    { "include": "#keywords-control" },
+    { "include": "#keywords-storage" },
+    { "include": "#ast-nodes" },
+    { "include": "#ui-nodes" },
+    { "include": "#registry-ffi" },
+    { "include": "#module-ffi" },
+    { "include": "#stdlib-namespaces" },
+    { "include": "#operators" },
+    { "include": "#arrays" },
+    { "include": "#assignments" },
+    { "include": "#function-calls" },
+    { "include": "#function-defs" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "name": "comment.line.hash.knoten",
+      "match": "#.*$"
+    },
+
+    "strings": {
+      "name": "string.quoted.double.knoten",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.knoten",
+          "match": "\\\\."
+        }
+      ]
+    },
+
+    "hex-literals": {
+      "name": "constant.numeric.hex.knoten",
+      "match": "\\b0x[0-9A-Fa-f]+\\b"
+    },
+
+    "numeric-literals": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.knoten",
+          "match": "\\b-?[0-9]+\\.[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.knoten",
+          "match": "\\b-?[0-9]+\\b"
+        }
+      ]
+    },
+
+    "booleans": {
+      "name": "constant.language.boolean.knoten",
+      "match": "\\b(true|false)\\b"
+    },
+
+    "keywords-control": {
+      "name": "keyword.control.knoten",
+      "match": "\\b(if|else|while|return|import|fn)\\b"
+    },
+
+    "keywords-storage": {
+      "name": "keyword.other.knoten",
+      "match": "\\b(let|mut)\\b"
+    },
+
+    "ast-nodes": {
+      "comment": "Core AST node names from src/ast.rs — control flow, math, memory, data ops",
+      "patterns": [
+        {
+          "name": "keyword.control.flow.knoten",
+          "match": "\\b(If|While|Block|Return|Import|Assign)\\b"
+        },
+        {
+          "name": "support.function.math.knoten",
+          "match": "\\b(Add|Sub|Mul|Div|Sin|Cos|Abs|Mat4Mul|Time|GlobalTime)\\b"
+        },
+        {
+          "name": "keyword.operator.comparison.knoten",
+          "match": "\\b(Eq|Lt|Gt|Lte|Gte|NotEq|And|Or|Not)\\b"
+        },
+        {
+          "name": "support.class.data.knoten",
+          "match": "\\b(ArrayCreate|ArrayGet|ArraySet|ArrayPush|ArrayLen|MapCreate|MapGet|MapSet|MapHasKey|Index|Concat)\\b"
+        },
+        {
+          "name": "support.class.data.knoten",
+          "match": "\\b(ObjectLiteral|PropertyGet|PropertySet)\\b"
+        },
+        {
+          "name": "support.function.bitwise.knoten",
+          "match": "\\b(BitAnd|BitShiftLeft|BitShiftRight)\\b"
+        },
+        {
+          "name": "entity.name.function.io.knoten",
+          "match": "\\b(FileRead|FileWrite|FSRead|FSWrite|Print|Store|Load)\\b"
+        },
+        {
+          "name": "entity.name.function.ffi.knoten",
+          "match": "\\b(ExternCall|NativeCall|EvalJSONNative|ToString|Call|FnDef)\\b"
+        },
+        {
+          "name": "support.function.graphics.knoten",
+          "match": "\\b(InitWindow|InitGraphics|LoadShader|RenderMesh|PollEvents|DrawRect)\\b"
+        },
+        {
+          "name": "support.function.3d.knoten",
+          "match": "\\b(Camera3D|Mesh3D|PointLight3D|Material3D|MeshInstance3D|FPSCamera|MouseGrab|RaycastSimple|WeaponViewModel)\\b"
+        },
+        {
+          "name": "support.function.graphics.knoten",
+          "match": "\\b(LoadMesh|LoadTexture|PlayAudioFile|RenderAsset|LoadFont|DrawText|GetLastKeypress)\\b"
+        },
+        {
+          "name": "support.function.audio.knoten",
+          "match": "\\b(InitAudio|PlayNote|StopNote|LoadSample|PlaySample)\\b"
+        },
+        {
+          "name": "support.function.voxel.knoten",
+          "match": "\\b(InitCamera|DrawVoxelGrid|LoadTextureAtlas|InitVoxelMap|SetVoxel|EnableInteraction|EnablePhysics)\\b"
+        },
+        {
+          "name": "support.function.physics.knoten",
+          "match": "\\b(AddWorldAABB|CheckCollision|Fetch|Extract)\\b"
+        },
+        {
+          "name": "variable.language.literal.knoten",
+          "match": "\\b(IntLiteral|FloatLiteral|BoolLiteral|StringLiteral|Identifier)\\b"
+        }
+      ]
+    },
+
+    "ui-nodes": {
+      "comment": "egui / WGPU UI nodes",
+      "name": "entity.name.tag.ui.knoten",
+      "match": "\\b(UIWindow|UILabel|UIButton|UITextInput|UISetStyle|UIHorizontal|UIHBox|UIVBox|UIFullscreen|UIGrid|UIScrollArea|UIFixed|UIFillParent|RenderCanvas|Transform2D|Sprite2D)\\b"
+    },
+
+    "registry-ffi": {
+      "comment": "All registry_* native FFI functions",
+      "patterns": [
+        {
+          "name": "entity.name.function.registry.knoten",
+          "match": "\\b(registry_create_window|registry_window_update|registry_window_close|registry_fill_color|registry_draw_entity|registry_draw_cube|registry_draw_sphere|registry_draw_cylinder|registry_draw_rect|registry_draw_text|registry_texture_load|registry_set_camera|registry_set_camera_for_window|registry_is_key_pressed|registry_is_mouse_down|registry_get_mouse_delta_x|registry_get_mouse_delta_y|registry_get_last_char|registry_get_mouse_ray|registry_raycast_aabb|registry_read_file|registry_write_file|registry_file_create|registry_now|registry_window_render_frame|registry_get_ultimate_answer|registry_release)\\b"
+        }
+      ]
+    },
+
+    "module-ffi": {
+      "comment": "Other namespaced FFI calls: ui.*, fs.*, net.*, json.*, sys.*, system.*, time.*",
+      "patterns": [
+        {
+          "name": "entity.name.function.ui-ffi.knoten",
+          "match": "\\bui\\.(ui_draw_rect|ui_draw_text|ui_draw_circle|ui_present|ui_text_input_get|ui_text_input_set)\\b"
+        },
+        {
+          "name": "entity.name.function.fs-ffi.knoten",
+          "match": "\\bfs\\.(fs_read_file|fs_write_file|fs_file_exists|fs_append_file)\\b"
+        },
+        {
+          "name": "entity.name.function.net-ffi.knoten",
+          "match": "\\bnet\\.(net_fetch)\\b"
+        },
+        {
+          "name": "entity.name.function.json-ffi.knoten",
+          "match": "\\bjson\\.(json_parse|json_stringify)\\b"
+        },
+        {
+          "name": "entity.name.function.sys-ffi.knoten",
+          "match": "\\b(sys|system)\\.(print|sleep|add_world_aabb|exit)\\b"
+        },
+        {
+          "name": "entity.name.function.time-ffi.knoten",
+          "match": "\\btime\\.(sleep|elapsed|timestamp)\\b"
+        },
+        {
+          "name": "entity.name.function.registry-ns.knoten",
+          "match": "\\bregistry\\.registry_[a-z_]+\\b"
+        }
+      ]
+    },
+
+    "stdlib-namespaces": {
+      "comment": "Standard library module names as property access prefixes",
+      "name": "support.type.namespace.knoten",
+      "match": "\\b(registry|ui|fs|net|json|sys|system|time|math|string|array)(?=\\.)"
+    },
+
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.knoten",
+          "match": "->"
+        },
+        {
+          "name": "keyword.operator.comparison.knoten",
+          "match": "(==|!=|<=|>=|<|>)"
+        },
+        {
+          "name": "keyword.operator.logical.knoten",
+          "match": "(&&|\\|\\||!)"
+        },
+        {
+          "name": "keyword.operator.arithmetic.knoten",
+          "match": "[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.bitwise.knoten",
+          "match": "(&|<<|>>)"
+        },
+        {
+          "name": "keyword.operator.assignment.knoten",
+          "match": "(?<![=!<>])=(?!=)"
+        }
+      ]
+    },
+
+    "arrays": {
+      "begin": "\\[",
+      "end": "\\]",
+      "beginCaptures": { "0": { "name": "punctuation.definition.array.begin.knoten" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.array.end.knoten" } },
+      "patterns": [{ "include": "$self" }]
+    },
+
+    "assignments": {
+      "comment": "Highlight the variable name on the left-hand side of an assignment",
+      "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?==(?!=))",
+      "captures": {
+        "1": { "name": "variable.other.assignment.knoten" }
+      }
+    },
+
+    "function-defs": {
+      "comment": "fn name(args) { ... } definition",
+      "match": "\\b(fn)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+      "captures": {
+        "1": { "name": "keyword.control.knoten" },
+        "2": { "name": "entity.name.function.definition.knoten" }
+      }
+    },
+
+    "function-calls": {
+      "comment": "Highlight function call names (excluding already-matched registry/namespace calls)",
+      "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+      "captures": {
+        "1": { "name": "entity.name.function.call.knoten" }
+      }
+    },
+
+    "identifiers": {
+      "name": "variable.other.knoten",
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+    }
+  }
+}

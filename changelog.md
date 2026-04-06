@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.30] - Sprint 132: VS Code Language Extension — Phase 1 (2026-04-06)
+Introduces the official KnotenCore VS Code Language Extension — Phase 1, providing local syntax highlighting and code snippets for `.knoten` and `.nod` files.
+- **`tools/vscode-knotencore/`** *(new directory)*: Self-contained VS Code extension package.
+- **`package.json`**: Standard VS Code extension manifest registering `knoten` and `nod` language IDs for their respective file extensions.
+- **`syntaxes/knoten.tmLanguage.json`**: Comprehensive TextMate grammar for `.knoten` Neural DSL files covering all AST control flow nodes (`If`, `While`, `Assign`, `Lte`, `Gte`, `NotEq`, `And`, `Or`, `Not`), all `registry_*` FFI calls, namespaced module calls (`ui.*`, `fs.*`, `sys.*`, `time.*`), UI nodes (`UIWindow`, `UIHBox`, `UIVBox`, etc.), operators, string/numeric/hex literals, and comments.
+- **`syntaxes/nod.tmLanguage.json`**: TextMate grammar for `.nod` JSON-AST files — highlights all KnotenCore opcode/node-name keys within the JSON structure.
+- **`snippets/knoten.code-snippets`**: 9 practical code snippets (`kc-window`, `kc-raycast`, `kc-uiwindow`, `kc-fn`, `kc-import`, `kc-while`, `kc-if`, `kc-aabb`, `kc-drawrect`).
+- **`language-configuration.json`**: Bracket matching, auto-close, and comment config for `.knoten` files.
+- **`extension.js`**: Minimal grammar-only entry point, scaffolded for Phase 2 LSP integration.
+
 ## [v1.0.29] - Sprint 131: GitHub Linguist Configuration (The Syntax Fix) (2026-04-06)
 Configured GitHub Linguist to correctly parse and syntax-highlight custom DSL configurations.
 - **`.gitattributes`**: Explicitly forced `.nod` files to render as JSON and `.knoten` files as JavaScript natively within the GitHub interface, ensuring the source graphs report accurate engine language statistics.

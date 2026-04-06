@@ -156,3 +156,4 @@ cargo run --bin run_knc -- tests/intentional_crash.knoten
 | `changelog.md` | Sprint history and architectural decisions |
 | `CONTRIBUTING.md` | PR checklist and contribution guidelines |
 | `SECURITY.md` | Responsible disclosure for sandbox escapes |
+| `tools/vscode-knotencore/` | VS Code Language Extension — syntax highlighting & snippets for `.knoten` / `.nod` (Phase 1) |

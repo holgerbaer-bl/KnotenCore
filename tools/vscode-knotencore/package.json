@@ -1,0 +1,82 @@
+{
+  "name": "vscode-knotencore",
+  "displayName": "KnotenCore Language Support",
+  "description": "Syntax highlighting for KnotenCore (.knoten) Neural DSL and (.nod) AST files. The Agent-First Rust Engine language extension.",
+  "version": "0.1.0",
+  "publisher": "knotencore",
+  "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holgerbaer-bl/KnotenCore"
+  },
+  "bugs": {
+    "url": "https://github.com/holgerbaer-bl/KnotenCore/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "knotencore",
+    "knoten",
+    "nod",
+    "rust",
+    "dsl",
+    "scripting",
+    "game engine",
+    "ai",
+    "agent"
+  ],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "knoten",
+        "aliases": [
+          "KnotenCore DSL",
+          "Knoten",
+          "knoten"
+        ],
+        "extensions": [
+          ".knoten"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "nod",
+        "aliases": [
+          "KnotenCore AST",
+          "nod"
+        ],
+        "extensions": [
+          ".nod"
+        ],
+        "configuration": "./language-configuration-nod.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "knoten",
+        "scopeName": "source.knoten",
+        "path": "./syntaxes/knoten.tmLanguage.json"
+      },
+      {
+        "language": "nod",
+        "scopeName": "source.nod",
+        "path": "./syntaxes/nod.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "knoten",
+        "path": "./snippets/knoten.code-snippets"
+      }
+    ],
+    "themes": []
+  }
+}

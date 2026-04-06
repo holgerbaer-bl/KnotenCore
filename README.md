@@ -284,6 +284,23 @@ win = UIWindow("main_nav", "Control Panel") -> {
 
 ---
 
+## 🛠️ Tooling & Editor Support (Sprint 132)
+
+KnotenCore ships with a first-party **VS Code Language Extension** in `tools/vscode-knotencore/` — providing immediate local development support:
+
+| Feature | Details |
+|---------|--------|
+| **Syntax Highlighting (`.knoten`)** | Full TextMate grammar covering all AST control flow nodes, `registry_*` FFI calls, UI nodes (`UIWindow`, `UIHBox`, ...), operators, hex literals, module namespaces |
+| **Syntax Highlighting (`.nod`)** | Highlights KnotenCore opcode keys (`If`, `While`, `ExternCall`, `UIButton`, etc.) within JSON-AST files |
+| **Code Snippets** | `kc-window`, `kc-raycast`, `kc-uiwindow`, `kc-fn`, `kc-import`, `kc-while`, `kc-if`, `kc-aabb`, `kc-drawrect` |
+| **Bracket Matching** | Auto-close and auto-match for `{}`, `[]`, `()`, `""` |
+| **Phase 2 Roadmap** | Language Server Protocol (LSP) for diagnostics, hover docs, and auto-complete |
+
+**Quick install:** Copy `tools/vscode-knotencore/` to `~/.vscode/extensions/knotencore-0.1.0` and restart VS Code.
+See [`tools/vscode-knotencore/README.md`](tools/vscode-knotencore/README.md) for full installation and packaging instructions.
+
+---
+
 ## Open Source Contribution
 KnotenCore is actively transitioning into the Open Source community. If you want to refine a General-Purpose AOT VM Engine, you are highly encouraged to contribute!
 
