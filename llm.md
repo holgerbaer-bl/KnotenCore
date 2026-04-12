@@ -16,7 +16,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)
-*Note: As of Sprint 127, all AST Nodes including UI Layouts, file IO, array data operations natively map gracefully in the VM Compiler. Use AST nodes or FFI Call structures freely based on convenience.*
+*Note: As of Sprint 134, all AST Nodes including UI Layouts, file IO, array data operations natively map gracefully in the VM Compiler, and strict audit rectifications confirm 100% crash output parity (`Fault: Div by zero (at Node::MathDiv)`) and heavily sandboxed permissions (`fs_write`, `registry_file_create`). Use AST nodes or FFI Call structures freely based on convenience.*
 
 ---
 

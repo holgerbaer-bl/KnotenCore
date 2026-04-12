@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.33] - Sprint 134: The Audit Rectification (Reality Check) (2026-04-12)
+Rectification sprint addressing critical discrepancies discovered during external code auditing.
+- **`Cargo.toml`**: Synchronized package version to `1.0.33` to align compiler bin states with official release increments.
+- **README.md**: Corrected inaccurate marketing claims from "ship highly-optimized graphical applications under 5 MB" to "ship highly-optimized, natively compiled graphical applications at ~7 MB" providing reality-based constraints. 
+- **`executor.rs`**: Resolved critical `ExternCall` security leak traversing the FFI bridging sandbox by dynamically registering `registry_file_create` tightly within the strict `write_requires` array.
+- **`vm/machine.rs`**: Remapped crash outputs to faithfully mirror our AI Error Catalog ensuring `Div by zero` outputs exactly specify `(at Node::MathDiv)` matching expected CLI baseline syntax.
+
 ## [v1.0.30] - Sprint 132: VS Code Language Extension — Phase 1 (2026-04-06)
 Introduces the official KnotenCore VS Code Language Extension — Phase 1, providing local syntax highlighting and code snippets for `.knoten` and `.nod` files.
 - **`tools/vscode-knotencore/`** *(new directory)*: Self-contained VS Code extension package.

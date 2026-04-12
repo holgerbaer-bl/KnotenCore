@@ -576,6 +576,7 @@ impl ExecutionEngine {
                     // Strict whitelist of functions requiring WRITE permissions
                     let write_requires = [
                         "registry_write_file",
+                        "registry_file_create",
                         "fs_write",
                         "fs_create",
                         "fs_append",

@@ -239,7 +239,7 @@ fn run() {
             
             let result = match raw_result {
                 Ok(v) => v.to_string(),
-                Err(e) => format!("VM Evaluation Fault: {}", e),
+                Err(e) => e,
             };
 
             println!("\nExecution Finished.\nResult: {}", result);

@@ -92,11 +92,11 @@ impl VM {
                     let l = self.stack.pop().ok_or_else(|| "Stack underflow in Divide".to_string())?;
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => {
-                            if b == 0 { return Err("Div by zero".into()); }
+                            if b == 0 { return Err("Fault: Div by zero (at Node::MathDiv)".into()); }
                             self.stack.push(RelType::Int(a / b))
                         },
                         (RelType::Float(a), RelType::Float(b)) => {
-                            if b == 0.0 { return Err("Div by zero".into()); }
+                            if b == 0.0 { return Err("Fault: Div by zero (at Node::MathDiv)".into()); }
                             self.stack.push(RelType::Float(a / b))
                         },
                         _ => return Err("Invalid types for Divide".into()),
