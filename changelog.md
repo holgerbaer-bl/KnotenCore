@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.34] - Sprint 135: The CI/CD Fortress (Automated Quality Gates) (2026-04-12)
+Establishes a permanent, automated CI/CD quality gate pipeline via GitHub Actions to protect the engine's architectural purity across all future sprints and external contributions.
+- **`.github/workflows/ci.yml`**: New three-stage CI pipeline triggering on every `push` and `pull_request` to `main`.
+  - **Gate 1 — Format**: `cargo fmt --all -- --check` — enforces enforced standard Rust formatting uniformly across the entire workspace.
+  - **Gate 2 — Linter**: `cargo clippy --workspace --all-targets --all-features -- -D warnings` — full audit-mode, fails on any single Clippy warning.
+  - **Gate 3 — Tests**: `cargo test --workspace --all-features` — executes the complete 55+ test suite.
+- **Toolchain**: `dtolnay/rust-toolchain@stable` with `clippy` and `rustfmt` components.
+- **Caching**: `Swatinem/rust-cache@v2` minimizing build times for subsequent CI runs.
+- **Linux Dependencies**: Installs `libasound2-dev`, `libx11-dev`, `libwayland-dev`, `libxkbcommon-dev`, `libxext-dev`, `libudev-dev` to satisfy WGPU and audio backend requirements on the Ubuntu runner.
+- **README.md**: Added live GitHub Actions `CI Quality Gates` status badge to the project header.
+
 ## [v1.0.33] - Sprint 134: The Audit Rectification (Reality Check) (2026-04-12)
 Rectification sprint addressing critical discrepancies discovered during external code auditing.
 - **`Cargo.toml`**: Synchronized package version to `1.0.33` to align compiler bin states with official release increments.

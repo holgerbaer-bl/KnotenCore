@@ -1,5 +1,7 @@
 # KnotenCore 🦀🤖
 
+[![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
+
 *(Noun) /knoːtən kɔːr/*
 
 1. **Not** a relentless underground German hardcore techno subgenre. 
