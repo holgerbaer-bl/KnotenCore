@@ -121,6 +121,12 @@ KnotenCore renders via WGPU — a modern, cross-platform GPU API targeting Vulka
 - **Camera UBO**: Real `perspective_rh × look_at_rh` view-projection matrices written per-frame.
 - **Resize-Safe**: Surface and depth buffers are correctly re-created on window resize.
 
+### 🎧 Native Bare-Metal Audio Engine
+KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline directly linked into the AOT-Virtual Machine and JIT executors:
+- **Zero-Latency Playback**: Fire-and-forget sound effects (`.wav`, `.ogg`) trigger instantaneously from bytecode instructions.
+- **Infinite Looping Sinks**: Decodes active background BGM loops alongside parallel positional sound channels naturally.
+- **Strictly Sandboxed FFI**: All `registry_play_sound` and `registry_loop_music` invocations implicitly demand `--allow-read` permissions and cross the `validate_fs_path` security border natively preventing path manipulation.
+
 ### ⚡ JIT & AOT Execution
 KnotenCore dynamically routes code to the most performant executor path:
 

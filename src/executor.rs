@@ -569,6 +569,8 @@ impl ExecutionEngine {
                     let read_requires = [
                         "registry_read_file",
                         "registry_texture_load", // Loading a texture reads a file
+                        "registry_play_sound",
+                        "registry_loop_music",
                         "fs_read",
                         "fs_exists",
                     ];
@@ -628,6 +630,57 @@ impl ExecutionEngine {
                             return ExecResult::Value(RelType::Int(hit_idx));
                     }
                     return ExecResult::Fault { msg: "[FFI] registry_raycast_aabb expects (Array, Array) of size >= 3".to_string(), node: "Node::ExternCall".into() };
+                }
+
+                if module == "registry" {
+                    if function == "registry_play_sound" {
+                        if v_args.len() == 1 && let RelType::Str(path) = &v_args[0] {
+                            match Self::validate_fs_path(path) {
+                                Ok(safe_path) => {
+                                    crate::natives::registry::init_audio_state();
+                                    if let Ok(mut lock) = crate::natives::registry::AUDIO_STATE.lock()
+                                        && let Some(audio) = lock.as_mut() {
+                                            let _ = audio.play_sound(&safe_path.to_string_lossy());
+                                        }
+                                    return ExecResult::Value(RelType::Void);
+                                }
+                                Err(e) => return ExecResult::Fault { msg: e, node: "Node::ExternCall".into() }
+                            }
+                        }
+                        return ExecResult::Fault { msg: "registry_play_sound expects (String)".to_string(), node: "Node::ExternCall".into() };
+                    }
+                    if function == "registry_loop_music" {
+                        if v_args.len() == 1 && let RelType::Str(path) = &v_args[0] {
+                            match Self::validate_fs_path(path) {
+                                Ok(safe_path) => {
+                                    crate::natives::registry::init_audio_state();
+                                    if let Ok(mut lock) = crate::natives::registry::AUDIO_STATE.lock()
+                                        && let Some(audio) = lock.as_mut() {
+                                            let _ = audio.loop_music(&safe_path.to_string_lossy());
+                                        }
+                                    return ExecResult::Value(RelType::Void);
+                                }
+                                Err(e) => return ExecResult::Fault { msg: e, node: "Node::ExternCall".into() }
+                            }
+                        }
+                        return ExecResult::Fault { msg: "registry_loop_music expects (String)".to_string(), node: "Node::ExternCall".into() };
+                    }
+                    if function == "registry_set_volume" {
+                        if v_args.len() == 1 {
+                            let level = match &v_args[0] {
+                                RelType::Float(f) => *f as f32,
+                                RelType::Int(i) => *i as f32,
+                                _ => return ExecResult::Fault { msg: "registry_set_volume expects (Float/Int)".to_string(), node: "Node::ExternCall".into() }
+                            };
+                            crate::natives::registry::init_audio_state();
+                            if let Ok(mut lock) = crate::natives::registry::AUDIO_STATE.lock()
+                                && let Some(audio) = lock.as_mut() {
+                                    audio.set_volume(level);
+                                }
+                            return ExecResult::Value(RelType::Void);
+                        }
+                        return ExecResult::Fault { msg: "registry_set_volume expects (Float/Int)".to_string(), node: "Node::ExternCall".into() };
+                    }
                 }
 
                 if let Some(res) = self.bridge.handle(module, function, &v_args, &self.permissions) { return res; }

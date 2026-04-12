@@ -399,6 +399,60 @@ impl VM {
                     }
                     args.reverse();
 
+                    if module == "registry" {
+                        if func == "registry_play_sound" {
+                            if args.len() == 1 && let RelType::Str(path) = &args[0] {
+                                match crate::executor::ExecutionEngine::validate_fs_path(path) {
+                                    Ok(safe_path) => {
+                                        crate::natives::registry::init_audio_state();
+                                        if let Ok(mut lock) = crate::natives::registry::AUDIO_STATE.lock()
+                                            && let Some(audio) = lock.as_mut() {
+                                                let _ = audio.play_sound(&safe_path.to_string_lossy());
+                                            }
+                                        self.stack.push(RelType::Void);
+                                        continue;
+                                    }
+                                    Err(e) => return Err(format!("Fault: {} (at Node::ExternCall)", e)),
+                                }
+                            }
+                            return Err("Fault: registry_play_sound expects (String) (at Node::ExternCall)".to_string());
+                        }
+                        if func == "registry_loop_music" {
+                            if args.len() == 1 && let RelType::Str(path) = &args[0] {
+                                match crate::executor::ExecutionEngine::validate_fs_path(path) {
+                                    Ok(safe_path) => {
+                                        crate::natives::registry::init_audio_state();
+                                        if let Ok(mut lock) = crate::natives::registry::AUDIO_STATE.lock()
+                                            && let Some(audio) = lock.as_mut() {
+                                                let _ = audio.loop_music(&safe_path.to_string_lossy());
+                                            }
+                                        self.stack.push(RelType::Void);
+                                        continue;
+                                    }
+                                    Err(e) => return Err(format!("Fault: {} (at Node::ExternCall)", e)),
+                                }
+                            }
+                            return Err("Fault: registry_loop_music expects (String) (at Node::ExternCall)".to_string());
+                        }
+                        if func == "registry_set_volume" {
+                            if args.len() == 1 {
+                                let level = match &args[0] {
+                                    RelType::Float(f) => *f as f32,
+                                    RelType::Int(i) => *i as f32,
+                                    _ => return Err("Fault: registry_set_volume expects (Float/Int) (at Node::ExternCall)".to_string()),
+                                };
+                                crate::natives::registry::init_audio_state();
+                                if let Ok(mut lock) = crate::natives::registry::AUDIO_STATE.lock()
+                                    && let Some(audio) = lock.as_mut() {
+                                        audio.set_volume(level);
+                                    }
+                                self.stack.push(RelType::Void);
+                                continue;
+                            }
+                            return Err("Fault: registry_set_volume expects (Float/Int) (at Node::ExternCall)".to_string());
+                        }
+                    }
+
                     if let Some(b) = bridge {
                         match b.handle(&module, &func, &args, permissions) {
                             Some(crate::executor::ExecResult::Value(v)) => self.stack.push(v),

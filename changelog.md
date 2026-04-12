@@ -9,6 +9,13 @@ Rectification sprint addressing critical discrepancies discovered during externa
 - **`executor.rs`**: Resolved critical `ExternCall` security leak traversing the FFI bridging sandbox by dynamically registering `registry_file_create` tightly within the strict `write_requires` array.
 - **`vm/machine.rs`**: Remapped crash outputs to faithfully mirror our AI Error Catalog ensuring `Div by zero` outputs exactly specify `(at Node::MathDiv)` matching expected CLI baseline syntax.
 
+## [v1.0.32] - Sprint 133: The Audio Engine (Bare-Metal Sound) (2026-04-12)
+Introduces an asynchronous thread-safe native audio pipeline securely bridging nodes directly to hardware speakers.
+- **`src/audio.rs`**: Built the `AudioManager` wrapping `rodio` to manage overlapping sound effects (`play_sound`) and infinite background music (`loop_music`) directly via hardware streams.
+- **`src/natives/registry.rs`**: Initialized global lazily populated `AUDIO_STATE` allowing execution threads cross-module access to volume and sink mutators.
+- **`executor.rs` & `machine.rs` FFI Engine Sandbox**: Completely bypassed traditional plugin invocation latency with internal inline interception for `registry_play_sound`, `registry_loop_music`, and `registry_set_volume`. All path strings strictly validate against `validate_fs_path` alongside the `--allow-read` constraint mitigating arbitrary file manipulation vulnerabilities.
+- **`examples/audio_demo.nod`**: Synthesized 3D spatial intersections (`registry_raycast_aabb`) with edge-triggered audio output demonstrating complete bare-metal gameplay integration loop.
+
 ## [v1.0.30] - Sprint 132: VS Code Language Extension — Phase 1 (2026-04-06)
 Introduces the official KnotenCore VS Code Language Extension — Phase 1, providing local syntax highlighting and code snippets for `.knoten` and `.nod` files.
 - **`tools/vscode-knotencore/`** *(new directory)*: Self-contained VS Code extension package.

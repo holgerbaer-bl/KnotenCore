@@ -87,6 +87,16 @@ pub fn exit_event_loop() {
 static RENDER_TX: Mutex<Option<winit::event_loop::EventLoopProxy<RenderCommand>>> = Mutex::new(None);
 static SENT_MESHES: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
+pub static AUDIO_STATE: Mutex<Option<crate::audio::AudioManager>> = Mutex::new(None);
+
+pub fn init_audio_state() {
+    let mut guard = AUDIO_STATE.lock().unwrap();
+    if guard.is_none()
+        && let Ok(manager) = crate::audio::AudioManager::new() {
+            *guard = Some(manager);
+        }
+}
+
 pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) {
     let mut guard = RENDER_TX.lock().unwrap();
     *guard = Some(tx);

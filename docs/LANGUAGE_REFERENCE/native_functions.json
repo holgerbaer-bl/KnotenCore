@@ -11,6 +11,66 @@
   },
   "functions": [
     {
+      "name": "registry_play_sound",
+      "module": "registry",
+      "description": "Asynchronously plays a short fire-and-forget sound effect Native PCM file (.wav, .ogg). Guaranteed zero-latency execution. Evaluates the strictly sandboxed allow-read file path logic.",
+      "parameters": [
+        { "name": "path", "type": "String", "required": true, "description": "Local path relative to the active execution directory" }
+      ],
+      "returns": "Void",
+      "permissions": ["allow_fs_read"],
+      "errors": ["ERR_PERMISSION_DENIED", "ERR_FILE_NOT_FOUND", "ERR_INVALID_FORMAT"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_play_sound",
+          "args": [
+            { "StringLiteral": "tests/audio/click.ogg" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_loop_music",
+      "module": "registry",
+      "description": "Asynchronously decodes and loops an infinite background track. Follows strictly sandboxed read paths identically to play_sound.",
+      "parameters": [
+        { "name": "path", "type": "String", "required": true, "description": "Local path" }
+      ],
+      "returns": "Void",
+      "permissions": ["allow_fs_read"],
+      "errors": ["ERR_PERMISSION_DENIED", "ERR_FILE_NOT_FOUND"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_loop_music",
+          "args": [
+            { "StringLiteral": "tests/audio/bgm.ogg" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_set_volume",
+      "module": "registry",
+      "description": "Sets the global multi-channel volume multiplier. 1.0 is default, 0.0 is mute.",
+      "parameters": [
+        { "name": "level", "type": "Float", "required": true, "description": "The target volume between 0.0 and 2.0 clamp" }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_set_volume",
+          "args": [
+            { "FloatLiteral": 0.8 }
+          ]
+        }
+      }
+    },
+    {
       "name": "registry_create_window",
       "module": "registry",
       "description": "Bootstraps a WGPU egui window and returns an opaque Handle. This is the preferred window creation path for interactive UI scripts.",
