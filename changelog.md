@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.35] - Sprint 136: Identity Pivot (The Runtime Evolution) (2026-04-12)
+Redefines KnotenCore's public identity from a "3D scripting engine" to its true form: a **Deterministic AI-Native Execution Runtime**. This sprint is a documentation and framing rectification, not a code change — ensuring all external-facing and AI-facing documentation accurately reflects the engine's architectural reality.
+- **`README.md`**: Replaced all "3D engine" framing. New tagline: *"The Deterministic AI-Native Execution Runtime."* `What is KnotenCore?` now leads with the AOT compiler + Stack-VM + JSON-AST architecture. The WGPU subsystem is correctly identified as the **Physical Representation Layer**. `Engine Architecture` renamed to `Runtime Architecture` with an updated ASCII diagram showing the JIT/AOT fork explicitly. CI badge retained prominently.
+- **`llm.md`**: Updated system instruction header to frame AI agents as **System Architects** authoring machine instruction streams, not game script developers. Architecture diagram updated to match README. `Verification` commands updated to reflect full CI gate commands (`--workspace --all-targets`).
+- **`changelog.md`**: This entry.
+
 ## [v1.0.34] - Sprint 135: The CI/CD Fortress (Automated Quality Gates) (2026-04-12)
 Establishes a permanent, automated CI/CD quality gate pipeline via GitHub Actions to protect the engine's architectural purity across all future sprints and external contributions.
 - **`.github/workflows/ci.yml`**: New three-stage CI pipeline triggering on every `push` and `pull_request` to `main`.
