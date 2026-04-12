@@ -52,10 +52,10 @@ fn main() {
 
     let compile_start = Instant::now();
     let mut compiler = Compiler::new();
-    if let Some(parent) = std::path::Path::new(file_path).parent() {
-        if !parent.as_os_str().is_empty() {
-            compiler.current_dir = parent.to_path_buf();
-        }
+    if let Some(parent) = std::path::Path::new(file_path).parent()
+        && !parent.as_os_str().is_empty()
+    {
+        compiler.current_dir = parent.to_path_buf();
     }
 
     if !compiler.compile_node(&ast) {

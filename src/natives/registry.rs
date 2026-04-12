@@ -6,8 +6,6 @@ use std::sync::Mutex;
 use winit::window::Window as WinitWindow;
 
 use std::collections::HashSet;
-#[cfg(not(target_os = "windows"))]
-use winit::event_loop::EventLoop;
 use winit::keyboard::KeyCode;
 
 use std::sync::atomic::AtomicBool;
