@@ -38,7 +38,9 @@ pub enum RenderCommand {
     DrawSphere {
         window_id: usize,
         texture_id: usize,
-        x: f32, y: f32, z: f32,
+        x: f32,
+        y: f32,
+        z: f32,
         radius: f32,
         rings: u32,
         sectors: u32,
@@ -46,20 +48,31 @@ pub enum RenderCommand {
     DrawCube {
         window_id: usize,
         texture_id: usize,
-        x: f32, y: f32, z: f32,
-        w: f32, h: f32, d: f32,
+        x: f32,
+        y: f32,
+        z: f32,
+        w: f32,
+        h: f32,
+        d: f32,
     },
     DrawCylinder {
         window_id: usize,
         texture_id: usize,
-        x: f32, y: f32, z: f32,
-        radius: f32, height: f32, segments: u32,
+        x: f32,
+        y: f32,
+        z: f32,
+        radius: f32,
+        height: f32,
+        segments: u32,
     },
     DrawQuad3D {
         window_id: usize,
         texture_id: usize,
-        x: f32, y: f32, z: f32,
-        scale_x: f32, scale_y: f32,
+        x: f32,
+        y: f32,
+        z: f32,
+        scale_x: f32,
+        scale_y: f32,
     },
     /// Sprint 86: send a camera view-projection matrix to a specific window.
     SetCamera {
@@ -84,7 +97,8 @@ pub fn exit_event_loop() {
     send_render_command(RenderCommand::ExitEventLoop);
 }
 
-static RENDER_TX: Mutex<Option<winit::event_loop::EventLoopProxy<RenderCommand>>> = Mutex::new(None);
+static RENDER_TX: Mutex<Option<winit::event_loop::EventLoopProxy<RenderCommand>>> =
+    Mutex::new(None);
 static SENT_MESHES: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
 pub static AUDIO_STATE: Mutex<Option<crate::audio::AudioManager>> = Mutex::new(None);
@@ -92,9 +106,10 @@ pub static AUDIO_STATE: Mutex<Option<crate::audio::AudioManager>> = Mutex::new(N
 pub fn init_audio_state() {
     let mut guard = AUDIO_STATE.lock().unwrap();
     if guard.is_none()
-        && let Ok(manager) = crate::audio::AudioManager::new() {
-            *guard = Some(manager);
-        }
+        && let Ok(manager) = crate::audio::AudioManager::new()
+    {
+        *guard = Some(manager);
+    }
 }
 
 pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) {
@@ -111,7 +126,10 @@ fn send_render_command(cmd: RenderCommand) {
 
 pub fn send_ui_nodes(nodes: Vec<crate::ast::Node>) {
     // For now, hardcode broadcast to window id 1
-    send_render_command(RenderCommand::UpdateUI { window_id: 1, nodes });
+    send_render_command(RenderCommand::UpdateUI {
+        window_id: 1,
+        nodes,
+    });
 }
 
 // Proxy for a Window to be used by the background executor.
@@ -160,7 +178,7 @@ pub struct RegistryWindowState {
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct RegistryVertex {
     pub position: [f32; 3],
-    pub normal: [f32; 3],   // Sprint 85: Added - required by mesh3d.wgsl @location(1)
+    pub normal: [f32; 3], // Sprint 85: Added - required by mesh3d.wgsl @location(1)
     pub tex_coords: [f32; 2],
 }
 
@@ -565,7 +583,7 @@ pub fn registry_window_update(handle_id: i64) -> bool {
     }
     let id = handle_id as usize;
     send_render_command(RenderCommand::UpdateWindow(id));
-    
+
     // We assume the window is open unless we receive a message back or have a way to check.
     // For now, we return true. The main loop will handle window closure.
     true
@@ -590,7 +608,10 @@ pub fn registry_file_create(path: String) -> i64 {
     let safe_path = match crate::executor::ExecutionEngine::validate_fs_path_write(&path) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("[KnotenCore FileIO] Security error creating file '{}': {}", path, e);
+            eprintln!(
+                "[KnotenCore FileIO] Security error creating file '{}': {}",
+                path, e
+            );
             return -1;
         }
     };
@@ -687,8 +708,7 @@ pub fn registry_gpu_init() -> i64 {
 }
 
 pub fn registry_fill_color(window_handle: i64, _r: i64, _g: i64, _b: i64) {
-    if window_handle < 0 {
-    }
+    if window_handle < 0 {}
     // Note: We could send a Command for this too.
 }
 
@@ -726,7 +746,10 @@ pub fn registry_texture_load(path: String) -> i64 {
     let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(&path) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("[KnotenCore Texture] Security error loading '{}': {}", path, e);
+            eprintln!(
+                "[KnotenCore Texture] Security error loading '{}': {}",
+                path, e
+            );
             return -1;
         }
     };
@@ -866,8 +889,11 @@ pub fn registry_draw_quad_3d(
     send_render_command(RenderCommand::DrawQuad3D {
         window_id: window_handle as usize,
         texture_id: texture_handle as usize,
-        x, y, z,
-        scale_x, scale_y,
+        x,
+        y,
+        z,
+        scale_x,
+        scale_y,
     });
 }
 
@@ -904,18 +930,16 @@ pub fn registry_draw_sphere(
     send_render_command(RenderCommand::DrawSphere {
         window_id: window_handle as usize,
         texture_id: texture_handle as usize,
-        x, y, z,
+        x,
+        y,
+        z,
         radius,
         rings,
         sectors,
     });
 }
 
-pub fn registry_draw_entity(
-    window_handle: i64,
-    x: f32,
-    y: f32,
-) {
+pub fn registry_draw_entity(window_handle: i64, x: f32, y: f32) {
     if window_handle < 0 {
         return;
     }
@@ -992,8 +1016,12 @@ pub fn registry_draw_cube(
     send_render_command(RenderCommand::DrawCube {
         window_id: window_handle as usize,
         texture_id: texture_handle as usize,
-        x, y, z,
-        w, h, d,
+        x,
+        y,
+        z,
+        w,
+        h,
+        d,
     });
 }
 
@@ -1029,7 +1057,9 @@ pub fn registry_draw_cylinder(
     send_render_command(RenderCommand::DrawCylinder {
         window_id: window_handle as usize,
         texture_id: texture_handle as usize,
-        x, y, z,
+        x,
+        y,
+        z,
         radius,
         height,
         segments,
@@ -1041,9 +1071,17 @@ fn generate_cylinder(segments: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
     let mut indices = Vec::new();
 
     // Top center (normal points up)
-    vertices.push(RegistryVertex { position: [0.0, 0.5, 0.0], normal: [0.0, 1.0, 0.0], tex_coords: [0.5, 0.5] });
+    vertices.push(RegistryVertex {
+        position: [0.0, 0.5, 0.0],
+        normal: [0.0, 1.0, 0.0],
+        tex_coords: [0.5, 0.5],
+    });
     // Bottom center (normal points down)
-    vertices.push(RegistryVertex { position: [0.0, -0.5, 0.0], normal: [0.0, -1.0, 0.0], tex_coords: [0.5, 0.5] });
+    vertices.push(RegistryVertex {
+        position: [0.0, -0.5, 0.0],
+        normal: [0.0, -1.0, 0.0],
+        tex_coords: [0.5, 0.5],
+    });
 
     let base_idx_top: u32 = 0;
     let base_idx_bottom: u32 = 1;
@@ -1057,9 +1095,17 @@ fn generate_cylinder(segments: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
         let nx = x;
         let nz = z;
         // Top cap vertex
-        vertices.push(RegistryVertex { position: [x, 0.5, z], normal: [nx, 0.0, nz], tex_coords: [u, 0.0] });
+        vertices.push(RegistryVertex {
+            position: [x, 0.5, z],
+            normal: [nx, 0.0, nz],
+            tex_coords: [u, 0.0],
+        });
         // Bottom cap vertex
-        vertices.push(RegistryVertex { position: [x, -0.5, z], normal: [nx, 0.0, nz], tex_coords: [u, 1.0] });
+        vertices.push(RegistryVertex {
+            position: [x, -0.5, z],
+            normal: [nx, 0.0, nz],
+            tex_coords: [u, 1.0],
+        });
     }
 
     for i in 0..segments {
@@ -1069,14 +1115,22 @@ fn generate_cylinder(segments: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
         let bot1 = top1 + 1;
 
         // Side faces
-        indices.push(top0); indices.push(bot0); indices.push(top1);
-        indices.push(bot0); indices.push(bot1); indices.push(top1);
+        indices.push(top0);
+        indices.push(bot0);
+        indices.push(top1);
+        indices.push(bot0);
+        indices.push(bot1);
+        indices.push(top1);
 
         // Top cap
-        indices.push(base_idx_top); indices.push(top1); indices.push(top0);
+        indices.push(base_idx_top);
+        indices.push(top1);
+        indices.push(top0);
 
         // Bottom cap
-        indices.push(base_idx_bottom); indices.push(bot0); indices.push(bot1);
+        indices.push(base_idx_bottom);
+        indices.push(bot0);
+        indices.push(bot1);
     }
     (vertices, indices)
 }
@@ -1087,29 +1141,71 @@ fn generate_cube() -> (Vec<RegistryVertex>, Vec<u32>) {
     #[allow(clippy::type_complexity)]
     let faces: [([f32; 3], [[f32; 3]; 4], [[f32; 2]; 4]); 6] = [
         // +Y top
-        ([0.0, 1.0, 0.0],
-         [[-0.5, 0.5, -0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5]],
-         [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]),
+        (
+            [0.0, 1.0, 0.0],
+            [
+                [-0.5, 0.5, -0.5],
+                [0.5, 0.5, -0.5],
+                [0.5, 0.5, 0.5],
+                [-0.5, 0.5, 0.5],
+            ],
+            [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+        ),
         // -Y bottom
-        ([0.0, -1.0, 0.0],
-         [[-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, -0.5, -0.5], [-0.5, -0.5, -0.5]],
-         [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]),
+        (
+            [0.0, -1.0, 0.0],
+            [
+                [-0.5, -0.5, 0.5],
+                [0.5, -0.5, 0.5],
+                [0.5, -0.5, -0.5],
+                [-0.5, -0.5, -0.5],
+            ],
+            [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+        ),
         // +Z front
-        ([0.0, 0.0, 1.0],
-         [[-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5]],
-         [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]]),
+        (
+            [0.0, 0.0, 1.0],
+            [
+                [-0.5, -0.5, 0.5],
+                [0.5, -0.5, 0.5],
+                [0.5, 0.5, 0.5],
+                [-0.5, 0.5, 0.5],
+            ],
+            [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
+        ),
         // -Z back
-        ([0.0, 0.0, -1.0],
-         [[0.5, -0.5, -0.5], [-0.5, -0.5, -0.5], [-0.5, 0.5, -0.5], [0.5, 0.5, -0.5]],
-         [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]]),
+        (
+            [0.0, 0.0, -1.0],
+            [
+                [0.5, -0.5, -0.5],
+                [-0.5, -0.5, -0.5],
+                [-0.5, 0.5, -0.5],
+                [0.5, 0.5, -0.5],
+            ],
+            [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
+        ),
         // +X right
-        ([1.0, 0.0, 0.0],
-         [[0.5, -0.5, 0.5], [0.5, -0.5, -0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]],
-         [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]]),
+        (
+            [1.0, 0.0, 0.0],
+            [
+                [0.5, -0.5, 0.5],
+                [0.5, -0.5, -0.5],
+                [0.5, 0.5, -0.5],
+                [0.5, 0.5, 0.5],
+            ],
+            [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
+        ),
         // -X left
-        ([-1.0, 0.0, 0.0],
-         [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, 0.5], [-0.5, 0.5, -0.5]],
-         [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]]),
+        (
+            [-1.0, 0.0, 0.0],
+            [
+                [-0.5, -0.5, -0.5],
+                [-0.5, -0.5, 0.5],
+                [-0.5, 0.5, 0.5],
+                [-0.5, 0.5, -0.5],
+            ],
+            [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
+        ),
     ];
 
     let mut vertices = Vec::with_capacity(24);
@@ -1118,10 +1214,14 @@ fn generate_cube() -> (Vec<RegistryVertex>, Vec<u32>) {
     for (face_idx, (normal, positions, uvs)) in faces.iter().enumerate() {
         let base = (face_idx * 4) as u32;
         for (pos, uv) in positions.iter().zip(uvs.iter()) {
-            vertices.push(RegistryVertex { position: *pos, normal: *normal, tex_coords: *uv });
+            vertices.push(RegistryVertex {
+                position: *pos,
+                normal: *normal,
+                tex_coords: *uv,
+            });
         }
         // Two CCW triangles per face
-        indices.extend_from_slice(&[base, base+1, base+2, base, base+2, base+3]);
+        indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
     }
     (vertices, indices)
 }
@@ -1134,16 +1234,22 @@ pub fn registry_set_camera(fov_degrees: f32, cam_x: f32, cam_y: f32, cam_z: f32)
 
 /// Sprint 86: Send a camera to a specific window (window_id = handle_id).
 /// Called from scripts as: registry_set_camera_for_window(win, fov_deg, cam_x, cam_y, cam_z)
-pub fn registry_set_camera_for_window(window_id: i64, fov_degrees: f32, cam_x: f32, cam_y: f32, cam_z: f32) {
+pub fn registry_set_camera_for_window(
+    window_id: i64,
+    fov_degrees: f32,
+    cam_x: f32,
+    cam_y: f32,
+    cam_z: f32,
+) {
     use glam::{Mat4, Vec3};
-    let eye    = Vec3::new(cam_x, cam_y, cam_z);
+    let eye = Vec3::new(cam_x, cam_y, cam_z);
     let target = Vec3::ZERO;
-    let up     = Vec3::Y;
+    let up = Vec3::Y;
     // Assume a reasonable aspect until the window reports its size via resize events.
     let aspect = 16.0_f32 / 9.0_f32;
-    let proj   = Mat4::perspective_rh(fov_degrees.to_radians(), aspect, 0.1, 1000.0);
-    let view   = Mat4::look_at_rh(eye, target, up);
-    let vp     = proj * view;
+    let proj = Mat4::perspective_rh(fov_degrees.to_radians(), aspect, 0.1, 1000.0);
+    let view = Mat4::look_at_rh(eye, target, up);
+    let vp = proj * view;
     let vp_arr = vp.to_cols_array_2d();
 
     send_render_command(RenderCommand::SetCamera {
@@ -1151,8 +1257,6 @@ pub fn registry_set_camera_for_window(window_id: i64, fov_degrees: f32, cam_x: f
         view_proj: vp_arr,
     });
 }
-
-
 
 pub fn registry_get_mouse_delta_x() -> f32 {
     let mut acc = 0.0;
@@ -1197,37 +1301,40 @@ pub fn registry_is_mouse_down() -> bool {
 
 pub fn registry_get_mouse_ray(window_handle: i64) -> Vec<crate::executor::RelType> {
     use glam::{Mat4, Vec3};
-    if window_handle < 0 { return vec![]; }
+    if window_handle < 0 {
+        return vec![];
+    }
     let id = window_handle as usize;
     let mut ray_origin = Vec3::ZERO;
     let mut ray_dir = Vec3::Z; // Default into screen
-    
+
     with_registry(|registry| {
         if let Some(entry) = registry.get(&id)
-            && let NativeHandle::Window(proxy) = &entry.handle {
-                let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
-                let mx = input.mouse_x;
-                let my = input.mouse_y;
-                let w = input.window_width.max(1.0);
-                let h = input.window_height.max(1.0);
-                let vp = Mat4::from_cols_array_2d(&input.view_proj);
-                
-                // Screen to NDC (Normalized Device Coordinates [-1, 1])
-                // Y goes down in window, but up in NDC
-                let ndc_x = (2.0 * mx) / w - 1.0;
-                let ndc_y = 1.0 - (2.0 * my) / h;
-                
-                let inv_vp = vp.inverse();
-                
-                // Project points at near and far plane
-                let near_pt = inv_vp.project_point3(Vec3::new(ndc_x, ndc_y, 0.0));
-                let far_pt = inv_vp.project_point3(Vec3::new(ndc_x, ndc_y, 1.0));
-                
-                ray_origin = near_pt;
-                ray_dir = (far_pt - near_pt).normalize();
-            }
+            && let NativeHandle::Window(proxy) = &entry.handle
+        {
+            let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
+            let mx = input.mouse_x;
+            let my = input.mouse_y;
+            let w = input.window_width.max(1.0);
+            let h = input.window_height.max(1.0);
+            let vp = Mat4::from_cols_array_2d(&input.view_proj);
+
+            // Screen to NDC (Normalized Device Coordinates [-1, 1])
+            // Y goes down in window, but up in NDC
+            let ndc_x = (2.0 * mx) / w - 1.0;
+            let ndc_y = 1.0 - (2.0 * my) / h;
+
+            let inv_vp = vp.inverse();
+
+            // Project points at near and far plane
+            let near_pt = inv_vp.project_point3(Vec3::new(ndc_x, ndc_y, 0.0));
+            let far_pt = inv_vp.project_point3(Vec3::new(ndc_x, ndc_y, 1.0));
+
+            ray_origin = near_pt;
+            ray_dir = (far_pt - near_pt).normalize();
+        }
     });
-    
+
     vec![
         crate::executor::RelType::Float(ray_origin.x as f64),
         crate::executor::RelType::Float(ray_origin.y as f64),

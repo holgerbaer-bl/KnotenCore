@@ -21,7 +21,10 @@ pub enum OpCode {
     StringSplit,
     ArrayContains,
     ReadFile,
-    ExternCall { name_idx: usize, arg_count: usize },
+    ExternCall {
+        name_idx: usize,
+        arg_count: usize,
+    },
     SetGlobal(usize),
     GetGlobal(usize),
     SetLocal(usize),
@@ -33,7 +36,7 @@ pub enum OpCode {
     Pop,
     Print,
     Return,
-    
+
     // Sprint 127: Data Operations & String manipulation
     ArrayCreate(usize),
     ArrayGet,
@@ -42,11 +45,15 @@ pub enum OpCode {
     ArrayLen,
     Concat,
     ToString,
-    
+
     // Sprint 127: IO & System
     WriteFile,
-    NativeExternCall { module_idx: usize, func_idx: usize, arg_count: usize },
-    
+    NativeExternCall {
+        module_idx: usize,
+        func_idx: usize,
+        arg_count: usize,
+    },
+
     // Sprint 127: UI Layouts & Rendering
     UIWindow(usize, usize), // (id_idx, children_count)
     UILabel,

@@ -5,7 +5,11 @@ use std::collections::HashMap;
 pub fn fs_read_file(path: String) -> String {
     match crate::executor::ExecutionEngine::validate_fs_path(&path) {
         Ok(safe_path) => std::fs::read_to_string(&safe_path).unwrap_or_else(|e| {
-            eprintln!("[KnotenCore FS] Error reading '{}': {}", safe_path.display(), e);
+            eprintln!(
+                "[KnotenCore FS] Error reading '{}': {}",
+                safe_path.display(),
+                e
+            );
             String::new()
         }),
         Err(e) => {
@@ -59,10 +63,14 @@ pub fn json_value_to_reltype(value: &serde_json::Value) -> RelType {
 pub fn reltype_to_json_value(rel: &RelType) -> serde_json::Value {
     match rel {
         RelType::Int(i) => serde_json::Value::Number(serde_json::Number::from(*i)),
-        RelType::Float(f) => serde_json::Number::from_f64(*f).map(serde_json::Value::Number).unwrap_or(serde_json::Value::Null),
+        RelType::Float(f) => serde_json::Number::from_f64(*f)
+            .map(serde_json::Value::Number)
+            .unwrap_or(serde_json::Value::Null),
         RelType::Bool(b) => serde_json::Value::Bool(*b),
         RelType::Str(s) => serde_json::Value::String(s.clone()),
-        RelType::Array(arr) => serde_json::Value::Array(arr.iter().map(reltype_to_json_value).collect()),
+        RelType::Array(arr) => {
+            serde_json::Value::Array(arr.iter().map(reltype_to_json_value).collect())
+        }
         RelType::Object(obj) => {
             let mut map = serde_json::Map::new();
             for (k, v) in obj {
@@ -83,6 +91,6 @@ pub fn reltype_to_json_value(rel: &RelType) -> serde_json::Value {
         }
         RelType::Void => serde_json::Value::Null,
         // Fallback for native execution handles and functions which cannot serialize cleanly
-        _ => serde_json::Value::String(format!("[Unserializable: {}]", rel))
+        _ => serde_json::Value::String(format!("[Unserializable: {}]", rel)),
     }
 }

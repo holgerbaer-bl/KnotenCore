@@ -1,4 +1,4 @@
-use crate::executor::{ExecResult, RelType, AgentPermissions};
+use crate::executor::{AgentPermissions, ExecResult, RelType};
 
 pub mod bridge;
 pub mod fs;
@@ -8,5 +8,10 @@ pub mod registry;
 pub mod ui;
 
 pub trait NativeModule: Send {
-    fn handle(&self, func_name: &str, args: &[RelType], permissions: &AgentPermissions) -> Option<ExecResult>;
+    fn handle(
+        &self,
+        func_name: &str,
+        args: &[RelType],
+        permissions: &AgentPermissions,
+    ) -> Option<ExecResult>;
 }

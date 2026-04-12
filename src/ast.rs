@@ -67,8 +67,13 @@ pub enum Node {
     FSWrite(Box<Node>, Box<Node>), // Specialized Agent I/O
 
     // AST Erweiterung für universelle Persistenz (Sprint 64)
-    Store { key: String, value: Box<Node> },
-    Load { key: String },
+    Store {
+        key: String,
+        value: Box<Node>,
+    },
+    Load {
+        key: String,
+    },
 
     // Sprint 67: Native 2D Drawing Primitives
     DrawRect {
@@ -86,7 +91,9 @@ pub enum Node {
     UIFillParent,
 
     // Sprint 68: Native 3D/2D Render Scene Graph
-    RenderCanvas { body: Box<Node> },
+    RenderCanvas {
+        body: Box<Node>,
+    },
     Transform2D {
         x: Box<Node>,
         y: Box<Node>,
@@ -94,7 +101,10 @@ pub enum Node {
         scale: Box<Node>,
         body: Box<Node>,
     },
-    Sprite2D { texture_id: Box<Node>, transform: Box<Node> },
+    Sprite2D {
+        texture_id: Box<Node>,
+        transform: Box<Node>,
+    },
     Camera3D {
         pos_x: Box<Node>,
         pos_y: Box<Node>,
@@ -104,15 +114,26 @@ pub enum Node {
         target_z: Box<Node>,
         fov: Box<Node>,
     },
-    Mesh3D { primitive: Box<Node>, material: Box<Node> }, // primitive: "cube"|"sphere"|"plane"
+    Mesh3D {
+        primitive: Box<Node>,
+        material: Box<Node>,
+    }, // primitive: "cube"|"sphere"|"plane"
     PointLight3D {
-        x: Box<Node>, y: Box<Node>, z: Box<Node>,
-        r: Box<Node>, g: Box<Node>, b: Box<Node>,
+        x: Box<Node>,
+        y: Box<Node>,
+        z: Box<Node>,
+        r: Box<Node>,
+        g: Box<Node>,
+        b: Box<Node>,
         intensity: Box<Node>,
     },
     Material3D {
-        r: Box<Node>, g: Box<Node>, b: Box<Node>, a: Box<Node>,
-        metallic: Box<Node>, roughness: Box<Node>,
+        r: Box<Node>,
+        g: Box<Node>,
+        b: Box<Node>,
+        a: Box<Node>,
+        metallic: Box<Node>,
+        roughness: Box<Node>,
         texture_id: Option<Box<Node>>,
     },
     // Sprint 71: PS3-Era FPS Foundation
@@ -192,8 +213,8 @@ pub enum Node {
         Option<Box<Node>>,
     ), // Rounding, Spacing, Accent RGBA, Fill RGBA, Button Idle RGBA (opt), Button Hover RGBA (opt)
     UIHorizontal(Box<Node>), // Render children side-by-side (horizontal layout)
-    UIHBox(Vec<Node>),       // Render children side-by-side (horizontal layout)
-    UIVBox(Vec<Node>),       // Render children top-to-bottom (vertical layout)
+    UIHBox(Vec<Node>),   // Render children side-by-side (horizontal layout)
+    UIVBox(Vec<Node>),   // Render children top-to-bottom (vertical layout)
     UIFullscreen(Box<Node>), // Render children in a full-canvas borderless panel
     UIGrid(i64, String, Box<Node>), // Columns, ID, Body
     UIScrollArea(String, Box<Node>), // ID, Body for native scrolling view
@@ -214,8 +235,16 @@ pub enum Node {
     Block(Vec<Node>),
     Return(Box<Node>),
     Import(String),
-    AddWorldAABB { min: Box<Node>, max: Box<Node> },
-    CheckCollision { a_min: Box<Node>, a_max: Box<Node>, b_min: Box<Node>, b_max: Box<Node> },
+    AddWorldAABB {
+        min: Box<Node>,
+        max: Box<Node>,
+    },
+    CheckCollision {
+        a_min: Box<Node>,
+        a_max: Box<Node>,
+        b_min: Box<Node>,
+        b_max: Box<Node>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
