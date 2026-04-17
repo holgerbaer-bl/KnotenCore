@@ -54,6 +54,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Pure computation** (`Add`, `Sub`, `Mul`, `Div`, `While`, comparison ops) → **AOT path** — compiles to a flat opcode stream, executed by the Stack-VM with no allocations in the hot path.
 - **Side-effects & UI** (`ExternCall`, window ops, WGPU render, audio) → **JIT path** — evaluated by the Executor with full permission sandboxing.
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
+- **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) before they reach the runtime. Tracing output visible in the VS Code output channel.
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.
 
 ---

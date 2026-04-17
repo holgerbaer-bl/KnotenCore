@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.36] - Sprint 137: LSP Foundation (The Flash Protocol) (2026-04-17)
+Initializing `knoten_lsp` with `tower-lsp`. Starting the AI-DX (Developer Experience) phase — making the runtime "feelable" to both human developers and autonomous agents via Language Server Protocol.
+- **`src/bin/knoten_lsp.rs`** *(new)*: Full `tower-lsp` Language Server implementation. Implements `initialize`, `initialized`, `did_open`, `did_change`, `did_close` lifecycle handlers.
+- **OpCode-Aware Validation**: `KnotenBackend::validate_nod_document()` scans incoming `.nod` JSON documents for capitalised keys at depth ≤ 2 that are not in the canonical `KNOWN_OPCODES` list (sourced from `src/vm/opcode.rs`). Unknown nodes emit `ERR_UNKNOWN_NODE` warnings — preventing hallucinated instructions from silently passing into the runtime.
+- **JSON Parse Diagnostics**: Malformed JSON is caught before any tree walk and surfaces as an `ERR_JSON_PARSE` error at position 0:0.
+- **Structured Tracing**: All server lifecycle events, document opens, changes, and closures are logged via `tracing` to `stderr` — visible in the VS Code *Output → knoten-lsp* channel. Log level controlled via `RUST_LOG` env var.
+- **Dependencies**: `tower-lsp 0.20.0` (feature `runtime-tokio`), `tokio 1.44.2` (feature `full`), `tracing 0.1.44`, `tracing-subscriber 0.3.23` (feature `env-filter`). Tokio pinned to 1.44.2 to resolve `libc` conflict with `cpal 0.15.3`.
+- **`Cargo.toml`**: Added `[[bin]] name = "knoten_lsp"` entry.
+- **`README.md`**: Added `🔌 LSP Support (WIP)` feature section. Updated tooling table Phase 2 row. Added `src/bin/knoten_lsp.rs` to the Runtime Architecture module table.
+- **`llm.md`**: Architecture section updated — agents are informed the LSP validates their `.nod` output in real-time before it reaches the runtime.
+
 ## [v1.0.35] - Sprint 136: Identity Pivot (The Runtime Evolution) (2026-04-12)
 Redefines KnotenCore's public identity from a "3D scripting engine" to its true form: a **Deterministic AI-Native Execution Runtime**. This sprint is a documentation and framing rectification, not a code change — ensuring all external-facing and AI-facing documentation accurately reflects the engine's architectural reality.
 - **`README.md`**: Replaced all "3D engine" framing. New tagline: *"The Deterministic AI-Native Execution Runtime."* `What is KnotenCore?` now leads with the AOT compiler + Stack-VM + JSON-AST architecture. The WGPU subsystem is correctly identified as the **Physical Representation Layer**. `Engine Architecture` renamed to `Runtime Architecture` with an updated ASCII diagram showing the JIT/AOT fork explicitly. CI badge retained prominently.

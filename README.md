@@ -109,6 +109,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 | `src/vm/compiler.rs` | **AOT Compiler** — Transforms pure-computation AST subtrees into a flat opcode stream |
 | `src/vm/machine.rs` | **Stack-VM / ALU** — Executes flat bytecode at bare-metal speed; no GC, no allocations in the hot path |
 | `src/audio.rs` | **Audio Engine** — Thread-safe bare-metal sound pipeline via `rodio`; decoupled from the render loop |
+| `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` server exposing real-time `.nod` validation and OpCode-awareness to editors & agents |
 | `src/window.rs` | **Physical Representation Layer** — winit event-loop + WGPU rendering; receives `RenderCommand` messages from the executor |
 | `src/async_bridge.rs` | **Nervous System** — Non-blocking `Fetch` and `Extract` via background worker threads |
 
@@ -140,6 +141,13 @@ KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline 
 - **Zero-Latency Playback**: Fire-and-forget sound effects (`.wav`, `.ogg`) trigger instantaneously from bytecode instructions.
 - **Infinite Looping Sinks**: Decodes active background BGM loops alongside parallel positional sound channels naturally.
 - **Strictly Sandboxed FFI**: All `registry_play_sound` and `registry_loop_music` invocations implicitly demand `--allow-read` permissions and cross the `validate_fs_path` security border natively preventing path manipulation.
+
+### 🔌 LSP Support *(Work in Progress — Sprint 137)*
+KnotenCore ships a native **Language Server** (`knoten_lsp`) built on [`tower-lsp`](https://crates.io/crates/tower-lsp) and `tokio`:
+- **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys (capitalised identifiers not present in `src/vm/opcode.rs`). Unknown nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics — preventing hallucinated instructions from reaching the runtime.
+- **JSON Parse Errors**: Malformed JSON surfaces as `ERR_JSON_PARSE` with line/column info directly in the editor gutter.
+- **Structured Tracing**: All server events are logged to `stderr` via `tracing` — visible in the VS Code *Output → knoten-lsp* channel.
+- **Roadmap**: Hover docs, auto-complete for `registry_*` FFI calls, and `.nod` schema validation against `node_types.json`.
 
 ### ⚡ JIT & AOT Execution
 KnotenCore dynamically routes code to the most performant executor path:
@@ -314,7 +322,7 @@ KnotenCore ships with a first-party **VS Code Language Extension** in `tools/vsc
 | **Syntax Highlighting (`.nod`)** | Highlights KnotenCore opcode keys (`If`, `While`, `ExternCall`, `UIButton`, etc.) within JSON-AST files |
 | **Code Snippets** | `kc-window`, `kc-raycast`, `kc-uiwindow`, `kc-fn`, `kc-import`, `kc-while`, `kc-if`, `kc-aabb`, `kc-drawrect` |
 | **Bracket Matching** | Auto-close and auto-match for `{}`, `[]`, `()`, `""` |
-| **Phase 2 Roadmap** | Language Server Protocol (LSP) for diagnostics, hover docs, and auto-complete |
+| **LSP (WIP)** | `knoten_lsp` binary — real-time OpCode validation, `ERR_UNKNOWN_NODE` diagnostics, `ERR_JSON_PARSE` errors; hover & autocomplete on roadmap |
 
 **Quick install:** Copy `tools/vscode-knotencore/` to `~/.vscode/extensions/knotencore-0.1.0` and restart VS Code.
 See [`tools/vscode-knotencore/README.md`](tools/vscode-knotencore/README.md) for full installation and packaging instructions.
