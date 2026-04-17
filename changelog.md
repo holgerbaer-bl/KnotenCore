@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.41] - Sprint 142: Schema Validation (The Iron Shield) (2026-04-17)
+Upgrades the KnotenCore Language Server with deep structural validation for `.nod` AST files.
+- **`src/bin/knoten_lsp.rs`**:
+  - Implemented `validate_structure`: Enforces arity (min/max arguments) and JSON type rules for all core nodes (`If`, `While`, `Assign`, `FnDef`, etc.).
+  - New Error Codes: `ERR_INVALID_ARITY` for incorrect argument counts and `ERR_TYPE_MISMATCH` for literal type violations.
+  - Recursion: The validator now deeply scans the entire AST for structural integrity before execution.
+- **Improved AI-DX**: Agents are immediately informed if they generate malformed AST nodes (e.g., an `If` with 1 argument).
+
 ## [v1.0.40] - Sprint 141: The Marketplace (Final Polish) (2026-04-17)
 Professionalizing the KnotenCore VS Code extension for Marketplace distribution.
 - **`tools/vscode-knotencore/icon.png`**: Deployed a premium, AI-generated minimalist tech icon representing the KnotenCore node structure.

@@ -139,17 +139,24 @@ impl KnotenBackend {
                     .map(|c| c.is_ascii_uppercase())
                     .unwrap_or(false);
 
-                if looks_like_node && depth <= 2 && !self.known_opcodes.contains(key.as_str()) {
-                    diagnostics.push(Diagnostic {
-                        range: Range::new(Position::new(0, 0), Position::new(0, 1)),
-                        severity: Some(DiagnosticSeverity::WARNING),
-                        code: Some(NumberOrString::String("ERR_UNKNOWN_NODE".to_string())),
-                        source: Some("knoten-lsp".to_string()),
-                        message: format!(
-                            "Unknown KnotenCore node: \"{key}\". Hallucinated nodes are rejected at runtime."
-                        ),
-                        ..Default::default()
-                    });
+                if looks_like_node {
+                    if !self.known_opcodes.contains(key.as_str()) {
+                        if depth <= 2 {
+                            diagnostics.push(Diagnostic {
+                                range: Range::new(Position::new(0, 0), Position::new(0, 1)),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                code: Some(NumberOrString::String("ERR_UNKNOWN_NODE".to_string())),
+                                source: Some("knoten-lsp".to_string()),
+                                message: format!(
+                                    "Unknown KnotenCore node: \"{key}\". Hallucinated nodes are rejected at runtime."
+                                ),
+                                ..Default::default()
+                            });
+                        }
+                    } else {
+                        // Known node -> check structure
+                        self.validate_structure(key, child, diagnostics);
+                    }
                 }
                 self.collect_diagnostics(child, diagnostics, depth + 1);
             }
@@ -158,6 +165,177 @@ impl KnotenBackend {
                 self.collect_diagnostics(item, diagnostics, depth + 1);
             }
         }
+    }
+
+    fn validate_structure(
+        &self,
+        key: &str,
+        value: &serde_json::Value,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        match key {
+            "IntLiteral" => {
+                if !value.is_i64() && !value.is_u64() {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        &format!("IntLiteral must be an integer, found {value}"),
+                    );
+                }
+            }
+            "FloatLiteral" => {
+                if !value.is_f64() && !value.is_number() {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        &format!("FloatLiteral must be a number, found {value}"),
+                    );
+                }
+            }
+            "BoolLiteral" => {
+                if !value.is_boolean() {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        &format!("BoolLiteral must be a boolean, found {value}"),
+                    );
+                }
+            }
+            "StringLiteral" | "Identifier" | "Import" => {
+                if !value.is_string() {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        &format!("{key} must be a string, found {value}"),
+                    );
+                }
+            }
+            "If" => {
+                if let Some(arr) = value.as_array() {
+                    if arr.len() < 2 || arr.len() > 3 {
+                        self.push_error(
+                            diagnostics,
+                            "ERR_INVALID_ARITY",
+                            "If node requires [condition, then] or [condition, then, else]",
+                        );
+                    }
+                } else {
+                    self.push_error(diagnostics, "ERR_TYPE_MISMATCH", "If node must be an array");
+                }
+            }
+            "While" | "Add" | "Sub" | "Mul" | "Div" | "Lt" | "Gt" | "Eq" | "BitAnd"
+            | "BitShiftLeft" | "BitShiftRight" | "Concat" | "ArrayGet" | "ArrayPush" | "MapGet"
+            | "Call" | "NativeCall" => {
+                if let Some(arr) = value.as_array() {
+                    if arr.len() != 2 {
+                        self.push_error(
+                            diagnostics,
+                            "ERR_INVALID_ARITY",
+                            &format!("{key} node requires exactly 2 arguments"),
+                        );
+                    }
+                } else {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        &format!("{key} node must be an array"),
+                    );
+                }
+            }
+            "Assign" => {
+                if let Some(arr) = value.as_array() {
+                    if arr.len() != 2 {
+                        self.push_error(
+                            diagnostics,
+                            "ERR_INVALID_ARITY",
+                            "Assign node requires exactly 2 arguments [name:string, value:node]",
+                        );
+                    } else if !arr[0].is_string() {
+                        self.push_error(
+                            diagnostics,
+                            "ERR_TYPE_MISMATCH",
+                            "First argument of Assign must be a string (variable name)",
+                        );
+                    }
+                } else {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        "Assign node must be an array",
+                    );
+                }
+            }
+            "ArraySet" | "PropertySet" | "MapSet" | "UIWindow" | "UIGrid" | "InitWindow" => {
+                if let Some(arr) = value.as_array() {
+                    if arr.len() != 3 {
+                        self.push_error(
+                            diagnostics,
+                            "ERR_INVALID_ARITY",
+                            &format!("{key} node requires exactly 3 arguments"),
+                        );
+                    }
+                } else {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        &format!("{key} node must be an array"),
+                    );
+                }
+            }
+            "Block" | "ArrayCreate" | "UIHBox" | "UIVBox" => {
+                if !value.is_array() {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        &format!("{key} node must be an array of children"),
+                    );
+                }
+            }
+            "FnDef" => {
+                if let Some(arr) = value.as_array() {
+                    if arr.len() != 3 {
+                        self.push_error(
+                            diagnostics,
+                            "ERR_INVALID_ARITY",
+                            "FnDef node requires [name:string, params:[string...], body:node]",
+                        );
+                    } else {
+                        if !arr[0].is_string() {
+                            self.push_error(
+                                diagnostics,
+                                "ERR_TYPE_MISMATCH",
+                                "FnDef name must be a string",
+                            );
+                        }
+                        if !arr[1].is_array() {
+                            self.push_error(
+                                diagnostics,
+                                "ERR_TYPE_MISMATCH",
+                                "FnDef params must be an array of strings",
+                            );
+                        }
+                    }
+                } else {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        "FnDef node must be an array",
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn push_error(&self, diagnostics: &mut Vec<Diagnostic>, code: &str, message: &str) {
+        diagnostics.push(Diagnostic {
+            range: Range::new(Position::new(0, 0), Position::new(0, 1)),
+            severity: Some(DiagnosticSeverity::ERROR),
+            code: Some(NumberOrString::String(code.to_string())),
+            source: Some("knoten-lsp".to_string()),
+            message: message.to_string(),
+            ..Default::default()
+        });
     }
 
     fn get_word_at(&self, text: &str, position: Position) -> Option<String> {
