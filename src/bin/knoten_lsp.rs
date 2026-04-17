@@ -418,6 +418,7 @@ impl LanguageServer for KnotenBackend {
                     ..Default::default()
                 }),
                 definition_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -532,6 +533,85 @@ impl LanguageServer for KnotenBackend {
                     Position::new(def_pos.line, def_pos.character + word.len() as u32),
                 ),
             ))));
+        }
+
+        Ok(None)
+    }
+
+    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let uri = params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+        let new_name = params.new_name;
+
+        if let (Some(old_name), Some(doc_text)) = (
+            self.documents
+                .get(&uri)
+                .and_then(|t| self.get_word_at(&t, position)),
+            self.documents.get(&uri),
+        ) {
+            // Find all occurrences of "old_name" in the document
+            let mut edits = Vec::new();
+            let pattern = format!("\"{}\"", old_name);
+
+            let lines: Vec<&str> = doc_text.lines().collect();
+            for (i, line) in lines.iter().enumerate() {
+                let mut start = 0;
+                while let Some(pos) = line[start..].find(&pattern) {
+                    let absolute_start = start + pos + 1; // +1 to skip the opening quote
+                    let absolute_end = absolute_start + old_name.len();
+
+                    edits.push(TextEdit::new(
+                        Range::new(
+                            Position::new(i as u32, absolute_start as u32),
+                            Position::new(i as u32, absolute_end as u32),
+                        ),
+                        new_name.clone(),
+                    ));
+                    start = absolute_end;
+                }
+            }
+
+            let mut changes = HashMap::new();
+            changes.insert(uri, edits);
+            return Ok(Some(WorkspaceEdit {
+                changes: Some(changes),
+                ..Default::default()
+            }));
+        }
+
+        Ok(None)
+    }
+
+    async fn prepare_rename(
+        &self,
+        params: TextDocumentPositionParams,
+    ) -> Result<Option<PrepareRenameResponse>> {
+        let uri = params.text_document.uri;
+        let position = params.position;
+
+        if let Some(word) = self
+            .documents
+            .get(&uri)
+            .and_then(|doc_text| self.get_word_at(&doc_text, position))
+        {
+            // Check if the word is in our symbol table (it's a function we defined)
+            let is_symbol = self
+                .symbols
+                .get(&uri)
+                .map(|s| s.contains_key(&word))
+                .unwrap_or(false);
+            let is_call_target = word
+                .chars()
+                .next()
+                .map(|c| c.is_ascii_lowercase())
+                .unwrap_or(false);
+
+            if is_symbol || is_call_target {
+                return Ok(Some(PrepareRenameResponse::Range(Range::new(
+                    position,
+                    Position::new(position.line, position.character + word.len() as u32),
+                ))));
+            }
         }
 
         Ok(None)

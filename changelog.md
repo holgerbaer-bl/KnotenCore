@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.43] - Sprint 144: Rename Refactoring (2026-04-17)
+Introduces automated symbol refactoring for custom function names.
+- **`src/bin/knoten_lsp.rs`**:
+  - Implemented `rename`: Automatically identifies and updates all occurrences of a function name within the document. Generates a `WorkspaceEdit` for safe, multi-site updates.
+  - Implemented `prepare_rename`: Provides real-time validation to ensure only custom functions (and not core OpCodes) are eligible for renaming.
+  - High-Accuracy Search: Uses JSON-aware string matching (`"name"`) to target call sites and definitions while ignoring comments or partial matches.
+- **Improved AI-Readiness**: Agents can now safely refactor generated instruction streams to improve modularity and naming consistency.
+
 ## [v1.0.42] - Sprint 143: Symbol Navigation (Goto Definition) (2026-04-17)
 Enables seamless cross-reference navigation within KnotenCore `.nod` files.
 - **`src/bin/knoten_lsp.rs`**:
