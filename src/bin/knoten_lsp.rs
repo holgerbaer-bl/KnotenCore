@@ -213,41 +213,33 @@ impl KnotenBackend {
         uri: &Url,
     ) {
         match key {
-            "IntLiteral" => {
-                if !value.is_i64() && !value.is_u64() {
-                    self.push_error(
-                        diagnostics,
-                        "ERR_TYPE_MISMATCH",
-                        &format!("IntLiteral must be an integer, found {value}"),
-                    );
-                }
+            "IntLiteral" if !value.is_i64() && !value.is_u64() => {
+                self.push_error(
+                    diagnostics,
+                    "ERR_TYPE_MISMATCH",
+                    &format!("IntLiteral must be an integer, found {value}"),
+                );
             }
-            "FloatLiteral" => {
-                if !value.is_f64() && !value.is_number() {
-                    self.push_error(
-                        diagnostics,
-                        "ERR_TYPE_MISMATCH",
-                        &format!("FloatLiteral must be a number, found {value}"),
-                    );
-                }
+            "FloatLiteral" if !value.is_f64() && !value.is_number() => {
+                self.push_error(
+                    diagnostics,
+                    "ERR_TYPE_MISMATCH",
+                    &format!("FloatLiteral must be a number, found {value}"),
+                );
             }
-            "BoolLiteral" => {
-                if !value.is_boolean() {
-                    self.push_error(
-                        diagnostics,
-                        "ERR_TYPE_MISMATCH",
-                        &format!("BoolLiteral must be a boolean, found {value}"),
-                    );
-                }
+            "BoolLiteral" if !value.is_boolean() => {
+                self.push_error(
+                    diagnostics,
+                    "ERR_TYPE_MISMATCH",
+                    &format!("BoolLiteral must be a boolean, found {value}"),
+                );
             }
-            "StringLiteral" | "Identifier" => {
-                if !value.is_string() {
-                    self.push_error(
-                        diagnostics,
-                        "ERR_TYPE_MISMATCH",
-                        &format!("{key} must be a string, found {value}"),
-                    );
-                }
+            "StringLiteral" | "Identifier" if !value.is_string() => {
+                self.push_error(
+                    diagnostics,
+                    "ERR_TYPE_MISMATCH",
+                    &format!("{key} must be a string, found {value}"),
+                );
             }
             "Import" => {
                 if let Some(path_str) = value.as_str() {
