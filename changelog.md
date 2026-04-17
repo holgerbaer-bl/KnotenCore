@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.40] - Sprint 141: The Marketplace (Final Polish) (2026-04-17)
+Professionalizing the KnotenCore VS Code extension for Marketplace distribution.
+- **`tools/vscode-knotencore/icon.png`**: Deployed a premium, AI-generated minimalist tech icon representing the KnotenCore node structure.
+- **`tools/vscode-knotencore/package.json`**:
+  - Added `scripts` for `vsce package` and `vsce publish`.
+  - Updated metadata for professional Marketplace rendering.
+- **`tools/vscode-knotencore/README.md`**: Complete rewrite with professional badges, updated feature lists (LSP Hover/Completion), and distribution-ready formatting.
+- **`README.md`**: Updated roadmap to mark Marketplace Phase as "Active/Finalizing".
+
 ## [v1.0.39] - Sprint 140: Hover & Intel (LSP Enrichment) (2026-04-17)
 Enriches the KnotenCore Language Server with real-time documentation and intelligent code completion.
 - **`src/bin/knoten_lsp.rs`**:
