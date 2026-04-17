@@ -14,3 +14,8 @@ Cargo.lock
 *.log
 dummy_*.txt
 *_output.txt
+
+# Node / VS Code Extension
+node_modules/
+package-lock.json
+*.vsix
