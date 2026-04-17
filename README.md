@@ -142,13 +142,14 @@ KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline 
 - **Infinite Looping Sinks**: Decodes active background BGM loops alongside parallel positional sound channels naturally.
 - **Strictly Sandboxed FFI**: All `registry_play_sound` and `registry_loop_music` invocations implicitly demand `--allow-read` permissions and cross the `validate_fs_path` security border natively preventing path manipulation.
 
-### 🔌 LSP Support — Sprint 137/138
+### 🔌 LSP Support — Sprint 137/140
 KnotenCore provides real-time AI-DX via a native **Language Server** (`knoten_lsp`) and a first-party **VS Code Extension**:
-- **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys. Hallucinated nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics — providing immediate feedback to both humans and agents.
-- **VS Code Integration**: The extension in `tools/vscode-knotencore/` now automatically launches the LSP client, bringing diagnostics and tracing directly into the IDE gutter and output channel.
-- **JSON Parse Errors**: Malformed JSON surfaces as `ERR_JSON_PARSE` with precise coordinate info.
+- **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys. Hallucinated nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics.
+- **Hover Documentation**: Hovering over `registry_*` or `Call` function names displays full Markdown documentation, including parameters, return types, and descriptions — sourced directly from `native_functions.json`.
+- **Intelligent Completion**: Real-time suggestions for all native FFI functions and OpCodes, complete with summaries and module info.
+- **VS Code Integration**: The extension in `tools/vscode-knotencore/` automatically launches the LSP client with workspace-aware documentation paths.
 - **Tracing**: Full server lifecycle visibility via the *Output → knoten-lsp* channel.
-- **Roadmap**: Hover docs, auto-complete for `registry_*` FFI calls, and `.nod` schema validation.
+- **Roadmap**: `.nod` schema validation and deep AST analysis.
 
 ### ⚡ JIT & AOT Execution
 KnotenCore dynamically routes code to the most performant executor path:

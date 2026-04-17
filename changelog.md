@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.39] - Sprint 140: Hover & Intel (LSP Enrichment) (2026-04-17)
+Enriches the KnotenCore Language Server with real-time documentation and intelligent code completion.
+- **`src/bin/knoten_lsp.rs`**:
+  - Implemented `hover` handler: Displays Markdown cards for `registry_*` functions by parsing `native_functions.json`.
+  - Implemented `completion` handler: Provides real-time suggestions for all native functions and OpCodes.
+  - Added `DashMap` for thread-safe document synchronization.
+  - Added `--docs` CLI argument to locate the documentation registry.
+- **`tools/vscode-knotencore/extension.js`**: Updated to pass the workspace root via the `--docs` flag to the LSP server.
+- **`Cargo.toml`**: Added `dashmap` dependency.
+
 ## [v1.0.38] - Sprint 139: The Perfection Audit (Benchmark Sync) (2026-04-17)
 Finalizing the AI-Readiness transition by synchronizing the official benchmark documentation and technical audit report with the engine's current 100% compliance state.
 - **`benchmark/README.md`**: Leaderboard updated to **100% (20/20)** for the AG Baseline. Removed all "Known Engine Constraints" as the VM compiler now supports the full AST node set (Sprint 127).
@@ -25,8 +35,10 @@ Initializing `knoten_lsp` with `tower-lsp`. Starting the AI-DX (Developer Experi
 - **Structured Tracing**: All server lifecycle events, document opens, changes, and closures are logged via `tracing` to `stderr` — visible in the VS Code *Output → knoten-lsp* channel. Log level controlled via `RUST_LOG` env var.
 - **Dependencies**: `tower-lsp 0.20.0` (feature `runtime-tokio`), `tokio 1.44.2` (feature `full`), `tracing 0.1.44`, `tracing-subscriber 0.3.23` (feature `env-filter`). Tokio pinned to 1.44.2 to resolve `libc` conflict with `cpal 0.15.3`.
 - **`Cargo.toml`**: Added `[[bin]] name = "knoten_lsp"` entry.
-- **`README.md`**: Added `🔌 LSP Support (WIP)` feature section. Updated tooling table Phase 2 row. Added `src/bin/knoten_lsp.rs` to the Runtime Architecture module table.
+- **`README.md`**: Added `🔌 LSP Support — Sprint 137/140` feature section. Updated tooling table Phase 2 row. Added `src/bin/knoten_lsp.rs` to the Runtime Architecture module table.
 - **`llm.md`**: Architecture section updated — agents are informed the LSP validates their `.nod` output in real-time before it reaches the runtime.
+
+
 
 ## [v1.0.35] - Sprint 136: Identity Pivot (The Runtime Evolution) (2026-04-12)
 Redefines KnotenCore's public identity from a "3D scripting engine" to its true form: a **Deterministic AI-Native Execution Runtime**. This sprint is a documentation and framing rectification, not a code change — ensuring all external-facing and AI-facing documentation accurately reflects the engine's architectural reality.
