@@ -31,7 +31,10 @@
     "ai",
     "agent"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:knoten",
+    "onLanguage:nod"
+  ],
   "main": "./extension.js",
   "contributes": {
     "languages": [
@@ -78,5 +81,8 @@
       }
     ],
     "themes": []
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   }
 }
