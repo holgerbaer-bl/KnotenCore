@@ -2,6 +2,11 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.47] - Sprint 148: KNOTEN_SPEC.md final polish (2026-04-18)
+Fix: Sprint 148 - KNOTEN_SPEC.md final polish.
+ArrayLiteral corrected to ArrayCreate in DrawVoxelGrid example.
+Section 2.2 moved to correct position after Section 2.
+
 ## [v1.0.46] - Sprint 147: Truth Rectification (2026-04-18)
 Sprint 147: KNOTEN_SPEC.md rectified. Removed Bincode references, added Sprint 125 boolean operators, deprecated NativeCall legacy API, corrected all internal file references to Sprint 145 state. Spec now derives from `src/ast.rs` as single source of truth.
 
