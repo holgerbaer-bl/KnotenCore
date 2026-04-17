@@ -626,37 +626,37 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 let mut input = state.input.lock().unwrap();
                 input.mouse_left_down = element_state == winit::event::ElementState::Pressed;
             }
-            WindowEvent::Resized(physical_size) => {
-                if physical_size.width > 0 && physical_size.height > 0 {
-                    state.width = physical_size.width;
-                    state.height = physical_size.height;
-                    {
-                        let mut input = state.input.lock().unwrap();
-                        input.window_width = physical_size.width as f32;
-                        input.window_height = physical_size.height as f32;
-                    }
-                    // Sprint 86 FIX: mutate stored config and reconfigure — no hardcoded format
-                    state.config.width = physical_size.width;
-                    state.config.height = physical_size.height;
-                    state.surface.configure(&state.device, &state.config);
-
-                    let depth_texture = state.device.create_texture(&wgpu::TextureDescriptor {
-                        label: Some("Depth Texture"),
-                        size: wgpu::Extent3d {
-                            width: state.width,
-                            height: state.height,
-                            depth_or_array_layers: 1,
-                        },
-                        mip_level_count: 1,
-                        sample_count: 1,
-                        dimension: wgpu::TextureDimension::D2,
-                        format: wgpu::TextureFormat::Depth32Float,
-                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                        view_formats: &[],
-                    });
-                    state.depth_texture_view =
-                        depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+            WindowEvent::Resized(physical_size)
+                if physical_size.width > 0 && physical_size.height > 0 =>
+            {
+                state.width = physical_size.width;
+                state.height = physical_size.height;
+                {
+                    let mut input = state.input.lock().unwrap();
+                    input.window_width = physical_size.width as f32;
+                    input.window_height = physical_size.height as f32;
                 }
+                // Sprint 86 FIX: mutate stored config and reconfigure — no hardcoded format
+                state.config.width = physical_size.width;
+                state.config.height = physical_size.height;
+                state.surface.configure(&state.device, &state.config);
+
+                let depth_texture = state.device.create_texture(&wgpu::TextureDescriptor {
+                    label: Some("Depth Texture"),
+                    size: wgpu::Extent3d {
+                        width: state.width,
+                        height: state.height,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Depth32Float,
+                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                    view_formats: &[],
+                });
+                state.depth_texture_view =
+                    depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
             }
             WindowEvent::RedrawRequested => {
                 // Sprint 86: write a default view-proj only if no SetCamera has been received yet
