@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.44] - Sprint 145: Module Import Validation (2026-04-17)
+Adds project-aware diagnostics for referenced instruction modules.
+- **`src/bin/knoten_lsp.rs`**:
+  - Implemented Filesystem Validation: `Import` nodes are now checked for file existence relative to the current document.
+  - New Error Code: `ERR_MODULE_NOT_FOUND` flags missing `.nod` or `.knoten` files, preventing runtime loading failures.
+  - URI-Aware Diagnostics: Refactored `collect_diagnostics` and `validate_structure` to handle document locations for precise path resolution.
+- **Cross-Module Safety**: Ensures that complex, multi-file projects are structurally sound before execution.
+
 ## [v1.0.43] - Sprint 144: Rename Refactoring (2026-04-17)
 Introduces automated symbol refactoring for custom function names.
 - **`src/bin/knoten_lsp.rs`**:

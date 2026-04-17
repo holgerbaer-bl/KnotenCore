@@ -108,7 +108,8 @@ impl KnotenBackend {
 
         match serde_json::from_str::<serde_json::Value>(text) {
             Ok(json) => {
-                self.collect_diagnostics(&json, &mut diagnostics, 0);
+                self.index_symbols(uri.clone(), text);
+                self.collect_diagnostics(&json, &mut diagnostics, 0, &uri);
             }
             Err(e) => {
                 diagnostics.push(Diagnostic {
@@ -121,8 +122,6 @@ impl KnotenBackend {
                 });
             }
         }
-
-        self.index_symbols(uri.clone(), text);
 
         self.client
             .publish_diagnostics(uri, diagnostics, None)
@@ -168,6 +167,7 @@ impl KnotenBackend {
         value: &serde_json::Value,
         diagnostics: &mut Vec<Diagnostic>,
         depth: usize,
+        uri: &Url,
     ) {
         if let Some(obj) = value.as_object() {
             for (key, child) in obj {
@@ -193,14 +193,14 @@ impl KnotenBackend {
                         }
                     } else {
                         // Known node -> check structure
-                        self.validate_structure(key, child, diagnostics);
+                        self.validate_structure(key, child, diagnostics, uri);
                     }
                 }
-                self.collect_diagnostics(child, diagnostics, depth + 1);
+                self.collect_diagnostics(child, diagnostics, depth + 1, uri);
             }
         } else if let Some(arr) = value.as_array() {
             for item in arr {
-                self.collect_diagnostics(item, diagnostics, depth + 1);
+                self.collect_diagnostics(item, diagnostics, depth + 1, uri);
             }
         }
     }
@@ -210,6 +210,7 @@ impl KnotenBackend {
         key: &str,
         value: &serde_json::Value,
         diagnostics: &mut Vec<Diagnostic>,
+        uri: &Url,
     ) {
         match key {
             "IntLiteral" => {
@@ -239,12 +240,35 @@ impl KnotenBackend {
                     );
                 }
             }
-            "StringLiteral" | "Identifier" | "Import" => {
+            "StringLiteral" | "Identifier" => {
                 if !value.is_string() {
                     self.push_error(
                         diagnostics,
                         "ERR_TYPE_MISMATCH",
                         &format!("{key} must be a string, found {value}"),
+                    );
+                }
+            }
+            "Import" => {
+                if let Some(path_str) = value.as_str() {
+                    let missing = uri
+                        .to_file_path()
+                        .ok()
+                        .and_then(|fp| fp.parent().map(|p| p.join(path_str)))
+                        .map(|tp| !tp.exists())
+                        .unwrap_or(false);
+                    if missing {
+                        self.push_error(
+                            diagnostics,
+                            "ERR_MODULE_NOT_FOUND",
+                            &format!("Imported module not found: \"{path_str}\""),
+                        );
+                    }
+                } else {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        "Import must be a string path",
                     );
                 }
             }
@@ -440,7 +464,6 @@ impl LanguageServer for KnotenBackend {
         let uri = params.text_document.uri;
         let text = params.text_document.text;
         self.documents.insert(uri.clone(), text.clone());
-        self.index_symbols(uri.clone(), &text);
         self.validate_nod_document(uri, &text).await;
     }
 
@@ -449,7 +472,6 @@ impl LanguageServer for KnotenBackend {
         if let Some(change) = params.content_changes.into_iter().last() {
             let text = change.text;
             self.documents.insert(uri.clone(), text.clone());
-            self.index_symbols(uri.clone(), &text);
             self.validate_nod_document(uri, &text).await;
         }
     }
