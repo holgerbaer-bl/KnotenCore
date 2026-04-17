@@ -2,6 +2,19 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.46] - Sprint 147: Truth Rectification (2026-04-18)
+Sprint 147: KNOTEN_SPEC.md rectified. Removed Bincode references, added Sprint 125 boolean operators, deprecated NativeCall legacy API, corrected all internal file references to Sprint 145 state. Spec now derives from `src/ast.rs` as single source of truth.
+
+## [v1.0.45] - Sprint 146: Compute Shader Support (AI Acceleration) (2026-04-17)
+Enables massive parallel computing via WGPU Compute Shaders.
+- **`src/ast.rs` & `src/vm/opcode.rs`**:
+  - Added `LoadComputeShader` and `DispatchCompute` variants for high-level AST and low-level bytecode.
+- **`src/vm/machine.rs` & `src/vm/compiler.rs`**:
+  - Implemented VM and Compiler support to route compute tasks to the GPU.
+- **`src/natives/bridge.rs` & `src/natives/registry.rs`**:
+  - Integrated WGPU compute pipeline management. Agents can now compile WGSL shaders and dispatch workgroups with custom input buffers.
+- **AI-Native Performance**: Allows AI agents to leverage GPU acceleration for neural network inference and complex simulations.
+
 ## [v1.0.44] - Sprint 145: Module Import Validation (2026-04-17)
 Adds project-aware diagnostics for referenced instruction modules.
 - **`src/bin/knoten_lsp.rs`**:
