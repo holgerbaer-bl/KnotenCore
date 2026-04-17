@@ -1,58 +1,51 @@
-# KnotenCore — VS Code Language Extension
+# KnotenCore — VS Code Language Support ⚡
 
-Provides **syntax highlighting**, **bracket matching**, and **code snippets** for KnotenCore source files in Visual Studio Code.
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/holgerbaer-bl/KnotenCore)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI Status](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions)
 
-## Supported File Types
+Provides **advanced language support** for the KnotenCore AI-Native Execution Runtime. This extension bridges the gap between the bare-metal engine and your IDE, offering a premium development experience for both human architects and autonomous agents.
+
+## 🚀 Features
+
+### 🔌 Language Server (LSP) — Phase 2 & 3
+The native `knoten_lsp` server provides deep intelligence for `.nod` (AST) and `.knoten` (DSL) files:
+- **Real-time Diagnostics**: Catches `ERR_UNKNOWN_NODE` (hallucinated nodes) and `ERR_JSON_PARSE` immediately.
+- **Hover Documentation**: Hover over any `registry_*` or `Call` function to see full Markdown documentation, parameters, and return types sourced from the official engine registry.
+- **Intelligent Auto-completion**: Context-aware suggestions for all OpCodes and native FFI functions.
+- **Structural Tracing**: View server lifecycle and diagnostics in the *Output → knoten-lsp* channel.
+
+### 🎨 Semantic Highlighting
+- **Knoten DSL**: Full grammar for the neural scripting language, including hex literals, bitwise operators, and UI layout primitives.
+- **AST Nodes**: High-contrast highlighting for the full instruction set (`If`, `While`, `Assign`, `Constant`, etc.).
+- **Native FFI**: Specialized colors for namespaces like `registry.*`, `ui.*`, `fs.*`, and `sys.*`.
+
+### ⚡ Developer Productivity
+- **Code Snippets**: Instant boilerplate for window management, raycasting, and UI layout patterns (try `kc-window` or `kc-uiwindow`).
+- **Bracket Matching**: Intelligent pairing for `{}`, `[]`, and `()`.
+
+## 📂 Supported File Types
 
 | Extension | Language ID | Description |
 |-----------|-------------|-------------|
-| `.knoten` | `knoten` | KnotenCore Neural DSL — the human-readable scripting language |
-| `.nod`    | `nod`     | KnotenCore JSON-AST — serialized Abstract Syntax Tree programs |
+| `.knoten` | `knoten` | KnotenCore Neural DSL — Human-readable scripting |
+| `.nod`    | `nod`     | KnotenCore JSON-AST — Machine-executable instruction streams |
 
-## Features (Phase 1)
+## 🛠️ Installation
 
-- ✅ **Full syntax highlighting** for `.knoten` files:
-  - All AST node keywords (`If`, `While`, `Assign`, `Lte`, `Gte`, `NotEq`, `And`, `Or`, `Not`, ...)
-  - All `registry_*` FFI function calls (`registry_raycast_aabb`, `registry_get_mouse_ray`, ...)
-  - Namespaced module calls: `registry.*`, `ui.*`, `fs.*`, `sys.*`, `time.*`, etc.
-  - String literals, numeric literals (including `0xFF` hex), booleans
-  - Comment lines (`# comment`)
-  - Operators: `->`, `==`, `!=`, `<=`, `>=`, `&&`, `||`, `!`, bitwise ops
-  - UI node names: `UIWindow`, `UILabel`, `UIButton`, `UITextInput`, `UIHBox`, `UIVBox`, ...
-- ✅ **AST opcode highlighting** for `.nod` JSON-AST files
-- ✅ **Bracket matching & auto-close** for `{}`, `[]`, `()`
-- ✅ **Code snippets** for common patterns:
-  - `kc-window` — WGPU window + game loop
-  - `kc-raycast` — AABB raycast from mouse
-  - `kc-uiwindow` — egui UIWindow with button
-  - `kc-fn` — function definition
-  - `kc-import` — import statement
-  - `kc-while`, `kc-if` — control flow
-  - `kc-aabb` — register world AABB
-  - `kc-drawrect` — draw rect + label
+### Marketplace (Recommended)
+Install directly from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=knotencore.vscode-knotencore).
 
-## Installation (Local / Development)
+### Manual Installation
+1. Download the latest `.vsix` from the [Releases](https://github.com/holgerbaer-bl/KnotenCore/releases) page.
+2. Run: `code --install-extension vscode-knotencore-0.1.0.vsix`
 
-1. Copy the `tools/vscode-knotencore/` directory to your VS Code extensions folder:
-   - **Windows:** `%USERPROFILE%\.vscode\extensions\knotencore-0.1.0`
-   - **macOS/Linux:** `~/.vscode/extensions/knotencore-0.1.0`
-2. Restart VS Code.
-3. Open any `.knoten` or `.nod` file — highlighting activates automatically.
+## ⚙️ Configuration
+The extension automatically detects the `knoten_lsp` binary in your workspace `target` folders. To use a custom server path, ensure `knoten_lsp` is in your system `PATH`.
 
-### Install via VSIX (when packaged)
+## 🛡️ License
+Distributed under the **MIT License**. See `LICENSE` in the repository root for more information.
 
-```bash
-cd tools/vscode-knotencore
-npm install -g @vscode/vsce
-vsce package
-code --install-extension vscode-knotencore-0.1.0.vsix
-```
+---
+**KnotenCore** — *The Deterministic AI-Native Execution Runtime.*
 
-## Roadmap
-
-- **Phase 2** — Language Server Protocol (LSP): diagnostics, hover docs, go-to-definition
-- **Phase 3** — Marketplace publication & GitHub Linguist upstream submission
-
-## Contributing
-
-See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) in the repository root.

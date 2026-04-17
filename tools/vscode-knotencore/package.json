@@ -16,6 +16,10 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "scripts": {
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
   "categories": [
     "Programming Languages",
     "Snippets"
@@ -31,7 +35,10 @@
     "ai",
     "agent"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:knoten",
+    "onLanguage:nod"
+  ],
   "main": "./extension.js",
   "contributes": {
     "languages": [
@@ -78,5 +85,8 @@
       }
     ],
     "themes": []
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   }
 }
