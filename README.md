@@ -142,12 +142,13 @@ KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline 
 - **Infinite Looping Sinks**: Decodes active background BGM loops alongside parallel positional sound channels naturally.
 - **Strictly Sandboxed FFI**: All `registry_play_sound` and `registry_loop_music` invocations implicitly demand `--allow-read` permissions and cross the `validate_fs_path` security border natively preventing path manipulation.
 
-### 🔌 LSP Support *(Work in Progress — Sprint 137)*
-KnotenCore ships a native **Language Server** (`knoten_lsp`) built on [`tower-lsp`](https://crates.io/crates/tower-lsp) and `tokio`:
-- **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys (capitalised identifiers not present in `src/vm/opcode.rs`). Unknown nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics — preventing hallucinated instructions from reaching the runtime.
-- **JSON Parse Errors**: Malformed JSON surfaces as `ERR_JSON_PARSE` with line/column info directly in the editor gutter.
-- **Structured Tracing**: All server events are logged to `stderr` via `tracing` — visible in the VS Code *Output → knoten-lsp* channel.
-- **Roadmap**: Hover docs, auto-complete for `registry_*` FFI calls, and `.nod` schema validation against `node_types.json`.
+### 🔌 LSP Support — Sprint 137/138
+KnotenCore provides real-time AI-DX via a native **Language Server** (`knoten_lsp`) and a first-party **VS Code Extension**:
+- **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys. Hallucinated nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics — providing immediate feedback to both humans and agents.
+- **VS Code Integration**: The extension in `tools/vscode-knotencore/` now automatically launches the LSP client, bringing diagnostics and tracing directly into the IDE gutter and output channel.
+- **JSON Parse Errors**: Malformed JSON surfaces as `ERR_JSON_PARSE` with precise coordinate info.
+- **Tracing**: Full server lifecycle visibility via the *Output → knoten-lsp* channel.
+- **Roadmap**: Hover docs, auto-complete for `registry_*` FFI calls, and `.nod` schema validation.
 
 ### ⚡ JIT & AOT Execution
 KnotenCore dynamically routes code to the most performant executor path:
@@ -322,7 +323,7 @@ KnotenCore ships with a first-party **VS Code Language Extension** in `tools/vsc
 | **Syntax Highlighting (`.nod`)** | Highlights KnotenCore opcode keys (`If`, `While`, `ExternCall`, `UIButton`, etc.) within JSON-AST files |
 | **Code Snippets** | `kc-window`, `kc-raycast`, `kc-uiwindow`, `kc-fn`, `kc-import`, `kc-while`, `kc-if`, `kc-aabb`, `kc-drawrect` |
 | **Bracket Matching** | Auto-close and auto-match for `{}`, `[]`, `()`, `""` |
-| **LSP (WIP)** | `knoten_lsp` binary — real-time OpCode validation, `ERR_UNKNOWN_NODE` diagnostics, `ERR_JSON_PARSE` errors; hover & autocomplete on roadmap |
+| **LSP Integration** | ✅ `knoten_lsp` client active in VS Code — provides real-time OpCode validation & JSON diagnostics |
 
 **Quick install:** Copy `tools/vscode-knotencore/` to `~/.vscode/extensions/knotencore-0.1.0` and restart VS Code.
 See [`tools/vscode-knotencore/README.md`](tools/vscode-knotencore/README.md) for full installation and packaging instructions.

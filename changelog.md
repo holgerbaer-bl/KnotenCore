@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.37] - Sprint 138: The AI-DX Bridge (LSP Client Integration) (2026-04-17)
+Bridges the gap between the KnotenCore runtime and the developer's IDE by activating the Language Server Protocol (LSP) client in the VS Code extension. This provides real-time validation and diagnostics for `.nod` and `.knoten` files.
+- **`tools/vscode-knotencore/`**:
+  - **`extension.js`**: Implemented the LSP client using `vscode-languageclient`. Added path-detection heuristic to find the `knoten_lsp` binary in `target/debug` or `target/release`.
+  - **`package.json`**: Added `vscode-languageclient` dependency and configured `activationEvents` to trigger on `nod` and `knoten` languages.
+  - **`README.md`**: Updated to reflect Phase 2 activation and added installation/configuration instructions.
+- **`README.md`**: Promoted LSP support from "Work in Progress" to an active feature.
+- **`llm.md`**: Updated architecture section to reflect live LSP validation.
+
 ## [v1.0.36] - Sprint 137: LSP Foundation (The Flash Protocol) (2026-04-17)
 Initializing `knoten_lsp` with `tower-lsp`. Starting the AI-DX (Developer Experience) phase — making the runtime "feelable" to both human developers and autonomous agents via Language Server Protocol.
 - **`src/bin/knoten_lsp.rs`** *(new)*: Full `tower-lsp` Language Server implementation. Implements `initialize`, `initialized`, `did_open`, `did_change`, `did_close` lifecycle handlers.
