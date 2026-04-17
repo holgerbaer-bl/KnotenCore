@@ -89,6 +89,7 @@ struct KnotenBackend {
     known_opcodes: HashSet<&'static str>,
     registry: Arc<HashMap<String, NativeFuncDoc>>,
     documents: dashmap::DashMap<Url, String>,
+    symbols: dashmap::DashMap<Url, HashMap<String, Position>>,
 }
 
 impl KnotenBackend {
@@ -98,6 +99,7 @@ impl KnotenBackend {
             known_opcodes: KNOWN_OPCODES.iter().copied().collect(),
             registry: Arc::new(registry),
             documents: dashmap::DashMap::new(),
+            symbols: dashmap::DashMap::new(),
         }
     }
 
@@ -120,9 +122,45 @@ impl KnotenBackend {
             }
         }
 
+        self.index_symbols(uri.clone(), text);
+
         self.client
             .publish_diagnostics(uri, diagnostics, None)
             .await;
+    }
+
+    fn index_symbols(&self, uri: Url, text: &str) {
+        let mut map = HashMap::new();
+        // Regex to find "FnDef": ["FunctionName",
+        let re = regex::Regex::new(r#""FnDef":\s*\[\s*"([^"]+)""#).unwrap();
+
+        for cap in re.captures_iter(text) {
+            if let Some(name_match) = cap.get(1) {
+                let name = name_match.as_str().to_string();
+                let offset = name_match.start();
+
+                // Convert byte offset to Position
+                let mut line = 0;
+                let mut col = 0;
+                let mut current_offset = 0;
+
+                for c in text.chars() {
+                    if current_offset >= offset {
+                        break;
+                    }
+                    if c == '\n' {
+                        line += 1;
+                        col = 0;
+                    } else {
+                        col += 1;
+                    }
+                    current_offset += c.len_utf8();
+                }
+
+                map.insert(name, Position::new(line, col));
+            }
+        }
+        self.symbols.insert(uri, map);
     }
 
     fn collect_diagnostics(
@@ -376,9 +414,10 @@ impl LanguageServer for KnotenBackend {
                 )),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions {
-                    trigger_characters: Some(vec!["_".to_string(), "\"".to_string()]),
+                    trigger_characters: Some(vec![".".to_string(), "\"".to_string()]),
                     ..Default::default()
                 }),
+                definition_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -400,6 +439,7 @@ impl LanguageServer for KnotenBackend {
         let uri = params.text_document.uri;
         let text = params.text_document.text;
         self.documents.insert(uri.clone(), text.clone());
+        self.index_symbols(uri.clone(), &text);
         self.validate_nod_document(uri, &text).await;
     }
 
@@ -408,6 +448,7 @@ impl LanguageServer for KnotenBackend {
         if let Some(change) = params.content_changes.into_iter().last() {
             let text = change.text;
             self.documents.insert(uri.clone(), text.clone());
+            self.index_symbols(uri.clone(), &text);
             self.validate_nod_document(uri, &text).await;
         }
     }
@@ -415,6 +456,7 @@ impl LanguageServer for KnotenBackend {
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
         self.documents.remove(&uri);
+        self.symbols.remove(&uri);
         self.client.publish_diagnostics(uri, vec![], None).await;
     }
 
@@ -460,6 +502,36 @@ impl LanguageServer for KnotenBackend {
                 }),
                 range: None,
             }));
+        }
+
+        Ok(None)
+    }
+
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+
+        let word_opt = self
+            .documents
+            .get(&uri)
+            .and_then(|doc_text| self.get_word_at(&doc_text, position));
+        let def_pos_opt = word_opt.as_ref().and_then(|word| {
+            self.symbols
+                .get(&uri)
+                .and_then(|doc_symbols| doc_symbols.get(word).cloned())
+        });
+
+        if let (Some(word), Some(def_pos)) = (word_opt, def_pos_opt) {
+            return Ok(Some(GotoDefinitionResponse::Scalar(Location::new(
+                uri.clone(),
+                Range::new(
+                    def_pos,
+                    Position::new(def_pos.line, def_pos.character + word.len() as u32),
+                ),
+            ))));
         }
 
         Ok(None)

@@ -53,18 +53,11 @@ fn main() {
     let compile_start = Instant::now();
     let mut compiler = Compiler::new();
     if let Some(parent) = std::path::Path::new(file_path).parent()
-<<<<<<< HEAD
-        && !parent.as_os_str().is_empty() {
-            compiler.current_dir = parent.to_path_buf();
-        }
-    
-=======
         && !parent.as_os_str().is_empty()
     {
         compiler.current_dir = parent.to_path_buf();
     }
 
->>>>>>> 14f5611ef06f5473100ae9e6ff5f85240cb40a50
     if !compiler.compile_node(&ast) {
         eprintln!("\n[VM Crash] AST transpilation validation natively failed inline.");
         std::process::exit(1);

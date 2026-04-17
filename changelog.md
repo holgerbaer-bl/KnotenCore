@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.42] - Sprint 143: Symbol Navigation (Goto Definition) (2026-04-17)
+Enables seamless cross-reference navigation within KnotenCore `.nod` files.
+- **`src/bin/knoten_lsp.rs`**:
+  - Implemented `goto_definition`: Allows developers to jump from a `Call` node directly to the corresponding `FnDef` block.
+  - Regex-Based Indexing: Real-time scanning for `"FnDef": ["Name", ...]` patterns to build a document symbol table.
+  - Async Updates: Symbol indices are updated on every `did_open` and `did_change` event.
+- **`Cargo.toml`**: Added `regex` dependency.
+
 ## [v1.0.41] - Sprint 142: Schema Validation (The Iron Shield) (2026-04-17)
 Upgrades the KnotenCore Language Server with deep structural validation for `.nod` AST files.
 - **`src/bin/knoten_lsp.rs`**:

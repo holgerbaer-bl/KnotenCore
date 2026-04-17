@@ -1791,6 +1791,7 @@ dependencies = [
  "noise",
  "pollster",
  "rand 0.10.0",
+ "regex",
  "rodio",
  "serde",
  "serde_json",
