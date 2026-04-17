@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.38] - Sprint 139: The Perfection Audit (Benchmark Sync) (2026-04-17)
+Finalizing the AI-Readiness transition by synchronizing the official benchmark documentation and technical audit report with the engine's current 100% compliance state.
+- **`benchmark/README.md`**: Leaderboard updated to **100% (20/20)** for the AG Baseline. Removed all "Known Engine Constraints" as the VM compiler now supports the full AST node set (Sprint 127).
+- **`audit.md`**: Added sections 6 (AI-Readiness) and 7 (CI/LSP Compliance) to the formal audit report. Confirmed zero-warning status and real-time LSP validation.
+- **Verification**: Manually verified Task 05 (Arrays) and Task 14 (UI) compile and execute without faults via the AOT VM path.
+
 ## [v1.0.37] - Sprint 138: The AI-DX Bridge (LSP Client Integration) (2026-04-17)
 Bridges the gap between the KnotenCore runtime and the developer's IDE by activating the Language Server Protocol (LSP) client in the VS Code extension. This provides real-time validation and diagnostics for `.nod` and `.knoten` files.
 - **`tools/vscode-knotencore/`**:
