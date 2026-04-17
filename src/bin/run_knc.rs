@@ -219,11 +219,10 @@ fn run() {
         .stack_size(8 * 1024 * 1024)
         .spawn(move || {
             let mut compiler = knoten_core::vm::compiler::Compiler::new();
-            if let Some(parent) = std::path::Path::new(&file_path_clone).parent() {
-                if !parent.as_os_str().is_empty() {
+            if let Some(parent) = std::path::Path::new(&file_path_clone).parent()
+                && !parent.as_os_str().is_empty() {
                     compiler.current_dir = parent.to_path_buf();
                 }
-            }
             if !compiler.compile_node(&ast_for_thread) {
                 eprintln!("\n[VM Crash] AST transpilation validation natively failed inline.");
                 std::process::exit(1);

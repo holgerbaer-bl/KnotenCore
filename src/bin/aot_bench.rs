@@ -10,8 +10,8 @@ fn main() {
         let mut i: i64 = 0;
         let mut acc: i64 = 0;
         while i < 1_000_000 {
-            acc = acc + i;
-            i = i + 1;
+            acc += i;
+            i += 1;
         }
         let elapsed = registry::registry_elapsed_ms(timer);
         println!("{}", String::from("--- Result ---"));
