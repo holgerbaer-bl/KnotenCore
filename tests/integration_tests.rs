@@ -42,7 +42,8 @@ macro_rules! knoten_test {
                 knoten_core::executor::ExecResult::Value(knoten_core::executor::RelType::Void) => {
                     out.push_str("Return: void");
                 }
-                knoten_core::executor::ExecResult::Value(val) | knoten_core::executor::ExecResult::ReturnBlockInfo(val) => {
+                knoten_core::executor::ExecResult::Value(val)
+                | knoten_core::executor::ExecResult::ReturnBlockInfo(val) => {
                     let typ_name = match val {
                         knoten_core::executor::RelType::Int(_) => "i64",
                         knoten_core::executor::RelType::Float(_) => "f64",
@@ -99,7 +100,9 @@ macro_rules! knoten_test {
                                     format!("{} = {}", k, f)
                                 }
                             }
-                            knoten_core::executor::RelType::FnDef(_, _, _) => format!("{} = <fn>", k),
+                            knoten_core::executor::RelType::FnDef(_, _, _) => {
+                                format!("{} = <fn>", k)
+                            }
                             _ => format!("{} = {}", k, v),
                         }
                     })
@@ -178,7 +181,10 @@ knoten_test!(
 );
 knoten_test!(
     test_12_assign_float,
-    Node::Assign("pi".to_string(), Box::new(Node::FloatLiteral(std::f32::consts::PI as f64))),
+    Node::Assign(
+        "pi".to_string(),
+        Box::new(Node::FloatLiteral(std::f32::consts::PI as f64))
+    ),
     "Return: 3.1415927410125732 (f64), Memory: pi = 3.1415927410125732"
 );
 knoten_test!(

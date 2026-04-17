@@ -298,32 +298,61 @@ impl Validator {
             | Node::InitVoxelMap
             | Node::UIFillParent
             | Node::StopNote(_) => {}
-            Node::DrawRect { x, y, width, height, color } => {
+            Node::DrawRect {
+                x,
+                y,
+                width,
+                height,
+                color,
+            } => {
                 self.check_node(x);
                 self.check_node(y);
                 self.check_node(width);
                 self.check_node(height);
                 self.check_node(color);
             }
-            Node::UIFixed { width, height, body } => {
+            Node::UIFixed {
+                width,
+                height,
+                body,
+            } => {
                 self.check_node(width);
                 self.check_node(height);
                 self.check_node(body);
             }
             // Sprint 68: Native 3D/2D Render Scene Graph
-            Node::RenderCanvas { body } => { self.check_node(body); }
-            Node::Transform2D { x, y, rotation, scale, body } => {
+            Node::RenderCanvas { body } => {
+                self.check_node(body);
+            }
+            Node::Transform2D {
+                x,
+                y,
+                rotation,
+                scale,
+                body,
+            } => {
                 self.check_node(x);
                 self.check_node(y);
                 self.check_node(rotation);
                 self.check_node(scale);
                 self.check_node(body);
             }
-            Node::Sprite2D { texture_id, transform } => {
+            Node::Sprite2D {
+                texture_id,
+                transform,
+            } => {
                 self.check_node(texture_id);
                 self.check_node(transform);
             }
-            Node::Camera3D { pos_x, pos_y, pos_z, target_x, target_y, target_z, fov } => {
+            Node::Camera3D {
+                pos_x,
+                pos_y,
+                pos_z,
+                target_x,
+                target_y,
+                target_z,
+                fov,
+            } => {
                 self.check_node(pos_x);
                 self.check_node(pos_y);
                 self.check_node(pos_z);
@@ -332,11 +361,22 @@ impl Validator {
                 self.check_node(target_z);
                 self.check_node(fov);
             }
-            Node::Mesh3D { primitive, material } => {
+            Node::Mesh3D {
+                primitive,
+                material,
+            } => {
                 self.check_node(primitive);
                 self.check_node(material);
             }
-            Node::Material3D { r, g, b, a, metallic, roughness, texture_id } => {
+            Node::Material3D {
+                r,
+                g,
+                b,
+                a,
+                metallic,
+                roughness,
+                texture_id,
+            } => {
                 self.check_node(r);
                 self.check_node(g);
                 self.check_node(b);
@@ -347,7 +387,15 @@ impl Validator {
                     self.check_node(tid);
                 }
             }
-            Node::PointLight3D { x, y, z, r, g, b, intensity } => {
+            Node::PointLight3D {
+                x,
+                y,
+                z,
+                r,
+                g,
+                b,
+                intensity,
+            } => {
                 self.check_node(x);
                 self.check_node(y);
                 self.check_node(z);
@@ -356,7 +404,12 @@ impl Validator {
                 self.check_node(b);
                 self.check_node(intensity);
             }
-            Node::MeshInstance3D { mesh_id, transform, color_offset, pbr } => {
+            Node::MeshInstance3D {
+                mesh_id,
+                transform,
+                color_offset,
+                pbr,
+            } => {
                 self.check_node(mesh_id);
                 self.check_node(transform);
                 self.check_node(color_offset);
@@ -373,7 +426,12 @@ impl Validator {
                 self.check_node(mesh);
                 self.check_node(tex);
             }
-            Node::CheckCollision { a_min, a_max, b_min, b_max } => {
+            Node::CheckCollision {
+                a_min,
+                a_max,
+                b_min,
+                b_max,
+            } => {
                 self.check_node(a_min);
                 self.check_node(a_max);
                 self.check_node(b_min);

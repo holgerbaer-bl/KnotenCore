@@ -1,4 +1,4 @@
-use crate::natives::registry::{RenderCommand, RegistryWindowState, CachedMesh};
+use crate::natives::registry::{CachedMesh, RegistryWindowState, RenderCommand};
 use std::collections::HashMap;
 use std::sync::Arc;
 use winit::application::ApplicationHandler;
@@ -27,24 +27,41 @@ impl KnotenApp {
 
     fn handle_command(&mut self, event_loop: &ActiveEventLoop, cmd: RenderCommand) {
         match cmd {
-            RenderCommand::CreateWindow { id, title, width, height, input } => {
+            RenderCommand::CreateWindow {
+                id,
+                title,
+                width,
+                height,
+                input,
+            } => {
                 let window_attributes = WinitWindow::default_attributes()
                     .with_title(title)
                     .with_inner_size(winit::dpi::PhysicalSize::new(width, height));
-                
-                let window = Arc::new(event_loop.create_window(window_attributes).expect("Failed to create window"));
+
+                let window = Arc::new(
+                    event_loop
+                        .create_window(window_attributes)
+                        .expect("Failed to create window"),
+                );
                 let window_id = window.id();
                 self.window_id_map.insert(window_id, id);
 
                 // Initialize WGPU for this window
                 let instance = wgpu::Instance::default();
-                let surface = instance.create_surface(window.clone()).expect("Failed to create surface");
-                let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-                    compatible_surface: Some(&surface),
-                    ..Default::default()
-                })).expect("Failed to find adapter");
+                let surface = instance
+                    .create_surface(window.clone())
+                    .expect("Failed to create surface");
+                let adapter =
+                    pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+                        compatible_surface: Some(&surface),
+                        ..Default::default()
+                    }))
+                    .expect("Failed to find adapter");
 
-                let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default(), None)).expect("Failed to create device");
+                let (device, queue) = pollster::block_on(
+                    adapter.request_device(&wgpu::DeviceDescriptor::default(), None),
+                )
+                .expect("Failed to create device");
                 let device = Arc::new(device);
                 let queue = Arc::new(queue);
 
@@ -64,69 +81,99 @@ impl KnotenApp {
                 // Setup basic 3D pipeline (placeholder / simplified from registry.rs)
                 // In a real refactor, we'd move the pipeline setup code here.
                 // For brevity, I'm assuming we'll use a shared initialization helper.
-                
-                let camera_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: Some("Mesh3D Camera/Uniform BGL"),
-                    entries: &[
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 0,
-                            visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 1,
-                            visibility: wgpu::ShaderStages::FRAGMENT,
-                            ty: wgpu::BindingType::Texture { multisampled: false, view_dimension: wgpu::TextureViewDimension::D2, sample_type: wgpu::TextureSampleType::Float { filterable: true } },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 2,
-                            visibility: wgpu::ShaderStages::FRAGMENT,
-                            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 3,
-                            visibility: wgpu::ShaderStages::FRAGMENT,
-                            ty: wgpu::BindingType::Texture { multisampled: false, view_dimension: wgpu::TextureViewDimension::D2, sample_type: wgpu::TextureSampleType::Float { filterable: true } },
-                            count: None,
-                        },
-                    ],
-                });
-                let material_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: Some("Material BGL"),
-                    entries: &[
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 0,
-                            visibility: wgpu::ShaderStages::FRAGMENT,
-                            ty: wgpu::BindingType::Texture { multisampled: false, view_dimension: wgpu::TextureViewDimension::D2, sample_type: wgpu::TextureSampleType::Float { filterable: true } },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 1,
-                            visibility: wgpu::ShaderStages::FRAGMENT,
-                            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                            count: None,
-                        },
-                    ],
-                });
+
+                let camera_bgl =
+                    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                        label: Some("Mesh3D Camera/Uniform BGL"),
+                        entries: &[
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 0,
+                                visibility: wgpu::ShaderStages::VERTEX
+                                    | wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Buffer {
+                                    ty: wgpu::BufferBindingType::Uniform,
+                                    has_dynamic_offset: false,
+                                    min_binding_size: None,
+                                },
+                                count: None,
+                            },
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 1,
+                                visibility: wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Texture {
+                                    multisampled: false,
+                                    view_dimension: wgpu::TextureViewDimension::D2,
+                                    sample_type: wgpu::TextureSampleType::Float {
+                                        filterable: true,
+                                    },
+                                },
+                                count: None,
+                            },
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 2,
+                                visibility: wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                                count: None,
+                            },
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 3,
+                                visibility: wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Texture {
+                                    multisampled: false,
+                                    view_dimension: wgpu::TextureViewDimension::D2,
+                                    sample_type: wgpu::TextureSampleType::Float {
+                                        filterable: true,
+                                    },
+                                },
+                                count: None,
+                            },
+                        ],
+                    });
+                let material_bgl =
+                    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                        label: Some("Material BGL"),
+                        entries: &[
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 0,
+                                visibility: wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Texture {
+                                    multisampled: false,
+                                    view_dimension: wgpu::TextureViewDimension::D2,
+                                    sample_type: wgpu::TextureSampleType::Float {
+                                        filterable: true,
+                                    },
+                                },
+                                count: None,
+                            },
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 1,
+                                visibility: wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                                count: None,
+                            },
+                        ],
+                    });
 
                 let model_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                     label: Some("Model BGL"),
                     entries: &[wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None },
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
                         count: None,
                     }],
                 });
 
-                let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("Main Pipeline Layout"),
-                    bind_group_layouts: &[&camera_bgl, &material_bgl, &model_bgl],
-                    push_constant_ranges: &[],
-                });
+                let pipeline_layout =
+                    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                        label: Some("Main Pipeline Layout"),
+                        bind_group_layouts: &[&camera_bgl, &material_bgl, &model_bgl],
+                        push_constant_ranges: &[],
+                    });
 
                 let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("Mesh3D Blinn-Phong Shader"),
@@ -142,24 +189,64 @@ impl KnotenApp {
                         buffers: &[
                             wgpu::VertexBufferLayout {
                                 // RegistryVertex = [f32;3] position + [f32;3] normal + [f32;2] tex_coords = 32 bytes
-                                array_stride: std::mem::size_of::<crate::natives::registry::RegistryVertex>() as wgpu::BufferAddress,
+                                array_stride: std::mem::size_of::<
+                                    crate::natives::registry::RegistryVertex,
+                                >()
+                                    as wgpu::BufferAddress,
                                 step_mode: wgpu::VertexStepMode::Vertex,
                                 attributes: &[
-                                    wgpu::VertexAttribute { offset: 0,  shader_location: 0, format: wgpu::VertexFormat::Float32x3 }, // position
-                                    wgpu::VertexAttribute { offset: 12, shader_location: 1, format: wgpu::VertexFormat::Float32x3 }, // normal
-                                    wgpu::VertexAttribute { offset: 24, shader_location: 2, format: wgpu::VertexFormat::Float32x2 }, // uv
+                                    wgpu::VertexAttribute {
+                                        offset: 0,
+                                        shader_location: 0,
+                                        format: wgpu::VertexFormat::Float32x3,
+                                    }, // position
+                                    wgpu::VertexAttribute {
+                                        offset: 12,
+                                        shader_location: 1,
+                                        format: wgpu::VertexFormat::Float32x3,
+                                    }, // normal
+                                    wgpu::VertexAttribute {
+                                        offset: 24,
+                                        shader_location: 2,
+                                        format: wgpu::VertexFormat::Float32x2,
+                                    }, // uv
                                 ],
                             },
                             wgpu::VertexBufferLayout {
-                                array_stride: std::mem::size_of::<crate::executor::InstanceData>() as wgpu::BufferAddress,
+                                array_stride: std::mem::size_of::<crate::executor::InstanceData>()
+                                    as wgpu::BufferAddress,
                                 step_mode: wgpu::VertexStepMode::Instance,
                                 attributes: &[
-                                    wgpu::VertexAttribute { offset: 0,  shader_location: 3, format: wgpu::VertexFormat::Float32x4 },
-                                    wgpu::VertexAttribute { offset: 16, shader_location: 4, format: wgpu::VertexFormat::Float32x4 },
-                                    wgpu::VertexAttribute { offset: 32, shader_location: 5, format: wgpu::VertexFormat::Float32x4 },
-                                    wgpu::VertexAttribute { offset: 48, shader_location: 6, format: wgpu::VertexFormat::Float32x4 },
-                                    wgpu::VertexAttribute { offset: 64, shader_location: 7, format: wgpu::VertexFormat::Float32x4 },
-                                    wgpu::VertexAttribute { offset: 80, shader_location: 8, format: wgpu::VertexFormat::Float32x4 },
+                                    wgpu::VertexAttribute {
+                                        offset: 0,
+                                        shader_location: 3,
+                                        format: wgpu::VertexFormat::Float32x4,
+                                    },
+                                    wgpu::VertexAttribute {
+                                        offset: 16,
+                                        shader_location: 4,
+                                        format: wgpu::VertexFormat::Float32x4,
+                                    },
+                                    wgpu::VertexAttribute {
+                                        offset: 32,
+                                        shader_location: 5,
+                                        format: wgpu::VertexFormat::Float32x4,
+                                    },
+                                    wgpu::VertexAttribute {
+                                        offset: 48,
+                                        shader_location: 6,
+                                        format: wgpu::VertexFormat::Float32x4,
+                                    },
+                                    wgpu::VertexAttribute {
+                                        offset: 64,
+                                        shader_location: 7,
+                                        format: wgpu::VertexFormat::Float32x4,
+                                    },
+                                    wgpu::VertexAttribute {
+                                        offset: 80,
+                                        shader_location: 8,
+                                        format: wgpu::VertexFormat::Float32x4,
+                                    },
                                 ],
                             },
                         ],
@@ -168,14 +255,18 @@ impl KnotenApp {
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
                         entry_point: Some("fs_main"),
-                        targets: &[Some(wgpu::ColorTargetState { format: config.format, blend: Some(wgpu::BlendState::ALPHA_BLENDING), write_mask: wgpu::ColorWrites::ALL })],
+                        targets: &[Some(wgpu::ColorTargetState {
+                            format: config.format,
+                            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                            write_mask: wgpu::ColorWrites::ALL,
+                        })],
                         compilation_options: Default::default(),
                     }),
-                    primitive: wgpu::PrimitiveState { 
+                    primitive: wgpu::PrimitiveState {
                         topology: wgpu::PrimitiveTopology::TriangleList,
                         front_face: wgpu::FrontFace::Ccw,
                         cull_mode: Some(wgpu::Face::Back),
-                        ..Default::default() 
+                        ..Default::default()
                     },
                     depth_stencil: Some(wgpu::DepthStencilState {
                         format: wgpu::TextureFormat::Depth32Float,
@@ -191,30 +282,57 @@ impl KnotenApp {
 
                 let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
                     label: Some("Depth Texture"),
-                    size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
-                    mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2,
+                    size: wgpu::Extent3d {
+                        width,
+                        height,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
                     format: wgpu::TextureFormat::Depth32Float,
                     usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                     view_formats: &[],
                 });
-                let depth_texture_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                let depth_texture_view =
+                    depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
                 // Sprint 85: create default 1x1 white texture first — needed by camera_bind_group entries 1/2/3
                 let default_texture = device.create_texture(&wgpu::TextureDescriptor {
                     label: Some("Default Texture"),
-                    size: wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
-                    mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2,
+                    size: wgpu::Extent3d {
+                        width: 1,
+                        height: 1,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
                     format: wgpu::TextureFormat::Rgba8UnormSrgb,
                     usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
                     view_formats: &[],
                 });
                 queue.write_texture(
-                    wgpu::ImageCopyTexture { texture: &default_texture, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
+                    wgpu::ImageCopyTexture {
+                        texture: &default_texture,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d::ZERO,
+                        aspect: wgpu::TextureAspect::All,
+                    },
                     &[255, 255, 255, 255],
-                    wgpu::ImageDataLayout { offset: 0, bytes_per_row: Some(4), rows_per_image: Some(1) },
-                    wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+                    wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row: Some(4),
+                        rows_per_image: Some(1),
+                    },
+                    wgpu::Extent3d {
+                        width: 1,
+                        height: 1,
+                        depth_or_array_layers: 1,
+                    },
                 );
-                let default_view = default_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                let default_view =
+                    default_texture.create_view(&wgpu::TextureViewDescriptor::default());
                 let default_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
 
                 // Sprint 85: MeshUniforms: mat4(64) + vec4 material(16) + vec4 pbr(16) + vec4 camera_pos(16) + 4×PointLight(32×4=128) = 240 bytes
@@ -230,10 +348,22 @@ impl KnotenApp {
                     label: Some("Camera Bind Group"),
                     layout: &camera_bgl,
                     entries: &[
-                        wgpu::BindGroupEntry { binding: 0, resource: camera_buffer.as_entire_binding() },
-                        wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&default_view) },
-                        wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&default_sampler) },
-                        wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&default_view) },
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: camera_buffer.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: wgpu::BindingResource::TextureView(&default_view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: wgpu::BindingResource::Sampler(&default_sampler),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 3,
+                            resource: wgpu::BindingResource::TextureView(&default_view),
+                        },
                     ],
                 });
 
@@ -254,14 +384,21 @@ impl KnotenApp {
                 });
 
                 // Default material bind group (material BGL has only binding 0/1 = texture/sampler)
-                let default_texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some("Default Material Bind Group"),
-                    layout: &material_bgl,
-                    entries: &[
-                        wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&default_view) },
-                        wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&default_sampler) },
-                    ],
-                });
+                let default_texture_bind_group =
+                    device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: Some("Default Material Bind Group"),
+                        layout: &material_bgl,
+                        entries: &[
+                            wgpu::BindGroupEntry {
+                                binding: 0,
+                                resource: wgpu::BindingResource::TextureView(&default_view),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 1,
+                                resource: wgpu::BindingResource::Sampler(&default_sampler),
+                            },
+                        ],
+                    });
 
                 // We use the input directly provided by the registry instead of making a new one
 
@@ -274,46 +411,43 @@ impl KnotenApp {
                     &window,
                     Some(window.scale_factor() as f32),
                     None,
-                    None
-                );
-                let egui_renderer = egui_wgpu::Renderer::new(
-                    &device,
-                    config.format,
                     None,
-                    1,
-                    false
                 );
+                let egui_renderer =
+                    egui_wgpu::Renderer::new(&device, config.format, None, 1, false);
 
-                self.windows.insert(id, RegistryWindowState {
-                    window,
-                    input,
-                    surface,
-                    surface_format: config.format,
-                    config, // Sprint 86: store full config for resize handler
-                    device,
-                    queue,
-                    pipeline,
-                    width,
-                    height,
-                    clear_color: wgpu::Color::BLACK,
-                    current_texture: None,
-                    current_view: None,
-                    encoder: None,
-                    depth_texture_view,
-                    camera_buffer,
-                    camera_bind_group,
-                    model_buffer,
-                    model_bind_group,
-                    geometry_cache: HashMap::new(),
-                    texture_cache: HashMap::new(),
-                    default_texture_bind_group,
-                    commands: Vec::new(),
-                    egui_ctx,
-                    egui_state,
-                    egui_renderer,
-                    ui_tree: Vec::new(),
-                });
-
+                self.windows.insert(
+                    id,
+                    RegistryWindowState {
+                        window,
+                        input,
+                        surface,
+                        surface_format: config.format,
+                        config, // Sprint 86: store full config for resize handler
+                        device,
+                        queue,
+                        pipeline,
+                        width,
+                        height,
+                        clear_color: wgpu::Color::BLACK,
+                        current_texture: None,
+                        current_view: None,
+                        encoder: None,
+                        depth_texture_view,
+                        camera_buffer,
+                        camera_bind_group,
+                        model_buffer,
+                        model_bind_group,
+                        geometry_cache: HashMap::new(),
+                        texture_cache: HashMap::new(),
+                        default_texture_bind_group,
+                        commands: Vec::new(),
+                        egui_ctx,
+                        egui_state,
+                        egui_renderer,
+                        ui_tree: Vec::new(),
+                    },
+                );
             }
             RenderCommand::UpdateWindow(id) => {
                 if let Some(state) = self.windows.get_mut(&id) {
@@ -332,31 +466,47 @@ impl KnotenApp {
                     event_loop.exit();
                 }
             }
-            RenderCommand::AddMesh { name, vertices, indices } => {
+            RenderCommand::AddMesh {
+                name,
+                vertices,
+                indices,
+            } => {
                 for state in self.windows.values_mut() {
                     use wgpu::util::DeviceExt;
-                    let vertex_buffer = state.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some(&format!("Mesh {} VBO", name)),
-                        contents: bytemuck::cast_slice(&vertices),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    });
-                    let index_buffer = state.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some(&format!("Mesh {} IBO", name)),
-                        contents: bytemuck::cast_slice(&indices),
-                        usage: wgpu::BufferUsages::INDEX,
-                    });
-                    state.geometry_cache.insert(name.clone(), CachedMesh {
-                        vertex_buffer,
-                        index_buffer,
-                        index_count: indices.len() as u32,
-                    });
+                    let vertex_buffer =
+                        state
+                            .device
+                            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                                label: Some(&format!("Mesh {} VBO", name)),
+                                contents: bytemuck::cast_slice(&vertices),
+                                usage: wgpu::BufferUsages::VERTEX,
+                            });
+                    let index_buffer =
+                        state
+                            .device
+                            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                                label: Some(&format!("Mesh {} IBO", name)),
+                                contents: bytemuck::cast_slice(&indices),
+                                usage: wgpu::BufferUsages::INDEX,
+                            });
+                    state.geometry_cache.insert(
+                        name.clone(),
+                        CachedMesh {
+                            vertex_buffer,
+                            index_buffer,
+                            index_count: indices.len() as u32,
+                        },
+                    );
                 }
             }
             RenderCommand::ExitEventLoop => {
                 event_loop.exit();
             }
             // Sprint 86: SetCamera — write the view-proj matrix to the per-window camera UBO
-            RenderCommand::SetCamera { window_id, view_proj } => {
+            RenderCommand::SetCamera {
+                window_id,
+                view_proj,
+            } => {
                 // If window_id == 0, broadcast to all windows (legacy 4-arg call)
                 if window_id == 0 {
                     for state in self.windows.values_mut() {
@@ -402,7 +552,12 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
         self.handle_command(event_loop, cmd);
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        window_id: WindowId,
+        event: WindowEvent,
+    ) {
         let registry_id = match self.window_id_map.get(&window_id) {
             Some(&id) => id,
             None => return,
@@ -416,7 +571,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
         // Feed egui
         let egui_response = state.egui_state.on_window_event(&state.window, &event);
         if egui_response.consumed {
-            // Egui consumed this event, you might want to early-return for certain events 
+            // Egui consumed this event, you might want to early-return for certain events
             // if you don't want 3D logic to also process them. For now, we continue.
         }
 
@@ -453,7 +608,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     if let Some(idx) = key_idx {
                         crate::natives::registry::GLOBAL_KEYS[idx].store(
                             key_ev.state == winit::event::ElementState::Pressed,
-                            std::sync::atomic::Ordering::Relaxed
+                            std::sync::atomic::Ordering::Relaxed,
                         );
                     }
                 }
@@ -463,34 +618,45 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 input.mouse_x = position.x as f32;
                 input.mouse_y = position.y as f32;
             }
-            WindowEvent::MouseInput { state: element_state, button: winit::event::MouseButton::Left, .. } => {
+            WindowEvent::MouseInput {
+                state: element_state,
+                button: winit::event::MouseButton::Left,
+                ..
+            } => {
                 let mut input = state.input.lock().unwrap();
                 input.mouse_left_down = element_state == winit::event::ElementState::Pressed;
             }
-            WindowEvent::Resized(physical_size) => {
-                if physical_size.width > 0 && physical_size.height > 0 {
-                    state.width  = physical_size.width;
-                    state.height = physical_size.height;
-                    {
-                        let mut input = state.input.lock().unwrap();
-                        input.window_width = physical_size.width as f32;
-                        input.window_height = physical_size.height as f32;
-                    }
-                    // Sprint 86 FIX: mutate stored config and reconfigure — no hardcoded format
-                    state.config.width  = physical_size.width;
-                    state.config.height = physical_size.height;
-                    state.surface.configure(&state.device, &state.config);
-
-                    let depth_texture = state.device.create_texture(&wgpu::TextureDescriptor {
-                        label: Some("Depth Texture"),
-                        size: wgpu::Extent3d { width: state.width, height: state.height, depth_or_array_layers: 1 },
-                        mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2,
-                        format: wgpu::TextureFormat::Depth32Float,
-                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                        view_formats: &[],
-                    });
-                    state.depth_texture_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+            WindowEvent::Resized(physical_size)
+                if physical_size.width > 0 && physical_size.height > 0 =>
+            {
+                state.width = physical_size.width;
+                state.height = physical_size.height;
+                {
+                    let mut input = state.input.lock().unwrap();
+                    input.window_width = physical_size.width as f32;
+                    input.window_height = physical_size.height as f32;
                 }
+                // Sprint 86 FIX: mutate stored config and reconfigure — no hardcoded format
+                state.config.width = physical_size.width;
+                state.config.height = physical_size.height;
+                state.surface.configure(&state.device, &state.config);
+
+                let depth_texture = state.device.create_texture(&wgpu::TextureDescriptor {
+                    label: Some("Depth Texture"),
+                    size: wgpu::Extent3d {
+                        width: state.width,
+                        height: state.height,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Depth32Float,
+                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                    view_formats: &[],
+                });
+                state.depth_texture_view =
+                    depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
             }
             WindowEvent::RedrawRequested => {
                 // Sprint 86: write a default view-proj only if no SetCamera has been received yet
@@ -505,7 +671,11 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 let view_proj = proj * view;
                 // Write the 64-byte view_proj into the camera UBO at offset 0.
                 // If the script already called registry_set_camera_for_window, it overwrites this.
-                state.queue.write_buffer(&state.camera_buffer, 0, bytemuck::cast_slice(&view_proj.to_cols_array()));
+                state.queue.write_buffer(
+                    &state.camera_buffer,
+                    0,
+                    bytemuck::cast_slice(&view_proj.to_cols_array()),
+                );
                 {
                     let mut input = state.input.lock().unwrap();
                     input.view_proj = view_proj.to_cols_array_2d();
@@ -519,11 +689,17 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                         return;
                     }
                     Err(wgpu::SurfaceError::Timeout) => return,
-                    Err(wgpu::SurfaceError::OutOfMemory) => panic!("Out of memory when acquiring WGPU surface"),
+                    Err(wgpu::SurfaceError::OutOfMemory) => {
+                        panic!("Out of memory when acquiring WGPU surface")
+                    }
                 };
-                let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-                let mut encoder = state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-                
+                let view = output
+                    .texture
+                    .create_view(&wgpu::TextureViewDescriptor::default());
+                let mut encoder = state
+                    .device
+                    .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
                 let raw_input = state.egui_state.take_egui_input(&state.window);
                 state.egui_ctx.begin_pass(raw_input);
 
@@ -543,19 +719,26 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     ..
                 } = state.egui_ctx.end_pass();
 
-                state.egui_state.handle_platform_output(&state.window, platform_output);
+                state
+                    .egui_state
+                    .handle_platform_output(&state.window, platform_output);
                 let paint_jobs = state.egui_ctx.tessellate(shapes, pixels_per_point);
 
                 // Update Egui Textures & Buffers
                 for (id, image_delta) in &textures_delta.set {
-                    state.egui_renderer.update_texture(&state.device, &state.queue, *id, image_delta);
+                    state.egui_renderer.update_texture(
+                        &state.device,
+                        &state.queue,
+                        *id,
+                        image_delta,
+                    );
                 }
-                
+
                 let screen_desc = egui_wgpu::ScreenDescriptor {
                     size_in_pixels: [state.config.width, state.config.height],
                     pixels_per_point,
                 };
-                
+
                 state.egui_renderer.update_buffers(
                     &state.device,
                     &state.queue,
@@ -580,7 +763,10 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                         })],
                         depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                             view: &state.depth_texture_view,
-                            depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }),
+                            depth_ops: Some(wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(1.0),
+                                store: wgpu::StoreOp::Store,
+                            }),
                             stencil_ops: None,
                         }),
                         timestamp_writes: None,
@@ -592,19 +778,48 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
 
                     for cmd in frame_cmds {
                         let (mesh_name, texture_id, transform) = match &cmd {
-                            RenderCommand::DrawSphere { rings, sectors, texture_id, x, y, z, radius, .. } => {
+                            RenderCommand::DrawSphere {
+                                rings,
+                                sectors,
+                                texture_id,
+                                x,
+                                y,
+                                z,
+                                radius,
+                                ..
+                            } => {
                                 let t = glam::Mat4::from_translation(glam::Vec3::new(*x, *y, *z));
                                 let s = glam::Mat4::from_scale(glam::Vec3::splat(*radius));
                                 (format!("sphere_{}_{}", rings, sectors), *texture_id, t * s)
                             }
-                            RenderCommand::DrawCube { texture_id, x, y, z, w, h, d, .. } => {
+                            RenderCommand::DrawCube {
+                                texture_id,
+                                x,
+                                y,
+                                z,
+                                w,
+                                h,
+                                d,
+                                ..
+                            } => {
                                 let t = glam::Mat4::from_translation(glam::Vec3::new(*x, *y, *z));
                                 let s = glam::Mat4::from_scale(glam::Vec3::new(*w, *h, *d));
                                 ("cube".to_string(), *texture_id, t * s)
                             }
-                            RenderCommand::DrawCylinder { segments, texture_id, x, y, z, radius, height, .. } => {
+                            RenderCommand::DrawCylinder {
+                                segments,
+                                texture_id,
+                                x,
+                                y,
+                                z,
+                                radius,
+                                height,
+                                ..
+                            } => {
                                 let t = glam::Mat4::from_translation(glam::Vec3::new(*x, *y, *z));
-                                let s = glam::Mat4::from_scale(glam::Vec3::new(*radius, *height, *radius));
+                                let s = glam::Mat4::from_scale(glam::Vec3::new(
+                                    *radius, *height, *radius,
+                                ));
                                 (format!("cylinder_{}", segments), *texture_id, t * s)
                             }
                             _ => continue,
@@ -612,33 +827,50 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
 
                         if let Some(mesh) = state.geometry_cache.get(&mesh_name) {
                             // Update model matrix
-                            state.queue.write_buffer(&state.model_buffer, 0, bytemuck::cast_slice(&transform.to_cols_array()));
+                            state.queue.write_buffer(
+                                &state.model_buffer,
+                                0,
+                                bytemuck::cast_slice(&transform.to_cols_array()),
+                            );
 
                             rpass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-                            rpass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-                            
-                            let mat_bg = state.texture_cache.get(&texture_id).unwrap_or(&state.default_texture_bind_group);
+                            rpass.set_index_buffer(
+                                mesh.index_buffer.slice(..),
+                                wgpu::IndexFormat::Uint32,
+                            );
+
+                            let mat_bg = state
+                                .texture_cache
+                                .get(&texture_id)
+                                .unwrap_or(&state.default_texture_bind_group);
                             rpass.set_bind_group(1, mat_bg, &[]);
                             rpass.set_bind_group(2, &state.model_bind_group, &[]);
-                            
+
                             rpass.draw_indexed(0..mesh.index_count, 0, 0..1);
                         }
                     }
                 }
 
                 // Render Egui directly onto the screen (load, don't clear)
-                let mut egui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Egui UI Pass"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &view,
-                        resolve_target: None,
-                        ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                }).forget_lifetime();
-                state.egui_renderer.render(&mut egui_pass, &paint_jobs, &screen_desc);
+                let mut egui_pass = encoder
+                    .begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("Egui UI Pass"),
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view: &view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: wgpu::StoreOp::Store,
+                            },
+                        })],
+                        depth_stencil_attachment: None,
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
+                    })
+                    .forget_lifetime();
+                state
+                    .egui_renderer
+                    .render(&mut egui_pass, &paint_jobs, &screen_desc);
                 drop(egui_pass);
 
                 for id in textures_delta.free {

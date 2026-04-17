@@ -1,0 +1,73 @@
+# Audio Demo
+# Tests 3D interactivity with Screen-To-World raycasting and bare-metal native sound playback
+
+registry.registry_create_window(800, 600, "Audio Demo! (Click squares to play sound)")
+target_win = registry.registry_now()
+
+# Add an AABB block at roughly [0, 0, -2]
+sys.add_world_aabb([-0.5, -0.5, -2.5], [0.5, 0.5, -1.5])
+
+# Add another AABB block right next to it: [1.5, 0, -2]
+sys.add_world_aabb([1.0, -0.5, -2.5], [2.0, 0.5, -1.5])
+
+# Let's set global volume to 80% initially
+registry.registry_set_volume(0.8)
+
+# Optional: loop a background track (if exists) -- commented out for demo clarity
+# registry.registry_loop_music("tests/audio/bgm.ogg")
+
+running = true
+was_down = false
+
+while running == true {
+    if registry.registry_window_update(target_win) == false {
+        running = false
+    }
+
+    registry.registry_fill_color(target_win, 40, 40, 50)
+    
+    interact = registry.registry_is_mouse_down()
+    
+    # We only trigger sound on DOWN event (edge trigger), not constantly while holding
+    trigger_click = false
+    if interact == true {
+        if was_down == false {
+            trigger_click = true
+        }
+    }
+    was_down = interact
+
+    color_a = 0xFFFFFF
+    color_b = 0xFFFFFF
+
+    if trigger_click == true {
+        ray = registry.registry_get_mouse_ray(target_win)
+        
+        origin = [ray[0], ray[1], ray[2]]
+        dir = [ray[3], ray[4], ray[5]]
+        
+        hit_id = registry.registry_raycast_aabb(origin, dir)
+        
+        if hit_id == 0 {
+            color_a = 0xAAFFDD
+            sys.print("Hit Object 0 - Playing Sound 1")
+            registry.registry_play_sound("tests/audio/click.ogg")
+        }
+        if hit_id == 1 {
+            color_b = 0xAAFFDD
+            sys.print("Hit Object 1 - Playing Sound 2")
+            registry.registry_play_sound("tests/audio/thump.ogg")
+        }
+    }
+
+    ui.ui_draw_rect(350, 250, 100, 100, color_a)
+    ui.ui_draw_text(350, 230, "Sound Pad 1", 0xFFFFFF)
+
+    ui.ui_draw_rect(500, 250, 100, 100, color_b)
+    ui.ui_draw_text(500, 230, "Sound Pad 2", 0xFFFFFF)
+    
+    ui.ui_draw_text(10, 10, "Click squares to trigger spatial audio via FFI Raycast", 0xFFFFFF)
+
+    ui.ui_present()
+    system.sleep(16)
+}

@@ -1,0 +1,51 @@
+name: CI Quality Gates
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  quality:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain (stable + clippy + rustfmt)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux system dependencies (WGPU + Audio)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            libasound2-dev \
+            libx11-dev \
+            libxext-dev \
+            pkg-config \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libudev-dev
+
+      # ── Gate 1: Format ────────────────────────────────────────────────────
+      - name: "Gate 1 — Format: cargo fmt"
+        run: cargo fmt --all -- --check
+
+      # ── Gate 2: Linter ────────────────────────────────────────────────────
+      - name: "Gate 2 — Linter: cargo clippy"
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      # ── Gate 3: Tests ─────────────────────────────────────────────────────
+      - name: "Gate 3 — Tests: cargo test"
+        run: cargo test --workspace --all-features

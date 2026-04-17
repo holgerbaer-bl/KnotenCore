@@ -12,11 +12,31 @@ fn main() {
     writeln!(out, "This document contains the complete structural DSL constraints and grammar schemas enabling self-healing deterministic generative operations.").unwrap();
 
     let modules = vec![
-        ("docs/LANGUAGE_REFERENCE/nod_grammar.ebnf", "EBNF Grammar Specification", "ebnf"),
-        ("docs/LANGUAGE_REFERENCE/node_types.json", "Valid AST Node Types", "json"),
-        ("docs/LANGUAGE_REFERENCE/native_functions.json", "Standard Native FFI Functions", "json"),
-        ("docs/LANGUAGE_REFERENCE/error_catalog.json", "Error Code Output Matrix", "json"),
-        ("docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod", "Antipatterns & Pitfalls", "javascript"),
+        (
+            "docs/LANGUAGE_REFERENCE/nod_grammar.ebnf",
+            "EBNF Grammar Specification",
+            "ebnf",
+        ),
+        (
+            "docs/LANGUAGE_REFERENCE/node_types.json",
+            "Valid AST Node Types",
+            "json",
+        ),
+        (
+            "docs/LANGUAGE_REFERENCE/native_functions.json",
+            "Standard Native FFI Functions",
+            "json",
+        ),
+        (
+            "docs/LANGUAGE_REFERENCE/error_catalog.json",
+            "Error Code Output Matrix",
+            "json",
+        ),
+        (
+            "docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod",
+            "Antipatterns & Pitfalls",
+            "javascript",
+        ),
     ];
 
     for (filepath, title, code_type) in modules {
@@ -33,5 +53,8 @@ fn main() {
         writeln!(out, "```").unwrap();
     }
 
-    println!("Success: Written generated context logically to {}", output_path.display());
+    println!(
+        "Success: Written generated context logically to {}",
+        output_path.display()
+    );
 }

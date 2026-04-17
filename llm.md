@@ -2,7 +2,9 @@
 
 > **System Instruction for LLM Code Agents**
 >
-> This document is now a **routing hub**. Its sole purpose is to direct you to the authoritative
+> You are a **System Architect**, not a game developer. KnotenCore is a **Deterministic AI-Native Execution Runtime** — you feed it structured JSON logic (`Node` objects), and its AOT compiler turns that into flat bytecode executed by a bare-metal Register Stack-VM. Your output is machine instructions, not imperative scripts.
+>
+> This document is a **routing hub**. Its sole purpose is to direct you to the authoritative
 > machine-readable sources in `docs/LANGUAGE_REFERENCE/`. Do **not** invent node names or
 > argument shapes. Always validate against the schema before generating code.
 
@@ -16,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)
-*Note: As of Sprint 127, all AST Nodes including UI Layouts, file IO, array data operations natively map gracefully in the VM Compiler. Use AST nodes or FFI Call structures freely based on convenience.*
+*Note: As of Sprint 134, all AST Nodes including UI Layouts, file IO, array data operations natively map gracefully in the VM Compiler, and strict audit rectifications confirm 100% crash output parity (`Fault: Div by zero (at Node::MathDiv)`) and heavily sandboxed permissions (`fs_write`, `registry_file_create`). Use AST nodes or FFI Call structures freely based on convenience.*
 
 ---
 
@@ -35,18 +37,25 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 
 ## Architecture in 60 Seconds
 
-KnotenCore is a **hybrid JIT/AOT engine** written in Rust:
+KnotenCore is a **Deterministic AI-Native Execution Runtime** written in Rust. You author a `Node` tree (as JSON). The engine selects the optimal path:
 
 ```
-.nod JSON  →  Parser  →  AST (Node enum)  →  Executor (JIT)
-                                          ↘  VM Compiler   →  Bytecode  →  Stack Machine (AOT)
+JSON-AST (.nod)  →  Parser  →  AST (Node enum)
+                                  │
+                    ┌─────────────┴──────────────────────┐
+                    │                                    │
+             JIT Executor                       AOT VM Compiler
+   (side-effects, I/O, UI rendering)      (pure math / computation loops)
+                    │                                    │
+        egui / WGPU / Audio FFI               Flat Opcodes → Stack-VM
+     (Physical Representation Layer)         (GC-free bare-metal ALU)
 ```
 
-- **High-level UI / side-effects** → always executed by the **JIT Executor** (`src/executor.rs`)
-- **Pure math / computation loops** → compiled to flat **Opcodes** and run by the **Register VM** (`src/vm/`)
-- **egui UI** → rendered per-frame over WGPU; UI nodes emit `RenderCommand` messages across a channel to `src/window.rs`
+- **Pure computation** (`Add`, `Sub`, `Mul`, `Div`, `While`, comparison ops) → **AOT path** — compiles to a flat opcode stream, executed by the Stack-VM with no allocations in the hot path.
+- **Side-effects & UI** (`ExternCall`, window ops, WGPU render, audio) → **JIT path** — evaluated by the Executor with full permission sandboxing.
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
-- **GitHub Linguist** → For repository context and proper Github rendering, `.nod` targets `JSON` and `.knoten` targets `JavaScript`.
+- **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time. The **VS Code Extension** automatically launches this server, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) directly in the editor before they reach the runtime. Tracing output is visible in the VS Code *Output → knoten-lsp* channel.
+- **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.
 
 ---
 
@@ -129,16 +138,16 @@ Six new AST nodes completing the Boolean algebra. All accept `Box<Node>` operand
 
 4. **State-binding pattern** — `text = UITextInput(text)` seeds the buffer on first call; subsequent calls read the live egui buffer.
 5. **Never force-push git** — use `git push origin main` only.
-6. **Zero warnings policy** — `cargo clippy --lib` must produce 0 warnings before any commit.
-7. **Optimize for AOT Native Math (Sprint 128 benchmark)** — The VM Register Engine demonstrates a **1.21x Native Speedup** scaling flawlessly iteratively. Prefer native algebraic `Node` operations (`Mul`, `Add`, `Div`) internally constructed over making exhaustive high-frequency legacy FFI proxy `Call` wrappers recursively when performing intensive algorithmic processing.
+6. **Zero warnings policy** — `cargo clippy --workspace --all-targets --all-features -- -D warnings` must produce 0 warnings before any commit; CI enforces this automatically on every push.
+7. **Optimize for AOT Native Math (Sprint 128 benchmark)** — The Register Stack-VM demonstrates a **1.21x Native Speedup** vs the JIT path. Prefer native algebraic `Node` operations (`Mul`, `Add`, `Div`) over wrapping intensive computation in FFI `ExternCall` chains. You are a system architect writing instruction streams, not a scripting-layer developer.
 
 ---
 
 ## Verification & Testing
 
 ```bash
-cargo clippy --lib           # 0 warnings required
-cargo test                   # all 55+ integration tests must pass
+cargo clippy --workspace --all-targets --all-features -- -D warnings  # CI Gate 2: 0 warnings
+cargo test --workspace --all-features                                  # CI Gate 3: all tests pass
 cargo run --bin run_knc -- tests/intentional_crash.knoten
 # Expected: Fault: Div by zero (at Node::MathDiv)
 ```

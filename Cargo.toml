@@ -1,6 +1,6 @@
 [package]
 name = "knoten_core"
-version = "0.1.0"
+version = "1.0.33"
 edition = "2024"
 
 
@@ -25,6 +25,10 @@ path = "src/bin/rust_ingest.rs"
 name = "knoten_upgrade"
 path = "src/bin/knoten_upgrade.rs"
 
+[[bin]]
+name = "knoten_lsp"
+path = "src/bin/knoten_lsp.rs"
+
 [dependencies]
 dunce = "1.0"
 bytemuck = { version = "1.25.0", features = ["derive"] }
@@ -48,6 +52,11 @@ noise = "0.9.0"
 minifb = "0.28"
 glam = { version = "0.32.0", features = ["bytemuck"] }
 ureq = "2.9.1"
+tower-lsp = { version = "0.20.0", features = ["runtime-tokio"] }
+tokio = { version = "1.44.2", features = ["full"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+dashmap = "6.1.0"
 [profile.release]
 opt-level = "z"
 lto = "fat"

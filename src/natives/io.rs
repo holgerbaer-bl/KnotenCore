@@ -1,22 +1,27 @@
-use crate::executor::{ExecResult, RelType, AgentPermissions};
+use crate::executor::{AgentPermissions, ExecResult, RelType};
 use crate::natives::NativeModule;
 
 pub struct IoModule;
 
 impl NativeModule for IoModule {
-    fn handle(&self, func_name: &str, args: &[RelType], permissions: &AgentPermissions) -> Option<ExecResult> {
+    fn handle(
+        &self,
+        func_name: &str,
+        args: &[RelType],
+        permissions: &AgentPermissions,
+    ) -> Option<ExecResult> {
         match func_name {
             "IO.WriteFile" => {
                 if !permissions.allow_fs_write {
-                    return Some(ExecResult::Fault { 
-                        msg: "Permission Denied: IO.WriteFile requires FS_WRITE".to_string(), 
-                        node: "Native::IO.WriteFile".into() 
+                    return Some(ExecResult::Fault {
+                        msg: "Permission Denied: IO.WriteFile requires FS_WRITE".to_string(),
+                        node: "Native::IO.WriteFile".into(),
                     });
                 }
                 if args.len() != 2 {
                     return Some(ExecResult::Fault {
                         msg: "IO.WriteFile expects 2 arguments (path, content)".to_string(),
-                        node: "Native::IO.WriteFile".into()
+                        node: "Native::IO.WriteFile".into(),
                     });
                 }
                 if let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1]) {
@@ -27,21 +32,21 @@ impl NativeModule for IoModule {
                 } else {
                     Some(ExecResult::Fault {
                         msg: "IO.WriteFile expects (String, String)".to_string(),
-                        node: "Native::IO.WriteFile".into()
+                        node: "Native::IO.WriteFile".into(),
                     })
                 }
             }
             "IO.ReadFile" => {
                 if !permissions.allow_fs_read {
-                    return Some(ExecResult::Fault { 
-                        msg: "Permission Denied: IO.ReadFile requires FS_READ".to_string(), 
-                        node: "Native::IO.ReadFile".into() 
+                    return Some(ExecResult::Fault {
+                        msg: "Permission Denied: IO.ReadFile requires FS_READ".to_string(),
+                        node: "Native::IO.ReadFile".into(),
                     });
                 }
                 if args.len() != 1 {
                     return Some(ExecResult::Fault {
                         msg: "IO.ReadFile expects 1 argument (path)".to_string(),
-                        node: "Native::IO.ReadFile".into()
+                        node: "Native::IO.ReadFile".into(),
                     });
                 }
                 if let RelType::Str(path) = &args[0] {
@@ -52,21 +57,21 @@ impl NativeModule for IoModule {
                 } else {
                     Some(ExecResult::Fault {
                         msg: "IO.ReadFile expects a String".to_string(),
-                        node: "Native::IO.ReadFile".into()
+                        node: "Native::IO.ReadFile".into(),
                     })
                 }
             }
             "IO.AppendFile" => {
                 if !permissions.allow_fs_write {
-                    return Some(ExecResult::Fault { 
-                        msg: "Permission Denied: IO.AppendFile requires FS_WRITE".to_string(), 
-                        node: "Native::IO.AppendFile".into() 
+                    return Some(ExecResult::Fault {
+                        msg: "Permission Denied: IO.AppendFile requires FS_WRITE".to_string(),
+                        node: "Native::IO.AppendFile".into(),
                     });
                 }
                 if args.len() != 2 {
                     return Some(ExecResult::Fault {
                         msg: "IO.AppendFile expects 2 arguments (path, content)".to_string(),
-                        node: "Native::IO.AppendFile".into()
+                        node: "Native::IO.AppendFile".into(),
                     });
                 }
                 if let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1]) {
@@ -86,21 +91,21 @@ impl NativeModule for IoModule {
                 } else {
                     Some(ExecResult::Fault {
                         msg: "IO.AppendFile expects (String, String)".to_string(),
-                        node: "Native::IO.AppendFile".into()
+                        node: "Native::IO.AppendFile".into(),
                     })
                 }
             }
             "IO.FileExists" => {
                 if !permissions.allow_fs_read {
-                    return Some(ExecResult::Fault { 
-                        msg: "Permission Denied: IO.FileExists requires FS_READ".to_string(), 
-                        node: "Native::IO.FileExists".into() 
+                    return Some(ExecResult::Fault {
+                        msg: "Permission Denied: IO.FileExists requires FS_READ".to_string(),
+                        node: "Native::IO.FileExists".into(),
                     });
                 }
                 if args.len() != 1 {
                     return Some(ExecResult::Fault {
                         msg: "IO.FileExists expects 1 argument (path)".to_string(),
-                        node: "Native::IO.FileExists".into()
+                        node: "Native::IO.FileExists".into(),
                     });
                 }
                 if let RelType::Str(path) = &args[0] {
@@ -110,7 +115,7 @@ impl NativeModule for IoModule {
                 } else {
                     Some(ExecResult::Fault {
                         msg: "IO.FileExists expects a String".to_string(),
-                        node: "Native::IO.FileExists".into()
+                        node: "Native::IO.FileExists".into(),
                     })
                 }
             }

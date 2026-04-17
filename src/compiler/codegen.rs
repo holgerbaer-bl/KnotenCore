@@ -225,14 +225,15 @@ impl Codegen {
             }
             Node::ArrayPush(arr, val) => {
                 if self.is_handle_expr(val)
-                    && let Node::Identifier(name) = &**arr {
-                        for scope in self.scopes.iter_mut().rev() {
-                            if scope.contains_key(name) {
-                                scope.insert(name.clone(), VarKind::HandleArray);
-                                break;
-                            }
+                    && let Node::Identifier(name) = &**arr
+                {
+                    for scope in self.scopes.iter_mut().rev() {
+                        if scope.contains_key(name) {
+                            scope.insert(name.clone(), VarKind::HandleArray);
+                            break;
                         }
                     }
+                }
                 format!(
                     "{}.push({})",
                     self.generate(arr, false),
@@ -252,14 +253,15 @@ impl Codegen {
             }
             Node::MapSet(map, key, val) => {
                 if self.is_handle_expr(val)
-                    && let Node::Identifier(name) = &**map {
-                        for scope in self.scopes.iter_mut().rev() {
-                            if scope.contains_key(name) {
-                                scope.insert(name.clone(), VarKind::HandleMap);
-                                break;
-                            }
+                    && let Node::Identifier(name) = &**map
+                {
+                    for scope in self.scopes.iter_mut().rev() {
+                        if scope.contains_key(name) {
+                            scope.insert(name.clone(), VarKind::HandleMap);
+                            break;
                         }
                     }
+                }
                 format!(
                     "{}.insert({}, {})",
                     self.generate(map, false),
@@ -304,13 +306,22 @@ impl Codegen {
             }
             Node::Store { key, value } => {
                 let inner = self.generate(value, false);
-                format!("knoten_core::vm::storage::store_value(\"{}\", &serde_json::json!({})).unwrap()", key, inner)
+                format!(
+                    "knoten_core::vm::storage::store_value(\"{}\", &serde_json::json!({})).unwrap()",
+                    key, inner
+                )
             }
             Node::Load { key } => {
                 if key == "chess_turn" {
-                    format!("knoten_core::vm::storage::load_value(\"{}\").ok().and_then(|v| v.as_i64()).unwrap_or(-1)", key)
+                    format!(
+                        "knoten_core::vm::storage::load_value(\"{}\").ok().and_then(|v| v.as_i64()).unwrap_or(-1)",
+                        key
+                    )
                 } else if key == "chess_board" {
-                    format!("knoten_core::vm::storage::load_value(\"{}\").ok().and_then(|v| v.as_array().map(|arr| arr.iter().map(|s| s.as_str().unwrap_or(\" \").to_string()).collect::<Vec<String>>())).unwrap_or_else(|| vec![])", key)
+                    format!(
+                        "knoten_core::vm::storage::load_value(\"{}\").ok().and_then(|v| v.as_array().map(|arr| arr.iter().map(|s| s.as_str().unwrap_or(\" \").to_string()).collect::<Vec<String>>())).unwrap_or_else(|| vec![])",
+                        key
+                    )
                 } else {
                     format!("knoten_core::vm::storage::load_value(\"{}\").unwrap()", key)
                 }

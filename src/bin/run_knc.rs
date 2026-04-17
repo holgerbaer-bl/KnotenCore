@@ -89,7 +89,9 @@ fn run() {
     }
 
     if file_path.is_empty() {
-        eprintln!("Usage: run_knc [--check] [--no-opt] [--transpile] [--allow-read] [--allow-write] [--allow-network] <path_to.nod>");
+        eprintln!(
+            "Usage: run_knc [--check] [--no-opt] [--transpile] [--allow-read] [--allow-write] [--allow-network] <path_to.nod>"
+        );
         eprintln!("       run_knc build <path_to.nod>");
         std::process::exit(1);
     }
@@ -102,7 +104,10 @@ fn run() {
         Ok(s) => s,
         Err(e) => {
             if output_format_json {
-                println!(r#"{{"status": "error", "errors": [{{"code": "ERR_IO_PERMISSION", "message": "{}", "agent_hint": "Check if file exists or permissions are set."}}]}}"#, e.to_string().replace("\"", "\\\""));
+                println!(
+                    r#"{{"status": "error", "errors": [{{"code": "ERR_IO_PERMISSION", "message": "{}", "agent_hint": "Check if file exists or permissions are set."}}]}}"#,
+                    e.to_string().replace("\"", "\\\"")
+                );
                 std::process::exit(1);
             } else {
                 eprintln!("Failed to read file: {}", e);
@@ -110,7 +115,7 @@ fn run() {
             }
         }
     };
-    
+
     // Explicit syntax catch block gracefully handling panic faults internally yielding JSON validation outputs mapping ERR_UNKNOWN_NODE natively.
     let ast_result = std::panic::catch_unwind(|| {
         if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
@@ -130,7 +135,9 @@ fn run() {
         Ok(node) => node,
         Err(_) => {
             if output_format_json {
-                println!(r#"{{"status": "error", "errors": [{{"code": "ERR_UNKNOWN_NODE", "message": "Unrecognized node type or parser fault", "agent_hint": "Check node_types.json! You probably emitted a hallucinated or deprecated node type instead of a valid AST node."}}]}}"#);
+                println!(
+                    r#"{{"status": "error", "errors": [{{"code": "ERR_UNKNOWN_NODE", "message": "Unrecognized node type or parser fault", "agent_hint": "Check node_types.json! You probably emitted a hallucinated or deprecated node type instead of a valid AST node."}}]}}"#
+                );
                 std::process::exit(1);
             } else {
                 eprintln!("Failed to parse KnotenCore AST.");
@@ -143,7 +150,10 @@ fn run() {
     let _ = typer.check(&ast);
     if !typer.errors.is_empty() {
         if output_format_json {
-            println!(r#"{{"status": "error", "errors": [{{"code": "ERR_ARITY_MISMATCH", "message": "{}", "agent_hint": "Check the exact array structure for this node in node_types.json or nod_grammar.ebnf. Some parameters must be present, some can be optional."}}]}}"#, typer.errors[0].replace("\"", "\\\""));
+            println!(
+                r#"{{"status": "error", "errors": [{{"code": "ERR_ARITY_MISMATCH", "message": "{}", "agent_hint": "Check the exact array structure for this node in node_types.json or nod_grammar.ebnf. Some parameters must be present, some can be optional."}}]}}"#,
+                typer.errors[0].replace("\"", "\\\"")
+            );
             std::process::exit(1);
         } else {
             eprintln!("\n[TypeError] Static Type Inference Failed:");
@@ -178,7 +188,10 @@ fn run() {
             }
             Err(errors) => {
                 if output_format_json {
-                    println!(r#"{{"status": "error", "errors": [{{"code": "ERR_UNKNOWN_NODE", "message": "{}", "agent_hint": "Check node_types.json! You probably emitted a hallucinated or deprecated node type instead of a valid AST node."}}]}}"#, errors[0].replace("\"", "\\\""));
+                    println!(
+                        r#"{{"status": "error", "errors": [{{"code": "ERR_UNKNOWN_NODE", "message": "{}", "agent_hint": "Check node_types.json! You probably emitted a hallucinated or deprecated node type instead of a valid AST node."}}]}}"#,
+                        errors[0].replace("\"", "\\\"")
+                    );
                     std::process::exit(1);
                 } else {
                     eprintln!("\nValidation Failed:");
@@ -203,7 +216,9 @@ fn run() {
 
     // ── Pre-Execution Setup ──────────────────────────────────────────
     if transpile {
-        eprintln!("'--transpile' is not yet connected to the VM pipeline. Use the default bytecode path.");
+        eprintln!(
+            "'--transpile' is not yet connected to the VM pipeline. Use the default bytecode path."
+        );
         std::process::exit(1);
     }
 
@@ -220,25 +235,32 @@ fn run() {
         .spawn(move || {
             let mut compiler = knoten_core::vm::compiler::Compiler::new();
             if let Some(parent) = std::path::Path::new(&file_path_clone).parent()
+<<<<<<< HEAD
                 && !parent.as_os_str().is_empty() {
                     compiler.current_dir = parent.to_path_buf();
                 }
+=======
+                && !parent.as_os_str().is_empty()
+            {
+                compiler.current_dir = parent.to_path_buf();
+            }
+>>>>>>> 14f5611ef06f5473100ae9e6ff5f85240cb40a50
             if !compiler.compile_node(&ast_for_thread) {
                 eprintln!("\n[VM Crash] AST transpilation validation natively failed inline.");
                 std::process::exit(1);
             }
-            
+
             let mut vm = knoten_core::vm::machine::VM::new();
             let raw_result = vm.run(
-                &compiler.instructions, 
-                &compiler.constants, 
-                &thread_engine.permissions, 
-                Some(&*thread_engine.bridge)
+                &compiler.instructions,
+                &compiler.constants,
+                &thread_engine.permissions,
+                Some(&*thread_engine.bridge),
             );
-            
+
             let result = match raw_result {
                 Ok(v) => v.to_string(),
-                Err(e) => format!("VM Evaluation Fault: {}", e),
+                Err(e) => e,
             };
 
             println!("\nExecution Finished.\nResult: {}", result);

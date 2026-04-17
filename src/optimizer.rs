@@ -169,44 +169,119 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::Extract { source, path } => {
             count += count_nodes(source) + count_nodes(path);
         }
-        Node::DrawRect { x, y, width, height, color } => {
-            count += count_nodes(x) + count_nodes(y) + count_nodes(width)
-                + count_nodes(height) + count_nodes(color);
+        Node::DrawRect {
+            x,
+            y,
+            width,
+            height,
+            color,
+        } => {
+            count += count_nodes(x)
+                + count_nodes(y)
+                + count_nodes(width)
+                + count_nodes(height)
+                + count_nodes(color);
         }
-        Node::UIFixed { width, height, body } => {
+        Node::UIFixed {
+            width,
+            height,
+            body,
+        } => {
             count += count_nodes(width) + count_nodes(height) + count_nodes(body);
         }
         Node::UIFillParent => {}
         // Sprint 68: Native 3D/2D Render Scene Graph
-        Node::RenderCanvas { body } => { count += count_nodes(body); }
-        Node::Transform2D { x, y, rotation, scale, body } => {
-            count += count_nodes(x) + count_nodes(y) + count_nodes(rotation)
-                + count_nodes(scale) + count_nodes(body);
+        Node::RenderCanvas { body } => {
+            count += count_nodes(body);
         }
-        Node::Sprite2D { texture_id, transform } => {
+        Node::Transform2D {
+            x,
+            y,
+            rotation,
+            scale,
+            body,
+        } => {
+            count += count_nodes(x)
+                + count_nodes(y)
+                + count_nodes(rotation)
+                + count_nodes(scale)
+                + count_nodes(body);
+        }
+        Node::Sprite2D {
+            texture_id,
+            transform,
+        } => {
             count += count_nodes(texture_id) + count_nodes(transform);
         }
-        Node::Camera3D { pos_x, pos_y, pos_z, target_x, target_y, target_z, fov } => {
-            count += count_nodes(pos_x) + count_nodes(pos_y) + count_nodes(pos_z)
-                + count_nodes(target_x) + count_nodes(target_y) + count_nodes(target_z)
+        Node::Camera3D {
+            pos_x,
+            pos_y,
+            pos_z,
+            target_x,
+            target_y,
+            target_z,
+            fov,
+        } => {
+            count += count_nodes(pos_x)
+                + count_nodes(pos_y)
+                + count_nodes(pos_z)
+                + count_nodes(target_x)
+                + count_nodes(target_y)
+                + count_nodes(target_z)
                 + count_nodes(fov);
         }
-        Node::Mesh3D { primitive, material } => {
+        Node::Mesh3D {
+            primitive,
+            material,
+        } => {
             count += count_nodes(primitive) + count_nodes(material);
         }
-        Node::Material3D { r, g, b, a, metallic, roughness, texture_id } => {
-            count += count_nodes(r) + count_nodes(g) + count_nodes(b) + count_nodes(a)
-                + count_nodes(metallic) + count_nodes(roughness);
+        Node::Material3D {
+            r,
+            g,
+            b,
+            a,
+            metallic,
+            roughness,
+            texture_id,
+        } => {
+            count += count_nodes(r)
+                + count_nodes(g)
+                + count_nodes(b)
+                + count_nodes(a)
+                + count_nodes(metallic)
+                + count_nodes(roughness);
             if let Some(tid) = texture_id {
                 count += count_nodes(tid);
             }
         }
-        Node::PointLight3D { x, y, z, r, g, b, intensity } => {
-            count += count_nodes(x) + count_nodes(y) + count_nodes(z)
-                + count_nodes(r) + count_nodes(g) + count_nodes(b) + count_nodes(intensity);
+        Node::PointLight3D {
+            x,
+            y,
+            z,
+            r,
+            g,
+            b,
+            intensity,
+        } => {
+            count += count_nodes(x)
+                + count_nodes(y)
+                + count_nodes(z)
+                + count_nodes(r)
+                + count_nodes(g)
+                + count_nodes(b)
+                + count_nodes(intensity);
         }
-        Node::MeshInstance3D { mesh_id, transform, color_offset, pbr } => {
-            count += count_nodes(mesh_id) + count_nodes(transform) + count_nodes(color_offset) + count_nodes(pbr);
+        Node::MeshInstance3D {
+            mesh_id,
+            transform,
+            color_offset,
+            pbr,
+        } => {
+            count += count_nodes(mesh_id)
+                + count_nodes(transform)
+                + count_nodes(color_offset)
+                + count_nodes(pbr);
         }
         Node::FPSCamera { fov } => {
             count += count_nodes(fov);
@@ -218,8 +293,14 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::WeaponViewModel { mesh, tex } => {
             count += count_nodes(mesh) + count_nodes(tex);
         }
-        Node::CheckCollision { a_min, a_max, b_min, b_max } => {
-            count += count_nodes(a_min) + count_nodes(a_max) + count_nodes(b_min) + count_nodes(b_max);
+        Node::CheckCollision {
+            a_min,
+            a_max,
+            b_min,
+            b_max,
+        } => {
+            count +=
+                count_nodes(a_min) + count_nodes(a_max) + count_nodes(b_min) + count_nodes(b_max);
         }
         Node::AddWorldAABB { min, max } => {
             count += count_nodes(min) + count_nodes(max);
@@ -463,33 +544,62 @@ pub fn optimize(node: Node) -> Node {
         ),
         Node::EnableInteraction(b) => Node::EnableInteraction(Box::new(optimize(*b))),
         Node::EnablePhysics(b) => Node::EnablePhysics(Box::new(optimize(*b))),
-        Node::DrawRect { x, y, width, height, color } => Node::DrawRect {
+        Node::DrawRect {
+            x,
+            y,
+            width,
+            height,
+            color,
+        } => Node::DrawRect {
             x: Box::new(optimize(*x)),
             y: Box::new(optimize(*y)),
             width: Box::new(optimize(*width)),
             height: Box::new(optimize(*height)),
             color: Box::new(optimize(*color)),
         },
-        Node::UIFixed { width, height, body } => Node::UIFixed {
+        Node::UIFixed {
+            width,
+            height,
+            body,
+        } => Node::UIFixed {
             width: Box::new(optimize(*width)),
             height: Box::new(optimize(*height)),
             body: Box::new(optimize(*body)),
         },
         Node::UIFillParent => Node::UIFillParent,
         // Sprint 68: Native 3D/2D Render Scene Graph
-        Node::RenderCanvas { body } => Node::RenderCanvas { body: Box::new(optimize(*body)) },
-        Node::Transform2D { x, y, rotation, scale, body } => Node::Transform2D {
+        Node::RenderCanvas { body } => Node::RenderCanvas {
+            body: Box::new(optimize(*body)),
+        },
+        Node::Transform2D {
+            x,
+            y,
+            rotation,
+            scale,
+            body,
+        } => Node::Transform2D {
             x: Box::new(optimize(*x)),
             y: Box::new(optimize(*y)),
             rotation: Box::new(optimize(*rotation)),
             scale: Box::new(optimize(*scale)),
             body: Box::new(optimize(*body)),
         },
-        Node::Sprite2D { texture_id, transform } => Node::Sprite2D {
+        Node::Sprite2D {
+            texture_id,
+            transform,
+        } => Node::Sprite2D {
             texture_id: Box::new(optimize(*texture_id)),
             transform: Box::new(optimize(*transform)),
         },
-        Node::Camera3D { pos_x, pos_y, pos_z, target_x, target_y, target_z, fov } => Node::Camera3D {
+        Node::Camera3D {
+            pos_x,
+            pos_y,
+            pos_z,
+            target_x,
+            target_y,
+            target_z,
+            fov,
+        } => Node::Camera3D {
             pos_x: Box::new(optimize(*pos_x)),
             pos_y: Box::new(optimize(*pos_y)),
             pos_z: Box::new(optimize(*pos_z)),
@@ -498,11 +608,22 @@ pub fn optimize(node: Node) -> Node {
             target_z: Box::new(optimize(*target_z)),
             fov: Box::new(optimize(*fov)),
         },
-        Node::Mesh3D { primitive, material } => Node::Mesh3D {
+        Node::Mesh3D {
+            primitive,
+            material,
+        } => Node::Mesh3D {
             primitive: Box::new(optimize(*primitive)),
             material: Box::new(optimize(*material)),
         },
-        Node::Material3D { r, g, b, a, metallic, roughness, texture_id } => Node::Material3D {
+        Node::Material3D {
+            r,
+            g,
+            b,
+            a,
+            metallic,
+            roughness,
+            texture_id,
+        } => Node::Material3D {
             r: Box::new(optimize(*r)),
             g: Box::new(optimize(*g)),
             b: Box::new(optimize(*b)),
@@ -511,7 +632,15 @@ pub fn optimize(node: Node) -> Node {
             roughness: Box::new(optimize(*roughness)),
             texture_id: texture_id.map(|t| Box::new(optimize(*t))),
         },
-        Node::PointLight3D { x, y, z, r, g, b, intensity } => Node::PointLight3D {
+        Node::PointLight3D {
+            x,
+            y,
+            z,
+            r,
+            g,
+            b,
+            intensity,
+        } => Node::PointLight3D {
             x: Box::new(optimize(*x)),
             y: Box::new(optimize(*y)),
             z: Box::new(optimize(*z)),
@@ -520,20 +649,34 @@ pub fn optimize(node: Node) -> Node {
             b: Box::new(optimize(*b)),
             intensity: Box::new(optimize(*intensity)),
         },
-        Node::MeshInstance3D { mesh_id, transform, color_offset, pbr } => Node::MeshInstance3D {
+        Node::MeshInstance3D {
+            mesh_id,
+            transform,
+            color_offset,
+            pbr,
+        } => Node::MeshInstance3D {
             mesh_id: Box::new(optimize(*mesh_id)),
             transform: Box::new(optimize(*transform)),
             color_offset: Box::new(optimize(*color_offset)),
             pbr: Box::new(optimize(*pbr)),
         },
-        Node::FPSCamera { fov } => Node::FPSCamera { fov: Box::new(optimize(*fov)) },
-        Node::MouseGrab { enabled } => Node::MouseGrab { enabled: Box::new(optimize(*enabled)) },
+        Node::FPSCamera { fov } => Node::FPSCamera {
+            fov: Box::new(optimize(*fov)),
+        },
+        Node::MouseGrab { enabled } => Node::MouseGrab {
+            enabled: Box::new(optimize(*enabled)),
+        },
         Node::RaycastSimple => Node::RaycastSimple,
         Node::WeaponViewModel { mesh, tex } => Node::WeaponViewModel {
             mesh: Box::new(optimize(*mesh)),
             tex: Box::new(optimize(*tex)),
         },
-        Node::CheckCollision { a_min, a_max, b_min, b_max } => Node::CheckCollision {
+        Node::CheckCollision {
+            a_min,
+            a_max,
+            b_min,
+            b_max,
+        } => Node::CheckCollision {
             a_min: Box::new(optimize(*a_min)),
             a_max: Box::new(optimize(*a_max)),
             b_min: Box::new(optimize(*b_min)),
@@ -727,7 +870,9 @@ impl TypeChecker {
                 let lt = self.check(l)?;
                 let rt = self.check(r)?;
                 if lt == Type::Handle || rt == Type::Handle {
-                    self.errors.push("TypeError: Cannot perform mathematics on Handle pointers".to_string());
+                    self.errors.push(
+                        "TypeError: Cannot perform mathematics on Handle pointers".to_string(),
+                    );
                 }
                 if lt != rt && lt != Type::Any && rt != Type::Any {
                     self.errors

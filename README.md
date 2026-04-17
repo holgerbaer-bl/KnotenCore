@@ -1,19 +1,21 @@
 # KnotenCore 🦀🤖
 
+[![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
+
 *(Noun) /knoːtən kɔːr/*
 
 1. **Not** a relentless underground German hardcore techno subgenre. 
-2. A blazing-fast, thread-safe, and heavily sandboxed 3D scripting engine that pumps out frames instead of 160 BPM basslines. 
+2. A blazing-fast, thread-safe, and deterministic **AI-Native Execution Runtime** — agents feed it structured JSON logic, the AOT compiler turns it into flat bytecode, and the Stack-VM executes it at bare-metal speed. No browser. No GC. No surprises.
 
 *(Please leave your glowsticks at the door before compiling).*
 
-**The Agent-First Rust Engine.**
+**The Deterministic AI-Native Execution Runtime.**
 
 ## What is KnotenCore?
-**KnotenCore** is a high-performance, **Agent-Native** execution engine built entirely in Rust. It compiles and evaluates UI logic, graphics, audio, and state transformations — without an intermediate browser layer. Designed not for human boilerplate, but as a deterministic powerhouse that AI agents can target efficiently and autonomously.
+**KnotenCore** is a **Deterministic AI-Native Execution Runtime** built entirely in Rust. External AI agents describe programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized flat bytecode stream and executes them on a Register Stack-VM — achieving deterministic, GC-free, bare-metal performance without any intermediate browser or script-engine layer. WGPU-based rendering functions as the **Physical Representation Layer**, allowing agents to express 3D scenes, audio, and UI as pure data — not imperative draw calls.
 
 ### Why "KnotenCore"?
-**Knoten** is the German word for **Node**. The runtime is architecturally a massive, highly-efficient graph of Abstract Syntax Tree (AST) *nodes*. **Core** represents the blazingly fast, bare-metal Rust execution environment that deterministically processes these nodes.
+**Knoten** is the German word for **Node**. The runtime is architecturally a highly-efficient graph of Abstract Syntax Tree (AST) *nodes* — the fundamental unit of computation that AI agents author and the engine deterministically evaluates. **Core** represents the blazingly fast, bare-metal Rust execution environment that processes these nodes via AOT compilation into a flat opcode stream.
 
 ---
 
@@ -85,17 +87,30 @@ A complete set of native logical and relational operators is now available in th
 
 ---
 
-## Engine Architecture
+## Runtime Architecture
 
-The core engine is modularized into specialized components:
+KnotenCore is a **hybrid JIT/AOT execution runtime**. The agent authors a JSON-AST program; the engine selects the optimal execution path automatically:
+
+```
+JSON-AST (.nod)  →  Parser  →  AST (Node enum)
+                                  │
+                    ┌─────────────┴─────────────────┐
+                    │                               │
+             JIT Executor                   AOT VM Compiler
+          (side-effects, UI)            (pure math, loops)
+                    │                               │
+             egui / WGPU                  Flat Opcodes
+        (Physical Repr. Layer)          Stack-VM (ALU)
+```
 
 | Module | Role |
 |---|---|
-| `src/executor.rs` | **Coordinator & State-Holder** — Orchestrates data flow between all modules |
-| `src/evaluator.rs` | **Interpreter (JIT)** — AST parsing, recursive evaluation, and pure logical/mathematical execution |
-| `src/vm/mod.rs` | **Virtual Machine (AOT)** — *[New]* Dedicated Ahead-of-Time Bytecode compiler scaling complex loops past AST limits. Incorporates a unified Stack Machine / ALU, global HashMaps, Sandboxed OS interaction (`read_file`, `str_split`), and FFI Extensibility (`OpExternCall`) binding directly into Executor bridges. |
-| `src/renderer.rs` | **Eyes** — WGPU logic, shader management, hardware-instancing, and high-performance draw calls |
-| `src/window.rs` | **Skin** — winit event-loop, application lifecycle, hardware input |
+| `src/executor.rs` | **Coordinator & State-Holder** — JIT path; routes nodes, holds permissions & world state |
+| `src/vm/compiler.rs` | **AOT Compiler** — Transforms pure-computation AST subtrees into a flat opcode stream |
+| `src/vm/machine.rs` | **Stack-VM / ALU** — Executes flat bytecode at bare-metal speed; no GC, no allocations in the hot path |
+| `src/audio.rs` | **Audio Engine** — Thread-safe bare-metal sound pipeline via `rodio`; decoupled from the render loop |
+| `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` server exposing real-time `.nod` validation and OpCode-awareness to editors & agents |
+| `src/window.rs` | **Physical Representation Layer** — winit event-loop + WGPU rendering; receives `RenderCommand` messages from the executor |
 | `src/async_bridge.rs` | **Nervous System** — Non-blocking `Fetch` and `Extract` via background worker threads |
 
 ---
@@ -112,14 +127,29 @@ KnotenCore is built for AI-driven execution with strict, audited security:
 - **`ExternCall Protection`**: FFI bridge calls pass through the same sandbox rule-set as standard nodes — there is no bypass.
 - **`Structured Faults`**: Unauthorized access returns `ExecResult::Fault` with specific permission-denial messages, enabling AI self-healing.
 
-### 🎮 WGPU Hardware Rendering
-KnotenCore renders via WGPU — a modern, cross-platform GPU API targeting Vulkan, DirectX 12, and Metal natively:
+### 🖥️ WGPU Physical Representation Layer
+KnotenCore's rendering subsystem is a **Physical Representation Layer** — not the primary product, but the means by which agent-authored JSON logic manifests as real pixels. Agents describe *what* exists in world-space; the runtime renders it via WGPU targeting Vulkan, DirectX 12, and Metal natively:
 - **Blinn-Phong Shading**: Production-quality per-pixel lighting pipeline.
 - **Native 3D Primitives**: High-performance `Sphere`, `Cube`, and `Cylinder` with geometry caching — vertices and indices are computed once per unique configuration and reused from VRAM.
 - **`Mat4Mul`**: 4×4 matrix multiplication for hierarchical 3D transformations.
 - **Z-Buffered Depth Ordering**: `TextureFormat::Depth32Float` with `CompareFunction::Less`.
 - **Camera UBO**: Real `perspective_rh × look_at_rh` view-projection matrices written per-frame.
 - **Resize-Safe**: Surface and depth buffers are correctly re-created on window resize.
+
+### 🎧 Native Bare-Metal Audio Engine
+KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline directly linked into the AOT-Virtual Machine and JIT executors:
+- **Zero-Latency Playback**: Fire-and-forget sound effects (`.wav`, `.ogg`) trigger instantaneously from bytecode instructions.
+- **Infinite Looping Sinks**: Decodes active background BGM loops alongside parallel positional sound channels naturally.
+- **Strictly Sandboxed FFI**: All `registry_play_sound` and `registry_loop_music` invocations implicitly demand `--allow-read` permissions and cross the `validate_fs_path` security border natively preventing path manipulation.
+
+### 🔌 LSP Support — Sprint 137/140
+KnotenCore provides real-time AI-DX via a native **Language Server** (`knoten_lsp`) and a first-party **VS Code Extension**:
+- **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys. Hallucinated nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics.
+- **Hover Documentation**: Hovering over `registry_*` or `Call` function names displays full Markdown documentation, including parameters, return types, and descriptions — sourced directly from `native_functions.json`.
+- **Intelligent Completion**: Real-time suggestions for all native FFI functions and OpCodes, complete with summaries and module info.
+- **VS Code Integration**: The extension in `tools/vscode-knotencore/` automatically launches the LSP client with workspace-aware documentation paths.
+- **Tracing**: Full server lifecycle visibility via the *Output → knoten-lsp* channel.
+- **Roadmap**: `.nod` schema validation and deep AST analysis.
 
 ### ⚡ JIT & AOT Execution
 KnotenCore dynamically routes code to the most performant executor path:
@@ -294,7 +324,7 @@ KnotenCore ships with a first-party **VS Code Language Extension** in `tools/vsc
 | **Syntax Highlighting (`.nod`)** | Highlights KnotenCore opcode keys (`If`, `While`, `ExternCall`, `UIButton`, etc.) within JSON-AST files |
 | **Code Snippets** | `kc-window`, `kc-raycast`, `kc-uiwindow`, `kc-fn`, `kc-import`, `kc-while`, `kc-if`, `kc-aabb`, `kc-drawrect` |
 | **Bracket Matching** | Auto-close and auto-match for `{}`, `[]`, `()`, `""` |
-| **Phase 2 Roadmap** | Language Server Protocol (LSP) for diagnostics, hover docs, and auto-complete |
+| **LSP Integration** | ✅ `knoten_lsp` client active in VS Code — provides real-time OpCode validation & JSON diagnostics |
 
 **Quick install:** Copy `tools/vscode-knotencore/` to `~/.vscode/extensions/knotencore-0.1.0` and restart VS Code.
 See [`tools/vscode-knotencore/README.md`](tools/vscode-knotencore/README.md) for full installation and packaging instructions.
@@ -408,7 +438,7 @@ This compiles to ~45 flat `OpCode` instructions — no GC, no heap allocation in
 
 ## Why it Exists — Agent First
 
-The current app development ecosystem is burdened with human-centric boilerplate, fragmented tooling, and bloated artifact pipelines. KnotenCore eliminates this overhead entirely. By providing a **deterministic, token-efficient runtime expressly designed for AI agents**, it shifts the paradigm from "AI writing React code for humans" to "AI writing Neural DSL code for a bare-metal Agent VM." It allows agents to read clear diagnostic JSON logs, self-heal instantly upon failure, and ship highly-optimized graphical applications under 5 MB.
+The current app development ecosystem is burdened with human-centric boilerplate, fragmented tooling, and bloated artifact pipelines. KnotenCore eliminates this overhead entirely. By providing a **deterministic, token-efficient runtime expressly designed for AI agents**, it shifts the paradigm from "AI writing React code for humans" to "AI writing Neural DSL code for a bare-metal Agent VM." It allows agents to read clear diagnostic JSON logs, self-heal instantly upon failure, and ship highly-optimized, natively compiled graphical applications at ~7 MB.
 
 ---
 

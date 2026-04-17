@@ -309,7 +309,6 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Node {
         match self.peek() {
-
             Token::KeywordLet => {
                 self.advance();
                 let ident = match self.advance() {
@@ -393,7 +392,10 @@ impl Parser {
                     self.advance();
                     let callback = self.parse_block();
 
-                    if let Node::Call(name, args) = expr && name == "Fetch" && args.len() == 2 {
+                    if let Node::Call(name, args) = expr
+                        && name == "Fetch"
+                        && args.len() == 2
+                    {
                         let method = if let Node::StringLiteral(s) = &args[0] {
                             s.clone()
                         } else {
@@ -596,12 +598,15 @@ impl Parser {
                     let key = match self.advance() {
                         Token::Ident(name) => name,
                         Token::Str(s) => s,
-                        other => self.diagnostic_panic(&format!("Expected property name in object literal, found {:?}", other)),
+                        other => self.diagnostic_panic(&format!(
+                            "Expected property name in object literal, found {:?}",
+                            other
+                        )),
                     };
                     self.expect(Token::Colon);
                     let val = self.parse_expression();
                     map.insert(key, val);
-                    
+
                     if *self.peek() == Token::Comma {
                         self.advance();
                     }
@@ -728,10 +733,18 @@ impl Parser {
             "ArrayLen" => Node::ArrayLen(Box::new(args.remove(0))),
             "ArrayPush" => Node::ArrayPush(Box::new(args.remove(0)), Box::new(args.remove(0))),
             "ArrayGet" => Node::ArrayGet(Box::new(args.remove(0)), Box::new(args.remove(0))),
-            "ArraySet" => Node::ArraySet(Box::new(args.remove(0)), Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "ArraySet" => Node::ArraySet(
+                Box::new(args.remove(0)),
+                Box::new(args.remove(0)),
+                Box::new(args.remove(0)),
+            ),
             "MapCreate" => Node::MapCreate,
             "MapGet" => Node::MapGet(Box::new(args.remove(0)), Box::new(args.remove(0))),
-            "MapSet" => Node::MapSet(Box::new(args.remove(0)), Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "MapSet" => Node::MapSet(
+                Box::new(args.remove(0)),
+                Box::new(args.remove(0)),
+                Box::new(args.remove(0)),
+            ),
             "MapHasKey" => Node::MapHasKey(Box::new(args.remove(0)), Box::new(args.remove(0))),
             "ToString" => Node::ToString(Box::new(args.remove(0))),
             "FileRead" => Node::FileRead(Box::new(args.remove(0))),

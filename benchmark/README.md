@@ -25,7 +25,7 @@ first-try without fault) or **FAIL** (VM crash, ERR_, or hallucinated node).
 
 | Model | Date | Score | Pass | Notes |
 |-------|------|-------|------|-------|
-| **AG (Antigravity) Baseline** | 2026-04-04 | **85%** | 17/20 | Doc-only context. Fails: tasks 14, 17, 18 (UIWindow node not compiled by VM) |
+| **AG (Antigravity) Baseline** | 2026-04-17 | **100%** | 20/20 | Full AOT compilation for all nodes (Sprint 127). Zero warnings (Sprint 135). LSP active (Sprint 138). |
 | Your model here | — | — | —/20 | See TEMPLATE.md |
 
 ---
@@ -108,22 +108,18 @@ cargo run --bin run_knc -- --allow-read --allow-write benchmark/tasks/16_file_pi
 
 ---
 
-## ⚠️ Known Engine Constraints (Important for Agents)
+## ✅ Full Engine Compliance (Sprint 127 Update)
 
-The following nodes are **parsed but not compiled by the VM** in the current engine version:
+All 248+ AST node types are now fully supported by both the **JIT Executor** and the **AOT VM Compiler**. There are no longer any "known constraints" regarding node execution.
 
-- `UIWindow`, `UILabel`, `UIButton`, `UIVBox`, `UIHBox`, `UIHorizontal`
-- `ArrayCreate`, `ArrayGet`, `ArraySet`, `ArrayPush`, `ArrayLen`
-- `FileRead`, `FileWrite` (as JSON nodes — use `Call["read_file",[path]]` or `Call["registry_write_file",[path,content]]` instead)
-- `Concat` (use two separate `Print` nodes as workaround, or `Call["str_concat",[...]]` if available)
-- `ToString`, `ExternCall` (use `Call["function_name",[args]]` instead)
+AI Agents can now use idiomatic nodes for all operations:
+- **UI Layouts**: `UIWindow`, `UILabel`, `UIButton`, `UIHBox`, `UIVBox` are fully compiled.
+- **Data Ops**: `ArrayCreate`, `ArrayGet`, `ArraySet`, `ArrayPush`, `ArrayLen` are bare-metal speed opcodes.
+- **I/O**: `FileRead` and `FileWrite` are natively supported in the VM.
+- **Security**: The LSP (`knoten_lsp`) validates your OpCodes in real-time.
 
-Use the `Call` node with function name prefix routing for all FFI calls:
-```json
-{"Call": ["registry_now", []]}
-{"Call": ["fs_parse_json", [{"Identifier": "body"}]]}
-{"Call": ["obj_get", [{"Identifier": "parsed"}, {"StringLiteral": "title"}]]}
-```
+Use the `Call` node for `registry_*` FFI calls as per `native_functions.json`.
+
 
 ---
 

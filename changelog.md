@@ -2,6 +2,84 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.40] - Sprint 141: The Marketplace (Final Polish) (2026-04-17)
+Professionalizing the KnotenCore VS Code extension for Marketplace distribution.
+- **`tools/vscode-knotencore/icon.png`**: Deployed a premium, AI-generated minimalist tech icon representing the KnotenCore node structure.
+- **`tools/vscode-knotencore/package.json`**:
+  - Added `scripts` for `vsce package` and `vsce publish`.
+  - Updated metadata for professional Marketplace rendering.
+- **`tools/vscode-knotencore/README.md`**: Complete rewrite with professional badges, updated feature lists (LSP Hover/Completion), and distribution-ready formatting.
+- **`README.md`**: Updated roadmap to mark Marketplace Phase as "Active/Finalizing".
+
+## [v1.0.39] - Sprint 140: Hover & Intel (LSP Enrichment) (2026-04-17)
+Enriches the KnotenCore Language Server with real-time documentation and intelligent code completion.
+- **`src/bin/knoten_lsp.rs`**:
+  - Implemented `hover` handler: Displays Markdown cards for `registry_*` functions by parsing `native_functions.json`.
+  - Implemented `completion` handler: Provides real-time suggestions for all native functions and OpCodes.
+  - Added `DashMap` for thread-safe document synchronization.
+  - Added `--docs` CLI argument to locate the documentation registry.
+- **`tools/vscode-knotencore/extension.js`**: Updated to pass the workspace root via the `--docs` flag to the LSP server.
+- **`Cargo.toml`**: Added `dashmap` dependency.
+
+## [v1.0.38] - Sprint 139: The Perfection Audit (Benchmark Sync) (2026-04-17)
+Finalizing the AI-Readiness transition by synchronizing the official benchmark documentation and technical audit report with the engine's current 100% compliance state.
+- **`benchmark/README.md`**: Leaderboard updated to **100% (20/20)** for the AG Baseline. Removed all "Known Engine Constraints" as the VM compiler now supports the full AST node set (Sprint 127).
+- **`audit.md`**: Added sections 6 (AI-Readiness) and 7 (CI/LSP Compliance) to the formal audit report. Confirmed zero-warning status and real-time LSP validation.
+- **Verification**: Manually verified Task 05 (Arrays) and Task 14 (UI) compile and execute without faults via the AOT VM path.
+
+## [v1.0.37] - Sprint 138: The AI-DX Bridge (LSP Client Integration) (2026-04-17)
+Bridges the gap between the KnotenCore runtime and the developer's IDE by activating the Language Server Protocol (LSP) client in the VS Code extension. This provides real-time validation and diagnostics for `.nod` and `.knoten` files.
+- **`tools/vscode-knotencore/`**:
+  - **`extension.js`**: Implemented the LSP client using `vscode-languageclient`. Added path-detection heuristic to find the `knoten_lsp` binary in `target/debug` or `target/release`.
+  - **`package.json`**: Added `vscode-languageclient` dependency and configured `activationEvents` to trigger on `nod` and `knoten` languages.
+  - **`README.md`**: Updated to reflect Phase 2 activation and added installation/configuration instructions.
+- **`README.md`**: Promoted LSP support from "Work in Progress" to an active feature.
+- **`llm.md`**: Updated architecture section to reflect live LSP validation.
+
+## [v1.0.36] - Sprint 137: LSP Foundation (The Flash Protocol) (2026-04-17)
+Initializing `knoten_lsp` with `tower-lsp`. Starting the AI-DX (Developer Experience) phase — making the runtime "feelable" to both human developers and autonomous agents via Language Server Protocol.
+- **`src/bin/knoten_lsp.rs`** *(new)*: Full `tower-lsp` Language Server implementation. Implements `initialize`, `initialized`, `did_open`, `did_change`, `did_close` lifecycle handlers.
+- **OpCode-Aware Validation**: `KnotenBackend::validate_nod_document()` scans incoming `.nod` JSON documents for capitalised keys at depth ≤ 2 that are not in the canonical `KNOWN_OPCODES` list (sourced from `src/vm/opcode.rs`). Unknown nodes emit `ERR_UNKNOWN_NODE` warnings — preventing hallucinated instructions from silently passing into the runtime.
+- **JSON Parse Diagnostics**: Malformed JSON is caught before any tree walk and surfaces as an `ERR_JSON_PARSE` error at position 0:0.
+- **Structured Tracing**: All server lifecycle events, document opens, changes, and closures are logged via `tracing` to `stderr` — visible in the VS Code *Output → knoten-lsp* channel. Log level controlled via `RUST_LOG` env var.
+- **Dependencies**: `tower-lsp 0.20.0` (feature `runtime-tokio`), `tokio 1.44.2` (feature `full`), `tracing 0.1.44`, `tracing-subscriber 0.3.23` (feature `env-filter`). Tokio pinned to 1.44.2 to resolve `libc` conflict with `cpal 0.15.3`.
+- **`Cargo.toml`**: Added `[[bin]] name = "knoten_lsp"` entry.
+- **`README.md`**: Added `🔌 LSP Support — Sprint 137/140` feature section. Updated tooling table Phase 2 row. Added `src/bin/knoten_lsp.rs` to the Runtime Architecture module table.
+- **`llm.md`**: Architecture section updated — agents are informed the LSP validates their `.nod` output in real-time before it reaches the runtime.
+
+
+
+## [v1.0.35] - Sprint 136: Identity Pivot (The Runtime Evolution) (2026-04-12)
+Redefines KnotenCore's public identity from a "3D scripting engine" to its true form: a **Deterministic AI-Native Execution Runtime**. This sprint is a documentation and framing rectification, not a code change — ensuring all external-facing and AI-facing documentation accurately reflects the engine's architectural reality.
+- **`README.md`**: Replaced all "3D engine" framing. New tagline: *"The Deterministic AI-Native Execution Runtime."* `What is KnotenCore?` now leads with the AOT compiler + Stack-VM + JSON-AST architecture. The WGPU subsystem is correctly identified as the **Physical Representation Layer**. `Engine Architecture` renamed to `Runtime Architecture` with an updated ASCII diagram showing the JIT/AOT fork explicitly. CI badge retained prominently.
+- **`llm.md`**: Updated system instruction header to frame AI agents as **System Architects** authoring machine instruction streams, not game script developers. Architecture diagram updated to match README. `Verification` commands updated to reflect full CI gate commands (`--workspace --all-targets`).
+- **`changelog.md`**: This entry.
+
+## [v1.0.34] - Sprint 135: The CI/CD Fortress (Automated Quality Gates) (2026-04-12)
+Establishes a permanent, automated CI/CD quality gate pipeline via GitHub Actions to protect the engine's architectural purity across all future sprints and external contributions.
+- **`.github/workflows/ci.yml`**: New three-stage CI pipeline triggering on every `push` and `pull_request` to `main`.
+  - **Gate 1 — Format**: `cargo fmt --all -- --check` — enforces enforced standard Rust formatting uniformly across the entire workspace.
+  - **Gate 2 — Linter**: `cargo clippy --workspace --all-targets --all-features -- -D warnings` — full audit-mode, fails on any single Clippy warning.
+  - **Gate 3 — Tests**: `cargo test --workspace --all-features` — executes the complete 55+ test suite.
+- **Toolchain**: `dtolnay/rust-toolchain@stable` with `clippy` and `rustfmt` components.
+- **Caching**: `Swatinem/rust-cache@v2` minimizing build times for subsequent CI runs.
+- **Linux Dependencies**: Installs `libasound2-dev`, `libx11-dev`, `libwayland-dev`, `libxkbcommon-dev`, `libxext-dev`, `libudev-dev` to satisfy WGPU and audio backend requirements on the Ubuntu runner.
+- **README.md**: Added live GitHub Actions `CI Quality Gates` status badge to the project header.
+
+## [v1.0.33] - Sprint 134: The Audit Rectification (Reality Check) (2026-04-12)
+Rectification sprint addressing critical discrepancies discovered during external code auditing.
+- **`Cargo.toml`**: Synchronized package version to `1.0.33` to align compiler bin states with official release increments.
+- **README.md**: Corrected inaccurate marketing claims from "ship highly-optimized graphical applications under 5 MB" to "ship highly-optimized, natively compiled graphical applications at ~7 MB" providing reality-based constraints. 
+- **`executor.rs`**: Resolved critical `ExternCall` security leak traversing the FFI bridging sandbox by dynamically registering `registry_file_create` tightly within the strict `write_requires` array.
+- **`vm/machine.rs`**: Remapped crash outputs to faithfully mirror our AI Error Catalog ensuring `Div by zero` outputs exactly specify `(at Node::MathDiv)` matching expected CLI baseline syntax.
+
+## [v1.0.32] - Sprint 133: The Audio Engine (Bare-Metal Sound) (2026-04-12)
+Introduces an asynchronous thread-safe native audio pipeline securely bridging nodes directly to hardware speakers.
+- **`src/audio.rs`**: Built the `AudioManager` wrapping `rodio` to manage overlapping sound effects (`play_sound`) and infinite background music (`loop_music`) directly via hardware streams.
+- **`src/natives/registry.rs`**: Initialized global lazily populated `AUDIO_STATE` allowing execution threads cross-module access to volume and sink mutators.
+- **`executor.rs` & `machine.rs` FFI Engine Sandbox**: Completely bypassed traditional plugin invocation latency with internal inline interception for `registry_play_sound`, `registry_loop_music`, and `registry_set_volume`. All path strings strictly validate against `validate_fs_path` alongside the `--allow-read` constraint mitigating arbitrary file manipulation vulnerabilities.
+- **`examples/audio_demo.nod`**: Synthesized 3D spatial intersections (`registry_raycast_aabb`) with edge-triggered audio output demonstrating complete bare-metal gameplay integration loop.
+
 ## [v1.0.30] - Sprint 132: VS Code Language Extension — Phase 1 (2026-04-06)
 Introduces the official KnotenCore VS Code Language Extension — Phase 1, providing local syntax highlighting and code snippets for `.knoten` and `.nod` files.
 - **`tools/vscode-knotencore/`** *(new directory)*: Self-contained VS Code extension package.
