@@ -344,14 +344,12 @@ impl KnotenBackend {
                     );
                 }
             }
-            "Block" | "ArrayCreate" | "UIHBox" | "UIVBox" => {
-                if !value.is_array() {
-                    self.push_error(
-                        diagnostics,
-                        "ERR_TYPE_MISMATCH",
-                        &format!("{key} node must be an array of children"),
-                    );
-                }
+            "Block" | "ArrayCreate" | "UIHBox" | "UIVBox" if !value.is_array() => {
+                self.push_error(
+                    diagnostics,
+                    "ERR_TYPE_MISMATCH",
+                    &format!("{key} node must be an array of children"),
+                );
             }
             "FnDef" => {
                 if let Some(arr) = value.as_array() {
