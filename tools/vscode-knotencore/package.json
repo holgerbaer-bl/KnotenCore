@@ -1,11 +1,12 @@
 {
-  "name": "vscode-knotencore",
+  "name": "knotencore",
   "displayName": "KnotenCore Language Support",
   "description": "Syntax highlighting for KnotenCore (.knoten) Neural DSL and (.nod) AST files. The Agent-First Rust Engine language extension.",
-  "version": "0.1.0",
-  "publisher": "knotencore",
+  "version": "1.0.0",
+  "publisher": "holger-bl",
   "license": "MIT",
   "icon": "icon.png",
+  "homepage": "https://knotencore.de",
   "repository": {
     "type": "git",
     "url": "https://github.com/holgerbaer-bl/KnotenCore"
@@ -41,6 +42,17 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "KnotenCore",
+      "properties": {
+        "knotencore.lspPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the knoten_lsp binary. If left empty, the extension will search the workspace and PATH."
+        }
+      }
+    },
     "languages": [
       {
         "id": "knoten",
@@ -88,5 +100,11 @@
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
+  },
+  "overrides": {
+    "undici": "5.28.4"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^2.32.0"
   }
 }

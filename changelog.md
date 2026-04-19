@@ -2,6 +2,9 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 150: Marketplace Readiness (2026-04-19)
+Sprint 150: Marketplace Readiness. Finalized VS Code extension with branding and binary lookup. Generated .vsix for manual deployment.
+
 ## [v1.0.47] - Sprint 148: KNOTEN_SPEC.md final polish (2026-04-18)
 Fix: Sprint 148 - KNOTEN_SPEC.md final polish.
 ArrayLiteral corrected to ArrayCreate in DrawVoxelGrid example.

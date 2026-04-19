@@ -33,15 +33,23 @@ The native `knoten_lsp` server provides deep intelligence for `.nod` (AST) and `
 
 ## 🛠️ Installation
 
-### Marketplace (Recommended)
-Install directly from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=knotencore.vscode-knotencore).
+**3-Step Setup for Full Language Support:**
 
-### Manual Installation
-1. Download the latest `.vsix` from the [Releases](https://github.com/holgerbaer-bl/KnotenCore/releases) page.
-2. Run: `code --install-extension vscode-knotencore-0.1.0.vsix`
+### Step 1: Install Extension
+Install directly from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=holger-bl.knotencore) or manually via `.vsix`:
+`code --install-extension holger-bl.knotencore-1.0.0.vsix`
 
-## ⚙️ Configuration
-The extension automatically detects the `knoten_lsp` binary in your workspace `target` folders. To use a custom server path, ensure `knoten_lsp` is in your system `PATH`.
+### Step 2: Clone & Build Engine
+The extension requires the `knoten_lsp` Language Server to provide advanced features.
+```bash
+git clone https://github.com/holgerbaer-bl/KnotenCore.git
+cd KnotenCore/aether_compiler
+cargo build --release --bin knoten_lsp
+```
+
+### Step 3: Run & Configure
+The extension automatically searches your workspace (and `PATH`) for the compiled `knoten_lsp` binary. Alternatively, you can explicitly set the path in your VS Code settings:
+`"knotencore.lspPath": "C:/path/to/knoten_lsp.exe"`
 
 ## 🛡️ License
 Distributed under the **MIT License**. See `LICENSE` in the repository root for more information.

@@ -11,26 +11,38 @@ function activate(context) {
     console.log('KnotenCore Language Extension: Activating Phase 2 (LSP)...');
 
     // 1. Determine the path to the LSP server binary.
-    // Heuristic: Look for knoten_lsp in the workspace target folders or expect it in PATH.
+    // Heuristic: Look for knoten_lsp in the workspace target folders, then configuration, then PATH.
     const serverBinary = process.platform === 'win32' ? 'knoten_lsp.exe' : 'knoten_lsp';
-    
-    // For local development, we prefer the target/debug or target/release folder.
-    // In a production extension, we might bundle it or ask for a path in settings.
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const configPath = vscode.workspace.getConfiguration('knotencore').get('lspPath');
+    
     let serverPath = serverBinary; // Default to PATH
+    const fs = require('fs');
 
+    let foundInWorkspace = false;
     if (workspaceRoot) {
-        const debugPath = path.join(workspaceRoot, 'aether_compiler', 'target', 'debug', serverBinary);
-        const releasePath = path.join(workspaceRoot, 'aether_compiler', 'target', 'release', serverBinary);
+        const pathsToCheck = [
+            path.join(workspaceRoot, 'target', 'release', serverBinary),
+            path.join(workspaceRoot, 'target', 'debug', serverBinary),
+            path.join(workspaceRoot, 'aether_compiler', 'target', 'release', serverBinary),
+            path.join(workspaceRoot, 'aether_compiler', 'target', 'debug', serverBinary)
+        ];
         
-        const fs = require('fs');
-        if (fs.existsSync(debugPath)) {
-            serverPath = debugPath;
-            console.log(`KnotenCore LSP: Found debug binary at ${serverPath}`);
-        } else if (fs.existsSync(releasePath)) {
-            serverPath = releasePath;
-            console.log(`KnotenCore LSP: Found release binary at ${serverPath}`);
+        for (const p of pathsToCheck) {
+            if (fs.existsSync(p)) {
+                serverPath = p;
+                foundInWorkspace = true;
+                console.log(`KnotenCore LSP: Found workspace binary at ${serverPath}`);
+                break;
+            }
         }
+    }
+
+    if (!foundInWorkspace && configPath && fs.existsSync(configPath)) {
+        serverPath = configPath;
+        console.log(`KnotenCore LSP: Found configured binary at ${serverPath}`);
+    } else if (!foundInWorkspace && !configPath) {
+        console.log(`KnotenCore LSP: Using PATH binary ${serverPath}`);
     }
 
     // 2. Configure Server Options
