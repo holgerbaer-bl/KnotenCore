@@ -136,6 +136,7 @@ KnotenCore's rendering subsystem is a **Physical Representation Layer** — not 
 - **Z-Buffered Depth Ordering**: `TextureFormat::Depth32Float` with `CompareFunction::Less`.
 - **Camera UBO**: Real `perspective_rh × look_at_rh` view-projection matrices written per-frame.
 - **Resize-Safe**: Surface and depth buffers are correctly re-created on window resize.
+- **GPGPU Compute Pipeline**: Natively integrated `LoadComputeShader` and `DispatchCompute` nodes allow agents to perform massive parallel computations directly via WGPU.
 
 ### 🎧 Native Bare-Metal Audio Engine
 KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline directly linked into the AOT-Virtual Machine and JIT executors:
