@@ -632,6 +632,34 @@ impl Compiler {
                 self.instructions.push(OpCode::UIWindow(id_idx, count));
                 true
             }
+            Node::LoadComputeShader(source) => {
+                if !self.compile_node(source) {
+                    return false;
+                }
+                self.instructions.push(OpCode::LoadComputeShader);
+                true
+            }
+            Node::DispatchCompute { shader_id, x, y, z, inputs } => {
+                if !self.compile_node(shader_id) {
+                    return false;
+                }
+                if !self.compile_node(x) {
+                    return false;
+                }
+                if !self.compile_node(y) {
+                    return false;
+                }
+                if !self.compile_node(z) {
+                    return false;
+                }
+                for input in inputs {
+                    if !self.compile_node(input) {
+                        return false;
+                    }
+                }
+                self.instructions.push(OpCode::DispatchCompute(inputs.len()));
+                true
+            }
             _ => false,
         }
     }

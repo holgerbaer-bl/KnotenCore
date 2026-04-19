@@ -183,6 +183,16 @@ pub enum Node {
     RenderMesh(Box<Node>, Box<Node>, Box<Node>), // Shader ID, Vertices, Uniform MVP Matrix
     PollEvents(Box<Node>),                       // Execution loop intercept
 
+    // GPGPU Compute Shader
+    LoadComputeShader(Box<Node>),
+    DispatchCompute {
+        shader_id: Box<Node>,
+        x: Box<Node>,
+        y: Box<Node>,
+        z: Box<Node>,
+        inputs: Vec<Node>,
+    },
+
     // Audio Engine (CPAL FFI)
     InitAudio,
     PlayNote(Box<Node>, Box<Node>, Box<Node>), // Channel, Frequency, Waveform

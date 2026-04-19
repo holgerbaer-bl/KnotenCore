@@ -718,7 +718,9 @@ impl ExecutionEngine {
             | Node::EnableInteraction(_)
             | Node::EnablePhysics(_)
             | Node::Import(_)
-            | Node::AddWorldAABB { .. } => self.evaluate_extra(node),
+            | Node::AddWorldAABB { .. }
+            | Node::LoadComputeShader(_)
+            | Node::DispatchCompute { .. } => self.evaluate_extra(node),
         }
     }
 

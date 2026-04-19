@@ -60,4 +60,7 @@ pub enum OpCode {
     UIButton,
     UIHBox(usize),
     UIVBox(usize),
+
+    LoadComputeShader,
+    DispatchCompute(usize), // arg_count
 }
