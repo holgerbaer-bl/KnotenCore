@@ -144,7 +144,7 @@ Six new AST nodes completing the Boolean algebra. All accept `Box<Node>` operand
 
 ---
 
-## Verification & Testing
+## Verification & Testing 
 
 ```bash
 cargo clippy --workspace --all-targets --all-features -- -D warnings  # CI Gate 2: 0 warnings

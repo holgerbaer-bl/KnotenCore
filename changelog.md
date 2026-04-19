@@ -2,6 +2,9 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 151: Release Synchronization (2026-04-19)
+Sprint 151: Release Synchronization. Bumped workspace version to 1.0.48 to align with Marketplace launch. Prepared official v1.0.48 release.
+
 ## [v1.0.48] - Sprint 150: Marketplace Readiness (2026-04-19)
 Sprint 150: Marketplace Readiness. Finalized VS Code extension with branding and binary lookup. Generated .vsix for manual deployment.
 
