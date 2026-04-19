@@ -88,6 +88,17 @@ pub enum RenderCommand {
         vertices: Vec<RegistryVertex>,
         indices: Vec<u32>,
     },
+    LoadComputeShader {
+        id: usize,
+        source: String,
+    },
+    DispatchCompute {
+        shader_id: usize,
+        x: u32,
+        y: u32,
+        z: u32,
+        inputs: Vec<crate::executor::RelType>,
+    },
     ExitEventLoop,
 }
 
@@ -115,7 +126,7 @@ pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) 
     *guard = Some(tx);
 }
 
-fn send_render_command(cmd: RenderCommand) {
+pub fn send_render_command(cmd: RenderCommand) {
     let guard = RENDER_TX.lock().unwrap();
     if let Some(tx) = guard.as_ref() {
         let _ = tx.send_event(cmd);

@@ -441,6 +441,18 @@ impl Validator {
                 self.check_node(min);
                 self.check_node(max);
             }
+            Node::LoadComputeShader(val) => {
+                self.check_node(val);
+            }
+            Node::DispatchCompute { shader_id, x, y, z, inputs } => {
+                self.check_node(shader_id);
+                self.check_node(x);
+                self.check_node(y);
+                self.check_node(z);
+                for n in inputs {
+                    self.check_node(n);
+                }
+            }
         }
     }
 }

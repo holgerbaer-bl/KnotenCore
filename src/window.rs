@@ -9,6 +9,7 @@ use winit::window::{Window as WinitWindow, WindowId};
 pub struct KnotenApp {
     pub windows: HashMap<usize, RegistryWindowState>,
     pub window_id_map: HashMap<WindowId, usize>,
+    pub compute_pipelines: HashMap<usize, wgpu::ComputePipeline>,
 }
 
 impl Default for KnotenApp {
@@ -22,6 +23,7 @@ impl KnotenApp {
         Self {
             windows: HashMap::new(),
             window_id_map: HashMap::new(),
+            compute_pipelines: HashMap::new(),
         }
     }
 
@@ -464,6 +466,47 @@ impl KnotenApp {
                 self.windows.remove(&id);
                 if self.windows.is_empty() {
                     event_loop.exit();
+                }
+            }
+            RenderCommand::LoadComputeShader { id, source } => {
+                if let Some(state) = self.windows.values().next() {
+                    let shader = state.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                        label: Some("Compute Shader"),
+                        source: wgpu::ShaderSource::Wgsl(source.into()),
+                    });
+                    let pipeline = state.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                        label: Some("Compute Pipeline"),
+                        layout: None,
+                        module: &shader,
+                        entry_point: Some("main"),
+                        compilation_options: Default::default(),
+                        cache: None,
+                    });
+                    self.compute_pipelines.insert(id, pipeline);
+                } else {
+                    eprintln!("LoadComputeShader failed: No WGPU window/device available.");
+                }
+            }
+            RenderCommand::DispatchCompute { shader_id, x, y, z, inputs: _ } => {
+                if let Some(state) = self.windows.values().next() {
+                    if let Some(pipeline) = self.compute_pipelines.get(&shader_id) {
+                        let mut encoder = state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("Compute Encoder"),
+                        });
+                        {
+                            let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                                label: Some("Compute Pass"),
+                                timestamp_writes: None,
+                            });
+                            cpass.set_pipeline(pipeline);
+                            cpass.dispatch_workgroups(x, y, z);
+                        }
+                        state.queue.submit(std::iter::once(encoder.finish()));
+                    } else {
+                        eprintln!("DispatchCompute failed: Shader {} not found.", shader_id);
+                    }
+                } else {
+                    eprintln!("DispatchCompute failed: No WGPU window/device available.");
                 }
             }
             RenderCommand::AddMesh {

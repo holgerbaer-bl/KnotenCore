@@ -305,6 +305,15 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::AddWorldAABB { min, max } => {
             count += count_nodes(min) + count_nodes(max);
         }
+        Node::LoadComputeShader(val) => {
+            count += count_nodes(val);
+        }
+        Node::DispatchCompute { shader_id, x, y, z, inputs } => {
+            count += count_nodes(shader_id) + count_nodes(x) + count_nodes(y) + count_nodes(z);
+            for n in inputs {
+                count += count_nodes(n);
+            }
+        }
     }
     count
 }
@@ -685,6 +694,14 @@ pub fn optimize(node: Node) -> Node {
         Node::AddWorldAABB { min, max } => Node::AddWorldAABB {
             min: Box::new(optimize(*min)),
             max: Box::new(optimize(*max)),
+        },
+        Node::LoadComputeShader(val) => Node::LoadComputeShader(Box::new(optimize(*val))),
+        Node::DispatchCompute { shader_id, x, y, z, inputs } => Node::DispatchCompute {
+            shader_id: Box::new(optimize(*shader_id)),
+            x: Box::new(optimize(*x)),
+            y: Box::new(optimize(*y)),
+            z: Box::new(optimize(*z)),
+            inputs: inputs.into_iter().map(optimize).collect(),
         },
     }
 }

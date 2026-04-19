@@ -713,6 +713,60 @@ impl VM {
                     crate::natives::registry::send_ui_nodes(children);
                     self.stack.push(RelType::Void);
                 }
+                OpCode::LoadComputeShader => {
+                    let source_val = self.stack.pop().unwrap_or(RelType::Void);
+                    if let RelType::Str(source) = source_val {
+                        // Generate a temporary pseudo-ID for now using the timestamp
+                        let id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as usize % 1000000;
+                        crate::natives::registry::send_render_command(
+                            crate::natives::registry::RenderCommand::LoadComputeShader {
+                                id,
+                                source,
+                            }
+                        );
+                        self.stack.push(RelType::Int(id as i64));
+                    } else {
+                        return Err("LoadComputeShader expects a String source".into());
+                    }
+                }
+                OpCode::DispatchCompute(arg_count) => {
+                    let mut inputs = Vec::with_capacity(*arg_count);
+                    for _ in 0..*arg_count {
+                        inputs.push(self.stack.pop().unwrap_or(RelType::Void));
+                    }
+                    inputs.reverse();
+
+                    let z = match self.stack.pop().unwrap_or(RelType::Void) {
+                        RelType::Int(v) => v as u32,
+                        RelType::Float(v) => v as u32,
+                        _ => return Err("DispatchCompute expects numeric Z dimension".into()),
+                    };
+                    let y = match self.stack.pop().unwrap_or(RelType::Void) {
+                        RelType::Int(v) => v as u32,
+                        RelType::Float(v) => v as u32,
+                        _ => return Err("DispatchCompute expects numeric Y dimension".into()),
+                    };
+                    let x = match self.stack.pop().unwrap_or(RelType::Void) {
+                        RelType::Int(v) => v as u32,
+                        RelType::Float(v) => v as u32,
+                        _ => return Err("DispatchCompute expects numeric X dimension".into()),
+                    };
+                    let shader_id = match self.stack.pop().unwrap_or(RelType::Void) {
+                        RelType::Int(v) => v as usize,
+                        _ => return Err("DispatchCompute expects integer Shader ID".into()),
+                    };
+
+                    crate::natives::registry::send_render_command(
+                        crate::natives::registry::RenderCommand::DispatchCompute {
+                            shader_id,
+                            x,
+                            y,
+                            z,
+                            inputs,
+                        }
+                    );
+                    self.stack.push(RelType::Void);
+                }
                 OpCode::ExternCall {
                     name_idx,
                     arg_count,
