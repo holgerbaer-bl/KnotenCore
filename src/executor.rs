@@ -1122,9 +1122,11 @@ impl ExecutionEngine {
             Node::Material3D { .. } => ExecResult::Value(RelType::Void),
             Node::MeshInstance3D { .. } => ExecResult::Value(RelType::Void),
             Node::RaycastSimple => ExecResult::Value(RelType::Void),
-            Node::InitWindow(_, _, _) | Node::LoadShader(_) | Node::RenderMesh(_, _, _) | Node::LoadComputeShader(_) | Node::DispatchCompute { .. } => {
-                ExecResult::Value(RelType::Void)
-            }
+            Node::InitWindow(_, _, _)
+            | Node::LoadShader(_)
+            | Node::RenderMesh(_, _, _)
+            | Node::LoadComputeShader(_)
+            | Node::DispatchCompute { .. } => ExecResult::Value(RelType::Void),
             Node::LoadMesh(_) | Node::LoadTexture(_) | Node::RenderAsset(_, _, _, _) => {
                 ExecResult::Value(RelType::Void)
             }

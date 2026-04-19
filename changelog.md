@@ -4,6 +4,7 @@
 
 ## [v1.0.48] - Sprint 152: GPGPU Reality Check (2026-04-19)
 Sprint 152: GPGPU Reality Check. Implemented missing LoadComputeShader and DispatchCompute nodes natively into the AOT pipeline and WGPU bridge.
+Hotfix: Enforced cargo fmt to pass CI Gate 1 styling requirements.
 
 ## [v1.0.48] - Sprint 151: Release Synchronization (2026-04-19)
 Sprint 151: Release Synchronization. Bumped workspace version to 1.0.48 to align with Marketplace launch. Prepared official v1.0.48 release.

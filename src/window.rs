@@ -470,34 +470,49 @@ impl KnotenApp {
             }
             RenderCommand::LoadComputeShader { id, source } => {
                 if let Some(state) = self.windows.values().next() {
-                    let shader = state.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                        label: Some("Compute Shader"),
-                        source: wgpu::ShaderSource::Wgsl(source.into()),
-                    });
-                    let pipeline = state.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                        label: Some("Compute Pipeline"),
-                        layout: None,
-                        module: &shader,
-                        entry_point: Some("main"),
-                        compilation_options: Default::default(),
-                        cache: None,
-                    });
+                    let shader = state
+                        .device
+                        .create_shader_module(wgpu::ShaderModuleDescriptor {
+                            label: Some("Compute Shader"),
+                            source: wgpu::ShaderSource::Wgsl(source.into()),
+                        });
+                    let pipeline =
+                        state
+                            .device
+                            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                                label: Some("Compute Pipeline"),
+                                layout: None,
+                                module: &shader,
+                                entry_point: Some("main"),
+                                compilation_options: Default::default(),
+                                cache: None,
+                            });
                     self.compute_pipelines.insert(id, pipeline);
                 } else {
                     eprintln!("LoadComputeShader failed: No WGPU window/device available.");
                 }
             }
-            RenderCommand::DispatchCompute { shader_id, x, y, z, inputs: _ } => {
+            RenderCommand::DispatchCompute {
+                shader_id,
+                x,
+                y,
+                z,
+                inputs: _,
+            } => {
                 if let Some(state) = self.windows.values().next() {
                     if let Some(pipeline) = self.compute_pipelines.get(&shader_id) {
-                        let mut encoder = state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                            label: Some("Compute Encoder"),
-                        });
+                        let mut encoder =
+                            state
+                                .device
+                                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                                    label: Some("Compute Encoder"),
+                                });
                         {
-                            let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                                label: Some("Compute Pass"),
-                                timestamp_writes: None,
-                            });
+                            let mut cpass =
+                                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                                    label: Some("Compute Pass"),
+                                    timestamp_writes: None,
+                                });
                             cpass.set_pipeline(pipeline);
                             cpass.dispatch_workgroups(x, y, z);
                         }

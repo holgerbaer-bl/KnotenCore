@@ -639,7 +639,13 @@ impl Compiler {
                 self.instructions.push(OpCode::LoadComputeShader);
                 true
             }
-            Node::DispatchCompute { shader_id, x, y, z, inputs } => {
+            Node::DispatchCompute {
+                shader_id,
+                x,
+                y,
+                z,
+                inputs,
+            } => {
                 if !self.compile_node(shader_id) {
                     return false;
                 }
@@ -657,7 +663,8 @@ impl Compiler {
                         return false;
                     }
                 }
-                self.instructions.push(OpCode::DispatchCompute(inputs.len()));
+                self.instructions
+                    .push(OpCode::DispatchCompute(inputs.len()));
                 true
             }
             _ => false,

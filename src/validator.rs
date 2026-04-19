@@ -444,7 +444,13 @@ impl Validator {
             Node::LoadComputeShader(val) => {
                 self.check_node(val);
             }
-            Node::DispatchCompute { shader_id, x, y, z, inputs } => {
+            Node::DispatchCompute {
+                shader_id,
+                x,
+                y,
+                z,
+                inputs,
+            } => {
                 self.check_node(shader_id);
                 self.check_node(x);
                 self.check_node(y);

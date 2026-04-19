@@ -717,12 +717,16 @@ impl VM {
                     let source_val = self.stack.pop().unwrap_or(RelType::Void);
                     if let RelType::Str(source) = source_val {
                         // Generate a temporary pseudo-ID for now using the timestamp
-                        let id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as usize % 1000000;
+                        let id = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis() as usize
+                            % 1000000;
                         crate::natives::registry::send_render_command(
                             crate::natives::registry::RenderCommand::LoadComputeShader {
                                 id,
                                 source,
-                            }
+                            },
                         );
                         self.stack.push(RelType::Int(id as i64));
                     } else {
@@ -763,7 +767,7 @@ impl VM {
                             y,
                             z,
                             inputs,
-                        }
+                        },
                     );
                     self.stack.push(RelType::Void);
                 }
