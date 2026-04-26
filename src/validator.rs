@@ -459,6 +459,13 @@ impl Validator {
                     self.check_node(n);
                 }
             }
+            Node::Modulo(l, r) => {
+                self.check_node(l);
+                self.check_node(r);
+            }
+            Node::Neg(expr) => {
+                self.check_node(expr);
+            }
         }
     }
 }

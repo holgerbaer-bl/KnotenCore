@@ -720,6 +720,8 @@ impl ExecutionEngine {
             | Node::Import(_)
             | Node::AddWorldAABB { .. }
             | Node::LoadComputeShader(_)
+            | Node::Modulo(_, _)
+            | Node::Neg(_)
             | Node::DispatchCompute { .. } => self.evaluate_extra(node),
         }
     }

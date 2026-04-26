@@ -20,6 +20,7 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::Sub(l, r)
         | Node::Mul(l, r)
         | Node::Div(l, r)
+        | Node::Modulo(l, r)
         | Node::Mat4Mul(l, r)
         | Node::Eq(l, r)
         | Node::Lt(l, r)
@@ -40,7 +41,7 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::Not(n) => {
             count += count_nodes(n);
         }
-        Node::Sin(n) | Node::Cos(n) | Node::Abs(n) => {
+        Node::Sin(n) | Node::Cos(n) | Node::Abs(n) | Node::Neg(n) => {
             count += count_nodes(n);
         }
         Node::Time | Node::GlobalTime => {}
@@ -702,6 +703,8 @@ pub fn optimize(node: Node) -> Node {
             max: Box::new(optimize(*max)),
         },
         Node::LoadComputeShader(val) => Node::LoadComputeShader(Box::new(optimize(*val))),
+        Node::Modulo(l, r) => Node::Modulo(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::Neg(n) => Node::Neg(Box::new(optimize(*n))),
         Node::DispatchCompute {
             shader_id,
             x,

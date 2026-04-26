@@ -2,6 +2,9 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 156: The Grammar Expansion (DX Protocol) (2026-04-26)
+Sprint 156: Implemented Unary Minus, >=, <=, !=, Modulo, and native UI nodes in .knoten DSL based on DX Audit. Fixed Parser `Expected Colon, found LParen` block parsing. Updated `native_functions.json` to include UI FFI calls.
+
 ## [v1.0.48] - Sprint 155: The Great Structural Polish (2026-04-26)
 Sprint 155: Zero-feature-change refactoring.
 - Replaced unsafe `unwrap()` calls on Mutexes with `unwrap_or_else(|e| e.into_inner())` in `src/window.rs`, `src/vm/machine.rs`, and `src/natives/registry.rs`.

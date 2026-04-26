@@ -835,6 +835,80 @@
           "ExternCall": { "module": "registry", "function": "registry_raycast_aabb", "args": [{"Variable": "origin"}, {"Variable": "dir"}] }
         }]
       }
+    },
+    {
+      "name": "ui_draw_rect",
+      "module": "ui",
+      "description": "Draws a 2D rectangle to the UI overlay canvas.",
+      "parameters": [
+        { "name": "x", "type": "Float", "required": true },
+        { "name": "y", "type": "Float", "required": true },
+        { "name": "width", "type": "Float", "required": true },
+        { "name": "height", "type": "Float", "required": true },
+        { "name": "r", "type": "Float", "required": true },
+        { "name": "g", "type": "Float", "required": true },
+        { "name": "b", "type": "Float", "required": true },
+        { "name": "a", "type": "Float", "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "ui",
+          "function": "ui_draw_rect",
+          "args": [
+            { "FloatLiteral": 10.0 }, { "FloatLiteral": 10.0 },
+            { "FloatLiteral": 100.0 }, { "FloatLiteral": 50.0 },
+            { "FloatLiteral": 1.0 }, { "FloatLiteral": 0.0 }, { "FloatLiteral": 0.0 }, { "FloatLiteral": 1.0 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ui_draw_text",
+      "module": "ui",
+      "description": "Draws 2D text to the UI overlay canvas.",
+      "parameters": [
+        { "name": "text", "type": "String", "required": true },
+        { "name": "x", "type": "Float", "required": true },
+        { "name": "y", "type": "Float", "required": true },
+        { "name": "size", "type": "Float", "required": true },
+        { "name": "r", "type": "Float", "required": true },
+        { "name": "g", "type": "Float", "required": true },
+        { "name": "b", "type": "Float", "required": true },
+        { "name": "a", "type": "Float", "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "ui",
+          "function": "ui_draw_text",
+          "args": [
+            { "StringLiteral": "Score: 100" },
+            { "FloatLiteral": 10.0 }, { "FloatLiteral": 70.0 }, { "FloatLiteral": 24.0 },
+            { "FloatLiteral": 1.0 }, { "FloatLiteral": 1.0 }, { "FloatLiteral": 1.0 }, { "FloatLiteral": 1.0 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ui_present",
+      "module": "ui",
+      "description": "Finalizes the UI drawing queue and presents the UI overlay onto the active window.",
+      "parameters": [],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "ui",
+          "function": "ui_present",
+          "args": []
+        }
+      }
     }
   ]
 }

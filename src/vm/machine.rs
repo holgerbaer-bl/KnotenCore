@@ -148,6 +148,42 @@ impl VM {
                         _ => return Err("Invalid types for Divide".into()),
                     }
                 }
+                OpCode::Modulo => {
+                    let r = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in Modulo".to_string())?;
+                    let l = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in Modulo".to_string())?;
+                    match (l, r) {
+                        (RelType::Int(a), RelType::Int(b)) => {
+                            if b == 0 {
+                                return Err("Fault: Div by zero (at Node::Modulo)".into());
+                            }
+                            self.stack.push(RelType::Int(a % b))
+                        }
+                        (RelType::Float(a), RelType::Float(b)) => {
+                            if b == 0.0 {
+                                return Err("Fault: Div by zero (at Node::Modulo)".into());
+                            }
+                            self.stack.push(RelType::Float(a % b))
+                        }
+                        _ => return Err("Invalid types for Modulo".into()),
+                    }
+                }
+                OpCode::Neg => {
+                    let v = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in Neg".to_string())?;
+                    match v {
+                        RelType::Int(a) => self.stack.push(RelType::Int(-a)),
+                        RelType::Float(a) => self.stack.push(RelType::Float(-a)),
+                        _ => return Err("Invalid type for Neg".into()),
+                    }
+                }
                 OpCode::Equal => {
                     let r = self
                         .stack

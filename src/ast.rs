@@ -17,6 +17,8 @@ pub enum Node {
     Sub(Box<Node>, Box<Node>),
     Mul(Box<Node>, Box<Node>),
     Div(Box<Node>, Box<Node>),
+    Modulo(Box<Node>, Box<Node>),
+    Neg(Box<Node>),
     Sin(Box<Node>),
     Cos(Box<Node>),
     Mat4Mul(Box<Node>, Box<Node>),

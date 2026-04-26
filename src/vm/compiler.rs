@@ -78,6 +78,20 @@ impl Compiler {
                 self.instructions.push(OpCode::Divide);
                 true
             }
+            Node::Modulo(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) {
+                    return false;
+                }
+                self.instructions.push(OpCode::Modulo);
+                true
+            }
+            Node::Neg(expr) => {
+                if !self.compile_node(expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::Neg);
+                true
+            }
             Node::Eq(l, r) => {
                 if !self.compile_node(l) || !self.compile_node(r) {
                     return false;

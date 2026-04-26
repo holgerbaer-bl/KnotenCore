@@ -5,6 +5,8 @@ pub enum OpCode {
     Subtract,
     Multiply,
     Divide,
+    Modulo,
+    Neg,
     Equal,
     NotEqual,
     Greater,

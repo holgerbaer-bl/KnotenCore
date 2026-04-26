@@ -21,8 +21,12 @@ pub enum Token {
     Star,
     Slash,
     EqEq,
+    NotEq,
     Lt,
     Gt,
+    LtEq,
+    GtEq,
+    Modulo,
     Assign,
     Arrow,    // ->
     FatArrow, // =>
@@ -214,6 +218,9 @@ impl<'a> Lexer<'a> {
                 if next_c == '<' {
                     self.advance();
                     Token::Shl
+                } else if next_c == '=' {
+                    self.advance();
+                    Token::LtEq
                 } else {
                     Token::Lt
                 }
@@ -222,10 +229,27 @@ impl<'a> Lexer<'a> {
                 if next_c == '>' {
                     self.advance();
                     Token::Shr
+                } else if next_c == '=' {
+                    self.advance();
+                    Token::GtEq
                 } else {
                     Token::Gt
                 }
             }
+            '!' => {
+                if next_c == '=' {
+                    self.advance();
+                    Token::NotEq
+                } else {
+                    let escaped_hint = format!("Unexpected char '{}'", c).replace("\"", "\\\"");
+                    let json = format!(
+                        r#"{{"diagnostic": {{"line": {}, "col": {}, "hint": "{}"}}}}"#,
+                        self.line, self.col, escaped_hint
+                    );
+                    panic!("{}", json);
+                }
+            }
+            '%' => Token::Modulo,
             _ => {
                 let escaped_hint = format!("Unexpected char '{}'", c).replace("\"", "\\\"");
                 let json = format!(
@@ -473,6 +497,18 @@ impl Parser {
                     self.advance();
                     node = Node::Gt(Box::new(node), Box::new(self.parse_term()));
                 }
+                Token::LtEq => {
+                    self.advance();
+                    node = Node::Lte(Box::new(node), Box::new(self.parse_term()));
+                }
+                Token::GtEq => {
+                    self.advance();
+                    node = Node::Gte(Box::new(node), Box::new(self.parse_term()));
+                }
+                Token::NotEq => {
+                    self.advance();
+                    node = Node::NotEq(Box::new(node), Box::new(self.parse_term()));
+                }
                 _ => break,
             }
         }
@@ -508,6 +544,10 @@ impl Parser {
                 Token::Slash => {
                     self.advance();
                     node = Node::Div(Box::new(node), Box::new(self.parse_primary()));
+                }
+                Token::Modulo => {
+                    self.advance();
+                    node = Node::Modulo(Box::new(node), Box::new(self.parse_primary()));
                 }
                 Token::Shl => {
                     self.advance();
@@ -573,6 +613,10 @@ impl Parser {
                     }
                 }
             }
+            Token::Minus => {
+                self.advance();
+                Node::Neg(Box::new(self.parse_primary()))
+            }
             Token::LParen => {
                 self.advance();
                 let expr = self.parse_expression();
@@ -592,27 +636,45 @@ impl Parser {
                 Node::ArrayCreate(args)
             }
             Token::LBrace => {
-                self.advance();
-                let mut map = std::collections::HashMap::new();
-                while *self.peek() != Token::RBrace && *self.peek() != Token::EOF {
-                    let key = match self.advance() {
-                        Token::Ident(name) => name,
-                        Token::Str(s) => s,
-                        other => self.diagnostic_panic(&format!(
-                            "Expected property name in object literal, found {:?}",
-                            other
-                        )),
-                    };
-                    self.expect(Token::Colon);
-                    let val = self.parse_expression();
-                    map.insert(key, val);
-
-                    if *self.peek() == Token::Comma {
-                        self.advance();
+                // Differentiate between ObjectLiteral { a: 1 } and Block { UILabel("a"); }
+                let mut is_object = false;
+                if self.pos + 1 < self.tokens.len() {
+                    let t1 = &self.tokens[self.pos + 1].0;
+                    if *t1 == Token::RBrace {
+                        is_object = true;
+                    } else if let Token::Ident(_) | Token::Str(_) = t1
+                        && self.pos + 2 < self.tokens.len()
+                        && self.tokens[self.pos + 2].0 == Token::Colon
+                    {
+                        is_object = true;
                     }
                 }
-                self.expect(Token::RBrace);
-                Node::ObjectLiteral(map)
+
+                if is_object {
+                    self.advance();
+                    let mut map = std::collections::HashMap::new();
+                    while *self.peek() != Token::RBrace && *self.peek() != Token::EOF {
+                        let key = match self.advance() {
+                            Token::Ident(name) => name,
+                            Token::Str(s) => s,
+                            other => self.diagnostic_panic(&format!(
+                                "Expected property name in object literal, found {:?}",
+                                other
+                            )),
+                        };
+                        self.expect(Token::Colon);
+                        let val = self.parse_expression();
+                        map.insert(key, val);
+
+                        if *self.peek() == Token::Comma {
+                            self.advance();
+                        }
+                    }
+                    self.expect(Token::RBrace);
+                    Node::ObjectLiteral(map)
+                } else {
+                    self.parse_block()
+                }
             }
             _ => {
                 let hint = format!("Unexpected token in expression: {:?}", self.peek());
