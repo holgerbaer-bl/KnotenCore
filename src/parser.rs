@@ -236,18 +236,9 @@ impl<'a> Lexer<'a> {
                     Token::Gt
                 }
             }
-            '!' => {
-                if next_c == '=' {
-                    self.advance();
-                    Token::NotEq
-                } else {
-                    let escaped_hint = format!("Unexpected char '{}'", c).replace("\"", "\\\"");
-                    let json = format!(
-                        r#"{{"diagnostic": {{"line": {}, "col": {}, "hint": "{}"}}}}"#,
-                        self.line, self.col, escaped_hint
-                    );
-                    panic!("{}", json);
-                }
+            '!' if next_c == '=' => {
+                self.advance();
+                Token::NotEq
             }
             '%' => Token::Modulo,
             _ => {
