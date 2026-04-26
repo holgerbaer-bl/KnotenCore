@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 155: The Great Structural Polish (2026-04-26)
+Sprint 155: Zero-feature-change refactoring.
+- Replaced unsafe `unwrap()` calls on Mutexes with `unwrap_or_else(|e| e.into_inner())` in `src/window.rs`, `src/vm/machine.rs`, and `src/natives/registry.rs`.
+- Replaced `SystemTime` `.unwrap()` with `.unwrap_or_default()`.
+- Optimised WGPU lifecycle in `src/window.rs` by utilizing a cache via `compute_pipelines` and deduplicating shader compilation by hashing the `source` string for IDs.
+
 ## [v1.0.48] - Sprint 152: GPGPU Reality Check (2026-04-19)
 Sprint 152: GPGPU Reality Check. Implemented missing LoadComputeShader and DispatchCompute nodes natively into the AOT pipeline and WGPU bridge.
 Hotfix: Enforced cargo fmt to pass CI Gate 1 styling requirements.

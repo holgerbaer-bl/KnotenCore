@@ -470,24 +470,27 @@ impl KnotenApp {
             }
             RenderCommand::LoadComputeShader { id, source } => {
                 if let Some(state) = self.windows.values().next() {
-                    let shader = state
-                        .device
-                        .create_shader_module(wgpu::ShaderModuleDescriptor {
-                            label: Some("Compute Shader"),
-                            source: wgpu::ShaderSource::Wgsl(source.into()),
-                        });
-                    let pipeline =
-                        state
-                            .device
-                            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                    use std::collections::hash_map::Entry;
+                    if let Entry::Vacant(e) = self.compute_pipelines.entry(id) {
+                        let shader =
+                            state
+                                .device
+                                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                                    label: Some("Compute Shader"),
+                                    source: wgpu::ShaderSource::Wgsl(source.into()),
+                                });
+                        let pipeline = state.device.create_compute_pipeline(
+                            &wgpu::ComputePipelineDescriptor {
                                 label: Some("Compute Pipeline"),
                                 layout: None,
                                 module: &shader,
                                 entry_point: Some("main"),
                                 compilation_options: Default::default(),
                                 cache: None,
-                            });
-                    self.compute_pipelines.insert(id, pipeline);
+                            },
+                        );
+                        e.insert(pipeline);
+                    }
                 } else {
                     eprintln!("LoadComputeShader failed: No WGPU window/device available.");
                 }
@@ -573,7 +576,7 @@ impl KnotenApp {
                             0,
                             bytemuck::cast_slice(view_proj.as_flattened()),
                         );
-                        let mut input = state.input.lock().unwrap();
+                        let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                         input.view_proj = view_proj;
                     }
                 } else if let Some(state) = self.windows.get_mut(&window_id) {
@@ -582,7 +585,7 @@ impl KnotenApp {
                         0,
                         bytemuck::cast_slice(view_proj.as_flattened()),
                     );
-                    let mut input = state.input.lock().unwrap();
+                    let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                     input.view_proj = view_proj;
                 }
             }
@@ -641,7 +644,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 }
             }
             WindowEvent::KeyboardInput { event: key_ev, .. } => {
-                let mut input = state.input.lock().unwrap();
+                let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                 if let winit::keyboard::PhysicalKey::Code(code) = key_ev.physical_key {
                     if key_ev.state == winit::event::ElementState::Pressed {
                         input.keys.insert(code);
@@ -672,7 +675,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                let mut input = state.input.lock().unwrap();
+                let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                 input.mouse_x = position.x as f32;
                 input.mouse_y = position.y as f32;
             }
@@ -681,7 +684,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 button: winit::event::MouseButton::Left,
                 ..
             } => {
-                let mut input = state.input.lock().unwrap();
+                let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                 input.mouse_left_down = element_state == winit::event::ElementState::Pressed;
             }
             WindowEvent::Resized(physical_size)
@@ -690,7 +693,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 state.width = physical_size.width;
                 state.height = physical_size.height;
                 {
-                    let mut input = state.input.lock().unwrap();
+                    let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                     input.window_width = physical_size.width as f32;
                     input.window_height = physical_size.height as f32;
                 }
@@ -735,7 +738,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     bytemuck::cast_slice(&view_proj.to_cols_array()),
                 );
                 {
-                    let mut input = state.input.lock().unwrap();
+                    let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                     input.view_proj = view_proj.to_cols_array_2d();
                 }
 

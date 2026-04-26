@@ -716,12 +716,11 @@ impl VM {
                 OpCode::LoadComputeShader => {
                     let source_val = self.stack.pop().unwrap_or(RelType::Void);
                     if let RelType::Str(source) = source_val {
-                        // Generate a temporary pseudo-ID for now using the timestamp
-                        let id = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_millis() as usize
-                            % 1000000;
+                        // Generate ID by hashing the source to deduplicate shader compilations
+                        use std::hash::{Hash, Hasher};
+                        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                        source.hash(&mut hasher);
+                        let id = hasher.finish() as usize;
                         crate::natives::registry::send_render_command(
                             crate::natives::registry::RenderCommand::LoadComputeShader {
                                 id,
@@ -844,7 +843,10 @@ impl VM {
                     let obj = self.stack.pop().unwrap_or(RelType::Void);
 
                     if let (RelType::Dict(map_arc), RelType::Str(k)) = (&obj, key) {
-                        map_arc.lock().unwrap().insert(k, val);
+                        map_arc
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner())
+                            .insert(k, val);
                         self.stack.push(obj); // Push back the reference
                     } else {
                         return Err("SetProperty expects (Dict, Str, Any).".to_string());
@@ -857,7 +859,7 @@ impl VM {
                     if let (RelType::Dict(map_arc), RelType::Str(k)) = (&obj, key) {
                         let res = map_arc
                             .lock()
-                            .unwrap()
+                            .unwrap_or_else(|e| e.into_inner())
                             .get(&k)
                             .cloned()
                             .unwrap_or(RelType::Void);

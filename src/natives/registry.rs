@@ -113,7 +113,7 @@ static SENT_MESHES: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 pub static AUDIO_STATE: Mutex<Option<crate::audio::AudioManager>> = Mutex::new(None);
 
 pub fn init_audio_state() {
-    let mut guard = AUDIO_STATE.lock().unwrap();
+    let mut guard = AUDIO_STATE.lock().unwrap_or_else(|e| e.into_inner());
     if guard.is_none()
         && let Ok(manager) = crate::audio::AudioManager::new()
     {
@@ -122,12 +122,12 @@ pub fn init_audio_state() {
 }
 
 pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) {
-    let mut guard = RENDER_TX.lock().unwrap();
+    let mut guard = RENDER_TX.lock().unwrap_or_else(|e| e.into_inner());
     *guard = Some(tx);
 }
 
 pub fn send_render_command(cmd: RenderCommand) {
-    let guard = RENDER_TX.lock().unwrap();
+    let guard = RENDER_TX.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(tx) = guard.as_ref() {
         let _ = tx.send_event(cmd);
     }
