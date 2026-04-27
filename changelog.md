@@ -2,6 +2,9 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 157: Bundler Hotfix & Readme Compliance (2026-04-27)
+Hotfix: knoten_build now correctly compiles .knoten DSL to JSON AST before bundling. README synchronized with new UI DSL grammar.
+
 ## [v1.0.48] - Sprint 156: The Grammar Expansion (DX Protocol) (2026-04-26)
 Sprint 156: Implemented Unary Minus, >=, <=, !=, Modulo, and native UI nodes in .knoten DSL based on DX Audit. Fixed Parser `Expected Colon, found LParen` block parsing. Updated `native_functions.json` to include UI FFI calls.
 

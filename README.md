@@ -256,16 +256,21 @@ let text = "Enter your query here...";
 let running = true;
 while (running) {
     // Nested UI Layouts binding natively to egui elements
-    UIWindow("Form", "Login", {
-        UIHBox({
+    UIWindow("Form", "Login") {
+        UIHBox() {
             text = UITextInput(text);
-            if (UIButton("Submit")) {
+            if (UIButton("Submit") != false) {
+                print("Submitted!");
                 print(text);
                 running = false;
             }
-        });
+        };
         UILabel(text);
-    });
+        
+        if (elapsed_ms % 1000 >= 500) {
+            UILabel("Blinking text: Please enter data...");
+        }
+    };
 
     ui_present();
     sleep(16);

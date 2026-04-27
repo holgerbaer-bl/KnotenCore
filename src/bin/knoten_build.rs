@@ -18,7 +18,22 @@ fn main() {
         std::process::exit(1);
     }
 
-    let absolute_path = fs::canonicalize(&path).expect("Failed to get absolute path");
+    let mut absolute_path = fs::canonicalize(&path).expect("Failed to get absolute path");
+    let mut temp_ast_path = None;
+
+    if input_path.ends_with(".knoten") {
+        println!("🔧 Compiling .knoten DSL to JSON AST...");
+        let content = fs::read_to_string(&absolute_path).expect("Failed to read .knoten file");
+        let mut parser = knoten_core::parser::Parser::new(&content);
+        let ast = parser.parse();
+        let json_ast = serde_json::to_string(&ast).expect("Failed to serialize AST to JSON");
+        
+        let temp_path = PathBuf::from("_bundled_ast_temp.json");
+        fs::write(&temp_path, json_ast).expect("Failed to write temporary JSON AST");
+        absolute_path = fs::canonicalize(&temp_path).expect("Failed to get absolute temp path");
+        temp_ast_path = Some(temp_path);
+    }
+
     let absolute_path_str = absolute_path.to_str().expect("Path is not valid UTF-8");
 
     // Windows backslash fix for include_str!()
@@ -109,6 +124,10 @@ fn main() {{
     // Copy to the current directory matching the original json name
     let dest_path = PathBuf::from(&out_file_name);
     fs::copy(&compiled_bin, &dest_path).expect("Failed to copy executable to output directory");
+
+    if let Some(ast_path) = temp_ast_path {
+        let _ = fs::remove_file(ast_path);
+    }
 
     println!("✅ Bundle Successful!");
     println!("Standalone Application created: {}", dest_path.display());
