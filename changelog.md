@@ -2,6 +2,9 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 158: The Mühle Vindication (V2) (2026-04-27)
+Sprint 158: Refactored Nine Men's Morris demo using new native DSL features (Unary Minus, Modulo, >=, !=). Successfully compiled via knoten_build.
+
 ## [v1.0.48] - Sprint 157: Bundler Hotfix & Readme Compliance (2026-04-27)
 Hotfix: knoten_build now correctly compiles .knoten DSL to JSON AST before bundling. README synchronized with new UI DSL grammar.
 

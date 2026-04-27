@@ -49,6 +49,16 @@ impl ExecutionEngine {
             Node::Sub(l, r) => self.do_math(l, '-', r),
             Node::Mul(l, r) => self.do_math(l, '*', r),
             Node::Div(l, r) => self.do_math(l, '/', r),
+            Node::Modulo(l, r) => self.do_math(l, '%', r),
+            Node::Neg(expr) => match self.evaluate_inner(expr) {
+                ExecResult::Value(RelType::Int(v)) => ExecResult::Value(RelType::Int(-v)),
+                ExecResult::Value(RelType::Float(v)) => ExecResult::Value(RelType::Float(-v)),
+                ExecResult::Value(_) => ExecResult::Fault {
+                    msg: "Neg expects number".into(),
+                    node: "Node::Neg".into(),
+                },
+                err => err,
+            },
             Node::Abs(expr) => match self.evaluate_inner(expr) {
                 ExecResult::Value(RelType::Int(v)) => ExecResult::Value(RelType::Int(v.abs())),
                 ExecResult::Value(RelType::Float(v)) => ExecResult::Value(RelType::Float(v.abs())),
@@ -720,8 +730,6 @@ impl ExecutionEngine {
             | Node::Import(_)
             | Node::AddWorldAABB { .. }
             | Node::LoadComputeShader(_)
-            | Node::Modulo(_, _)
-            | Node::Neg(_)
             | Node::DispatchCompute { .. } => self.evaluate_extra(node),
         }
     }
@@ -782,6 +790,24 @@ impl ExecutionEngine {
                     return ExecResult::Fault {
                         msg: "Invalid types for /".into(),
                         node: "Node::Div".into(),
+                    };
+                }
+            },
+            '%' => match (lv, rv) {
+                (RelType::Int(a), RelType::Int(b)) => {
+                    if b == 0 {
+                        return ExecResult::Fault {
+                            msg: "Mod by zero".into(),
+                            node: "Node::Modulo".into(),
+                        };
+                    }
+                    RelType::Int(a % b)
+                }
+                (RelType::Float(a), RelType::Float(b)) => RelType::Float(a % b),
+                _ => {
+                    return ExecResult::Fault {
+                        msg: "Invalid types for %".into(),
+                        node: "Node::Modulo".into(),
                     };
                 }
             },
