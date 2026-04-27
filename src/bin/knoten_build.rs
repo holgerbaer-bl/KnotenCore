@@ -27,7 +27,7 @@ fn main() {
         let mut parser = knoten_core::parser::Parser::new(&content);
         let ast = parser.parse();
         let json_ast = serde_json::to_string(&ast).expect("Failed to serialize AST to JSON");
-        
+
         let temp_path = PathBuf::from("_bundled_ast_temp.json");
         fs::write(&temp_path, json_ast).expect("Failed to write temporary JSON AST");
         absolute_path = fs::canonicalize(&temp_path).expect("Failed to get absolute temp path");
