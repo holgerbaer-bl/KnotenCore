@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 161: The Visual Ping-Test (2026-05-10)
+Sprint 161: The Visual Ping-Test. Created minimalist `examples/scene_demo.knoten` to verify Retained-Mode Scene Graph rendering and float-type FFI safety.
+- Demonstrated the full Retained-Mode pipeline: `registry_spawn_cube` + `registry_spawn_sphere` → autonomous WGPU rendering → `registry_update_entity_transform` animation loop.
+- Hardened the FFI bridge: `registry_spawn_*` now accepts `Int(0)` as a valid texture argument (falls back to default white material), enabling texture-free scene graph demos.
+- Fixed three Clippy violations: `too_many_arguments` on `registry_spawn_cube`/`registry_spawn_cylinder`, and a `collapsible_if` in the `UpdateEntityTransform` handler in `window.rs`.
+- All CI Gates passed: **cargo fmt** ✅ · **cargo clippy -- -D warnings** (0 warnings) ✅ · **cargo test** (55/55) ✅
+
 ## [v1.0.48] - Sprint 160: The Tactical Cleanup & Stabilization (2026-05-10)
 Sprint 160: Tactical Cleanup. Purged all Nine Men's Morris (Mühle) experimental artifacts. Stabilized and hardened the new Retained-Mode Scene Graph architecture.
 - Added `about_to_wait` loop to Winit `ApplicationHandler` ensuring autonomous 60 FPS (VSync) rendering of the `SceneGraph` independent of VM instruction streams, enabling flawless idle-state operation.

@@ -865,6 +865,7 @@ pub fn registry_texture_load(path: String) -> i64 {
 
 static NEXT_ENTITY_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
 
+#[allow(clippy::too_many_arguments)]
 pub fn registry_spawn_cube(
     window_handle: i64,
     texture_handle: i64,
@@ -1015,6 +1016,7 @@ fn generate_uv_sphere(rings: u32, sectors: u32) -> (Vec<RegistryVertex>, Vec<u32
 
 // Cube generator is handled by registry_spawn_cube directly since we need the mesh generated there
 
+#[allow(clippy::too_many_arguments)]
 pub fn registry_spawn_cylinder(
     window_handle: i64,
     texture_handle: i64,

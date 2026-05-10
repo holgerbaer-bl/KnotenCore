@@ -819,10 +819,14 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let (
-                            RelType::Handle(crate::executor::NativeHandle(win)),
-                            RelType::Handle(crate::executor::NativeHandle(tex)),
-                        ) = (&args[0], &args[1])
+                        // tex may be a proper Handle OR Int (0 = use default white texture)
+                        let tex_id: Option<i64> = match &args[1] {
+                            RelType::Handle(crate::executor::NativeHandle(t)) => Some(*t),
+                            RelType::Int(i) => Some(*i),
+                            _ => None,
+                        };
+                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                            && let Some(tex) = tex_id
                             && let (Some(w), Some(h), Some(d), Some(x), Some(y), Some(z)) = (
                                 get_float(&args[2]),
                                 get_float(&args[3]),
@@ -833,19 +837,18 @@ impl BridgeModule for CoreBridge {
                             )
                         {
                             let id = crate::natives::registry::registry_spawn_cube(
-                                *win, *tex, w, h, d, x, y, z,
+                                *win, tex, w, h, d, x, y, z,
                             );
                             return Some(ExecResult::Value(RelType::Int(id)));
                         } else {
-                            // Enforce strict type checking as requested ("Kein stillschweigendes Zurückfallen auf 0.0 mehr!")
                             return Some(ExecResult::Fault {
-                                msg: "[FFI] registry_spawn_cube type error: arguments must be numeric (Float or Int)".to_string(),
+                                msg: "[FFI] registry_spawn_cube type error: arg 1 must be Handle(win), arg 2 Handle or Int(tex)".to_string(),
                                 node: "Native::Bridge::registry_spawn_cube".into()
                             });
                         }
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] registry_spawn_cube expects (Handle win, Handle tex, Float w, Float h, Float d, Float x, Float y, Float z)".to_string(),
+                        msg: "[FFI] registry_spawn_cube expects (Handle win, Handle|Int tex, Float w, Float h, Float d, Float x, Float y, Float z)".to_string(),
                         node: "Native::Bridge::registry_spawn_cube".into()
                     })
                 }
@@ -865,8 +868,15 @@ impl BridgeModule for CoreBridge {
                             }
                         };
 
+                        // tex may be a proper Handle OR Int (0 = use default white texture)
+                        let tex_id: Option<i64> = match &args[1] {
+                            RelType::Handle(crate::executor::NativeHandle(t)) => Some(*t),
+                            RelType::Int(i) => Some(*i),
+                            _ => None,
+                        };
+
                         if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
-                            && let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1]
+                            && let Some(tex) = tex_id
                             && let (Some(r), Some(rings), Some(sectors), Some(x), Some(y), Some(z)) = (
                                 get_float(&args[2]),
                                 get_int(&args[3]),
@@ -878,7 +888,7 @@ impl BridgeModule for CoreBridge {
                         {
                             let id = crate::natives::registry::registry_spawn_sphere(
                                 *win,
-                                *tex,
+                                tex,
                                 r,
                                 rings as i32,
                                 sectors as i32,
@@ -889,14 +899,14 @@ impl BridgeModule for CoreBridge {
                             return Some(ExecResult::Value(RelType::Int(id)));
                         } else {
                             return Some(ExecResult::Fault {
-                                msg: "[FFI] registry_spawn_sphere type error: invalid arguments"
+                                msg: "[FFI] registry_spawn_sphere type error: arg 1 must be Handle(win), arg 2 Handle or Int(tex)"
                                     .to_string(),
                                 node: "Native::Bridge::registry_spawn_sphere".into(),
                             });
                         }
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] registry_spawn_sphere expects (Handle win, Handle tex, Float r, Int rings, Int sectors, Float x, Float y, Float z)".to_string(),
+                        msg: "[FFI] registry_spawn_sphere expects (Handle win, Handle|Int tex, Float r, Int rings, Int sectors, Float x, Float y, Float z)".to_string(),
                         node: "Native::Bridge::registry_spawn_sphere".into()
                     })
                 }
@@ -916,8 +926,15 @@ impl BridgeModule for CoreBridge {
                             }
                         };
 
+                        // tex may be a proper Handle OR Int (0 = use default white texture)
+                        let tex_id: Option<i64> = match &args[1] {
+                            RelType::Handle(crate::executor::NativeHandle(t)) => Some(*t),
+                            RelType::Int(i) => Some(*i),
+                            _ => None,
+                        };
+
                         if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
-                            && let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1]
+                            && let Some(tex) = tex_id
                             && let (Some(r), Some(h), Some(s), Some(x), Some(y), Some(z)) = (
                                 get_float(&args[2]),
                                 get_float(&args[3]),
@@ -928,19 +945,19 @@ impl BridgeModule for CoreBridge {
                             )
                         {
                             let id = crate::natives::registry::registry_spawn_cylinder(
-                                *win, *tex, r, h, s as i32, x, y, z,
+                                *win, tex, r, h, s as i32, x, y, z,
                             );
                             return Some(ExecResult::Value(RelType::Int(id)));
                         } else {
                             return Some(ExecResult::Fault {
-                                msg: "[FFI] registry_spawn_cylinder type error: invalid arguments"
+                                msg: "[FFI] registry_spawn_cylinder type error: arg 1 must be Handle(win), arg 2 Handle or Int(tex)"
                                     .to_string(),
                                 node: "Native::Bridge::registry_spawn_cylinder".into(),
                             });
                         }
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] registry_spawn_cylinder expects (Handle win, Handle tex, Float r, Float h, Int segments, Float x, Float y, Float z)".to_string(),
+                        msg: "[FFI] registry_spawn_cylinder expects (Handle win, Handle|Int tex, Float r, Float h, Int segments, Float x, Float y, Float z)".to_string(),
                         node: "Native::Bridge::registry_spawn_cylinder".into()
                     })
                 }

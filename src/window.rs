@@ -613,10 +613,10 @@ impl KnotenApp {
                 entity_id,
                 transform,
             } => {
-                if let Some(state) = self.windows.get_mut(&window_id) {
-                    if let Some(entity) = state.scene_graph.get_mut(&entity_id) {
-                        entity.transform = transform;
-                    }
+                if let Some(state) = self.windows.get_mut(&window_id)
+                    && let Some(entity) = state.scene_graph.get_mut(&entity_id)
+                {
+                    entity.transform = transform;
                 }
             }
         }
