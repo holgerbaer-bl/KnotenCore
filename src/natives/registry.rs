@@ -33,44 +33,17 @@ pub enum RenderCommand {
         height: u32,
         input: Arc<Mutex<InputState>>,
     },
-    DrawSphere {
+    SpawnEntity {
         window_id: usize,
+        entity_id: usize,
+        mesh_name: String,
         texture_id: usize,
-        x: f32,
-        y: f32,
-        z: f32,
-        radius: f32,
-        rings: u32,
-        sectors: u32,
+        transform: glam::Mat4,
     },
-    DrawCube {
+    UpdateEntityTransform {
         window_id: usize,
-        texture_id: usize,
-        x: f32,
-        y: f32,
-        z: f32,
-        w: f32,
-        h: f32,
-        d: f32,
-    },
-    DrawCylinder {
-        window_id: usize,
-        texture_id: usize,
-        x: f32,
-        y: f32,
-        z: f32,
-        radius: f32,
-        height: f32,
-        segments: u32,
-    },
-    DrawQuad3D {
-        window_id: usize,
-        texture_id: usize,
-        x: f32,
-        y: f32,
-        z: f32,
-        scale_x: f32,
-        scale_y: f32,
+        entity_id: usize,
+        transform: glam::Mat4,
     },
     /// Sprint 86: send a camera view-projection matrix to a specific window.
     SetCamera {
@@ -150,6 +123,12 @@ pub struct WindowProxy {
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
 
+pub struct SceneEntity {
+    pub mesh_name: String,
+    pub texture_id: usize,
+    pub transform: glam::Mat4,
+}
+
 pub struct RegistryWindowState {
     pub window: Arc<WinitWindow>,
     pub input: Arc<Mutex<InputState>>,
@@ -176,6 +155,7 @@ pub struct RegistryWindowState {
     pub texture_cache: HashMap<usize, wgpu::BindGroup>,
     pub default_texture_bind_group: wgpu::BindGroup,
     pub commands: Vec<RenderCommand>,
+    pub scene_graph: HashMap<usize, SceneEntity>,
     // Egui State
     pub egui_ctx: egui::Context,
     pub egui_state: egui_winit::State,
@@ -883,31 +863,73 @@ pub fn registry_texture_load(path: String) -> i64 {
     id as i64
 }
 
-pub fn registry_draw_quad_3d(
+static NEXT_ENTITY_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
+
+pub fn registry_spawn_cube(
     window_handle: i64,
     texture_handle: i64,
+    w: f32,
+    h: f32,
+    d: f32,
     x: f32,
     y: f32,
     z: f32,
-    scale_x: f32,
-    scale_y: f32,
-) {
+) -> i64 {
     if window_handle < 0 || texture_handle < 0 {
+        return -1;
+    }
+
+    let mesh_name = "cube".to_string();
+    let mut guard = SENT_MESHES.lock().unwrap();
+    let sent = guard.get_or_insert_with(HashSet::new);
+    if !sent.contains(&mesh_name) {
+        let (vertices, indices) = generate_cube();
+        send_render_command(RenderCommand::AddMesh {
+            name: mesh_name.clone(),
+            vertices,
+            indices,
+        });
+        sent.insert(mesh_name.clone());
+    }
+    drop(guard);
+
+    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap();
+    let entity_id = *id_guard;
+    *id_guard += 1;
+
+    let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
+    let s = glam::Mat4::from_scale(glam::Vec3::new(w, h, d));
+
+    send_render_command(RenderCommand::SpawnEntity {
+        window_id: window_handle as usize,
+        entity_id,
+        mesh_name,
+        texture_id: texture_handle as usize,
+        transform: t * s,
+    });
+    entity_id as i64
+}
+
+pub fn registry_update_entity_transform(
+    window_handle: i64,
+    entity_handle: i64,
+    x: f32,
+    y: f32,
+    z: f32,
+) {
+    if window_handle < 0 || entity_handle < 0 {
         return;
     }
-    send_render_command(RenderCommand::DrawQuad3D {
+    let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
+    send_render_command(RenderCommand::UpdateEntityTransform {
         window_id: window_handle as usize,
-        texture_id: texture_handle as usize,
-        x,
-        y,
-        z,
-        scale_x,
-        scale_y,
+        entity_id: entity_handle as usize,
+        transform: t,
     });
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn registry_draw_sphere(
+pub fn registry_spawn_sphere(
     window_handle: i64,
     texture_handle: i64,
     radius: f32,
@@ -916,9 +938,9 @@ pub fn registry_draw_sphere(
     x: f32,
     y: f32,
     z: f32,
-) {
+) -> i64 {
     if window_handle < 0 || texture_handle < 0 {
-        return;
+        return -1;
     }
     let rings = rings.max(3) as u32;
     let sectors = sectors.max(3) as u32;
@@ -935,25 +957,23 @@ pub fn registry_draw_sphere(
         });
         sent.insert(mesh_name.clone());
     }
+    drop(guard);
 
-    send_render_command(RenderCommand::DrawSphere {
+    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap();
+    let entity_id = *id_guard;
+    *id_guard += 1;
+
+    let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
+    let s = glam::Mat4::from_scale(glam::Vec3::splat(radius));
+
+    send_render_command(RenderCommand::SpawnEntity {
         window_id: window_handle as usize,
+        entity_id,
+        mesh_name,
         texture_id: texture_handle as usize,
-        x,
-        y,
-        z,
-        radius,
-        rings,
-        sectors,
+        transform: t * s,
     });
-}
-
-pub fn registry_draw_entity(window_handle: i64, x: f32, y: f32) {
-    if window_handle < 0 {
-        return;
-    }
-    // Simple 2D entity abstraction drawing a sphere at a fixed Z depth
-    registry_draw_sphere(window_handle, Default::default(), 0.5, 16, 16, x, y, -5.0);
+    entity_id as i64
 }
 
 fn generate_uv_sphere(rings: u32, sectors: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
@@ -993,49 +1013,9 @@ fn generate_uv_sphere(rings: u32, sectors: u32) -> (Vec<RegistryVertex>, Vec<u32
     (vertices, indices)
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn registry_draw_cube(
-    window_handle: i64,
-    texture_handle: i64,
-    w: f32,
-    h: f32,
-    d: f32,
-    x: f32,
-    y: f32,
-    z: f32,
-) {
-    if window_handle < 0 || texture_handle < 0 {
-        return;
-    }
-    // Sprint 85 FIX: send geometry the first time so the cache has a mesh to look up
-    let mesh_name = "cube".to_string();
-    let mut guard = SENT_MESHES.lock().unwrap();
-    let sent = guard.get_or_insert_with(HashSet::new);
-    if !sent.contains(&mesh_name) {
-        let (vertices, indices) = generate_cube();
-        send_render_command(RenderCommand::AddMesh {
-            name: mesh_name.clone(),
-            vertices,
-            indices,
-        });
-        sent.insert(mesh_name);
-    }
-    drop(guard);
+// Cube generator is handled by registry_spawn_cube directly since we need the mesh generated there
 
-    send_render_command(RenderCommand::DrawCube {
-        window_id: window_handle as usize,
-        texture_id: texture_handle as usize,
-        x,
-        y,
-        z,
-        w,
-        h,
-        d,
-    });
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn registry_draw_cylinder(
+pub fn registry_spawn_cylinder(
     window_handle: i64,
     texture_handle: i64,
     radius: f32,
@@ -1044,9 +1024,9 @@ pub fn registry_draw_cylinder(
     x: f32,
     y: f32,
     z: f32,
-) {
+) -> i64 {
     if window_handle < 0 || texture_handle < 0 {
-        return;
+        return -1;
     }
     let segments = segments.max(3) as u32;
     let mesh_name = format!("cylinder_{}", segments);
@@ -1062,17 +1042,23 @@ pub fn registry_draw_cylinder(
         });
         sent.insert(mesh_name.clone());
     }
+    drop(guard);
 
-    send_render_command(RenderCommand::DrawCylinder {
+    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap();
+    let entity_id = *id_guard;
+    *id_guard += 1;
+
+    let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
+    let s = glam::Mat4::from_scale(glam::Vec3::new(radius, height, radius));
+
+    send_render_command(RenderCommand::SpawnEntity {
         window_id: window_handle as usize,
+        entity_id,
+        mesh_name,
         texture_id: texture_handle as usize,
-        x,
-        y,
-        z,
-        radius,
-        height,
-        segments,
+        transform: t * s,
     });
+    entity_id as i64
 }
 
 fn generate_cylinder(segments: u32) -> (Vec<RegistryVertex>, Vec<u32>) {

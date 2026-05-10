@@ -1,6 +1,29 @@
-// core/time.nod
-// Standard Library: Time & Synchronization
-
-fn sleep(ms) {
-    return time_sleep_ms(ms);
+{
+  "Block": [
+    {
+      "FnDef": [
+        "sleep",
+        [
+          "ms"
+        ],
+        {
+          "Block": [
+            {
+              "Return": {
+                "ExternCall": {
+                  "module": "time",
+                  "function": "time_sleep_ms",
+                  "args": [
+                    {
+                      "Identifier": "ms"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

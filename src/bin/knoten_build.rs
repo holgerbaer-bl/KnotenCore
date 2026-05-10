@@ -26,7 +26,43 @@ fn main() {
         let content = fs::read_to_string(&absolute_path).expect("Failed to read .knoten file");
         let mut parser = knoten_core::parser::Parser::new(&content);
         let ast = parser.parse();
-        let json_ast = serde_json::to_string(&ast).expect("Failed to serialize AST to JSON");
+        let mut json_ast = serde_json::to_string(&ast).expect("Failed to serialize AST to JSON");
+
+        // --- Bundler Import Resolution (Flattening) ---
+        let re = regex::Regex::new(r#"\{"Import":"([^"]+)"\}"#).expect("Failed to compile regex");
+        let mut previous_len = 0;
+        // Keep flattening until no more imports remain (handles nested imports)
+        while json_ast.len() != previous_len {
+            previous_len = json_ast.len();
+            json_ast = re
+                .replace_all(&json_ast, |caps: &regex::Captures| {
+                    let path_str = &caps[1];
+                    let resolved_path = PathBuf::from(path_str);
+
+                    // Only embed standard library imports for security
+                    if !resolved_path.exists() {
+                        eprintln!(
+                            "⚠️ Warning: Failed to bundle import '{}' (File not found)",
+                            path_str
+                        );
+                        return caps[0].to_string();
+                    }
+
+                    println!("📦 Bundling import '{}' into AST...", path_str);
+                    let content = fs::read_to_string(&resolved_path).unwrap_or_default();
+                    if content.trim().starts_with("{") || content.trim().starts_with("[") {
+                        // It's already JSON AST (like stdlib/ui.nod)
+                        content
+                    } else {
+                        // It's DSL (like core/time.nod), parse it to AST JSON
+                        let mut p = knoten_core::parser::Parser::new(&content);
+                        let imported_ast = p.parse();
+                        serde_json::to_string(&imported_ast).unwrap_or_else(|_| caps[0].to_string())
+                    }
+                })
+                .to_string();
+        }
+        // ----------------------------------------------
 
         let temp_path = PathBuf::from("_bundled_ast_temp.json");
         fs::write(&temp_path, json_ast).expect("Failed to write temporary JSON AST");
@@ -59,6 +95,8 @@ fn main() {
     let launcher_source = format!(
         r#"
 use knoten_core::executor::ExecutionEngine;
+use std::sync::Arc;
+use winit::event_loop::EventLoop;
 
 fn main() {{
     println!("Running embedded KnotenCore bundle...");
@@ -68,13 +106,38 @@ fn main() {{
     
     let ast = serde_json::from_str(bundled_json)
         .expect("Failed to parse bundled KnotenCore JSON AST");
-        
-    let mut engine = ExecutionEngine::new();
-    engine.permissions.allow_fs_read = true;
-    engine.permissions.allow_fs_write = true;
-    let result = engine.execute(&ast);
-    
-    println!("\nExecution Finished.\nResult: {{}}", result);
+
+    // ── Event Loop Setup ─────────────────────────────────────────────
+    let mut builder = EventLoop::<knoten_core::natives::registry::RenderCommand>::with_user_event();
+    #[cfg(target_os = "windows")]
+    {{
+        use winit::platform::windows::EventLoopBuilderExtWindows;
+        builder.with_any_thread(true);
+    }}
+    let event_loop = builder.build().expect("Failed to create event loop");
+    let proxy = event_loop.create_proxy();
+    knoten_core::natives::registry::set_render_channel(proxy);
+
+    // ── Background Execution Thread ──────────────────────────────────
+    let ast_arc = Arc::new(ast);
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(move || {{
+            let mut engine = ExecutionEngine::new();
+            engine.permissions.allow_fs_read = true;
+            engine.permissions.allow_fs_write = true;
+            
+            let result = engine.execute(&ast_arc);
+            println!("\nExecution Finished.\nResult: {{}}", result);
+            
+            // Signal the main thread to exit if it's just a one-off execution
+            knoten_core::natives::registry::exit_event_loop();
+        }})
+        .expect("Failed to spawn executor thread");
+
+    // ── Main UI Thread ───────────────────────────────────────────────
+    let mut app = knoten_core::window::KnotenApp::new();
+    let _ = event_loop.run_app(&mut app);
 }}
 "#,
         safe_path_str

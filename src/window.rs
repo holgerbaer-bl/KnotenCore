@@ -444,6 +444,7 @@ impl KnotenApp {
                         texture_cache: HashMap::new(),
                         default_texture_bind_group,
                         commands: Vec::new(),
+                        scene_graph: HashMap::new(),
                         egui_ctx,
                         egui_state,
                         egui_renderer,
@@ -589,17 +590,33 @@ impl KnotenApp {
                     input.view_proj = view_proj;
                 }
             }
-            draw_cmd => {
-                // Determine target window id
-                let win_id = match &draw_cmd {
-                    RenderCommand::DrawSphere { window_id, .. } => *window_id,
-                    RenderCommand::DrawCube { window_id, .. } => *window_id,
-                    RenderCommand::DrawCylinder { window_id, .. } => *window_id,
-                    RenderCommand::DrawQuad3D { window_id, .. } => *window_id,
-                    _ => return, // Not a draw command
-                };
-                if let Some(state) = self.windows.get_mut(&win_id) {
-                    state.commands.push(draw_cmd);
+            RenderCommand::SpawnEntity {
+                window_id,
+                entity_id,
+                mesh_name,
+                texture_id,
+                transform,
+            } => {
+                if let Some(state) = self.windows.get_mut(&window_id) {
+                    state.scene_graph.insert(
+                        entity_id,
+                        crate::natives::registry::SceneEntity {
+                            mesh_name,
+                            texture_id,
+                            transform,
+                        },
+                    );
+                }
+            }
+            RenderCommand::UpdateEntityTransform {
+                window_id,
+                entity_id,
+                transform,
+            } => {
+                if let Some(state) = self.windows.get_mut(&window_id) {
+                    if let Some(entity) = state.scene_graph.get_mut(&entity_id) {
+                        entity.transform = transform;
+                    }
                 }
             }
         }
@@ -809,7 +826,7 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                 );
 
                 // Drain commands for this frame
-                let frame_cmds = std::mem::take(&mut state.commands);
+                state.commands.clear();
 
                 {
                     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -837,56 +854,12 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     rpass.set_pipeline(&state.pipeline);
                     rpass.set_bind_group(0, &state.camera_bind_group, &[]);
 
-                    for cmd in frame_cmds {
-                        let (mesh_name, texture_id, transform) = match &cmd {
-                            RenderCommand::DrawSphere {
-                                rings,
-                                sectors,
-                                texture_id,
-                                x,
-                                y,
-                                z,
-                                radius,
-                                ..
-                            } => {
-                                let t = glam::Mat4::from_translation(glam::Vec3::new(*x, *y, *z));
-                                let s = glam::Mat4::from_scale(glam::Vec3::splat(*radius));
-                                (format!("sphere_{}_{}", rings, sectors), *texture_id, t * s)
-                            }
-                            RenderCommand::DrawCube {
-                                texture_id,
-                                x,
-                                y,
-                                z,
-                                w,
-                                h,
-                                d,
-                                ..
-                            } => {
-                                let t = glam::Mat4::from_translation(glam::Vec3::new(*x, *y, *z));
-                                let s = glam::Mat4::from_scale(glam::Vec3::new(*w, *h, *d));
-                                ("cube".to_string(), *texture_id, t * s)
-                            }
-                            RenderCommand::DrawCylinder {
-                                segments,
-                                texture_id,
-                                x,
-                                y,
-                                z,
-                                radius,
-                                height,
-                                ..
-                            } => {
-                                let t = glam::Mat4::from_translation(glam::Vec3::new(*x, *y, *z));
-                                let s = glam::Mat4::from_scale(glam::Vec3::new(
-                                    *radius, *height, *radius,
-                                ));
-                                (format!("cylinder_{}", segments), *texture_id, t * s)
-                            }
-                            _ => continue,
-                        };
+                    for entity in state.scene_graph.values() {
+                        let mesh_name = &entity.mesh_name;
+                        let texture_id = entity.texture_id;
+                        let transform = entity.transform;
 
-                        if let Some(mesh) = state.geometry_cache.get(&mesh_name) {
+                        if let Some(mesh) = state.geometry_cache.get(mesh_name) {
                             // Update model matrix
                             state.queue.write_buffer(
                                 &state.model_buffer,

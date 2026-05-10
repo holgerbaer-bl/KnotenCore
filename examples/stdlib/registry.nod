@@ -1,0 +1,3 @@
+function registry_create_window(w, h, title) { return registry_create_window(w, h, title); }
+function registry_window_update(win) { return registry_window_update(win); }
+function registry_draw_cube(win, tex, w, h, d, x, y, z) { return registry_draw_cube(win, tex, w, h, d, x, y, z); }

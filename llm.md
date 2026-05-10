@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - Sprint 158
+# KnotenCore — AI Agent Reference (Routing Document) - Sprint 159
 
 > **System Instruction for LLM Code Agents**
 >
@@ -55,6 +55,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Pure computation** (`Add`, `Sub`, `Mul`, `Div`, `While`, comparison ops) → **AOT path** — compiles to a flat opcode stream, executed by the Stack-VM with no allocations in the hot path.
 - **Side-effects & UI** (`ExternCall`, window ops, WGPU render, audio) → **JIT path** — evaluated by the Executor with full permission sandboxing.
 - **GPGPU Compute** (`LoadComputeShader`, `DispatchCompute`) → **Native WGPU integration** for massive parallel data processing.
+- **Retained-Mode Scene Graph** (Sprint 159) → Scripts spawn entities (`registry_spawn_cube`) and update transforms asynchronously; WGPU renders the persistent `SceneGraph` autonomously.
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
 - **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time. The **VS Code Extension** automatically launches this server, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) directly in the editor before they reach the runtime. Tracing output is visible in the VS Code *Output → knoten-lsp* channel.
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.

@@ -43,6 +43,7 @@ impl VM {
 
         while self.ip < instructions.len() {
             let op = &instructions[self.ip];
+            println!("[VM Trace] IP: {} Op: {:?}", self.ip, op);
             self.ip += 1;
 
             match op {

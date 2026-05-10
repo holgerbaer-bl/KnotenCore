@@ -533,6 +533,13 @@ impl Compiler {
                 self.instructions.push(OpCode::Concat);
                 true
             }
+            Node::Index(expr, idx) => {
+                if !self.compile_node(expr) || !self.compile_node(idx) {
+                    return false;
+                }
+                self.instructions.push(OpCode::ArrayGet);
+                true
+            }
             Node::ToString(expr) => {
                 if !self.compile_node(expr) {
                     return false;
@@ -681,7 +688,13 @@ impl Compiler {
                     .push(OpCode::DispatchCompute(inputs.len()));
                 true
             }
-            _ => false,
+            _ => {
+                eprintln!(
+                    "[Compiler Error] Unhandled AST node during transpilation: {:?}",
+                    node
+                );
+                false
+            }
         }
     }
 

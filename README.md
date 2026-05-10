@@ -130,6 +130,7 @@ KnotenCore is built for AI-driven execution with strict, audited security:
 
 ### 🖥️ WGPU Physical Representation Layer
 KnotenCore's rendering subsystem is a **Physical Representation Layer** — not the primary product, but the means by which agent-authored JSON logic manifests as real pixels. Agents describe *what* exists in world-space; the runtime renders it via WGPU targeting Vulkan, DirectX 12, and Metal natively:
+- **Retained-Mode Scene Graph**: Scripts spawn persistent entities into a central registry (`SceneGraph`), and the WGPU event loop renders the complete scene state autonomously at 60 FPS, eliminating high-frequency immediate-mode draw call flooding.
 - **Blinn-Phong Shading**: Production-quality per-pixel lighting pipeline.
 - **Native 3D Primitives**: High-performance `Sphere`, `Cube`, and `Cylinder` with geometry caching — vertices and indices are computed once per unique configuration and reused from VRAM.
 - **`Mat4Mul`**: 4×4 matrix multiplication for hierarchical 3D transformations.

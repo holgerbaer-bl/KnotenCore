@@ -1,0 +1,44 @@
+let board = [1,2,1,2,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+
+fn get_x(i) {
+    if (i == 0) { return -3.0; } if (i == 1) { return 0.0; } if (i == 2) { return 3.0; }
+    if (i == 3) { return 3.0; } if (i == 4) { return 3.0; } if (i == 5) { return 0.0; }
+    if (i == 6) { return -3.0; } if (i == 7) { return -3.0; }
+    return 0.0;
+}
+
+fn get_y(i) {
+    if (i == 0) { return 3.0; } if (i == 1) { return 3.0; } if (i == 2) { return 3.0; }
+    if (i == 3) { return 0.0; } if (i == 4) { return -3.0; } if (i == 5) { return -3.0; }
+    if (i == 6) { return -3.0; } if (i == 7) { return 0.0; }
+    return 0.0;
+}
+
+fn draw_board(win, board) {
+    print("Zeichne Brett...");
+    registry_draw_cube(win, 0, 6.0, 0.05, 0.05, 0.0, 3.0, 0.0);
+    registry_draw_cube(win, 0, 6.0, 0.05, 0.05, 0.0, -3.0, 0.0);
+    registry_draw_cube(win, 0, 0.05, 6.0, 0.05, 3.0, 0.0, 0.0);
+    registry_draw_cube(win, 0, 0.05, 6.0, 0.05, -3.0, 0.0, 0.0);
+
+    let i = 0;
+    while (i < 8) {
+        let val = board[i];
+        if (val != 0) {
+            let sx = get_x(i);
+            let sy = get_y(i);
+            registry_draw_sphere(win, 0, 0.3, 16, 16, sx, sy, 0.2);
+        }
+        i = i + 1;
+    }
+
+    registry_window_update(win);
+}
+
+print("KnotenCore RESCUE SYSTEM AKTIV");
+let win = registry_create_window(1024, 768, "KnotenCore - FINAL RESCUE 3D");
+print("Fenster wurde angefordert: ");
+
+while (true) {
+    draw_board(win, board);
+}

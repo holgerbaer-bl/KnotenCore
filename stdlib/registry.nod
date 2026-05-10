@@ -12,7 +12,13 @@
     { "FnDef": ["registry_window_update", ["id"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_window_update", "args": [{ "Identifier": "id" }] } } }] } ] },
     { "FnDef": ["registry_window_close", ["id"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_window_close", "args": [{ "Identifier": "id" }] } } }] } ] },
     { "FnDef": ["registry_dump", [], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_dump", "args": [] } } }] } ] },
+    { "FnDef": ["registry_gpu_init", [], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_gpu_init", "args": [] } } }] } ] },
     { "FnDef": ["registry_file_create", ["path"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_file_create", "args": [{ "Identifier": "path" }] } } }] } ] },
-    { "FnDef": ["registry_file_write", ["id", "content"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_file_write", "args": [{ "Identifier": "id" }, { "Identifier": "content" }] } } }] } ] }
+    { "FnDef": ["registry_file_write", ["id", "content"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_file_write", "args": [{ "Identifier": "id" }, { "Identifier": "content" }] } } }] } ] },
+    { "FnDef": ["registry_draw_cube", ["win", "tex", "w", "h", "d", "x", "y", "z"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_draw_cube", "args": [{ "Identifier": "win" }, { "Identifier": "tex" }, { "Identifier": "w" }, { "Identifier": "h" }, { "Identifier": "d" }, { "Identifier": "x" }, { "Identifier": "y" }, { "Identifier": "z" }] } } }] } ] },
+    { "FnDef": ["registry_draw_sphere", ["win", "tex", "r", "rings", "sectors", "x", "y", "z"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_draw_sphere", "args": [{ "Identifier": "win" }, { "Identifier": "tex" }, { "Identifier": "r" }, { "Identifier": "rings" }, { "Identifier": "sectors" }, { "Identifier": "x" }, { "Identifier": "y" }, { "Identifier": "z" }] } } }] } ] },
+    { "FnDef": ["registry_set_camera_for_window", ["win", "fov", "x", "y", "z"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_set_camera_for_window", "args": [{ "Identifier": "win" }, { "Identifier": "fov" }, { "Identifier": "x" }, { "Identifier": "y" }, { "Identifier": "z" }] } } }] } ] },
+    { "FnDef": ["registry_texture_load", ["path"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "registry_texture_load", "args": [{ "Identifier": "path" }] } } }] } ] },
+    { "FnDef": ["to_string", ["val"], { "Block": [{ "Return": { "ExternCall": { "module": "registry", "function": "to_string", "args": [{ "Identifier": "val" }] } } }] } ] }
   ]
 }

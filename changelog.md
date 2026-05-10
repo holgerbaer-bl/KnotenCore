@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 159: The Scene Graph Foundation (2026-05-10)
+Sprint 159: Phase 1 of the Core Architecture Rebuild. Migrated the engine from an immediate-mode 3D rendering pipeline to a Retained-Mode Scene Graph. 
+- Implemented `SceneEntity` and `scene_graph` `HashMap` within `RegistryWindowState`.
+- Decoupled the VM from the WGPU render loop: scripts now spawn entities once (`registry_spawn_cube`, `registry_spawn_sphere`, `registry_spawn_cylinder`) and send asynchronous state updates (`registry_update_entity_transform`).
+- The main event loop now independently renders the Scene Graph at a constant framerate instead of relying on high-frequency draw command flooding.
+- Hardened the FFI bridge with strict type checking, emitting `ExecResult::Fault` on type mismatch instead of silently mapping arguments to `0.0`.
+
 ## [v1.0.48] - Sprint 158: The Mühle Vindication (V2) (2026-04-27)
 Sprint 158: Refactored Nine Men's Morris demo using new native DSL features (Unary Minus, Modulo, >=, !=). Successfully compiled via knoten_build.
 

@@ -810,8 +810,8 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_texture_load".into(),
                     })
                 }
-                "registry_draw_quad_3d" => {
-                    if args.len() == 7 {
+                "registry_spawn_cube" => {
+                    if args.len() == 8 {
                         let get_float = |arg: &RelType| -> Option<f32> {
                             match arg {
                                 RelType::Float(f) => Some(*f as f32),
@@ -819,29 +819,37 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
-                            && let (Some(x), Some(y), Some(z), Some(sx), Some(sy)) = (
+                        if let (
+                            RelType::Handle(crate::executor::NativeHandle(win)),
+                            RelType::Handle(crate::executor::NativeHandle(tex)),
+                        ) = (&args[0], &args[1])
+                            && let (Some(w), Some(h), Some(d), Some(x), Some(y), Some(z)) = (
                                 get_float(&args[2]),
                                 get_float(&args[3]),
                                 get_float(&args[4]),
                                 get_float(&args[5]),
                                 get_float(&args[6]),
+                                get_float(&args[7]),
                             )
-                            && let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1]
                         {
-                            crate::natives::registry::registry_draw_quad_3d(
-                                *win, *tex, x, y, z, sx, sy,
+                            let id = crate::natives::registry::registry_spawn_cube(
+                                *win, *tex, w, h, d, x, y, z,
                             );
-                            return Some(ExecResult::Value(RelType::Void));
+                            return Some(ExecResult::Value(RelType::Int(id)));
+                        } else {
+                            // Enforce strict type checking as requested ("Kein stillschweigendes Zurückfallen auf 0.0 mehr!")
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_spawn_cube type error: arguments must be numeric (Float or Int)".to_string(),
+                                node: "Native::Bridge::registry_spawn_cube".into()
+                            });
                         }
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] registry_draw_quad_3d expects (Handle, Handle, Float, Float, Float, Float, Float)"
-                            .to_string(),
-                        node: "Native::Bridge::registry_draw_quad_3d".into()
+                        msg: "[FFI] registry_spawn_cube expects (Handle win, Handle tex, Float w, Float h, Float d, Float x, Float y, Float z)".to_string(),
+                        node: "Native::Bridge::registry_spawn_cube".into()
                     })
                 }
-                "registry_draw_sphere" => {
+                "registry_spawn_sphere" => {
                     if args.len() == 8 {
                         let get_float = |arg: &RelType| -> Option<f32> {
                             match arg {
@@ -868,7 +876,7 @@ impl BridgeModule for CoreBridge {
                                 get_float(&args[7]),
                             )
                         {
-                            crate::natives::registry::registry_draw_sphere(
+                            let id = crate::natives::registry::registry_spawn_sphere(
                                 *win,
                                 *tex,
                                 r,
@@ -878,50 +886,21 @@ impl BridgeModule for CoreBridge {
                                 y,
                                 z,
                             );
-                            return Some(ExecResult::Value(RelType::Void));
+                            return Some(ExecResult::Value(RelType::Int(id)));
+                        } else {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_spawn_sphere type error: invalid arguments"
+                                    .to_string(),
+                                node: "Native::Bridge::registry_spawn_sphere".into(),
+                            });
                         }
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] registry_draw_sphere expects (Handle win, Handle tex, Float r, Int rings, Int sectors, Float x, Float y, Float z)"
-                            .to_string(),
-                        node: "Native::Bridge::registry_draw_sphere".into()
+                        msg: "[FFI] registry_spawn_sphere expects (Handle win, Handle tex, Float r, Int rings, Int sectors, Float x, Float y, Float z)".to_string(),
+                        node: "Native::Bridge::registry_spawn_sphere".into()
                     })
                 }
-                "registry_draw_cube" => {
-                    if args.len() == 8 {
-                        let get_float = |arg: &RelType| -> Option<f32> {
-                            match arg {
-                                RelType::Float(f) => Some(*f as f32),
-                                RelType::Int(i) => Some(*i as f32),
-                                _ => None,
-                            }
-                        };
-                        if let (
-                            RelType::Handle(crate::executor::NativeHandle(win)),
-                            RelType::Handle(crate::executor::NativeHandle(tex)),
-                        ) = (&args[0], &args[1])
-                            && let (Some(w), Some(h), Some(d), Some(x), Some(y), Some(z)) = (
-                                get_float(&args[2]),
-                                get_float(&args[3]),
-                                get_float(&args[4]),
-                                get_float(&args[5]),
-                                get_float(&args[6]),
-                                get_float(&args[7]),
-                            )
-                        {
-                            crate::natives::registry::registry_draw_cube(
-                                *win, *tex, w, h, d, x, y, z,
-                            );
-                            return Some(ExecResult::Value(RelType::Void));
-                        }
-                    }
-                    Some(ExecResult::Fault {
-                        msg: "[FFI] registry_draw_cube expects (Handle win, Handle tex, Float w, Float h, Float d, Float x, Float y, Float z)"
-                            .to_string(),
-                        node: "Native::Bridge::registry_draw_cube".into()
-                    })
-                }
-                "registry_draw_cylinder" => {
+                "registry_spawn_cylinder" => {
                     if args.len() == 8 {
                         let get_float = |arg: &RelType| -> Option<f32> {
                             match arg {
@@ -936,10 +915,9 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let (
-                            RelType::Handle(crate::executor::NativeHandle(win)),
-                            RelType::Handle(crate::executor::NativeHandle(tex)),
-                        ) = (&args[0], &args[1])
+
+                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                            && let RelType::Handle(crate::executor::NativeHandle(tex)) = &args[1]
                             && let (Some(r), Some(h), Some(s), Some(x), Some(y), Some(z)) = (
                                 get_float(&args[2]),
                                 get_float(&args[3]),
@@ -949,20 +927,25 @@ impl BridgeModule for CoreBridge {
                                 get_float(&args[7]),
                             )
                         {
-                            crate::natives::registry::registry_draw_cylinder(
+                            let id = crate::natives::registry::registry_spawn_cylinder(
                                 *win, *tex, r, h, s as i32, x, y, z,
                             );
-                            return Some(ExecResult::Value(RelType::Void));
+                            return Some(ExecResult::Value(RelType::Int(id)));
+                        } else {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_spawn_cylinder type error: invalid arguments"
+                                    .to_string(),
+                                node: "Native::Bridge::registry_spawn_cylinder".into(),
+                            });
                         }
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] registry_draw_cylinder expects (Handle win, Handle tex, Float r, Float h, Int segments, Float x, Float y, Float z)"
-                            .to_string(),
-                        node: "Native::Bridge::registry_draw_cylinder".into()
+                        msg: "[FFI] registry_spawn_cylinder expects (Handle win, Handle tex, Float r, Float h, Int segments, Float x, Float y, Float z)".to_string(),
+                        node: "Native::Bridge::registry_spawn_cylinder".into()
                     })
                 }
-                "registry_draw_entity" => {
-                    if args.len() == 3 {
+                "registry_update_entity_transform" => {
+                    if args.len() == 5 {
                         let get_float = |arg: &RelType| -> Option<f32> {
                             match arg {
                                 RelType::Float(f) => Some(*f as f32),
@@ -970,17 +953,30 @@ impl BridgeModule for CoreBridge {
                                 _ => None,
                             }
                         };
-                        if let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
-                            && let (Some(x), Some(y)) = (get_float(&args[1]), get_float(&args[2]))
+                        if let (
+                            RelType::Handle(crate::executor::NativeHandle(win)),
+                            RelType::Int(entity_id),
+                        ) = (&args[0], &args[1])
+                            && let (Some(x), Some(y), Some(z)) = (
+                                get_float(&args[2]),
+                                get_float(&args[3]),
+                                get_float(&args[4]),
+                            )
                         {
-                            crate::natives::registry::registry_draw_entity(*win, x, y);
+                            crate::natives::registry::registry_update_entity_transform(
+                                *win, *entity_id, x, y, z,
+                            );
                             return Some(ExecResult::Value(RelType::Void));
+                        } else {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_update_entity_transform type error: coordinates must be numeric".to_string(),
+                                node: "Native::Bridge::registry_update_entity_transform".into()
+                            });
                         }
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] registry_draw_entity expects (Handle win, Float x, Float y)"
-                            .to_string(),
-                        node: "Native::Bridge::registry_draw_entity".into(),
+                        msg: "[FFI] registry_update_entity_transform expects (Handle win, Int entity, Float x, Float y, Float z)".to_string(),
+                        node: "Native::Bridge::registry_update_entity_transform".into()
                     })
                 }
                 "registry_set_camera" => {
