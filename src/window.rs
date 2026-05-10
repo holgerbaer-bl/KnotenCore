@@ -918,7 +918,14 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
         }
     }
 
-    // UserEvent natively replaces `about_to_wait` polling
+    fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
+        // Sprint 160 Core Stabilization:
+        // Ensure autonomous rendering of the Scene Graph at 60 FPS (VSync limited)
+        // even when the VM is completely idle.
+        for state in self.windows.values() {
+            state.window.request_redraw();
+        }
+    }
 }
 
 fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {

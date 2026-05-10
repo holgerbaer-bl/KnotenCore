@@ -2,6 +2,11 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 160: The Tactical Cleanup & Stabilization (2026-05-10)
+Sprint 160: Tactical Cleanup. Purged all Nine Men's Morris (Mühle) experimental artifacts. Stabilized and hardened the new Retained-Mode Scene Graph architecture.
+- Added `about_to_wait` loop to Winit `ApplicationHandler` ensuring autonomous 60 FPS (VSync) rendering of the `SceneGraph` independent of VM instruction streams, enabling flawless idle-state operation.
+- Restored code purity by deleting `examples/muehle.knoten`, `examples/muehle_v2.knoten`, and executing a deep artifact sanitization.
+
 ## [v1.0.48] - Sprint 159: The Scene Graph Foundation (2026-05-10)
 Sprint 159: Phase 1 of the Core Architecture Rebuild. Migrated the engine from an immediate-mode 3D rendering pipeline to a Retained-Mode Scene Graph. 
 - Implemented `SceneEntity` and `scene_graph` `HashMap` within `RegistryWindowState`.
@@ -9,8 +14,8 @@ Sprint 159: Phase 1 of the Core Architecture Rebuild. Migrated the engine from a
 - The main event loop now independently renders the Scene Graph at a constant framerate instead of relying on high-frequency draw command flooding.
 - Hardened the FFI bridge with strict type checking, emitting `ExecResult::Fault` on type mismatch instead of silently mapping arguments to `0.0`.
 
-## [v1.0.48] - Sprint 158: The Mühle Vindication (V2) (2026-04-27)
-Sprint 158: Refactored Nine Men's Morris demo using new native DSL features (Unary Minus, Modulo, >=, !=). Successfully compiled via knoten_build.
+## [v1.0.48] - Sprint 158: DSL Feature Integration (2026-04-27)
+Sprint 158: Refactored advanced logic demo using new native DSL features (Unary Minus, Modulo, >=, !=). Successfully compiled via knoten_build.
 
 ## [v1.0.48] - Sprint 157: Bundler Hotfix & Readme Compliance (2026-04-27)
 Hotfix: knoten_build now correctly compiles .knoten DSL to JSON AST before bundling. README synchronized with new UI DSL grammar.
