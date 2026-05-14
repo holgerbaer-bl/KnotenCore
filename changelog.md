@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 163: The Control Room (2026-05-14)
+Sprint 163: The Control Room. Synthesized 2D egui overlays with the 3D Retained-Mode Scene Graph, proving asynchronous real-time state manipulation.
+- Created `examples/control_room.knoten` — a fully interactive 2D/3D synthesis demo: a WGPU 3D cube controlled in real-time by an egui button panel and a text-input field, all running on decoupled threads without frame-drops.
+- Added `registry_parse_float(String) -> Float` to the FFI bridge — enables scripts to safely parse `UITextInput` values for direct use as 3D coordinates. Returns `0.0` on invalid input (never faults).
+- The 2D/3D synthesis loop: `UIButton` clicks route via `UI_BUTTON_EVENTS` → VM polls via `registry_ui_poll_button` → `registry_update_entity_transform` updates the Scene Graph → WGPU renders the new position within the next frame budget.
+- All CI Gates passed: **cargo fmt** ✅ · **cargo clippy -- -D warnings** (0 warnings) ✅ · **cargo test** (55/55) ✅
+
 ## [v1.0.48] - Sprint 162: 2D UI Retained-Mode Integration (2026-05-14)
 Sprint 162: 2D UI Retained-Mode Integration. Synced egui rendering with the new autonomous Winit loop and established asynchronous event routing for UI nodes.
 - Implemented `UI_BUTTON_EVENTS` and `UI_TEXT_BUFFERS` static stores in `ui.rs` for lock-free, thread-safe UI event routing between the WGPU render thread and the VM thread.

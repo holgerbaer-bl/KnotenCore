@@ -1157,6 +1157,20 @@ impl BridgeModule for CoreBridge {
                 "registry_get_ultimate_answer" => Some(ExecResult::Value(RelType::Int(
                     crate::natives::registry::registry_get_ultimate_answer(),
                 ))),
+                // Sprint 163: Parse a String to Float for UI→3D value bridging.
+                // Returns 0.0 on invalid input (never faults — safe for live text fields).
+                "registry_parse_float" => {
+                    if args.len() == 1
+                        && let RelType::Str(s) = &args[0]
+                    {
+                        let val: f64 = s.trim().parse().unwrap_or(0.0);
+                        return Some(ExecResult::Value(RelType::Float(val)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_parse_float expects (String)".to_string(),
+                        node: "Native::Bridge::registry_parse_float".into(),
+                    })
+                }
                 _ => None,
             }
         } else {
