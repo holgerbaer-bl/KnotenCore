@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 166: The Math Standard Library (2026-05-14)
+Sprint 166: The Math Standard Library. Empowered the engine with a native mathematical standard library via the FFI bridge for high-performance spatial and orbital mechanics.
+- **Math FFI Module**: Added `math` module to `bridge.rs` exposing deterministic trigonometric and arithmetic operations (`math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`).
+- **Fail-Fast Type Safety**: Implemented rigorous parameter type checking natively. Passing an integer to a trigonometric float-function explicitly triggers an `ExecResult::Fault`, ensuring deterministic runtime guarantees.
+- **Orbit Synthesis Demo**: Created `examples/math_demo.knoten` to visually prove Retained-Mode 3D synthesis by orbiting a sphere around a textured cube using mathematical function computations within the AOT loop.
+
 ## [v1.0.49] - Sprint 165: Visual Finesse (2026-05-14)
 Sprint 165: Visual Finesse. Implemented WGPU texture loading and UV-mapping pipeline, with thread-safe caching and FFI integration.
 - **WGPU Texture Pipeline**: `RenderCommand::LoadTexture` now fully supported. Automatically decodes and uploads RGBA image data to local window `Texture` and `BindGroup` caches, applying the `material_bgl` shader layout.

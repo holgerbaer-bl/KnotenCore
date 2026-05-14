@@ -1214,6 +1214,74 @@ impl BridgeModule for CoreBridge {
                 }
                 _ => None,
             }
+        } else if module == "math" {
+            match function {
+                "math_sin" => {
+                    if args.len() == 1
+                        && let RelType::Float(v) = &args[0]
+                    {
+                        return Some(ExecResult::Value(RelType::Float(v.sin())));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_sin expects (Float)".to_string(),
+                        node: "Native::Bridge::math_sin".into(),
+                    })
+                }
+                "math_cos" => {
+                    if args.len() == 1
+                        && let RelType::Float(v) = &args[0]
+                    {
+                        return Some(ExecResult::Value(RelType::Float(v.cos())));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_cos expects (Float)".to_string(),
+                        node: "Native::Bridge::math_cos".into(),
+                    })
+                }
+                "math_tan" => {
+                    if args.len() == 1
+                        && let RelType::Float(v) = &args[0]
+                    {
+                        return Some(ExecResult::Value(RelType::Float(v.tan())));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_tan expects (Float)".to_string(),
+                        node: "Native::Bridge::math_tan".into(),
+                    })
+                }
+                "math_sqrt" => {
+                    if args.len() == 1
+                        && let RelType::Float(v) = &args[0]
+                    {
+                        return Some(ExecResult::Value(RelType::Float(v.sqrt())));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_sqrt expects (Float)".to_string(),
+                        node: "Native::Bridge::math_sqrt".into(),
+                    })
+                }
+                "math_abs" => {
+                    if args.len() == 1
+                        && let RelType::Float(v) = &args[0]
+                    {
+                        return Some(ExecResult::Value(RelType::Float(v.abs())));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_abs expects (Float)".to_string(),
+                        node: "Native::Bridge::math_abs".into(),
+                    })
+                }
+                "math_pi" => {
+                    if args.is_empty() {
+                        return Some(ExecResult::Value(RelType::Float(std::f64::consts::PI)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_pi expects 0 arguments".to_string(),
+                        node: "Native::Bridge::math_pi".into(),
+                    })
+                }
+                _ => None,
+            }
         } else {
             None
         }

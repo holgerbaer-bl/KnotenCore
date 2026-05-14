@@ -145,6 +145,11 @@ KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline 
 - **Infinite Looping Sinks**: Decodes active background BGM loops alongside parallel positional sound channels naturally.
 - **Strictly Sandboxed FFI**: All `registry_play_sound` and `registry_loop_music` invocations implicitly demand `--allow-read` permissions and cross the `validate_fs_path` security border natively preventing path manipulation.
 
+### 🧮 Math Standard Library & Determinism
+To power real-time 3D orbital mechanics and complex game logic natively inside the VM, the engine is equipped with deterministic bindings to Rust's core mathematical library:
+- **Available Functions**: `math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`.
+- **Type Safety**: The FFI bridge enforces strict `Float` type signatures, emitting fatal `ExecResult::Fault` exceptions if non-float scalars are passed, ensuring complete deterministic stability in tight loops.
+
 ### 🔌 LSP Support — Sprint 137/140
 KnotenCore provides real-time AI-DX via a native **Language Server** (`knoten_lsp`) and a first-party **VS Code Extension**:
 - **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys. Hallucinated nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics.

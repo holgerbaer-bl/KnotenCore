@@ -845,6 +845,8 @@ impl VM {
                         ("json", name.as_str())
                     } else if name.starts_with("time_") {
                         ("time", name.as_str())
+                    } else if name.starts_with("math_") {
+                        ("math", name.as_str())
                     } else {
                         // Global scope for unmapped builtins if the user writes flat names
                         ("global", name.as_str())
