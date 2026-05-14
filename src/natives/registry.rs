@@ -159,7 +159,8 @@ pub struct EntityPhysics {
     pub transform: glam::Mat4,
 }
 
-pub static PHYSICS_WORLD: std::sync::Mutex<Option<HashMap<usize, EntityPhysics>>> = std::sync::Mutex::new(None);
+pub static PHYSICS_WORLD: std::sync::Mutex<Option<HashMap<usize, EntityPhysics>>> =
+    std::sync::Mutex::new(None);
 pub static TEXTURE_ID_COUNTER: std::sync::Mutex<usize> = std::sync::Mutex::new(1); // 0 is reserved for default
 
 unsafe impl Send for WindowProxy {}

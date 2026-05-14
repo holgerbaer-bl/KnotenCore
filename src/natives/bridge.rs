@@ -1200,9 +1200,11 @@ impl BridgeModule for CoreBridge {
                 }
                 // Sprint 165: Texture Loading
                 "registry_load_texture" => {
-                    if args.len() == 1 && let RelType::Str(path) = &args[0] {
+                    if args.len() == 1
+                        && let RelType::Str(path) = &args[0]
+                    {
                         return Some(ExecResult::Value(RelType::Int(
-                            crate::natives::registry::registry_load_texture(path)
+                            crate::natives::registry::registry_load_texture(path),
                         )));
                     }
                     Some(ExecResult::Fault {
