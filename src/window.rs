@@ -561,25 +561,28 @@ impl KnotenApp {
                     );
                 }
             }
-            RenderCommand::LoadTexture { id, width, height, rgba } => {
+            RenderCommand::LoadTexture {
+                id,
+                width,
+                height,
+                rgba,
+            } => {
                 for state in self.windows.values_mut() {
                     let texture_size = wgpu::Extent3d {
                         width,
                         height,
                         depth_or_array_layers: 1,
                     };
-                    let diffuse_texture = state.device.create_texture(
-                        &wgpu::TextureDescriptor {
-                            size: texture_size,
-                            mip_level_count: 1,
-                            sample_count: 1,
-                            dimension: wgpu::TextureDimension::D2,
-                            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-                            label: Some(&format!("Texture {}", id)),
-                            view_formats: &[],
-                        }
-                    );
+                    let diffuse_texture = state.device.create_texture(&wgpu::TextureDescriptor {
+                        size: texture_size,
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                        label: Some(&format!("Texture {}", id)),
+                        view_formats: &[],
+                    });
 
                     state.queue.write_texture(
                         wgpu::ImageCopyTexture {
@@ -597,7 +600,8 @@ impl KnotenApp {
                         texture_size,
                     );
 
-                    let diffuse_texture_view = diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let diffuse_texture_view =
+                        diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
                     let diffuse_sampler = state.device.create_sampler(&wgpu::SamplerDescriptor {
                         address_mode_u: wgpu::AddressMode::Repeat,
                         address_mode_v: wgpu::AddressMode::Repeat,
@@ -619,7 +623,7 @@ impl KnotenApp {
                             wgpu::BindGroupEntry {
                                 binding: 1,
                                 resource: wgpu::BindingResource::Sampler(&diffuse_sampler),
-                            }
+                            },
                         ],
                         label: Some(&format!("Texture Bind Group {}", id)),
                     });
