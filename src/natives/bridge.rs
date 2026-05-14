@@ -1171,6 +1171,33 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_parse_float".into(),
                     })
                 }
+                // Sprint 164: Physics & Raycasting FFI bindings
+                "registry_check_collision" => {
+                    if args.len() == 2
+                        && let (RelType::Int(id1), RelType::Int(id2)) = (&args[0], &args[1])
+                    {
+                        return Some(ExecResult::Value(RelType::Bool(
+                            crate::natives::registry::registry_check_collision(*id1, *id2),
+                        )));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_check_collision expects (Int, Int)".to_string(),
+                        node: "Native::Bridge::registry_check_collision".into(),
+                    })
+                }
+                "registry_get_clicked_entity" => {
+                    if args.len() == 1
+                        && let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                    {
+                        return Some(ExecResult::Value(RelType::Int(
+                            crate::natives::registry::registry_get_clicked_entity(*win),
+                        )));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_get_clicked_entity expects (Handle win)".to_string(),
+                        node: "Native::Bridge::registry_get_clicked_entity".into(),
+                    })
+                }
                 _ => None,
             }
         } else {

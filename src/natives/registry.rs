@@ -19,6 +19,7 @@ pub struct InputState {
     pub mouse_x: f32,
     pub mouse_y: f32,
     pub mouse_left_down: bool,
+    pub mouse_clicked: bool,
     pub view_proj: [[f32; 4]; 4],
     pub window_width: f32,
     pub window_height: f32,
@@ -144,6 +145,16 @@ pub struct WindowProxy {
     pub id: usize,
     pub input: Arc<Mutex<InputState>>,
 }
+
+// Retained-Mode Physics Store
+pub struct EntityPhysics {
+    pub base_aabb: crate::math::AABB,
+    pub world_aabb: crate::math::AABB,
+    pub transform: glam::Mat4,
+}
+
+pub static PHYSICS_WORLD: std::sync::Mutex<Option<HashMap<usize, EntityPhysics>>> =
+    std::sync::Mutex::new(None);
 
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
@@ -559,6 +570,7 @@ pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
         mouse_x: 0.0,
         mouse_y: 0.0,
         mouse_left_down: false,
+        mouse_clicked: false,
         view_proj: [
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
@@ -925,13 +937,27 @@ pub fn registry_spawn_cube(
 
     let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
     let s = glam::Mat4::from_scale(glam::Vec3::new(w, h, d));
+    let transform = t * s;
+
+    let base_aabb = crate::math::AABB::new([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]);
+    let world_aabb = base_aabb.transform(&transform);
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    let phys_map = phys_guard.get_or_insert_with(HashMap::new);
+    phys_map.insert(
+        entity_id,
+        EntityPhysics {
+            base_aabb,
+            world_aabb,
+            transform,
+        },
+    );
 
     send_render_command(RenderCommand::SpawnEntity {
         window_id: window_handle as usize,
         entity_id,
         mesh_name,
         texture_id: texture_handle as usize,
-        transform: t * s,
+        transform,
     });
     entity_id as i64
 }
@@ -947,10 +973,23 @@ pub fn registry_update_entity_transform(
         return;
     }
     let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
+    let mut final_transform = t;
+
+    // Retained Physics: preserve old scale and update AABB
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    if let Some(phys_map) = phys_guard.as_mut()
+        && let Some(phys) = phys_map.get_mut(&(entity_handle as usize))
+    {
+        let old_scale = phys.transform.to_scale_rotation_translation().0;
+        final_transform = t * glam::Mat4::from_scale(old_scale);
+        phys.transform = final_transform;
+        phys.world_aabb = phys.base_aabb.transform(&final_transform);
+    }
+
     send_render_command(RenderCommand::UpdateEntityTransform {
         window_id: window_handle as usize,
         entity_id: entity_handle as usize,
-        transform: t,
+        transform: final_transform,
     });
 }
 
@@ -991,13 +1030,27 @@ pub fn registry_spawn_sphere(
 
     let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
     let s = glam::Mat4::from_scale(glam::Vec3::splat(radius));
+    let transform = t * s;
+
+    let base_aabb = crate::math::AABB::new([-1.0, -1.0, -1.0], [1.0, 1.0, 1.0]);
+    let world_aabb = base_aabb.transform(&transform);
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    let phys_map = phys_guard.get_or_insert_with(HashMap::new);
+    phys_map.insert(
+        entity_id,
+        EntityPhysics {
+            base_aabb,
+            world_aabb,
+            transform,
+        },
+    );
 
     send_render_command(RenderCommand::SpawnEntity {
         window_id: window_handle as usize,
         entity_id,
         mesh_name,
         texture_id: texture_handle as usize,
-        transform: t * s,
+        transform,
     });
     entity_id as i64
 }
@@ -1077,13 +1130,27 @@ pub fn registry_spawn_cylinder(
 
     let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
     let s = glam::Mat4::from_scale(glam::Vec3::new(radius, height, radius));
+    let transform = t * s;
+
+    let base_aabb = crate::math::AABB::new([-1.0, -0.5, -1.0], [1.0, 0.5, 1.0]);
+    let world_aabb = base_aabb.transform(&transform);
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    let phys_map = phys_guard.get_or_insert_with(HashMap::new);
+    phys_map.insert(
+        entity_id,
+        EntityPhysics {
+            base_aabb,
+            world_aabb,
+            transform,
+        },
+    );
 
     send_render_command(RenderCommand::SpawnEntity {
         window_id: window_handle as usize,
         entity_id,
         mesh_name,
         texture_id: texture_handle as usize,
-        transform: t * s,
+        transform,
     });
     entity_id as i64
 }
@@ -1392,4 +1459,73 @@ pub fn registry_write_file(path: String, content: String) -> bool {
 
 pub fn registry_get_ultimate_answer() -> i64 {
     42
+}
+
+// ── Physics & Raycasting (Sprint 164) ───────────────────────────────────
+
+pub fn registry_check_collision(id1: i64, id2: i64) -> bool {
+    let guard = PHYSICS_WORLD.lock().unwrap();
+    if let Some(map) = guard.as_ref()
+        && let (Some(e1), Some(e2)) = (map.get(&(id1 as usize)), map.get(&(id2 as usize)))
+    {
+        return e1.world_aabb.intersects(&e2.world_aabb);
+    }
+    false
+}
+
+pub fn registry_get_clicked_entity(window_handle: i64) -> i64 {
+    if window_handle < 0 {
+        return -1;
+    }
+    let input = with_registry(|reg| {
+        if let Some(entry) = reg.get(&(window_handle as usize))
+            && let NativeHandle::Window(proxy) = &entry.handle
+        {
+            return Some(proxy.input.clone());
+        }
+        None
+    });
+
+    if let Some(input_arc) = input {
+        let mut state = input_arc.lock().unwrap();
+        if state.mouse_clicked {
+            state.mouse_clicked = false; // Consume click
+
+            // Unproject mouse coordinates to ray
+            let vp = glam::Mat4::from_cols_array_2d(&state.view_proj);
+            let inv_vp = vp.inverse();
+
+            let ndc_x = (state.mouse_x / state.window_width) * 2.0 - 1.0;
+            let ndc_y = 1.0 - (state.mouse_y / state.window_height) * 2.0;
+
+            let clip_near = glam::Vec4::new(ndc_x, ndc_y, 0.0, 1.0);
+            let clip_far = glam::Vec4::new(ndc_x, ndc_y, 1.0, 1.0);
+
+            let mut world_near = inv_vp * clip_near;
+            world_near /= world_near.w;
+
+            let mut world_far = inv_vp * clip_far;
+            world_far /= world_far.w;
+
+            let ray_origin = world_near.truncate();
+            let ray_dir = (world_far.truncate() - ray_origin).normalize();
+
+            // Raycast against physics world
+            let guard = PHYSICS_WORLD.lock().unwrap();
+            let mut hit_idx: i64 = -1;
+            let mut t_min = f32::MAX;
+            if let Some(map) = guard.as_ref() {
+                for (&id, phys) in map.iter() {
+                    if let Some(t) = phys.world_aabb.intersect_ray(ray_origin, ray_dir)
+                        && t < t_min
+                    {
+                        t_min = t;
+                        hit_idx = id as i64;
+                    }
+                }
+            }
+            return hit_idx;
+        }
+    }
+    -1
 }

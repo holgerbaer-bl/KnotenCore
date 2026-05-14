@@ -703,6 +703,9 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
             } => {
                 let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                 input.mouse_left_down = element_state == winit::event::ElementState::Pressed;
+                if element_state == winit::event::ElementState::Pressed {
+                    input.mouse_clicked = true;
+                }
             }
             WindowEvent::Resized(physical_size)
                 if physical_size.width > 0 && physical_size.height > 0 =>

@@ -9,6 +9,27 @@ impl AABB {
         Self { min, max }
     }
 
+    pub fn transform(&self, transform: &glam::Mat4) -> Self {
+        let mut min = glam::Vec3::splat(f32::INFINITY);
+        let mut max = glam::Vec3::splat(f32::NEG_INFINITY);
+        let corners = [
+            glam::Vec3::new(self.min[0], self.min[1], self.min[2]),
+            glam::Vec3::new(self.max[0], self.min[1], self.min[2]),
+            glam::Vec3::new(self.min[0], self.max[1], self.min[2]),
+            glam::Vec3::new(self.max[0], self.max[1], self.min[2]),
+            glam::Vec3::new(self.min[0], self.min[1], self.max[2]),
+            glam::Vec3::new(self.max[0], self.min[1], self.max[2]),
+            glam::Vec3::new(self.min[0], self.max[1], self.max[2]),
+            glam::Vec3::new(self.max[0], self.max[1], self.max[2]),
+        ];
+        for corner in &corners {
+            let transformed = (*transform * corner.extend(1.0)).truncate();
+            min = min.min(transformed);
+            max = max.max(transformed);
+        }
+        Self::new(min.into(), max.into())
+    }
+
     pub fn intersects(&self, other: &AABB) -> bool {
         self.min[0] <= other.max[0]
             && self.max[0] >= other.min[0]

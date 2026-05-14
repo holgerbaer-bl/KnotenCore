@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - Sprint 163
+# KnotenCore — AI Agent Reference (Routing Document) - Sprint 164
 
 > **System Instruction for LLM Code Agents**
 >
@@ -58,6 +58,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Retained-Mode Scene Graph** (Sprint 159) → Scripts spawn entities (`registry_spawn_cube`) and update transforms asynchronously; WGPU renders the persistent `SceneGraph` autonomously.
 - **Retained-Mode 2D UI** (Sprint 162) → Scripts set a `UIButton`/`UITextInput`/`UILabel`/`UIVBox`/`UIHBox` tree once via `UpdateUI`; egui renders it at 60 FPS. Events route back via `registry_ui_poll_button(label)` (Bool) and `registry_ui_read_text(key)` (String).
 - **UI→3D Value Bridging** (Sprint 163) → `registry_parse_float(String) -> Float` safely converts `UITextInput` strings to floats for use as 3D coordinates. Returns `0.0` on invalid input.
+- **Retained-Mode Physics & Raycasting** (Sprint 164) → 3D entities have automatically synchronized AABBs. Use `registry_get_clicked_entity(win) -> Int` for 3D mouse picking. Use `registry_check_collision(id1, id2) -> Bool` for intersection checks.
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
 - **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time. The **VS Code Extension** automatically launches this server, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) directly in the editor before they reach the runtime. Tracing output is visible in the VS Code *Output → knoten-lsp* channel.
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.

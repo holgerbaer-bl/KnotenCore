@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 164: The Tangible World (2026-05-14)
+Sprint 164: The Tangible World. Re-integrated AABB collision detection and 3D raycasting natively into the Retained-Mode Scene Graph.
+- **Retained-Mode Physics**: `SceneEntity` resources now dynamically track their base and world-transformed `AABB` instances in a thread-safe `PHYSICS_WORLD` registry.
+- **Synchronous Transform Preserves**: `registry_update_entity_transform` automatically preserves scale configurations set during spawn when modifying runtime position.
+- **3D Raycasting**: Introduced `registry_get_clicked_entity(win) -> Int` which performs an asynchronous screen-to-world projection based on the current camera view-projection matrix and returns the ID of the clicked 3D object.
+- **Hitbox Intersection**: Added `registry_check_collision(id1, id2) -> Bool` for fast, Retained-Mode AABB intersection queries.
+- **Demo Script**: Created `examples/raycast_demo.knoten` to verify the new physics features in a real-time event loop.
+
 ## [v1.0.48] - Sprint 163: The Control Room (2026-05-14)
 Sprint 163: The Control Room. Synthesized 2D egui overlays with the 3D Retained-Mode Scene Graph, proving asynchronous real-time state manipulation.
 - Created `examples/control_room.knoten` — a fully interactive 2D/3D synthesis demo: a WGPU 3D cube controlled in real-time by an egui button panel and a text-input field, all running on decoupled threads without frame-drops.
