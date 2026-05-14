@@ -150,6 +150,13 @@ To power real-time 3D orbital mechanics and complex game logic natively inside t
 - **Available Functions**: `math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`.
 - **Type Safety**: The FFI bridge enforces strict `Float` type signatures, emitting fatal `ExecResult::Fault` exceptions if non-float scalars are passed, ensuring complete deterministic stability in tight loops.
 
+### 💡 Dynamic Lighting (Blinn-Phong)
+KnotenCore scenes are no longer flat-lit. The WGPU shader pipeline implements real-time Blinn-Phong illumination:
+- **Ambient + Diffuse + Specular**: A global ambient pass plus up to 4 dynamic point lights with Lambertian diffuse and half-vector specular highlights.
+- **Inverse-Square Attenuation**: Physically plausible light falloff based on distance.
+- **FFI Control**: `registry_spawn_light(win, x, y, z, intensity)` creates a white point light; `registry_spawn_light_rgb(...)` creates a colored one. `registry_update_light_position(win, id, x, y, z)` animates it in real time.
+- **Camera-Aware Specular**: The camera world-space position is uploaded to the UBO each frame, ensuring correct view-dependent specular reflections.
+
 ### 🔌 LSP Support — Sprint 137/140
 KnotenCore provides real-time AI-DX via a native **Language Server** (`knoten_lsp`) and a first-party **VS Code Extension**:
 - **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys. Hallucinated nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics.

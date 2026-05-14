@@ -445,6 +445,7 @@ impl KnotenApp {
                         default_texture_bind_group,
                         commands: Vec::new(),
                         scene_graph: HashMap::new(),
+                        lights: HashMap::new(),
                         egui_ctx,
                         egui_state,
                         egui_renderer,
@@ -689,6 +690,43 @@ impl KnotenApp {
                     entity.transform = transform;
                 }
             }
+            // Sprint 167: Spawn a dynamic point light
+            RenderCommand::SpawnLight {
+                window_id,
+                light_id,
+                x,
+                y,
+                z,
+                r,
+                g,
+                b,
+                intensity,
+            } => {
+                if let Some(state) = self.windows.get_mut(&window_id) {
+                    state.lights.insert(
+                        light_id,
+                        crate::natives::registry::SceneLight {
+                            position: [x, y, z],
+                            color: [r, g, b],
+                            intensity,
+                        },
+                    );
+                }
+            }
+            // Sprint 167: Update position of an existing point light
+            RenderCommand::UpdateLightPosition {
+                window_id,
+                light_id,
+                x,
+                y,
+                z,
+            } => {
+                if let Some(state) = self.windows.get_mut(&window_id)
+                    && let Some(light) = state.lights.get_mut(&light_id)
+                {
+                    light.position = [x, y, z];
+                }
+            }
         }
     }
 }
@@ -827,6 +865,39 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     0,
                     bytemuck::cast_slice(&view_proj.to_cols_array()),
                 );
+
+                // Sprint 167: Write camera_pos into the UBO at offset 96 (after mat4 + material + pbr)
+                let cam_pos = view.inverse().w_axis;
+                let camera_pos_data: [f32; 4] = [cam_pos.x, cam_pos.y, cam_pos.z, 0.0];
+                state.queue.write_buffer(
+                    &state.camera_buffer,
+                    96,
+                    bytemuck::cast_slice(&camera_pos_data),
+                );
+
+                // Sprint 167: Write light data into the UBO at offset 112 (4 × PointLight @ 32 bytes each)
+                // PointLight layout: vec4 pos (xyz, pad) + vec4 color (rgb, intensity)
+                let mut light_ubo_data = [0.0_f32; 32]; // 4 lights × 8 floats
+                for (i, light) in state.lights.values().enumerate() {
+                    if i >= 4 {
+                        break;
+                    }
+                    let base = i * 8;
+                    light_ubo_data[base] = light.position[0];
+                    light_ubo_data[base + 1] = light.position[1];
+                    light_ubo_data[base + 2] = light.position[2];
+                    light_ubo_data[base + 3] = 0.0; // pad
+                    light_ubo_data[base + 4] = light.color[0];
+                    light_ubo_data[base + 5] = light.color[1];
+                    light_ubo_data[base + 6] = light.color[2];
+                    light_ubo_data[base + 7] = light.intensity;
+                }
+                state.queue.write_buffer(
+                    &state.camera_buffer,
+                    112,
+                    bytemuck::cast_slice(&light_ubo_data),
+                );
+
                 {
                     let mut input = state.input.lock().unwrap_or_else(|e| e.into_inner());
                     input.view_proj = view_proj.to_cols_array_2d();

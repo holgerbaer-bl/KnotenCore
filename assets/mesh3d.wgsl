@@ -60,16 +60,53 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     let pbr = u.pbr;
     var albedo = u.material.rgb;
     
-    // Sprint 158 EMERGENCY: Force high visibility
+    // Texture sampling
     let texture_id = pbr.z;
     if (texture_id > 0.5) {
         let tex_color = textureSample(t_diffuse, s_diffuse, in.uv);
         albedo = albedo * tex_color.rgb;
     } else {
-        // If no texture, use a bright default based on position to see shapes
+        // If no texture, use a soft default to see shapes
         albedo = vec3<f32>(0.8, 0.8, 0.9); 
     }
     
-    // Return full brightness (unlit) to guarantee visibility
-    return vec4<f32>(albedo, 1.0);
+    // Sprint 167: Blinn-Phong Lighting
+    let N = normalize(in.normal);
+    let V = normalize(u.camera_pos.xyz - in.world_pos);
+    
+    // Global ambient light
+    let ambient_strength = 0.15;
+    var total_light = albedo * ambient_strength;
+    
+    // Iterate over up to 4 point lights
+    for (var i = 0u; i < 4u; i = i + 1u) {
+        let light = u.lights[i];
+        let intensity = light.color.w;
+        
+        // Skip lights with zero intensity
+        if (intensity <= 0.0) {
+            continue;
+        }
+        
+        let light_color = light.color.rgb;
+        let L = light.pos.xyz - in.world_pos;
+        let distance = length(L);
+        let L_dir = L / distance;
+        
+        // Attenuation (inverse square law with a minimum floor)
+        let attenuation = intensity / (1.0 + 0.09 * distance + 0.032 * distance * distance);
+        
+        // Diffuse (Lambertian)
+        let diff = max(dot(N, L_dir), 0.0);
+        let diffuse = diff * light_color * attenuation;
+        
+        // Specular (Blinn-Phong)
+        let H = normalize(L_dir + V);
+        let spec = pow(max(dot(N, H), 0.0), 32.0);
+        let specular = spec * light_color * attenuation * 0.5;
+        
+        total_light = total_light + albedo * diffuse + specular;
+    }
+    
+    return vec4<f32>(total_light, 1.0);
 }

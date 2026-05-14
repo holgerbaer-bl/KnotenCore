@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 167: Dynamic Lighting (2026-05-14)
+Sprint 167: Dynamic Lighting. Upgraded WGPU shaders to support normals and point lights, exposing real-time illumination controls to the DSL.
+- **Blinn-Phong Shader**: Rewrote `mesh3d.wgsl` fragment stage from flat unlit output to full Blinn-Phong shading with ambient light, Lambertian diffuse, and specular highlights using half-vector calculation.
+- **Up to 4 Dynamic Point Lights**: The `MeshUniforms` UBO now receives per-frame light position, color, and intensity data. Inverse-square attenuation provides physically plausible falloff.
+- **Light FFI Bridge**: Added `registry_spawn_light(win, x, y, z, intensity) -> Int` and `registry_update_light_position(win, light_id, x, y, z)` for real-time light manipulation from `.knoten` scripts.
+- **Extended Variant**: `registry_spawn_light_rgb(win, x, y, z, r, g, b, intensity) -> Int` allows colored lights.
+- **Per-Window Light Registry**: `RegistryWindowState` now tracks `lights: HashMap<usize, SceneLight>` for autonomous rendering.
+- **Camera Position UBO**: The camera world-space position is now written to the UBO at offset 96 each frame, enabling correct specular reflections.
+- **Demo Script**: Created `examples/light_demo.knoten` combining textures (165), math (166), and dynamic lighting (167) — a point light orbits a textured cube using `math_sin`/`math_cos`, producing real-time illumination shifts.
+
 ## [v1.0.49] - Sprint 166: The Math Standard Library (2026-05-14)
 Sprint 166: The Math Standard Library. Empowered the engine with a native mathematical standard library via the FFI bridge for high-performance spatial and orbital mechanics.
 - **Math FFI Module**: Added `math` module to `bridge.rs` exposing deterministic trigonometric and arithmetic operations (`math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`).

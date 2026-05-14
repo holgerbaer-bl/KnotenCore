@@ -51,6 +51,26 @@ pub enum RenderCommand {
         window_id: usize,
         view_proj: [[f32; 4]; 4],
     },
+    /// Sprint 167: spawn a dynamic point light into the per-window light registry.
+    SpawnLight {
+        window_id: usize,
+        light_id: usize,
+        x: f32,
+        y: f32,
+        z: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+        intensity: f32,
+    },
+    /// Sprint 167: update the position of an existing point light.
+    UpdateLightPosition {
+        window_id: usize,
+        light_id: usize,
+        x: f32,
+        y: f32,
+        z: f32,
+    },
     UpdateWindow(usize),
     UpdateUI {
         window_id: usize,
@@ -172,6 +192,13 @@ pub struct SceneEntity {
     pub transform: glam::Mat4,
 }
 
+/// Sprint 167: A dynamic point light in the scene.
+pub struct SceneLight {
+    pub position: [f32; 3],
+    pub color: [f32; 3],
+    pub intensity: f32,
+}
+
 pub struct RegistryWindowState {
     pub window: Arc<WinitWindow>,
     pub input: Arc<Mutex<InputState>>,
@@ -199,6 +226,8 @@ pub struct RegistryWindowState {
     pub default_texture_bind_group: wgpu::BindGroup,
     pub commands: Vec<RenderCommand>,
     pub scene_graph: HashMap<usize, SceneEntity>,
+    /// Sprint 167: per-window dynamic light registry (max 4 active lights).
+    pub lights: HashMap<usize, SceneLight>,
     // Egui State
     pub egui_ctx: egui::Context,
     pub egui_state: egui_winit::State,
@@ -908,6 +937,7 @@ pub fn registry_texture_load(path: String) -> i64 {
 }
 
 static NEXT_ENTITY_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
+static NEXT_LIGHT_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
 
 #[allow(clippy::too_many_arguments)]
 pub fn registry_spawn_cube(
@@ -997,6 +1027,60 @@ pub fn registry_update_entity_transform(
         window_id: window_handle as usize,
         entity_id: entity_handle as usize,
         transform: final_transform,
+    });
+}
+
+/// Sprint 167: Spawn a dynamic point light into the scene.
+/// Returns a unique light ID that can be used to update its position later.
+#[allow(clippy::too_many_arguments)]
+pub fn registry_spawn_light(
+    window_handle: i64,
+    x: f32,
+    y: f32,
+    z: f32,
+    r: f32,
+    g: f32,
+    b: f32,
+    intensity: f32,
+) -> i64 {
+    if window_handle < 0 {
+        return -1;
+    }
+    let mut id_guard = NEXT_LIGHT_ID.lock().unwrap();
+    let light_id = *id_guard;
+    *id_guard += 1;
+
+    send_render_command(RenderCommand::SpawnLight {
+        window_id: window_handle as usize,
+        light_id,
+        x,
+        y,
+        z,
+        r,
+        g,
+        b,
+        intensity,
+    });
+    light_id as i64
+}
+
+/// Sprint 167: Update the position of an existing point light.
+pub fn registry_update_light_position(
+    window_handle: i64,
+    light_handle: i64,
+    x: f32,
+    y: f32,
+    z: f32,
+) {
+    if window_handle < 0 || light_handle < 0 {
+        return;
+    }
+    send_render_command(RenderCommand::UpdateLightPosition {
+        window_id: window_handle as usize,
+        light_id: light_handle as usize,
+        x,
+        y,
+        z,
     });
 }
 

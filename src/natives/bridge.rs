@@ -1212,6 +1212,80 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_load_texture".into(),
                     })
                 }
+                // Sprint 167: Dynamic Lighting
+                "registry_spawn_light" => {
+                    if args.len() == 5
+                        && let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                        && let RelType::Float(x) = &args[1]
+                        && let RelType::Float(y) = &args[2]
+                        && let RelType::Float(z) = &args[3]
+                        && let RelType::Float(intensity) = &args[4]
+                    {
+                        return Some(ExecResult::Value(RelType::Int(
+                            crate::natives::registry::registry_spawn_light(
+                                *win,
+                                *x as f32,
+                                *y as f32,
+                                *z as f32,
+                                1.0,
+                                1.0,
+                                1.0,
+                                *intensity as f32,
+                            ),
+                        )));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_spawn_light expects (Handle win, Float x, Float y, Float z, Float intensity)".to_string(),
+                        node: "Native::Bridge::registry_spawn_light".into(),
+                    })
+                }
+                "registry_spawn_light_rgb" => {
+                    if args.len() == 8
+                        && let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                        && let RelType::Float(x) = &args[1]
+                        && let RelType::Float(y) = &args[2]
+                        && let RelType::Float(z) = &args[3]
+                        && let RelType::Float(r) = &args[4]
+                        && let RelType::Float(g) = &args[5]
+                        && let RelType::Float(b) = &args[6]
+                        && let RelType::Float(intensity) = &args[7]
+                    {
+                        return Some(ExecResult::Value(RelType::Int(
+                            crate::natives::registry::registry_spawn_light(
+                                *win,
+                                *x as f32,
+                                *y as f32,
+                                *z as f32,
+                                *r as f32,
+                                *g as f32,
+                                *b as f32,
+                                *intensity as f32,
+                            ),
+                        )));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_spawn_light_rgb expects (Handle win, Float x, Float y, Float z, Float r, Float g, Float b, Float intensity)".to_string(),
+                        node: "Native::Bridge::registry_spawn_light_rgb".into(),
+                    })
+                }
+                "registry_update_light_position" => {
+                    if args.len() == 5
+                        && let RelType::Handle(crate::executor::NativeHandle(win)) = &args[0]
+                        && let RelType::Int(light_id) = &args[1]
+                        && let RelType::Float(x) = &args[2]
+                        && let RelType::Float(y) = &args[3]
+                        && let RelType::Float(z) = &args[4]
+                    {
+                        crate::natives::registry::registry_update_light_position(
+                            *win, *light_id, *x as f32, *y as f32, *z as f32,
+                        );
+                        return Some(ExecResult::Value(RelType::Void));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_update_light_position expects (Handle win, Int light_id, Float x, Float y, Float z)".to_string(),
+                        node: "Native::Bridge::registry_update_light_position".into(),
+                    })
+                }
                 _ => None,
             }
         } else if module == "math" {

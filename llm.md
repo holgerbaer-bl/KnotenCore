@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - Sprint 164
+# KnotenCore — AI Agent Reference (Routing Document) - Sprint 167
 
 > **System Instruction for LLM Code Agents**
 >
@@ -61,6 +61,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Retained-Mode Physics & Raycasting** (Sprint 164) → 3D entities have automatically synchronized AABBs. Use `registry_get_clicked_entity(win) -> Int` for 3D mouse picking. Use `registry_check_collision(id1, id2) -> Bool` for intersection checks.
 - **Retained-Mode Textures** (Sprint 165) → External image files are loaded via `registry_load_texture(path) -> Int`. The returned ID is passed to `registry_spawn_cube` or similar functions to automatically UV-map the object via a thread-safe `TEXTURE_CACHE`.
 - **Math Standard Library** (Sprint 166) → Core trigonometric and mathematical functions (`math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`) are provided natively via the FFI Bridge, enabling complex floating-point spatial computations (e.g. orbits) directly within the VM loop.
+- **Dynamic Lighting** (Sprint 167) → The WGSL shader implements Blinn-Phong shading with ambient light and up to 4 dynamic point lights. Use `registry_spawn_light(win, x, y, z, intensity) -> Int` to create a light and `registry_update_light_position(win, light_id, x, y, z)` to animate it. Light data is written per-frame to the camera UBO.
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
 - **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time. The **VS Code Extension** automatically launches this server, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) directly in the editor before they reach the runtime. Tracing output is visible in the VS Code *Output → knoten-lsp* channel.
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.
