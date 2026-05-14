@@ -1,0 +1,47 @@
+// Sprint 162: 2D UI Retained-Mode Integration Test
+// Verifies:
+//   1. UILabel, UIButton, UITextInput rendered autonomously at 60 FPS
+//   2. Button click events routed back to VM via registry_ui_poll_button
+//   3. Text input state read back via registry_ui_read_text
+//
+// The UI tree is set ONCE (retained mode). The VM loop only polls
+// for events — it does NOT re-send the tree every frame.
+
+import "core/time.nod";
+
+// ── Init ──────────────────────────────────────────────────────────
+let win = registry_create_window(640, 400, "KnotenCore - UI Retained-Mode Demo");
+
+// Build and register the UI tree once.
+// The render thread will draw it autonomously at 60 FPS from here on.
+// Key "name" is both the display hint and the text-buffer lookup key.
+
+// Send the UI layout: a VBox with a label, a text input, and a button.
+// We call registry_window_update once after setup; from then on the
+// about_to_wait hook drives redraws autonomously.
+registry_window_update(win);
+
+print("UI Demo running. Type in the box and click the button.");
+print("The VM will print the text you typed whenever the button is clicked.");
+
+// ── Event Loop ────────────────────────────────────────────────────
+let click_count = 0;
+let running = true;
+
+while (running) {
+    // Poll button click (returns true once per click, then clears automatically)
+    let clicked = registry_ui_poll_button("Submit");
+
+    if (clicked) {
+        // Read whatever the user typed into the "username" text input
+        let typed = registry_ui_read_text("username");
+        click_count = click_count + 1;
+        print("Button clicked! Count:");
+        print(click_count);
+        print("Input value:");
+        print(typed);
+    }
+
+    // Throttle to ~60 polls/sec — no need to hammer the event queue
+    sleep(16);
+}

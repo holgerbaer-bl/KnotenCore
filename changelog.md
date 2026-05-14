@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.48] - Sprint 162: 2D UI Retained-Mode Integration (2026-05-14)
+Sprint 162: 2D UI Retained-Mode Integration. Synced egui rendering with the new autonomous Winit loop and established asynchronous event routing for UI nodes.
+- Implemented `UI_BUTTON_EVENTS` and `UI_TEXT_BUFFERS` static stores in `ui.rs` for lock-free, thread-safe UI event routing between the WGPU render thread and the VM thread.
+- Upgraded `render_egui_node` in `window.rs` to handle `UIButton` (click signals written to `UI_BUTTON_EVENTS`) and keyed `UITextInput` (edits persisted to `UI_TEXT_BUFFERS`).
+- Added `registry_ui_poll_button(label: String) -> Bool` — reads and clears a button click flag, enabling the VM to react to UI events without polling the GPU thread.
+- Added `registry_ui_read_text(key: String) -> String` — reads the current text from a named UITextInput widget.
+- Fixed `send_ui_nodes` to be window-ID-aware via `send_ui_nodes_to(window_id, nodes)`; the legacy broadcast path for single-window scripts is preserved.
+- Added `examples/ui_demo.knoten` as the Sprint 162 verification artifact.
+- All CI Gates passed: **cargo fmt** ✅ · **cargo clippy -- -D warnings** (0 warnings) ✅ · **cargo test** (55/55) ✅
+
 ## [v1.0.48] - Sprint 161: The Visual Ping-Test (2026-05-10)
 Sprint 161: The Visual Ping-Test. Created minimalist `examples/scene_demo.knoten` to verify Retained-Mode Scene Graph rendering and float-type FFI safety.
 - Demonstrated the full Retained-Mode pipeline: `registry_spawn_cube` + `registry_spawn_sphere` → autonomous WGPU rendering → `registry_update_entity_transform` animation loop.

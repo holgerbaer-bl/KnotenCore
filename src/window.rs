@@ -928,18 +928,55 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
     }
 }
 
+/// Sprint 162: Render a single UI AST node into an egui Ui context.
+///
+/// Event routing:
+///   - UIButton click  → `ui_button_signal(label)` sets a flag in UI_BUTTON_EVENTS
+///   - UITextInput edit → `ui_text_write(key, val)` persists into UI_TEXT_BUFFERS
+///
+/// The VM reads these stores via `registry_ui_poll_button` / `registry_ui_read_text`.
 fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {
     match node {
-        crate::ast::Node::UITextInput(_) => {
-            if let Ok(mut buffer) = crate::natives::ui::UI_TEXT_INPUT_BUFFER.lock() {
-                ui.text_edit_singleline(&mut *buffer);
+        // ── UIButton ─────────────────────────────────────────────
+        // Label is the button text and its event-routing key.
+        crate::ast::Node::UIButton(text_node) => {
+            let label = if let crate::ast::Node::StringLiteral(s) = &**text_node {
+                s.clone()
+            } else {
+                "Button".to_string()
+            };
+            if ui.button(&label).clicked() {
+                crate::natives::ui::ui_button_signal(&label);
             }
         }
+
+        // ── UITextInput ───────────────────────────────────────────
+        // The seed value (StringLiteral) is also used as the buffer key,
+        // enabling multiple independent text inputs in one window.
+        crate::ast::Node::UITextInput(seed_node) => {
+            let key = if let crate::ast::Node::StringLiteral(s) = &**seed_node {
+                s.clone()
+            } else {
+                // Fall back to the legacy single buffer
+                if let Ok(mut buf) = crate::natives::ui::UI_TEXT_INPUT_BUFFER.lock() {
+                    ui.text_edit_singleline(&mut *buf);
+                }
+                return;
+            };
+            // Read current value from the keyed buffer, edit in-place, write back.
+            let mut val = crate::natives::ui::ui_text_read(&key);
+            ui.text_edit_singleline(&mut val);
+            crate::natives::ui::ui_text_write(&key, val);
+        }
+
+        // ── UILabel ───────────────────────────────────────────────
         crate::ast::Node::UILabel(text_node) => {
             if let crate::ast::Node::StringLiteral(s) = &**text_node {
                 ui.label(s);
             }
         }
+
+        // ── UIHBox / UIVBox ───────────────────────────────────────
         crate::ast::Node::UIHBox(children) => {
             ui.horizontal(|ui| {
                 for child in children {
@@ -954,6 +991,8 @@ fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {
                 }
             });
         }
+
+        // Unsupported nodes are silently ignored (no panic).
         _ => {}
     }
 }

@@ -810,6 +810,36 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_texture_load".into(),
                     })
                 }
+                // ── Sprint 162: Retained-Mode UI event routing ──────────────
+                // Poll (and clear) whether a UIButton was clicked this frame.
+                // Args: (String label) → Bool
+                "registry_ui_poll_button" => {
+                    if args.len() == 1
+                        && let RelType::Str(label) = &args[0]
+                    {
+                        let clicked =
+                            crate::natives::registry::registry_ui_poll_button(label.clone());
+                        return Some(ExecResult::Value(RelType::Bool(clicked)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_ui_poll_button expects (String label)".to_string(),
+                        node: "Native::Bridge::registry_ui_poll_button".into(),
+                    })
+                }
+                // Read the current text value of a keyed UITextInput widget.
+                // Args: (String key) → String
+                "registry_ui_read_text" => {
+                    if args.len() == 1
+                        && let RelType::Str(key) = &args[0]
+                    {
+                        let val = crate::natives::registry::registry_ui_read_text(key.clone());
+                        return Some(ExecResult::Value(RelType::Str(val)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_ui_read_text expects (String key)".to_string(),
+                        node: "Native::Bridge::registry_ui_read_text".into(),
+                    })
+                }
                 "registry_spawn_cube" => {
                     if args.len() == 8 {
                         let get_float = |arg: &RelType| -> Option<f32> {

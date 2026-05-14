@@ -106,12 +106,37 @@ pub fn send_render_command(cmd: RenderCommand) {
     }
 }
 
+/// Sprint 162: Send a UI tree to a specific window for retained-mode rendering.
+/// The window ID must match a window previously created with `registry_create_window`.
+pub fn send_ui_nodes_to(window_id: usize, nodes: Vec<crate::ast::Node>) {
+    send_render_command(RenderCommand::UpdateUI { window_id, nodes });
+}
+
+/// Legacy helper: broadcasts to window 1 (single-window scripts).
 pub fn send_ui_nodes(nodes: Vec<crate::ast::Node>) {
-    // For now, hardcode broadcast to window id 1
-    send_render_command(RenderCommand::UpdateUI {
-        window_id: 1,
-        nodes,
-    });
+    send_ui_nodes_to(1, nodes);
+}
+
+/// Sprint 162: Set the retained UI tree for a window.
+/// Accepts a window handle (i64) and a vector of AST nodes.
+/// The render thread will autonomously draw this tree at 60 FPS.
+pub fn registry_ui_set(window_handle: i64, nodes: Vec<crate::ast::Node>) {
+    if window_handle < 0 {
+        return;
+    }
+    send_ui_nodes_to(window_handle as usize, nodes);
+}
+
+/// Sprint 162: Poll (and clear) the clicked state for a UI button.
+/// Returns `true` once per click event; clears the flag after reading.
+pub fn registry_ui_poll_button(label: String) -> bool {
+    crate::natives::ui::ui_button_poll(&label)
+}
+
+/// Sprint 162: Read the current text from a keyed UITextInput widget.
+/// `key` is the seed string used when the UITextInput was first defined.
+pub fn registry_ui_read_text(key: String) -> String {
+    crate::natives::ui::ui_text_read(&key)
 }
 
 // Proxy for a Window to be used by the background executor.
