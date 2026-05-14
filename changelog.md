@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 165: Visual Finesse (2026-05-14)
+Sprint 165: Visual Finesse. Implemented WGPU texture loading and UV-mapping pipeline, with thread-safe caching and FFI integration.
+- **WGPU Texture Pipeline**: `RenderCommand::LoadTexture` now fully supported. Automatically decodes and uploads RGBA image data to local window `Texture` and `BindGroup` caches, applying the `material_bgl` shader layout.
+- **Asynchronous SSD Loading**: Introduced `registry_load_texture(path: String) -> Int` allowing scripts to dynamically load image files (e.g. `.png`) from disk into a global `TEXTURE_CACHE` without blocking the Render thread.
+- **Asset Instantiation**: `registry_spawn_cube`, `sphere`, etc. now correctly accept and bind external textures mapped to their native UV coordinates.
+- **Demo Script**: Created `examples/texture_demo.knoten` to showcase dynamically mapped textures (`assets/wall.png`) onto rotating geometric primitives.
+
 ## [v1.0.48] - Sprint 164: The Tangible World (2026-05-14)
 Sprint 164: The Tangible World. Re-integrated AABB collision detection and 3D raycasting natively into the Retained-Mode Scene Graph.
 - **Retained-Mode Physics**: `SceneEntity` resources now dynamically track their base and world-transformed `AABB` instances in a thread-safe `PHYSICS_WORLD` registry.

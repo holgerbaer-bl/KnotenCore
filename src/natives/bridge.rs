@@ -1198,6 +1198,18 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_get_clicked_entity".into(),
                     })
                 }
+                // Sprint 165: Texture Loading
+                "registry_load_texture" => {
+                    if args.len() == 1 && let RelType::Str(path) = &args[0] {
+                        return Some(ExecResult::Value(RelType::Int(
+                            crate::natives::registry::registry_load_texture(path)
+                        )));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_load_texture expects (String path)".to_string(),
+                        node: "Native::Bridge::registry_load_texture".into(),
+                    })
+                }
                 _ => None,
             }
         } else {

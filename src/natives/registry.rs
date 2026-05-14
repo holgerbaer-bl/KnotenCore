@@ -62,6 +62,12 @@ pub enum RenderCommand {
         vertices: Vec<RegistryVertex>,
         indices: Vec<u32>,
     },
+    LoadTexture {
+        id: usize,
+        width: u32,
+        height: u32,
+        rgba: Vec<u8>,
+    },
     LoadComputeShader {
         id: usize,
         source: String,
@@ -153,8 +159,8 @@ pub struct EntityPhysics {
     pub transform: glam::Mat4,
 }
 
-pub static PHYSICS_WORLD: std::sync::Mutex<Option<HashMap<usize, EntityPhysics>>> =
-    std::sync::Mutex::new(None);
+pub static PHYSICS_WORLD: std::sync::Mutex<Option<HashMap<usize, EntityPhysics>>> = std::sync::Mutex::new(None);
+pub static TEXTURE_ID_COUNTER: std::sync::Mutex<usize> = std::sync::Mutex::new(1); // 0 is reserved for default
 
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
@@ -1459,6 +1465,32 @@ pub fn registry_write_file(path: String, content: String) -> bool {
 
 pub fn registry_get_ultimate_answer() -> i64 {
     42
+}
+
+// ── Assets & Textures (Sprint 165) ──────────────────────────────────────
+
+pub fn registry_load_texture(path: &str) -> i64 {
+    let img_result = image::open(path);
+    if let Ok(img) = img_result {
+        let rgba = img.to_rgba8();
+        let (width, height) = rgba.dimensions();
+        let raw_data = rgba.into_raw();
+
+        let mut id_guard = TEXTURE_ID_COUNTER.lock().unwrap();
+        let id = *id_guard;
+        *id_guard += 1;
+
+        send_render_command(RenderCommand::LoadTexture {
+            id,
+            width,
+            height,
+            rgba: raw_data,
+        });
+
+        return id as i64;
+    }
+    // Return 0 (default texture) on error
+    0
 }
 
 // ── Physics & Raycasting (Sprint 164) ───────────────────────────────────

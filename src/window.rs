@@ -561,6 +561,72 @@ impl KnotenApp {
                     );
                 }
             }
+            RenderCommand::LoadTexture { id, width, height, rgba } => {
+                for state in self.windows.values_mut() {
+                    let texture_size = wgpu::Extent3d {
+                        width,
+                        height,
+                        depth_or_array_layers: 1,
+                    };
+                    let diffuse_texture = state.device.create_texture(
+                        &wgpu::TextureDescriptor {
+                            size: texture_size,
+                            mip_level_count: 1,
+                            sample_count: 1,
+                            dimension: wgpu::TextureDimension::D2,
+                            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                            label: Some(&format!("Texture {}", id)),
+                            view_formats: &[],
+                        }
+                    );
+
+                    state.queue.write_texture(
+                        wgpu::ImageCopyTexture {
+                            texture: &diffuse_texture,
+                            mip_level: 0,
+                            origin: wgpu::Origin3d::ZERO,
+                            aspect: wgpu::TextureAspect::All,
+                        },
+                        &rgba,
+                        wgpu::ImageDataLayout {
+                            offset: 0,
+                            bytes_per_row: Some(4 * width),
+                            rows_per_image: Some(height),
+                        },
+                        texture_size,
+                    );
+
+                    let diffuse_texture_view = diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let diffuse_sampler = state.device.create_sampler(&wgpu::SamplerDescriptor {
+                        address_mode_u: wgpu::AddressMode::Repeat,
+                        address_mode_v: wgpu::AddressMode::Repeat,
+                        address_mode_w: wgpu::AddressMode::Repeat,
+                        mag_filter: wgpu::FilterMode::Linear,
+                        min_filter: wgpu::FilterMode::Linear,
+                        mipmap_filter: wgpu::FilterMode::Linear,
+                        ..Default::default()
+                    });
+
+                    let material_bgl = state.pipeline.get_bind_group_layout(1);
+                    let bind_group = state.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        layout: &material_bgl,
+                        entries: &[
+                            wgpu::BindGroupEntry {
+                                binding: 0,
+                                resource: wgpu::BindingResource::TextureView(&diffuse_texture_view),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 1,
+                                resource: wgpu::BindingResource::Sampler(&diffuse_sampler),
+                            }
+                        ],
+                        label: Some(&format!("Texture Bind Group {}", id)),
+                    });
+
+                    state.texture_cache.insert(id, bind_group);
+                }
+            }
             RenderCommand::ExitEventLoop => {
                 event_loop.exit();
             }

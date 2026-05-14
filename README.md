@@ -1,6 +1,6 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v1.0.48-blue)](https://github.com/holgerbaer-bl/KnotenCore)
+[![Version](https://img.shields.io/badge/version-v1.0.49-blue)](https://github.com/holgerbaer-bl/KnotenCore)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 
 *(Noun) /knoːtən kɔːr/*
