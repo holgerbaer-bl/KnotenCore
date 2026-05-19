@@ -953,6 +953,22 @@
           ]
         }
       }
+    },
+    {
+      "name": "registry_force_panic",
+      "module": "registry",
+      "description": "Debug FFI function that intentionally panics inside Rust with 'Simulated core dump from FFI!'. Used to validate the panic-safety layer (Sprint 170). The panic is caught by catch_unwind in machine.rs, the script aborts, but the host application and WGPU render loop continue running.",
+      "parameters": [],
+      "returns": "Void (never reached — always panics)",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_force_panic",
+          "args": []
+        }
+      }
     }
   ]
 }

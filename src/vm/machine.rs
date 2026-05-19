@@ -1,6 +1,7 @@
 use crate::executor::{AgentPermissions, ExecutionEngine, RelType};
 use crate::vm::opcode::OpCode;
 use std::collections::HashMap;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
 #[derive(Clone, Debug)]
 pub struct CallFrame {
@@ -670,18 +671,38 @@ impl VM {
                     }
 
                     if let Some(b) = bridge {
-                        match b.handle(&module, &func, &args, permissions) {
-                            Some(crate::executor::ExecResult::Value(v)) => self.stack.push(v),
-                            Some(crate::executor::ExecResult::Fault { msg, .. }) => {
+                        let result = catch_unwind(AssertUnwindSafe(|| {
+                            b.handle(&module, &func, &args, permissions)
+                        }));
+                        match result {
+                            Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
+                            Ok(Some(crate::executor::ExecResult::Fault { msg, .. })) => {
                                 return Err(format!("FFI Fault: {}", msg));
                             }
-                            None => {
+                            Ok(None) => {
                                 return Err(format!(
                                     "FFI Function '{}.{}' not handled by active BridgeModule",
                                     module, func
                                 ));
                             }
-                            _ => self.stack.push(RelType::Void),
+                            Ok(_) => self.stack.push(RelType::Void),
+                            Err(panic_payload) => {
+                                let msg = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                                    s.to_string()
+                                } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                                    s.clone()
+                                } else {
+                                    "Unknown panic".to_string()
+                                };
+                                eprintln!(
+                                    "[KnotenCore Panic] Caught panic in FFI call '{}.{}': {}",
+                                    module, func, msg
+                                );
+                                return Err(format!(
+                                    "VM Panic in FFI call '{}.{}': {}",
+                                    module, func, msg
+                                ));
+                            }
                         }
                     } else {
                         self.stack.push(RelType::Void);
@@ -852,18 +873,38 @@ impl VM {
                     };
 
                     if let Some(b) = bridge {
-                        match b.handle(module, func, &args, permissions) {
-                            Some(crate::executor::ExecResult::Value(v)) => self.stack.push(v),
-                            Some(crate::executor::ExecResult::Fault { msg, .. }) => {
+                        let result = catch_unwind(AssertUnwindSafe(|| {
+                            b.handle(module, func, &args, permissions)
+                        }));
+                        match result {
+                            Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
+                            Ok(Some(crate::executor::ExecResult::Fault { msg, .. })) => {
                                 return Err(format!("FFI Fault: {}", msg));
                             }
-                            None => {
+                            Ok(None) => {
                                 return Err(format!(
                                     "FFI Function '{}.{}' not handled by active BridgeModule",
                                     module, func
                                 ));
                             }
-                            _ => self.stack.push(RelType::Void),
+                            Ok(_) => self.stack.push(RelType::Void),
+                            Err(panic_payload) => {
+                                let msg = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                                    s.to_string()
+                                } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                                    s.clone()
+                                } else {
+                                    "Unknown panic".to_string()
+                                };
+                                eprintln!(
+                                    "[KnotenCore Panic] Caught panic in FFI call '{}.{}': {}",
+                                    module, func, msg
+                                );
+                                return Err(format!(
+                                    "VM Panic in FFI call '{}.{}': {}",
+                                    module, func, msg
+                                ));
+                            }
                         }
                     } else {
                         self.stack.push(RelType::Void); // Running without a connected FFI proxy

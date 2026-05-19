@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 170: The Unbreakable Bridge (2026-05-19)
+Sprint 170: The Unbreakable Bridge. Implemented `std::panic::catch_unwind` at the FFI boundary to prevent hard engine crashes from native faults, ensuring continuous WGPU operation.
+- **Panic-Proofing Pipeline**: All FFI bridge calls in `machine.rs` (`OpCode::ExternCall` and `OpCode::NativeExternCall`) are now wrapped in `std::panic::catch_unwind`. Panics are caught, logged via `eprintln!`, and returned as `Err("VM Panic in FFI call ...")`. The host application never crashes.
+- **registry_force_panic**: Debug FFI function that intentionally panics with `"Simulated core dump from FFI!"` — used to validate the panic-safety layer.
+- **Panic Safety Test**: Created `examples/panic_test.knoten` — spawns 3D objects, triggers an intentional panic, and verifies the window remains open and rendering at 60 FPS.
+- **Documentation**: Added "Panic Safety" section to README, updated llm.md, changelog.md, native_functions.json.
+
 ## [v1.0.49] - Sprint 169: Ironclad Memory (2026-05-19)
 Sprint 169: Ironclad Memory. Implemented VRAM resource cleanup, Drop logic for WGPU buffers, and exposed `registry_destroy_entity` to the DSL for memory-safe long-term execution.
 - **Entity Destruction FFI**: Added `registry_destroy_entity(win, id)` to remove entities from the scene graph and `PHYSICS_WORLD` instantly. The entity ceases rendering on the next frame.

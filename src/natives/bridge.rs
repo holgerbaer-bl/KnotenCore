@@ -1177,6 +1177,10 @@ impl BridgeModule for CoreBridge {
                 ))),
                 // Sprint 163: Parse a String to Float for UI→3D value bridging.
                 // Returns 0.0 on invalid input (never faults — safe for live text fields).
+                "registry_force_panic" => {
+                    crate::natives::registry::registry_force_panic();
+                    Some(ExecResult::Value(RelType::Void))
+                }
                 "registry_parse_float" => {
                     if args.len() == 1
                         && let RelType::Str(s) = &args[0]

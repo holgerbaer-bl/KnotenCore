@@ -469,6 +469,20 @@ The current app development ecosystem is burdened with human-centric boilerplate
 
 ---
 
+## 🛡️ Panic Safety — The Unbreakable Bridge (Sprint 170)
+
+Starting with Sprint 170, every FFI boundary call is wrapped in `std::panic::catch_unwind`.
+When a native Rust function panics (e.g., a WGPU resource error or deliberate debug panic):
+
+1. The panic is **caught** at the VM bridge boundary in `machine.rs`.
+2. A diagnostic message is logged via `eprintln!("[KnotenCore Panic] ...")`.
+3. The running script is **aborted** with an `Err("VM Panic in FFI call ...")`.
+4. The **host application never crashes**. The WGPU render loop continues at 60 FPS, all previously spawned 3D objects remain visible, and the OS window stays responsive.
+
+This ensures that even during development or edge-case GPU failures, the .exe remains standing.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 
