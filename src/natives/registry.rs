@@ -99,6 +99,10 @@ pub enum RenderCommand {
         z: u32,
         inputs: Vec<crate::executor::RelType>,
     },
+    RemoveEntity {
+        window_id: usize,
+        entity_id: usize,
+    },
     ExitEventLoop,
 }
 
@@ -1027,6 +1031,24 @@ pub fn registry_update_entity_transform(
         window_id: window_handle as usize,
         entity_id: entity_handle as usize,
         transform: final_transform,
+    });
+}
+
+pub fn registry_destroy_entity(window_handle: i64, entity_id: i64) {
+    if window_handle < 0 || entity_id < 0 {
+        return;
+    }
+    // Remove from physics world
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    if let Some(phys_map) = phys_guard.as_mut() {
+        phys_map.remove(&(entity_id as usize));
+    }
+    drop(phys_guard);
+
+    // Send render command to remove from scene graph
+    send_render_command(RenderCommand::RemoveEntity {
+        window_id: window_handle as usize,
+        entity_id: entity_id as usize,
     });
 }
 

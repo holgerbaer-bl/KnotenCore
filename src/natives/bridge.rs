@@ -1026,6 +1026,24 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_update_entity_transform".into()
                     })
                 }
+                "registry_destroy_entity" => {
+                    if args.len() == 2
+                        && let RelType::Handle(_) = &args[0]
+                        && let RelType::Int(entity_id) = &args[1]
+                    {
+                        let win_handle = match &args[0] {
+                            RelType::Handle(crate::executor::NativeHandle(h)) => *h,
+                            _ => -1,
+                        };
+                        crate::natives::registry::registry_destroy_entity(win_handle, *entity_id);
+                        return Some(ExecResult::Value(RelType::Void));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_destroy_entity expects (Handle win, Int entity_id)"
+                            .to_string(),
+                        node: "Native::Bridge::registry_destroy_entity".into(),
+                    })
+                }
                 "registry_set_camera" => {
                     if args.len() == 4 {
                         let get_float = |arg: &RelType| -> Option<f32> {

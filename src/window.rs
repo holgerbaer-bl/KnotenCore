@@ -679,6 +679,14 @@ impl KnotenApp {
                     );
                 }
             }
+            RenderCommand::RemoveEntity {
+                window_id,
+                entity_id,
+            } => {
+                if let Some(state) = self.windows.get_mut(&window_id) {
+                    state.scene_graph.remove(&entity_id);
+                }
+            }
             RenderCommand::UpdateEntityTransform {
                 window_id,
                 entity_id,

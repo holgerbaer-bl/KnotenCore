@@ -931,6 +931,28 @@
           ]
         }
       }
+    },
+    {
+      "name": "registry_destroy_entity",
+      "module": "registry",
+      "description": "Destroys a previously spawned entity (cube, sphere, or cylinder). Removes it from the scene graph and physics world immediately — the entity ceases rendering on the next frame. Does NOT remove shared geometry or texture resources.",
+      "parameters": [
+        { "name": "win", "type": "Handle", "required": true, "description": "Window handle returned by registry_create_window" },
+        { "name": "entity_id", "type": "Int", "required": true, "description": "Entity ID returned by registry_spawn_cube / registry_spawn_sphere / registry_spawn_cylinder" }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_destroy_entity",
+          "args": [
+            { "Identifier": "win" },
+            { "IntLiteral": 0 }
+          ]
+        }
+      }
     }
   ]
 }

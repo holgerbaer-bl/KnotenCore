@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 169: Ironclad Memory (2026-05-19)
+Sprint 169: Ironclad Memory. Implemented VRAM resource cleanup, Drop logic for WGPU buffers, and exposed `registry_destroy_entity` to the DSL for memory-safe long-term execution.
+- **Entity Destruction FFI**: Added `registry_destroy_entity(win, id)` to remove entities from the scene graph and `PHYSICS_WORLD` instantly. The entity ceases rendering on the next frame.
+- **RenderCommand::RemoveEntity**: New command variant routed through the render channel; the window's scene graph entry is removed and the entity's AABB is released from the physics map.
+- **Memory Stress Test**: Created `examples/memory_stress.knoten` demonstrating continuous spawn/destroy cycles under stable RAM and VRAM.
+- **Documentation**: Updated README with Resource Cleanup & Memory Safety section, updated llm.md and native_functions.json.
+
 ## [v1.0.49] - Sprint 168: The Chaos Protocol (2026-05-19)
 Sprint 168: The Chaos Protocol. Added `rand` dependency and implemented `math_random` into the FFI bridge for procedural generation in DSL scripts.
 - **Math FFI Extension**: Added `math_random(min: Float, max: Float) -> Float` to the `bridge.rs` math module following the existing fail-fast pattern with strict Float type checking.

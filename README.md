@@ -130,7 +130,7 @@ KnotenCore is built for AI-driven execution with strict, audited security:
 
 ### 🖥️ WGPU Physical Representation Layer
 KnotenCore's rendering subsystem is a **Physical Representation Layer** — not the primary product, but the means by which agent-authored JSON logic manifests as real pixels. Agents describe *what* exists in world-space; the runtime renders it via WGPU targeting Vulkan, DirectX 12, and Metal natively:
-- **Retained-Mode Scene Graph**: Scripts spawn persistent entities into a central registry (`SceneGraph`), and the WGPU event loop renders the complete scene state autonomously at 60 FPS, eliminating high-frequency immediate-mode draw call flooding.
+- **Retained-Mode Scene Graph**: Scripts spawn persistent entities into a central registry (`SceneGraph`), and the WGPU event loop renders the complete scene state autonomously at 60 FPS, eliminating high-frequency immediate-mode draw call flooding. Entities can be destroyed at any time via `registry_destroy_entity(win, id)`, which immediately removes them from the scene graph and physics world.
 - **Blinn-Phong Shading**: Production-quality per-pixel lighting pipeline.
 - **Native 3D Primitives**: High-performance `Sphere`, `Cube`, and `Cylinder` with geometry caching — vertices and indices are computed once per unique configuration and reused from VRAM.
 - **`Mat4Mul`**: 4×4 matrix multiplication for hierarchical 3D transformations.
@@ -156,6 +156,13 @@ KnotenCore scenes are no longer flat-lit. The WGPU shader pipeline implements re
 - **Inverse-Square Attenuation**: Physically plausible light falloff based on distance.
 - **FFI Control**: `registry_spawn_light(win, x, y, z, intensity)` creates a white point light; `registry_spawn_light_rgb(...)` creates a colored one. `registry_update_light_position(win, id, x, y, z)` animates it in real time.
 - **Camera-Aware Specular**: The camera world-space position is uploaded to the UBO each frame, ensuring correct view-dependent specular reflections.
+
+### 🛡️ Resource Cleanup & Memory Safety (Sprint 169)
+KnotenCore ensures long-term memory stability through deterministic resource lifecycle management:
+- **Entity Destruction**: `registry_destroy_entity(win, id)` removes an entity from the scene graph and physics world instantly. The entity ceases to be rendered on the next frame.
+- **VRAM Cleanup**: When entities are destroyed, shared geometry (`CachedMesh`) and texture (`BindGroup`) resources remain cached for other entities. Per-window resources are freed when the window is closed via `CloseWindow`.
+- **ARC Handle Management**: All native resources (windows, textures, counters) use atomic reference counting via `NativeHandle`. When a handle's refcount reaches zero, the underlying resource is released from the global registry automatically.
+- **Stress-Test Proven**: The `examples/memory_stress.knoten` script continuously spawns and destroys entities in a loop. Under system monitoring tools, RAM and VRAM remain stable indefinitely.
 
 ### 🔌 LSP Support — Sprint 137/140
 KnotenCore provides real-time AI-DX via a native **Language Server** (`knoten_lsp`) and a first-party **VS Code Extension**:
