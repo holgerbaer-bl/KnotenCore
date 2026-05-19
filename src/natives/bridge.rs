@@ -1354,6 +1354,20 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::math_pi".into(),
                     })
                 }
+                "math_random" => {
+                    if args.len() == 2
+                        && let RelType::Float(min_val) = &args[0]
+                        && let RelType::Float(max_val) = &args[1]
+                    {
+                        let r: f64 = rand::random::<f64>();
+                        let result = min_val + (max_val - min_val) * r;
+                        return Some(ExecResult::Value(RelType::Float(result)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_random expects (Float min, Float max)".to_string(),
+                        node: "Native::Bridge::math_random".into(),
+                    })
+                }
                 _ => None,
             }
         } else {

@@ -909,6 +909,28 @@
           "args": []
         }
       }
+    },
+    {
+      "name": "math_random",
+      "module": "math",
+      "description": "Generates a random Float uniformly distributed in the range [min, max]. Uses the engine's internal CSPRNG. Strictly enforces Float types — passing Int arguments triggers ExecResult::Fault.",
+      "parameters": [
+        { "name": "min", "type": "Float", "required": true, "description": "Lower bound of the random range (inclusive)" },
+        { "name": "max", "type": "Float", "required": true, "description": "Upper bound of the random range (inclusive)" }
+      ],
+      "returns": "Float",
+      "permissions": [],
+      "errors": ["ERR_TYPE_MISMATCH"],
+      "example": {
+        "ExternCall": {
+          "module": "math",
+          "function": "math_random",
+          "args": [
+            { "FloatLiteral": -5.0 },
+            { "FloatLiteral": 5.0 }
+          ]
+        }
+      }
     }
   ]
 }

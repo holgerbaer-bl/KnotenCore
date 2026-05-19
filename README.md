@@ -147,7 +147,7 @@ KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline 
 
 ### 🧮 Math Standard Library & Determinism
 To power real-time 3D orbital mechanics and complex game logic natively inside the VM, the engine is equipped with deterministic bindings to Rust's core mathematical library:
-- **Available Functions**: `math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`.
+- **Available Functions**: `math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`, `math_random`.
 - **Type Safety**: The FFI bridge enforces strict `Float` type signatures, emitting fatal `ExecResult::Fault` exceptions if non-float scalars are passed, ensuring complete deterministic stability in tight loops.
 
 ### 💡 Dynamic Lighting (Blinn-Phong)

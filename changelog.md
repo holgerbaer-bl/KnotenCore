@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 168: The Chaos Protocol (2026-05-19)
+Sprint 168: The Chaos Protocol. Added `rand` dependency and implemented `math_random` into the FFI bridge for procedural generation in DSL scripts.
+- **Math FFI Extension**: Added `math_random(min: Float, max: Float) -> Float` to the `bridge.rs` math module following the existing fail-fast pattern with strict Float type checking.
+- **Fail-Fast Type Safety**: Passing an Int for min or max triggers an `ExecResult::Fault`, ensuring deterministic runtime guarantees.
+- **Demo Script**: Created `examples/random_demo.knoten` demonstrating procedural cube spawning at random coordinates using `math_random`.
+
 ## [v1.0.49] - Sprint 167: Dynamic Lighting (2026-05-14)
 Sprint 167: Dynamic Lighting. Upgraded WGPU shaders to support normals and point lights, exposing real-time illumination controls to the DSL.
 - **Blinn-Phong Shader**: Rewrote `mesh3d.wgsl` fragment stage from flat unlit output to full Blinn-Phong shading with ambient light, Lambertian diffuse, and specular highlights using half-vector calculation.
