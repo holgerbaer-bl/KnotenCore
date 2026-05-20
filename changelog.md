@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 176: The Grand Purge & Genesis Release (2026-05-20)
+Sprint 176: The Grand Purge & Genesis Release. Eliminated all dead code, extracted TODOs into a central ROADMAP.md, and bumped semantic version to 1.1.0 for production release.
+- **Dead Code Elimination**: Removed the legacy isometric software renderer (`fill_poly`, `iso_render`, ~90 lines) from `registry.rs`. This code was superseded by the WGPU 3D pipeline in Sprint 51 and has been marked `#[allow(dead_code)]` ever since.
+- **Dependency Purge**: Removed three unused external crates from `Cargo.toml`:
+  - `tobj` (OBJ mesh loader) — never referenced in any `.rs` file.
+  - `wgpu_glyph` (text rendering) — superseded by `egui` + `egui-wgpu`.
+  - `minifb` (framebuffer window) — superseded by `winit` + `wgpu`.
+- **Version Bump**: `Cargo.toml` version raised from `1.0.49` to `1.1.0` — official Genesis Release milestone.
+- **ROADMAP.md**: Created `ROADMAP.md` collecting VM Garbage Collector, Texture Atlas, Parser Error Routing, Multi-Window Scene Graph, Compute Readback, Network RPCs, C-ABI Bridge, Asset Streaming, and WGPU Voxel Revival as future work items.
+- **Documentation**: Updated README with Genesis Release badge, bumped llm.md to Sprint 176, updated changelog.
+
 ## [v1.0.49] - Sprint 175: The Error-Routing Purge (2026-05-19)
 Sprint 175: The Error-Routing Purge. Eradicated remaining unwrap() instances across the core engine, implementing strict Result-based error routing for WGPU and VM modules.
 - **WGPU Sanitization (window.rs)**: Replaced 4 `expect()` calls in `CreateWindow` handler (surface creation, adapter request, device creation, window creation) with `match` + `eprintln!` + early return. Replaced `panic!("Out of memory when acquiring WGPU surface")` in `RedrawRequested` with `eprintln!` + `return`. WGPU initialization failures no longer crash the process.
