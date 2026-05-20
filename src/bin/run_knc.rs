@@ -14,7 +14,10 @@ fn main() {
     let handler = builder
         .spawn(run)
         .expect("Failed to spawn KnotenCore runtime thread");
-    handler.join().unwrap();
+    handler.join().unwrap_or_else(|_| {
+        eprintln!("[CLI Error] KnotenCore runtime thread panicked.");
+        std::process::exit(1);
+    });
 }
 
 fn run() {
@@ -81,8 +84,16 @@ fn run() {
     // Check if we are bundled (Sprint 11) - Respects permissions set above
     if let Some(bundled_json) = option_env!("KNOTEN_BUNDLE") {
         println!("Running embedded KnotenCore bundle...");
-        let ast = serde_json::from_str(bundled_json)
-            .expect("Failed to parse bundled KnotenCore JSON AST");
+        let ast = match serde_json::from_str(bundled_json) {
+            Ok(ast) => ast,
+            Err(e) => {
+                eprintln!(
+                    "[CLI Error] Failed to parse bundled KnotenCore JSON AST: {}",
+                    e
+                );
+                std::process::exit(1);
+            }
+        };
         let result = engine.execute(&ast);
         println!("\nExecution Finished.\nResult: {}", result);
         return;
@@ -97,7 +108,10 @@ fn run() {
     }
 
     if !output_format_json {
-        println!("CWD: {:?}", env::current_dir().unwrap());
+        println!(
+            "CWD: {:?}",
+            env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+        );
         println!("Loading KnotenCore Script: {}", file_path);
     }
     let json_string = match fs::read_to_string(&file_path) {
@@ -121,13 +135,14 @@ fn run() {
         if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
             // For AI Test Suite FAIL_01_unknown_node.nod JSON tests natively parse JSON properly
             if json_string.trim_start().starts_with('{') {
-                serde_json::from_str(&json_string).unwrap()
+                serde_json::from_str(&json_string)
+                    .unwrap_or_else(|e| panic!("JSON parse error: {}", e))
             } else {
                 let mut parser = knoten_core::parser::Parser::new(&json_string);
                 parser.parse()
             }
         } else {
-            serde_json::from_str(&json_string).unwrap()
+            serde_json::from_str(&json_string).unwrap_or_else(|e| panic!("JSON parse error: {}", e))
         }
     });
 
@@ -313,7 +328,10 @@ fn build_standalone(nod_path: &str) {
     // ── Step 3: Scaffold temp Cargo project ───────────────────────────
     let tmp_dir = std::env::temp_dir().join(format!("knoten_build_{}", stem));
     let src_dir = tmp_dir.join("src");
-    fs::create_dir_all(&src_dir).expect("Cannot create temp build directory");
+    if let Err(e) = fs::create_dir_all(&src_dir) {
+        eprintln!("[CLI Error] Cannot create temp build directory: {}", e);
+        std::process::exit(1);
+    }
 
     // Cargo.toml — path dependency points to our library source
     let cargo_toml = format!(
@@ -335,18 +353,33 @@ strip = "symbols"
         lib_path = KNOTEN_CORE_PATH.replace('\\', "/"),
     );
 
-    fs::write(tmp_dir.join("Cargo.toml"), &cargo_toml).expect("Cannot write temporary Cargo.toml");
-    fs::write(src_dir.join("main.rs"), &rs_code).expect("Cannot write temporary main.rs");
+    if let Err(e) = fs::write(tmp_dir.join("Cargo.toml"), &cargo_toml) {
+        eprintln!("[CLI Error] Cannot write temporary Cargo.toml: {}", e);
+        std::process::exit(1);
+    }
+    if let Err(e) = fs::write(src_dir.join("main.rs"), &rs_code) {
+        eprintln!("[CLI Error] Cannot write temporary main.rs: {}", e);
+        std::process::exit(1);
+    }
 
     println!("[4/5] Compile  : cargo build --release (LTO + opt-level 3)");
     println!("      Build dir: {}", tmp_dir.display());
 
     // ── Step 4: Compile ───────────────────────────────────────────────
-    let status = Command::new("cargo")
+    let status = match Command::new("cargo")
         .args(["build", "--release"])
         .current_dir(&tmp_dir)
         .status()
-        .expect("Failed to invoke cargo. Is it installed and in PATH?");
+    {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!(
+                "[CLI Error] Failed to invoke cargo: {}. Is it installed and in PATH?",
+                e
+            );
+            std::process::exit(1);
+        }
+    };
 
     if !status.success() {
         eprintln!("\n[Build FAILED] cargo exited with status {}", status);
@@ -361,7 +394,9 @@ strip = "symbols"
     };
 
     let built = tmp_dir.join("target").join("release").join(&binary_name);
-    let dest = env::current_dir().unwrap().join(&binary_name);
+    let dest = env::current_dir()
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+        .join(&binary_name);
 
     fs::copy(&built, &dest).unwrap_or_else(|e| {
         eprintln!("Could not copy binary: {}", e);

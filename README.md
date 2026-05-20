@@ -494,6 +494,20 @@ Starting with Sprint 171, the Stack-VM features a built-in **execution timeout**
 
 ---
 
+## 🔧 CI Pipeline — Vanguard Quality Gates (Sprint 172)
+
+Every push and pull request to `main` is guarded by an automated CI pipeline (`.github/workflows/ci.yml`):
+
+| Gate | Command | Policy |
+|---|---|---|
+| **Tests** | `cargo test --workspace` | All 14 unit + 55 integration tests must pass |
+| **Format** | `cargo fmt --check` | Zero formatting violations |
+| **Clippy** | `cargo clippy --workspace -- -D warnings` | Warnings treated as hard errors |
+
+The CLI runner (`src/bin/run_knc.rs`) is fully panic-proofed — all `unwrap()`/`expect()` calls replaced with graceful `match`/`unwrap_or_else` + `eprintln!` + `std::process::exit(1)`.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

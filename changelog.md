@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 172: Reality Check & Vanguard Pipeline (2026-05-19)
+Sprint 172: Reality Check. Implemented full CI/CD pipeline, removed CLI hard panics, and fixed workspace dependency tracking.
+- **CI Pipeline**: Created `.github/workflows/ci.yml` — triggers on every push/PR to `main`. Runs `cargo test --workspace`, `cargo fmt --check`, and `cargo clippy -- -D warnings`. Includes Rust toolchain setup (dtolnay) and Cargo caching for fast CI runs.
+- **CLI Panic-Purge**: Replaced every `unwrap()` and `expect()` call in `src/bin/run_knc.rs` with `match`/`unwrap_or_else` + `eprintln!` + `std::process::exit(1)`. Covers `handler.join()`, `env::current_dir()`, `serde_json::from_str`, `fs::create_dir_all`, `fs::write`, `Command::new("cargo")`. No more hard crashes from transient OS errors.
+- **Dependency Hygiene**: Removed `Cargo.lock` from `.gitignore` — deterministic builds now enforced. Removed unused `cgmath` crate from `Cargo.toml` (zero code references; `glam` is the sole math library).
+- **Documentation**: Updated README with CI/Panic-Safety section, llm.md version bumped to Sprint 172, changelog entry added.
+
 ## [v1.0.49] - Sprint 171: The Watchdog (2026-05-19)
 Sprint 171: The Watchdog. Implemented a 50ms execution timeout within the Stack-VM to proactively terminate infinite loops and prevent main-thread CPU freezes.
 - **Watchdog Timer**: `std::time::Instant` measurement in `VM::run()`. Every 100 instructions, the VM checks elapsed time against a 50ms hard limit. Exceeding the limit logs `[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze.` and returns `Err(...)`.

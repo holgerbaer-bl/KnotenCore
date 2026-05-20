@@ -7,7 +7,6 @@ output.rs
 *.exe
 *.pdb
 *.bin
-Cargo.lock
 .gemini/
 
 # Test artifacts and logs
