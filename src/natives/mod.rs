@@ -1,6 +1,7 @@
 use crate::executor::{AgentPermissions, ExecResult, RelType};
 
 pub mod bridge;
+pub mod ffi_safety;
 pub mod fs;
 pub mod io;
 pub mod math;

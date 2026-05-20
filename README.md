@@ -508,6 +508,17 @@ The CLI runner (`src/bin/run_knc.rs`) is fully panic-proofed — all `unwrap()`/
 
 ---
 
+## 🛡️ FFI Shield — Pointer Validation & UB Prevention (Sprint 173)
+
+Every FFI boundary call is now guarded by a formal safety layer (`src/natives/ffi_safety.rs`):
+
+- **Null-Pointer Equivalence**: All handle IDs (`i64`) are validated as `>= 0` at the FFI boundary; negative handles are logged via `eprintln!` and rejected as `ExecResult::Fault`.
+- **String Safety**: All file-path and resource-path arguments (`registry_file_create`, `registry_texture_load`, `registry_read_file`, `registry_write_file`) are validated for empty strings and embedded null bytes (`\0`) before any disk I/O.
+- **Use-After-Free Prevention**: `registry_destroy_entity` explicitly detects double-call on the same entity ID, logs a warning, and proceeds idempotently — no panic, no UB.
+- **Pure Safe Rust**: The entire FFI boundary uses zero `unsafe` dereferences. The safety module codifies the validation pattern so any future C-ABI bridge inherits the guards.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

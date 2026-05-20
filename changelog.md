@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 173: The FFI Shield (2026-05-19)
+Sprint 173: The FFI Shield. Hardened FFI boundary with strict null-pointer validation, UTF-8 safety checks, and Use-After-Free prevention.
+- **FFI Safety Module**: Created `src/natives/ffi_safety.rs` with three canonical guard utilities: `validate_handle(handle_id, fn_name)` for null-equivalence checks, `validate_string(s, fn_name)` for empty/null-byte detection, and `guard_remove_entity(fn_name, id, already_removed)` for use-after-free logging.
+- **String-Path Hardening**: Added `validate_string()` checks to `registry_file_create`, `registry_texture_load`, `registry_read_file`, and `registry_write_file` bridge dispatches. Empty paths and paths with embedded `\0` bytes return `ExecResult::Fault`.
+- **Use-After-Free Prevention**: `registry_destroy_entity` now tracks whether the entity existed in `PHYSICS_WORLD` before removal. Double-call on the same ID logs `[FFI Safety] registry_destroy_entity: entity X already freed` and continues idempotently — no panic, no crash.
+- **Pure Safe Rust**: The entire codebase remains free of `unsafe` pointer dereferences. The `ffi_safety` module codifies the validation pattern for any future C-ABI bridge integration.
+- **Documentation**: Added "FFI Shield" section to README, bumped llm.md to Sprint 173, updated changelog.
+
 ## [v1.0.49] - Sprint 172: Reality Check & Vanguard Pipeline (2026-05-19)
 Sprint 172: Reality Check. Implemented full CI/CD pipeline, removed CLI hard panics, and fixed workspace dependency tracking.
 - **CI Pipeline**: Created `.github/workflows/ci.yml` — triggers on every push/PR to `main`. Runs `cargo test --workspace`, `cargo fmt --check`, and `cargo clippy -- -D warnings`. Includes Rust toolchain setup (dtolnay) and Cargo caching for fast CI runs.

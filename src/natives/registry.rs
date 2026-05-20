@@ -1036,19 +1036,34 @@ pub fn registry_update_entity_transform(
 
 pub fn registry_destroy_entity(window_handle: i64, entity_id: i64) {
     if window_handle < 0 || entity_id < 0 {
+        eprintln!(
+            "[FFI Safety] registry_destroy_entity rejected null handle: win={} entity={}",
+            window_handle, entity_id
+        );
         return;
     }
-    // Remove from physics world
+    let eid = entity_id as usize;
+
+    // Remove from physics world — track whether it actually existed
     let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
-    if let Some(phys_map) = phys_guard.as_mut() {
-        phys_map.remove(&(entity_id as usize));
-    }
+    let phys_existed = if let Some(phys_map) = phys_guard.as_mut() {
+        phys_map.remove(&eid).is_some()
+    } else {
+        false
+    };
     drop(phys_guard);
 
-    // Send render command to remove from scene graph
+    if !phys_existed {
+        eprintln!(
+            "[FFI Safety] registry_destroy_entity: entity {} already freed or never existed",
+            eid
+        );
+    }
+
+    // Send render command to remove from scene graph (idempotent)
     send_render_command(RenderCommand::RemoveEntity {
         window_id: window_handle as usize,
-        entity_id: entity_id as usize,
+        entity_id: eid,
     });
 }
 

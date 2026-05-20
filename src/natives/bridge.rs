@@ -617,6 +617,14 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]
                     {
+                        if crate::natives::ffi_safety::validate_string(path, "registry_file_create")
+                            .is_none()
+                        {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_file_create: invalid path string".to_string(),
+                                node: "Native::Bridge::registry_file_create".into(),
+                            });
+                        }
                         let id = crate::natives::registry::registry_file_create(path.clone());
                         return Some(ExecResult::Value(RelType::Handle(
                             crate::executor::NativeHandle(id),
@@ -800,6 +808,17 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]
                     {
+                        if crate::natives::ffi_safety::validate_string(
+                            path,
+                            "registry_texture_load",
+                        )
+                        .is_none()
+                        {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_texture_load: invalid path string".to_string(),
+                                node: "Native::Bridge::registry_texture_load".into(),
+                            });
+                        }
                         let id = crate::natives::registry::registry_texture_load(path.clone());
                         return Some(ExecResult::Value(RelType::Handle(
                             crate::executor::NativeHandle(id),
@@ -1141,6 +1160,14 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]
                     {
+                        if crate::natives::ffi_safety::validate_string(path, "registry_read_file")
+                            .is_none()
+                        {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_read_file: invalid path string".to_string(),
+                                node: "Native::Bridge::registry_read_file".into(),
+                            });
+                        }
                         let content = crate::natives::registry::registry_read_file(path.clone());
                         return Some(ExecResult::Value(RelType::Str(content)));
                     }
@@ -1161,6 +1188,14 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 2
                         && let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1])
                     {
+                        if crate::natives::ffi_safety::validate_string(path, "registry_write_file")
+                            .is_none()
+                        {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_write_file: invalid path string".to_string(),
+                                node: "Native::Bridge::registry_write_file".into(),
+                            });
+                        }
                         let ok = crate::natives::registry::registry_write_file(
                             path.clone(),
                             content.clone(),
