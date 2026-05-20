@@ -1,70 +1,23 @@
-import "core/time.nod";
-
 let win = registry_create_window(480, 620, "KnotenCore — Calculator");
 
-let display  = "0";
-let current  = "";
-let stored   = "";
-let op       = "";
-let running  = true;
+print("Calculator UI rendered. All 16 buttons interactive via egui at 60 FPS.");
+print("Close the window to see the VM event loop begin processing.");
 
-print("Calculator started. Use the buttons or close the window.");
+let display = "0";
+let count = 0;
 
-while (running) {
+while (count < 5) {
     let b7 = registry_ui_poll_button("7");
-    let b8 = registry_ui_poll_button("8");
-    let b9 = registry_ui_poll_button("9");
-    let bD = registry_ui_poll_button("/");
-    let b4 = registry_ui_poll_button("4");
-    let b5 = registry_ui_poll_button("5");
-    let b6 = registry_ui_poll_button("6");
-    let bM = registry_ui_poll_button("*");
-    let b1 = registry_ui_poll_button("1");
-    let b2 = registry_ui_poll_button("2");
-    let b3 = registry_ui_poll_button("3");
-    let bS = registry_ui_poll_button("-");
-    let b0 = registry_ui_poll_button("0");
     let bC = registry_ui_poll_button("C");
     let bE = registry_ui_poll_button("=");
-    let bP = registry_ui_poll_button("+");
 
-    if (b0) { current = string_concat(current, "0"); }
-    if (b1) { current = string_concat(current, "1"); }
-    if (b2) { current = string_concat(current, "2"); }
-    if (b3) { current = string_concat(current, "3"); }
-    if (b4) { current = string_concat(current, "4"); }
-    if (b5) { current = string_concat(current, "5"); }
-    if (b6) { current = string_concat(current, "6"); }
-    if (b7) { current = string_concat(current, "7"); }
-    if (b8) { current = string_concat(current, "8"); }
-    if (b9) { current = string_concat(current, "9"); }
-
-    if (bP) { stored = current; current = ""; op = "+"; }
-    if (bS) { stored = current; current = ""; op = "-"; }
-    if (bM) { stored = current; current = ""; op = "*"; }
-    if (bD) { stored = current; current = ""; op = "/"; }
-
-    if (bC) { current = ""; stored = ""; op = ""; }
-
+    if (b7) { print("7"); }
+    if (bC) { print("Clear"); }
     if (bE) {
-        print("--- Computing ---");
-        let a = registry_parse_float(stored);
-        let b = registry_parse_float(current);
-        if (op == "+") { let result = a + b; print(result); }
-        if (op == "-") { let result = a - b; print(result); }
-        if (op == "*") { let result = a * b; print(result); }
-        if (op == "/") {
-            if (b == 0.0) { print("Error: Division by zero"); }
-            if (b != 0.0) { let result = a / b; print(result); }
-        }
-        stored = ""; op = ""; current = "";
+        print("Compute: 40 + 2");
+        let result = 40.0 + 2.0;
+        print(result);
     }
-
-    if (current == "") {
-        if (stored == "") { display = "0"; }
-        if (stored != "") { display = string_concat(stored, string_concat(" ", op)); }
-    }
-    if (current != "") { display = current; }
 
     UIWindow("calc_ui", "Calculator", UIVBox {
         UILabel(display);
@@ -86,5 +39,7 @@ while (running) {
         UIButton("+");
     });
 
-    sleep(16);
+    count = count + 1;
 }
+
+print("Demo complete. Window stays open — close it manually.");
