@@ -2,6 +2,7 @@ use crate::executor::{AgentPermissions, ExecutionEngine, RelType};
 use crate::vm::opcode::OpCode;
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::time::Instant;
 
 #[derive(Clone, Debug)]
 pub struct CallFrame {
@@ -42,9 +43,22 @@ impl VM {
         self.ip = 0;
         self.base_pointer = 0;
 
+        let start = Instant::now();
+        let mut instr_count: u64 = 0;
+
         while self.ip < instructions.len() {
             let op = &instructions[self.ip];
             self.ip += 1;
+
+            instr_count += 1;
+            if instr_count.is_multiple_of(100)
+                && start.elapsed() >= std::time::Duration::from_millis(50)
+            {
+                eprintln!(
+                    "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
+                );
+                return Err("Watchdog: Execution timeout exceeded (50ms)".into());
+            }
 
             match op {
                 OpCode::Constant(idx) => {

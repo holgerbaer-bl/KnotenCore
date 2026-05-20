@@ -483,6 +483,17 @@ This ensures that even during development or edge-case GPU failures, the .exe re
 
 ---
 
+## ⏱️ Watchdog — CPU Freeze Protection (Sprint 171)
+
+Starting with Sprint 171, the Stack-VM features a built-in **execution timeout** that prevents infinite loops and CPU-freezing scripts:
+
+- **50ms Hard Limit**: The VM records its start time with `std::time::Instant`.
+- **Low-Overhead Check**: Every 100 executed instructions, the elapsed time is measured. This avoids per-opcode overhead while still catching infinite loops quickly.
+- **Safe Kill**: When the timeout is hit, the VM logs `[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze.` and returns an `Err(...)`, halting only the script — never the engine.
+- **WGPU Survives**: The render loop continues at 60 FPS; all previously spawned 3D objects remain visible. Tested via `examples/watchdog_test.knoten`.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 171: The Watchdog (2026-05-19)
+Sprint 171: The Watchdog. Implemented a 50ms execution timeout within the Stack-VM to proactively terminate infinite loops and prevent main-thread CPU freezes.
+- **Watchdog Timer**: `std::time::Instant` measurement in `VM::run()`. Every 100 instructions, the VM checks elapsed time against a 50ms hard limit. Exceeding the limit logs `[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze.` and returns `Err(...)`.
+- **Zero Overhead**: The timer is checked only every 100 instructions (not per-opcode), preserving VM throughput on fast paths.
+- **Watchdog Test**: Created `examples/watchdog_test.knoten` — spawns a sphere, enters an infinite `while` loop. The loop is killed after 50ms; the sphere remains visible.
+- **Documentation**: Added "Watchdog — CPU Freeze Protection" section to README, updated llm.md and changelog.md.
+
 ## [v1.0.49] - Sprint 170: The Unbreakable Bridge (2026-05-19)
 Sprint 170: The Unbreakable Bridge. Implemented `std::panic::catch_unwind` at the FFI boundary to prevent hard engine crashes from native faults, ensuring continuous WGPU operation.
 - **Panic-Proofing Pipeline**: All FFI bridge calls in `machine.rs` (`OpCode::ExternCall` and `OpCode::NativeExternCall`) are now wrapped in `std::panic::catch_unwind`. Panics are caught, logged via `eprintln!`, and returned as `Err("VM Panic in FFI call ...")`. The host application never crashes.
