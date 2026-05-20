@@ -415,7 +415,7 @@ where
     if option_guard.is_none() {
         *option_guard = Some(HashMap::new());
     }
-    f(option_guard.as_mut().unwrap())
+    f(option_guard.as_mut().expect("registry not initialized"))
 }
 
 // ── Lifecycle FFI Implementations ─────────────────────────────────
@@ -734,14 +734,19 @@ pub fn registry_gpu_init() -> i64 {
 
     // This is synchronous and can be slow, but it's called once.
     let instance = wgpu::Instance::default();
-    let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+    let adapter = match pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::HighPerformance,
         compatible_surface: None,
         force_fallback_adapter: false,
-    }))
-    .expect("Failed to find WGPU adapter");
+    })) {
+        Some(a) => a,
+        None => {
+            eprintln!("[KnotenCore GPU] Failed to find WGPU adapter");
+            return -1;
+        }
+    };
 
-    let (device, queue) = pollster::block_on(adapter.request_device(
+    let (device, queue) = match pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("KnotenCore GPU Device"),
             required_features: wgpu::Features::empty(),
@@ -749,8 +754,13 @@ pub fn registry_gpu_init() -> i64 {
             ..Default::default()
         },
         None,
-    ))
-    .expect("Failed to create WGPU device");
+    )) {
+        Ok(dq) => dq,
+        Err(e) => {
+            eprintln!("[KnotenCore GPU] Failed to create WGPU device: {}", e);
+            return -1;
+        }
+    };
 
     let device = Arc::new(device);
     let queue = Arc::new(queue);
@@ -828,15 +838,23 @@ pub fn registry_texture_load(path: String) -> i64 {
     };
     let dimensions = img.dimensions();
 
-    let (device, queue) = with_registry(|registry| {
+    let (device, queue) = match with_registry(|registry| {
         for entry in registry.values() {
             if let NativeHandle::GpuContext(ctx) = &entry.handle {
                 return Some((ctx.device.clone(), ctx.queue.clone()));
             }
         }
         None
-    })
-    .expect("Cannot load texture without an active WGPU context. Call registry_gpu_init or create a window first.");
+    }) {
+        Some(dq) => dq,
+        None => {
+            eprintln!(
+                "[KnotenCore Texture] Cannot load texture '{}' — no active WGPU context. Call registry_gpu_init or create a window first.",
+                path
+            );
+            return -1;
+        }
+    };
 
     let texture_size = wgpu::Extent3d {
         width: dimensions.0,
@@ -959,7 +977,7 @@ pub fn registry_spawn_cube(
     }
 
     let mesh_name = "cube".to_string();
-    let mut guard = SENT_MESHES.lock().unwrap();
+    let mut guard = SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
     let sent = guard.get_or_insert_with(HashSet::new);
     if !sent.contains(&mesh_name) {
         let (vertices, indices) = generate_cube();
@@ -972,7 +990,7 @@ pub fn registry_spawn_cube(
     }
     drop(guard);
 
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap();
+    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
     let entity_id = *id_guard;
     *id_guard += 1;
 
@@ -982,7 +1000,7 @@ pub fn registry_spawn_cube(
 
     let base_aabb = crate::math::AABB::new([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]);
     let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
     let phys_map = phys_guard.get_or_insert_with(HashMap::new);
     phys_map.insert(
         entity_id,
@@ -1017,7 +1035,7 @@ pub fn registry_update_entity_transform(
     let mut final_transform = t;
 
     // Retained Physics: preserve old scale and update AABB
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(phys_map) = phys_guard.as_mut()
         && let Some(phys) = phys_map.get_mut(&(entity_handle as usize))
     {
@@ -1045,7 +1063,7 @@ pub fn registry_destroy_entity(window_handle: i64, entity_id: i64) {
     let eid = entity_id as usize;
 
     // Remove from physics world — track whether it actually existed
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
     let phys_existed = if let Some(phys_map) = phys_guard.as_mut() {
         phys_map.remove(&eid).is_some()
     } else {
@@ -1083,7 +1101,7 @@ pub fn registry_spawn_light(
     if window_handle < 0 {
         return -1;
     }
-    let mut id_guard = NEXT_LIGHT_ID.lock().unwrap();
+    let mut id_guard = NEXT_LIGHT_ID.lock().unwrap_or_else(|e| e.into_inner());
     let light_id = *id_guard;
     *id_guard += 1;
 
@@ -1139,7 +1157,7 @@ pub fn registry_spawn_sphere(
     let sectors = sectors.max(3) as u32;
     let mesh_name = format!("sphere_{}_{}", rings, sectors);
 
-    let mut guard = SENT_MESHES.lock().unwrap();
+    let mut guard = SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
     let sent = guard.get_or_insert_with(HashSet::new);
     if !sent.contains(&mesh_name) {
         let (vertices, indices) = generate_uv_sphere(rings, sectors);
@@ -1152,7 +1170,7 @@ pub fn registry_spawn_sphere(
     }
     drop(guard);
 
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap();
+    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
     let entity_id = *id_guard;
     *id_guard += 1;
 
@@ -1162,7 +1180,7 @@ pub fn registry_spawn_sphere(
 
     let base_aabb = crate::math::AABB::new([-1.0, -1.0, -1.0], [1.0, 1.0, 1.0]);
     let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
     let phys_map = phys_guard.get_or_insert_with(HashMap::new);
     phys_map.insert(
         entity_id,
@@ -1239,7 +1257,7 @@ pub fn registry_spawn_cylinder(
     let segments = segments.max(3) as u32;
     let mesh_name = format!("cylinder_{}", segments);
 
-    let mut guard = SENT_MESHES.lock().unwrap();
+    let mut guard = SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
     let sent = guard.get_or_insert_with(HashSet::new);
     if !sent.contains(&mesh_name) {
         let (vertices, indices) = generate_cylinder(segments);
@@ -1252,7 +1270,7 @@ pub fn registry_spawn_cylinder(
     }
     drop(guard);
 
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap();
+    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
     let entity_id = *id_guard;
     *id_guard += 1;
 
@@ -1262,7 +1280,7 @@ pub fn registry_spawn_cylinder(
 
     let base_aabb = crate::math::AABB::new([-1.0, -0.5, -1.0], [1.0, 0.5, 1.0]);
     let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap();
+    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
     let phys_map = phys_guard.get_or_insert_with(HashMap::new);
     phys_map.insert(
         entity_id,
@@ -1605,7 +1623,7 @@ pub fn registry_load_texture(path: &str) -> i64 {
         let (width, height) = rgba.dimensions();
         let raw_data = rgba.into_raw();
 
-        let mut id_guard = TEXTURE_ID_COUNTER.lock().unwrap();
+        let mut id_guard = TEXTURE_ID_COUNTER.lock().unwrap_or_else(|e| e.into_inner());
         let id = *id_guard;
         *id_guard += 1;
 
@@ -1625,7 +1643,7 @@ pub fn registry_load_texture(path: &str) -> i64 {
 // ── Physics & Raycasting (Sprint 164) ───────────────────────────────────
 
 pub fn registry_check_collision(id1: i64, id2: i64) -> bool {
-    let guard = PHYSICS_WORLD.lock().unwrap();
+    let guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(map) = guard.as_ref()
         && let (Some(e1), Some(e2)) = (map.get(&(id1 as usize)), map.get(&(id2 as usize)))
     {
@@ -1648,7 +1666,7 @@ pub fn registry_get_clicked_entity(window_handle: i64) -> i64 {
     });
 
     if let Some(input_arc) = input {
-        let mut state = input_arc.lock().unwrap();
+        let mut state = input_arc.lock().unwrap_or_else(|e| e.into_inner());
         if state.mouse_clicked {
             state.mouse_clicked = false; // Consume click
 
@@ -1672,7 +1690,7 @@ pub fn registry_get_clicked_entity(window_handle: i64) -> i64 {
             let ray_dir = (world_far.truncate() - ray_origin).normalize();
 
             // Raycast against physics world
-            let guard = PHYSICS_WORLD.lock().unwrap();
+            let guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
             let mut hit_idx: i64 = -1;
             let mut t_min = f32::MAX;
             if let Some(map) = guard.as_ref() {

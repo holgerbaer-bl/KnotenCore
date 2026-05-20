@@ -40,30 +40,47 @@ impl KnotenApp {
                     .with_title(title)
                     .with_inner_size(winit::dpi::PhysicalSize::new(width, height));
 
-                let window = Arc::new(
-                    event_loop
-                        .create_window(window_attributes)
-                        .expect("Failed to create window"),
-                );
+                let window = Arc::new(match event_loop.create_window(window_attributes) {
+                    Ok(w) => w,
+                    Err(e) => {
+                        eprintln!("[KnotenCore WGPU] Failed to create window: {}", e);
+                        return;
+                    }
+                });
                 let window_id = window.id();
                 self.window_id_map.insert(window_id, id);
 
                 // Initialize WGPU for this window
                 let instance = wgpu::Instance::default();
-                let surface = instance
-                    .create_surface(window.clone())
-                    .expect("Failed to create surface");
-                let adapter =
-                    pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+                let surface = match instance.create_surface(window.clone()) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("[KnotenCore WGPU] Failed to create surface: {}", e);
+                        return;
+                    }
+                };
+                let adapter = match pollster::block_on(instance.request_adapter(
+                    &wgpu::RequestAdapterOptions {
                         compatible_surface: Some(&surface),
                         ..Default::default()
-                    }))
-                    .expect("Failed to find adapter");
+                    },
+                )) {
+                    Some(a) => a,
+                    None => {
+                        eprintln!("[KnotenCore WGPU] Failed to find adapter");
+                        return;
+                    }
+                };
 
-                let (device, queue) = pollster::block_on(
+                let (device, queue) = match pollster::block_on(
                     adapter.request_device(&wgpu::DeviceDescriptor::default(), None),
-                )
-                .expect("Failed to create device");
+                ) {
+                    Ok(dq) => dq,
+                    Err(e) => {
+                        eprintln!("[KnotenCore WGPU] Failed to create device: {}", e);
+                        return;
+                    }
+                };
                 let device = Arc::new(device);
                 let queue = Arc::new(queue);
 
@@ -929,7 +946,10 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     }
                     Err(wgpu::SurfaceError::Timeout) => return,
                     Err(wgpu::SurfaceError::OutOfMemory) => {
-                        panic!("Out of memory when acquiring WGPU surface")
+                        eprintln!(
+                            "[KnotenCore WGPU] Out of memory when acquiring surface — skipping frame"
+                        );
+                        return;
                     }
                 };
                 let view = output

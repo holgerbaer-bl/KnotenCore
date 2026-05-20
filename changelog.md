@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 175: The Error-Routing Purge (2026-05-19)
+Sprint 175: The Error-Routing Purge. Eradicated remaining unwrap() instances across the core engine, implementing strict Result-based error routing for WGPU and VM modules.
+- **WGPU Sanitization (window.rs)**: Replaced 4 `expect()` calls in `CreateWindow` handler (surface creation, adapter request, device creation, window creation) with `match` + `eprintln!` + early return. Replaced `panic!("Out of memory when acquiring WGPU surface")` in `RedrawRequested` with `eprintln!` + `return`. WGPU initialization failures no longer crash the process.
+- **Registry GPU Hardening (registry.rs)**: `registry_gpu_init()` now returns `-1` on adapter/device failure instead of panicking. `registry_texture_load()` returns `-1` with an `eprintln!` diagnostic when no GPU context exists instead of calling `expect()`.
+- **Mutex PoisonError Safety (registry.rs)**: All 15+ `.lock().unwrap()` calls replaced with `.lock().unwrap_or_else(|e| e.into_inner())` — no panics on PoisonError.
+- **Compiler Safe-Paths (compiler.rs)**: Replaced two `self.locals.last_mut().unwrap()` calls with `if let Some(last) = self.locals.last_mut()` returning `false` on failure instead of panicking.
+- **Executor PoisonError (executor.rs)**: Replaced `map_arc.lock().unwrap()` with `.unwrap_or_else(|e| e.into_inner())`.
+- **Documentation**: Updated README with Error-Routing section, bumped llm.md to Sprint 175, updated changelog.
+
 ## [v1.0.49] - Sprint 174: The Efficiency Protocol (2026-05-19)
 Sprint 174: The Efficiency Protocol. Fixed 100% CPU idle usage by optimizing the WGPU event loop and reduced VM watchdog syscall overhead by batching time checks.
 - **Event Loop Throttling**: Replaced implicit `ControlFlow::Poll` with explicit `ControlFlow::Wait` in `window.rs`. Frames are now driven by `request_redraw()` at the end of each `RedrawRequested` handler. The WGPU FIFO present mode naturally paces frames to VSync (~60 FPS), and the thread sleeps between frames, eliminating 100% CPU idle usage.

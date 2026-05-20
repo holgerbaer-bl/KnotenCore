@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - Sprint 174
+# KnotenCore — AI Agent Reference (Routing Document) - Sprint 175
 
 > **System Instruction for LLM Code Agents**
 >

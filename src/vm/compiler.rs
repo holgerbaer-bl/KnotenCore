@@ -223,7 +223,11 @@ impl Compiler {
                     } else {
                         // Declare new local
                         let idx = self.current_local_count;
-                        self.locals.last_mut().unwrap().insert(ident.clone(), idx);
+                        if let Some(last) = self.locals.last_mut() {
+                            last.insert(ident.clone(), idx);
+                        } else {
+                            return false;
+                        }
                         self.current_local_count += 1;
                         idx
                     };
@@ -364,10 +368,11 @@ impl Compiler {
 
                 // Assign numerical indices to explicit arguments contextually mapped against base_pointer
                 for arg in args {
-                    self.locals
-                        .last_mut()
-                        .unwrap()
-                        .insert(arg.clone(), self.current_local_count);
+                    if let Some(last) = self.locals.last_mut() {
+                        last.insert(arg.clone(), self.current_local_count);
+                    } else {
+                        return false;
+                    }
                     self.current_local_count += 1;
                 }
 

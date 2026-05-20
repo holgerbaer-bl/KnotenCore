@@ -533,6 +533,17 @@ The VM watchdog check was also optimized — `Instant::elapsed()` is now sampled
 
 ---
 
+## 🛡️ Error Routing — Zero Unwrap Guarantee (Sprint 175)
+
+The entire core crate is now hardened against panics from Rust-level failures:
+
+- **WGPU Initialization**: Surface creation, adapter discovery, and device creation failures in `window.rs` and `registry.rs` are handled gracefully via `eprintln!` + early return instead of `expect()`. No GPU → no window, but the process stays alive.
+- **WGPU Runtime**: Out-of-memory surface errors in the render loop skip the frame instead of calling `panic!()`.
+- **Mutex PoisonError**: All `Mutex::lock().unwrap()` calls use `unwrap_or_else(|e| e.into_inner())` — PoisonError is always recovered.
+- **Compiler**: `locals.last_mut().unwrap()` calls replaced with safe `if let Some(...)` pattern matching.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

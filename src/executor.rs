@@ -88,7 +88,7 @@ impl std::fmt::Display for RelType {
                 write!(f, "{{{}}}", s.join(", "))
             }
             RelType::Dict(map_arc) => {
-                let map = map_arc.lock().unwrap();
+                let map = map_arc.lock().unwrap_or_else(|e| e.into_inner());
                 let mut s = Vec::new();
                 for (k, v) in map.iter() {
                     s.push(format!("{}: {}", k, v));
