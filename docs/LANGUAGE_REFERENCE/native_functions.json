@@ -7,7 +7,9 @@
     "fs":       "Filesystem utilities, JSON parsing, array/object helpers",
     "net":      "HTTP networking (sandboxed)",
     "json":     "JSON serialisation helpers (alias layer over fs module)",
-    "time":     "CPU throttling via std::thread::sleep"
+    "time":     "CPU throttling via std::thread::sleep",
+    "math":     "Trigonometric and arithmetic operations (sin, cos, sqrt, random, ...)",
+    "string":   "String manipulation (len, concat, split, to_upper)"
   },
   "functions": [
     {
@@ -967,6 +969,152 @@
           "module": "registry",
           "function": "registry_force_panic",
           "args": []
+        }
+      }
+    },
+    {
+      "name": "string_len",
+      "module": "string",
+      "description": "Returns the number of Unicode characters in a string.",
+      "parameters": [
+        { "name": "s", "type": "String", "required": true, "description": "Input string" }
+      ],
+      "returns": "Int",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "string",
+          "function": "string_len",
+          "args": [
+            { "StringLiteral": "Hello" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "string_concat",
+      "module": "string",
+      "description": "Concatenates two strings and returns the result.",
+      "parameters": [
+        { "name": "a", "type": "String", "required": true, "description": "First string" },
+        { "name": "b", "type": "String", "required": true, "description": "Second string" }
+      ],
+      "returns": "String",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "string",
+          "function": "string_concat",
+          "args": [
+            { "StringLiteral": "Hello" },
+            { "StringLiteral": " World" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "string_split",
+      "module": "string",
+      "description": "Splits a string by a delimiter and returns an Array of substrings.",
+      "parameters": [
+        { "name": "s", "type": "String", "required": true, "description": "Input string" },
+        { "name": "delimiter", "type": "String", "required": true, "description": "Delimiter string" }
+      ],
+      "returns": "Array of String",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "string",
+          "function": "string_split",
+          "args": [
+            { "StringLiteral": "a,b,c" },
+            { "StringLiteral": "," }
+          ]
+        }
+      }
+    },
+    {
+      "name": "string_to_upper",
+      "module": "string",
+      "description": "Converts all characters in a string to uppercase (UAX-aware).",
+      "parameters": [
+        { "name": "s", "type": "String", "required": true, "description": "Input string" }
+      ],
+      "returns": "String",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "string",
+          "function": "string_to_upper",
+          "args": [
+            { "StringLiteral": "hello" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "array_push",
+      "module": "fs",
+      "description": "Returns a new Array with the given value appended at the end.",
+      "parameters": [
+        { "name": "arr", "type": "Array", "required": true, "description": "Source array" },
+        { "name": "val", "type": "Any", "required": true, "description": "Value to append" }
+      ],
+      "returns": "Array",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "fs",
+          "function": "array_push",
+          "args": [
+            { "Identifier": "arr" },
+            { "IntLiteral": 42 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "array_pop",
+      "module": "fs",
+      "description": "Returns a new Array with the last element removed. No-op on empty arrays.",
+      "parameters": [
+        { "name": "arr", "type": "Array", "required": true, "description": "Source array" }
+      ],
+      "returns": "Array",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "fs",
+          "function": "array_pop",
+          "args": [
+            { "Identifier": "arr" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "array_len",
+      "module": "fs",
+      "description": "Returns the number of elements in an array.",
+      "parameters": [
+        { "name": "arr", "type": "Array", "required": true, "description": "Source array" }
+      ],
+      "returns": "Int",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "fs",
+          "function": "array_len",
+          "args": [
+            { "Identifier": "arr" }
+          ]
         }
       }
     }

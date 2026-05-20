@@ -491,6 +491,43 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::array_get".into(),
                     })
                 }
+                "array_push" => {
+                    if args.len() == 2
+                        && let RelType::Array(arr) = &args[0]
+                    {
+                        let mut new_arr = arr.clone();
+                        new_arr.push(args[1].clone());
+                        return Some(ExecResult::Value(RelType::Array(new_arr)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] array_push expects (Array, Any)".to_string(),
+                        node: "Native::Bridge::array_push".into(),
+                    })
+                }
+                "array_pop" => {
+                    if args.len() == 1
+                        && let RelType::Array(arr) = &args[0]
+                    {
+                        let mut new_arr = arr.clone();
+                        new_arr.pop();
+                        return Some(ExecResult::Value(RelType::Array(new_arr)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] array_pop expects 1 Array arg".to_string(),
+                        node: "Native::Bridge::array_pop".into(),
+                    })
+                }
+                "array_len" => {
+                    if args.len() == 1
+                        && let RelType::Array(arr) = &args[0]
+                    {
+                        return Some(ExecResult::Value(RelType::Int(arr.len() as i64)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] array_len expects 1 Array arg".to_string(),
+                        node: "Native::Bridge::array_len".into(),
+                    })
+                }
                 _ => None,
             }
         } else if module == "registry" {
@@ -1423,6 +1460,59 @@ impl BridgeModule for CoreBridge {
                     Some(ExecResult::Fault {
                         msg: "[FFI] math_random expects (Float min, Float max)".to_string(),
                         node: "Native::Bridge::math_random".into(),
+                    })
+                }
+                _ => None,
+            }
+        } else if module == "string" {
+            match function {
+                "string_len" => {
+                    if args.len() == 1
+                        && let RelType::Str(s) = &args[0]
+                    {
+                        let len = s.chars().count() as i64;
+                        return Some(ExecResult::Value(RelType::Int(len)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] string_len expects 1 String arg".to_string(),
+                        node: "Native::Bridge::string_len".into(),
+                    })
+                }
+                "string_concat" => {
+                    if args.len() == 2
+                        && let (RelType::Str(a), RelType::Str(b)) = (&args[0], &args[1])
+                    {
+                        return Some(ExecResult::Value(RelType::Str(a.clone() + b)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] string_concat expects (String, String)".to_string(),
+                        node: "Native::Bridge::string_concat".into(),
+                    })
+                }
+                "string_split" => {
+                    if args.len() == 2
+                        && let (RelType::Str(s), RelType::Str(delim)) = (&args[0], &args[1])
+                    {
+                        let parts: Vec<RelType> = s
+                            .split(delim.as_str())
+                            .map(|part| RelType::Str(part.to_string()))
+                            .collect();
+                        return Some(ExecResult::Value(RelType::Array(parts)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] string_split expects (String, String)".to_string(),
+                        node: "Native::Bridge::string_split".into(),
+                    })
+                }
+                "string_to_upper" => {
+                    if args.len() == 1
+                        && let RelType::Str(s) = &args[0]
+                    {
+                        return Some(ExecResult::Value(RelType::Str(s.to_uppercase())));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] string_to_upper expects 1 String arg".to_string(),
+                        node: "Native::Bridge::string_to_upper".into(),
                     })
                 }
                 _ => None,

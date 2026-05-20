@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 177: The Core Expansion (2026-05-20)
+Sprint 177: The Core Expansion. Introduced string manipulation and array collection operations to the standard library via the FFI bridge.
+- **String Module**: Added `string_len(s) → Int`, `string_concat(a, b) → String`, `string_split(s, delim) → Array`, `string_to_upper(s) → String` as FFI-callable functions in the new `string` module of `bridge.rs`. Prefixed routing `string_*` added to `ExternCall` in `machine.rs`.
+- **Array Extensions (fs module)**: Added `array_push(arr, val) → Array`, `array_pop(arr) → Array`, `array_len(arr) → Int` alongside existing `array_length`/`array_get`. All follow the immutable bridge pattern: clone, mutate, return new `RelType::Array`.
+- **Safety**: All functions use the established fault pattern with strict type checking per argument — no `unwrap()`, no raw pointer dereferences, full `ExecResult::Fault` on type mismatch.
+- **Documentation**: Updated `native_functions.json` with all 7 new function signatures and live `ExternCall` examples. README updated with Stdlib Expansion section. llm.md bumped to Sprint 177.
+
 ## [v1.1.0] - Sprint 176: The Grand Purge & Genesis Release (2026-05-20)
 Sprint 176: The Grand Purge & Genesis Release. Eliminated all dead code, extracted TODOs into a central ROADMAP.md, and bumped semantic version to 1.1.0 for production release.
 - **Dead Code Elimination**: Removed the legacy isometric software renderer (`fill_poly`, `iso_render`, ~90 lines) from `registry.rs`. This code was superseded by the WGPU 3D pipeline in Sprint 51 and has been marked `#[allow(dead_code)]` ever since.

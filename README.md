@@ -544,6 +544,24 @@ The entire core crate is now hardened against panics from Rust-level failures:
 
 ---
 
+## 📚 Stdlib Expansion — String & Array Ops (Sprint 177)
+
+New FFI-callable functions in the `string` and `fs` modules:
+
+| Function | Returns | Description |
+|---|---|---|
+| `string_len(s)` | `Int` | Unicode character count |
+| `string_concat(a, b)` | `String` | Concatenation |
+| `string_split(s, delim)` | `Array` | Split by delimiter |
+| `string_to_upper(s)` | `String` | Uppercase conversion |
+| `array_push(arr, val)` | `Array` | Append element (returns new array) |
+| `array_pop(arr)` | `Array` | Remove last element (returns new array) |
+| `array_len(arr)` | `Int` | Element count |
+
+All functions follow the immutable bridge pattern with strict `ExecResult::Fault` on type mismatch.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 
