@@ -1,48 +1,16 @@
-// Sprint 178: The GUI Stress Test — Interactive Calculator
-//
-// This is a fully interactive four-function calculator built entirely
-// in the .knoten DSL. It validates the retained-mode Virtual DOM
-// reconciler, layout engine, event bus, and the Sprint 177 FFI
-// string operations under rapid-fire user interaction.
-//
-// Architecture:
-//   ┌────────────────────────────────────────┐
-//   │  [             12+34             ]     │ ← UILabel (dynamic)
-//   │  ┌──────┬──────┬──────┬────────────┐  │
-//   │  │  7   │  8   │  9   │     /      │  │
-//   │  ├──────┼──────┼──────┼────────────┤  │
-//   │  │  4   │  5   │  6   │     *      │  │
-//   │  ├──────┼──────┼──────┼────────────┤  │
-//   │  │  1   │  2   │  3   │     -      │  │
-//   │  ├──────┼──────┼──────┼────────────┤  │
-//   │  │  0   │  C   │  =   │     +      │  │
-//   │  └──────┴──────┴──────┴────────────┘  │
-//   └────────────────────────────────────────┘
-//
-// Expected behavior:
-//   1. Digits append to the display via string_concat.
-//   2. Operators (+, -, *, /) store the current value and reset display.
-//   3. "=" evaluates via registry_parse_float + math operations,
-//      prints the result to console, and updates the display.
-//   4. "C" clears all state. Display resets to "0".
-//   5. The UI redraws at 60 FPS via the updated UIWindow tree.
-
 import "core/time.nod";
 
-let win = registry_create_window(460, 580, "KnotenCore — Calculator");
+let win = registry_create_window(480, 620, "KnotenCore — Calculator");
 
-// ── Calculator State ────────────────────────────────────────────
-let display  = "0";     // Shown in the UILabel at the top
-let current  = "";      // Current number being typed (as String)
-let stored   = "";      // Previous number (as String)
-let op       = "";      // Pending operator: "", "+", "-", "*", "/"
+let display  = "0";
+let current  = "";
+let stored   = "";
+let op       = "";
 let running  = true;
 
 print("Calculator started. Use the buttons or close the window.");
 
-// ── Main Event Loop ────────────────────────────────────────────
 while (running) {
-    // ── Read all buttons ───────────────────────────────────
     let b7 = registry_ui_poll_button("7");
     let b8 = registry_ui_poll_button("8");
     let b9 = registry_ui_poll_button("9");
@@ -60,7 +28,6 @@ while (running) {
     let bE = registry_ui_poll_button("=");
     let bP = registry_ui_poll_button("+");
 
-    // ── Digit handlers (0-9) ──────────────────────────────
     if (b0) { current = string_concat(current, "0"); }
     if (b1) { current = string_concat(current, "1"); }
     if (b2) { current = string_concat(current, "2"); }
@@ -72,118 +39,51 @@ while (running) {
     if (b8) { current = string_concat(current, "8"); }
     if (b9) { current = string_concat(current, "9"); }
 
-    // ── Operator handlers ─────────────────────────────────
-    if (bP) {
-        stored = current;
-        current = "";
-        op = "+";
-    }
-    if (bS) {
-        stored = current;
-        current = "";
-        op = "-";
-    }
-    if (bM) {
-        stored = current;
-        current = "";
-        op = "*";
-    }
-    if (bD) {
-        stored = current;
-        current = "";
-        op = "/";
-    }
+    if (bP) { stored = current; current = ""; op = "+"; }
+    if (bS) { stored = current; current = ""; op = "-"; }
+    if (bM) { stored = current; current = ""; op = "*"; }
+    if (bD) { stored = current; current = ""; op = "/"; }
 
-    // ── Clear ────────────────────────────────────────────
-    if (bC) {
-        current = "";
-        stored = "";
-        op = "";
-    }
+    if (bC) { current = ""; stored = ""; op = ""; }
 
-    // ── Evaluate (=) ─────────────────────────────────────
     if (bE) {
-        print("─── Computing ───");
+        print("--- Computing ---");
         let a = registry_parse_float(stored);
         let b = registry_parse_float(current);
-
-        if (op == "+") {
-            let result = a + b;
-            print("Result:");
-            print(result);
-        }
-        if (op == "-") {
-            let result = a - b;
-            print("Result:");
-            print(result);
-        }
-        if (op == "*") {
-            let result = a * b;
-            print("Result:");
-            print(result);
-        }
+        if (op == "+") { let result = a + b; print(result); }
+        if (op == "-") { let result = a - b; print(result); }
+        if (op == "*") { let result = a * b; print(result); }
         if (op == "/") {
-            if (b == 0.0) {
-                print("Error: Division by zero");
-            }
-            if (b != 0.0) {
-                let result = a / b;
-                print("Result:");
-                print(result);
-            }
+            if (b == 0.0) { print("Error: Division by zero"); }
+            if (b != 0.0) { let result = a / b; print(result); }
         }
-
-        // Reset state after evaluation
-        stored = "";
-        op = "";
-        current = "";
+        stored = ""; op = ""; current = "";
     }
 
-    // ── Sync display ─────────────────────────────────────
     if (current == "") {
-        if (stored == "") {
-            display = "0";
-        }
-        if (stored != "") {
-            display = string_concat(stored, string_concat(" ", op));
-        }
+        if (stored == "") { display = "0"; }
+        if (stored != "") { display = string_concat(stored, string_concat(" ", op)); }
     }
-    if (current != "") {
-        display = current;
-    }
+    if (current != "") { display = current; }
 
-    // ── Rebuild & Send UI Tree (Virtual DOM Reconciler) ──────
     UIWindow("calc_ui", "Calculator", UIVBox {
-        // ── Display ───────────────────────────────────
         UILabel(display);
-        // ── Row 1 ─────────────────────────────────────
-        UIHBox {
-            UIButton("7");
-            UIButton("8");
-            UIButton("9");
-            UIButton("/");
-        };
-        // ── Row 2 ─────────────────────────────────────
-        UIHBox {
-            UIButton("4");
-            UIButton("5");
-            UIButton("6");
-            UIButton("*");
-        };
-        // ── Row 3 ─────────────────────────────────────
-        UIHBox {
-            UIButton("1");
-            UIButton("2");
-            UIButton("3");
-            UIButton("-");
-        };
-        // ── Row 4 ─────────────────────────────────────
-        UIHBox {
-            UIButton("0");
-            UIButton("C");
-            UIButton("=");
-            UIButton("+");
-        };
+        UIButton("7");
+        UIButton("8");
+        UIButton("9");
+        UIButton("/");
+        UIButton("4");
+        UIButton("5");
+        UIButton("6");
+        UIButton("*");
+        UIButton("1");
+        UIButton("2");
+        UIButton("3");
+        UIButton("-");
+        UIButton("0");
+        UIButton("C");
+        UIButton("=");
+        UIButton("+");
     });
 
     sleep(16);
