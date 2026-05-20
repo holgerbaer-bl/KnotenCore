@@ -562,6 +562,33 @@ All functions follow the immutable bridge pattern with strict `ExecResult::Fault
 
 ---
 
+## 🧮 GUI Showcase — Interactive Calculator (Sprint 178)
+
+A complete four-function calculator application in the `.knoten` DSL (`examples/calculator.knoten`):
+
+```
+┌──────────────────────────────────┐
+│  [        12+34            ]     │ ← Dynamic UILabel
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
+│  │  7   │ │  8   │ │  9   │ │  /   │
+│  ├──────┤ ├──────┤ ├──────┤ ├──────┤
+│  │  4   │ │  5   │ │  6   │ │  *   │
+│  ├──────┤ ├──────┤ ├──────┤ ├──────┤
+│  │  1   │ │  2   │ │  3   │ │  -   │
+│  ├──────┤ ├──────┤ ├──────┤ ├──────┤
+│  │  0   │ │  C   │ │  =   │ │  +   │
+│  └──────┘ └──────┘ └──────┘ └──────┘
+└──────────────────────────────────┘
+```
+
+- Demonstrates the **Virtual DOM Reconciler**: the entire UI tree is rebuilt and resent via `UIWindow` each frame.
+- Validates the **event bus** under rapid clicks via `registry_ui_poll_button`.
+- Uses **Sprint 177** string operations (`string_concat`) for digit input.
+- Math evaluation via `registry_parse_float` + built-in arithmetic.
+- Run with: `cargo run -- examples/calculator.knoten`
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

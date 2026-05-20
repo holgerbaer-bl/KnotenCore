@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 178: The GUI Stress Test (Calculator) (2026-05-20)
+Sprint 178: The GUI Stress Test. Implemented a fully functional interactive calculator application in `.knoten` DSL to validate the Virtual DOM reconciler, layout engine, and event bus.
+- **Interactive Calculator**: Created `examples/calculator.knoten` — a complete four-function calculator with a 4×4 button grid (digits 0–9, operators +−×÷, C, =) and a dynamic `UILabel` display. The entire UI tree is rebuilt and resent through `UIWindow` on each frame (~60 Hz), validating the retained-mode Virtual DOM reconciler pattern.
+- **FFI String Operations**: Digit input uses `string_concat` from Sprint 177 to append typed characters to the display string. The display label reflects runtime variable values via the compiler's `GetLocal` + `UILabel` opcode sequence.
+- **FFI Math Evaluation**: The "=" operator uses `registry_parse_float` to convert operand strings, then the built-in arithmetic operators (`+`, `−`, `×`, `÷`) via VM opcodes, and prints the result to console. Division-by-zero is handled gracefully with a console error.
+- **Event Bus Validation**: All 16 button clicks are polled via `registry_ui_poll_button` inside the `while` loop, validating the thread-safe `UI_BUTTON_EVENTS` store under rapid-fire interaction.
+- **Documentation**: Updated README with Calculator Showcase entry, llm.md bumped to Sprint 178, changelog updated.
+
 ## [v1.1.0] - Sprint 177: The Core Expansion (2026-05-20)
 Sprint 177: The Core Expansion. Introduced string manipulation and array collection operations to the standard library via the FFI bridge.
 - **String Module**: Added `string_len(s) → Int`, `string_concat(a, b) → String`, `string_split(s, delim) → Array`, `string_to_upper(s) → String` as FFI-callable functions in the new `string` module of `bridge.rs`. Prefixed routing `string_*` added to `ExternCall` in `machine.rs`.
