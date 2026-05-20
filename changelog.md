@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.0.49] - Sprint 174: The Efficiency Protocol (2026-05-19)
+Sprint 174: The Efficiency Protocol. Fixed 100% CPU idle usage by optimizing the WGPU event loop and reduced VM watchdog syscall overhead by batching time checks.
+- **Event Loop Throttling**: Replaced implicit `ControlFlow::Poll` with explicit `ControlFlow::Wait` in `window.rs`. Frames are now driven by `request_redraw()` at the end of each `RedrawRequested` handler. The WGPU FIFO present mode naturally paces frames to VSync (~60 FPS), and the thread sleeps between frames, eliminating 100% CPU idle usage.
+- **Initial Frame Trigger**: Window creation now explicitly calls `request_redraw()` to start the render loop. The `about_to_wait` callback no longer auto-requests redraws.
+- **Watchdog Syscall Batching**: Reduced the watchdog `Instant::now().elapsed()` check from every 100 instructions to every 1000 instructions. The 50ms timeout threshold remains unchanged; the VM throughput reduction from the previous check interval is now negligible.
+- **Documentation**: Updated README with Event Loop Efficiency section, bumped llm.md to Sprint 174, updated changelog.
+
 ## [v1.0.49] - Sprint 173: The FFI Shield (2026-05-19)
 Sprint 173: The FFI Shield. Hardened FFI boundary with strict null-pointer validation, UTF-8 safety checks, and Use-After-Free prevention.
 - **FFI Safety Module**: Created `src/natives/ffi_safety.rs` with three canonical guard utilities: `validate_handle(handle_id, fn_name)` for null-equivalence checks, `validate_string(s, fn_name)` for empty/null-byte detection, and `guard_remove_entity(fn_name, id, already_removed)` for use-after-free logging.

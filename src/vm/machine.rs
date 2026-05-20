@@ -51,7 +51,7 @@ impl VM {
             self.ip += 1;
 
             instr_count += 1;
-            if instr_count.is_multiple_of(100)
+            if instr_count.is_multiple_of(1000)
                 && start.elapsed() >= std::time::Duration::from_millis(50)
             {
                 eprintln!(

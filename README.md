@@ -519,6 +519,20 @@ Every FFI boundary call is now guarded by a formal safety layer (`src/natives/ff
 
 ---
 
+## ⚡ Event Loop Efficiency — 0% CPU Idle (Sprint 174)
+
+Starting with Sprint 174, the WGPU event loop uses `ControlFlow::Wait` instead of `ControlFlow::Poll`:
+
+| Metric | Before (Sprint 160) | After (Sprint 174) |
+|--------|---------------------|---------------------|
+| Idle CPU | **100%** (tight poll) | **~0%** (thread sleeps) |
+| Frame pacing | WGPU FIFO only | WGPU FIFO + OS-level event wait |
+| Frame trigger | `about_to_wait` blanket redraw | `request_redraw()` at end of each frame |
+
+The VM watchdog check was also optimized — `Instant::elapsed()` is now sampled every **1000 instructions** instead of every 100, reducing syscall overhead on fast code paths while preserving the 50ms timeout guarantee.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::{Window as WinitWindow, WindowId};
 
 pub struct KnotenApp {
@@ -452,6 +452,11 @@ impl KnotenApp {
                         ui_tree: Vec::new(),
                     },
                 );
+                // Sprint 174: Trigger initial frame — subsequent frames are
+                // requested at the end of each RedrawRequested handler.
+                if let Some(state) = self.windows.get(&id) {
+                    state.window.request_redraw();
+                }
             }
             RenderCommand::UpdateWindow(id) => {
                 if let Some(state) = self.windows.get_mut(&id) {
@@ -740,7 +745,11 @@ impl KnotenApp {
 }
 
 impl ApplicationHandler<RenderCommand> for KnotenApp {
-    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        // Sprint 174: ControlFlow::Wait eliminates 100% CPU idle usage.
+        // Frames are driven by request_redraw() at the end of each RedrawRequested.
+        event_loop.set_control_flow(ControlFlow::Wait);
+    }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, cmd: RenderCommand) {
         self.handle_command(event_loop, cmd);
@@ -1065,18 +1074,20 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
 
                 state.queue.submit(Some(encoder.finish()));
                 output.present();
+
+                // Sprint 174: Request next frame — paced by WGPU FIFO VSync.
+                // ControlFlow::Wait lets the thread sleep between frames.
+                state.window.request_redraw();
             }
             _ => {}
         }
     }
 
     fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
-        // Sprint 160 Core Stabilization:
-        // Ensure autonomous rendering of the Scene Graph at 60 FPS (VSync limited)
-        // even when the VM is completely idle.
-        for state in self.windows.values() {
-            state.window.request_redraw();
-        }
+        // Sprint 174: No longer auto-requests redraws in idle.
+        // Redraws are now driven by request_redraw() at the end of each
+        // RedrawRequested handler — the WGPU FIFO present already paces
+        // frames to VSync, and ControlFlow::Wait eliminates CPU spin.
     }
 }
 
