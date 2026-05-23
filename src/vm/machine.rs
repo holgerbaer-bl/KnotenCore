@@ -43,7 +43,7 @@ impl VM {
         self.ip = 0;
         self.base_pointer = 0;
 
-        let start = Instant::now();
+        let mut start = Instant::now();
         let mut instr_count: u64 = 0;
 
         while self.ip < instructions.len() {
@@ -688,6 +688,7 @@ impl VM {
                         let result = catch_unwind(AssertUnwindSafe(|| {
                             b.handle(&module, &func, &args, permissions)
                         }));
+                        start = std::time::Instant::now();
                         match result {
                             Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
                             Ok(Some(crate::executor::ExecResult::Fault { msg, .. })) => {
@@ -892,6 +893,7 @@ impl VM {
                         let result = catch_unwind(AssertUnwindSafe(|| {
                             b.handle(module, func, &args, permissions)
                         }));
+                        start = std::time::Instant::now();
                         match result {
                             Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
                             Ok(Some(crate::executor::ExecResult::Fault { msg, .. })) => {

@@ -1,0 +1,20 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "DEFAULT_URL",
+        {
+          "StringLiteral": "https://httpbin.org/json"
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "MOCK_JSON",
+        {
+          "StringLiteral": "{\"slideshow\": {\"title\": \"Local Mock Dashboard\", \"author\": \"Mock Agent\"}}"
+        }
+      ]
+    }
+  ]
+}

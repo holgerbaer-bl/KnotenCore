@@ -1,0 +1,38 @@
+import "stdlib/network.nod";
+import "stdlib/fs.nod";
+import "core/time.nod";
+import "examples/dashboard_config.nod";
+
+let win = registry_create_window(640, 480, "Telemetry Dashboard");
+
+// Initialize state from the imported dummy JSON data to prove import logic
+let parsed_initial = fs_parse_json(MOCK_JSON);
+let current_title = parsed_initial.slideshow.title;
+let current_author = parsed_initial.slideshow.author;
+let clicked_count = 0;
+
+print("Dashboard UI initialised. Displaying initial metrics from config.");
+
+while (true) {
+    let updated = registry_ui_poll_button("Update Metrics");
+    if (updated) {
+        clicked_count = clicked_count + 1;
+        print("Fetching metrics from API...");
+        let res = network_get(DEFAULT_URL);
+        let parsed = fs_parse_json(res);
+        current_title = parsed.slideshow.title;
+        current_author = parsed.slideshow.author;
+        print("Metrics updated successfully.");
+    }
+
+    UIWindow("dashboard_ui", "Server Telemetry Dashboard", UIVBox {
+        UILabel("=== Server Metriken ===");
+        UILabel("Target URL: " + DEFAULT_URL);
+        UILabel("Dashboard Title: " + current_title);
+        UILabel("Author/Owner: " + current_author);
+        UILabel("Updates Fetched: " + ToString(clicked_count));
+        UIButton("Update Metrics");
+    });;
+
+    sleep(16);
+}

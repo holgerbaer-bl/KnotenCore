@@ -555,6 +555,26 @@
       }
     },
     {
+      "name": "network_get",
+      "module": "net",
+      "description": "Performs a synchronous HTTP GET request and returns the response body as a JSON-encoded string (RelType::Str). Sandboxed by --allow-network permission.",
+      "parameters": [
+        { "name": "url", "type": "String", "required": true }
+      ],
+      "returns": "String",
+      "permissions": ["--allow-network"],
+      "errors": ["ERR_NET_PERMISSION", "ERR_HTTP_FAILED"],
+      "example": {
+        "Assign": ["body", {
+          "ExternCall": {
+            "module": "net",
+            "function": "network_get",
+            "args": [ { "StringLiteral": "https://httpbin.org/json" } ]
+          }
+        }]
+      }
+    },
+    {
       "name": "fs_read_file",
       "module": "fs",
       "description": "Reads a file and returns its full content as a String. Path must be relative and within the working directory.",
