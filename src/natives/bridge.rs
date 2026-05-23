@@ -187,6 +187,42 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::net_fetch".into(),
                     })
                 }
+                "network_get" => {
+                    if !permissions.allow_network {
+                        return Some(ExecResult::Fault {
+                            msg: "Permission Denied: allow_network is false (VM: network_get). Use --allow-net flag.".to_string(),
+                            node: "Native::Bridge::network_get".into()
+                        });
+                    }
+                    if args.len() == 1
+                        && let RelType::Str(url) = &args[0]
+                    {
+                        match ureq::get(url).call() {
+                            Ok(response) => match response.into_string() {
+                                Ok(body) => return Some(ExecResult::Value(RelType::Str(body))),
+                                Err(e) => {
+                                    return Some(ExecResult::Fault {
+                                        msg: format!(
+                                            "Network Error: Failed to read response body: {}",
+                                            e
+                                        ),
+                                        node: "Native::Bridge::network_get".into(),
+                                    });
+                                }
+                            },
+                            Err(e) => {
+                                return Some(ExecResult::Fault {
+                                    msg: format!("Network Error: HTTP Request Failed: {}", e),
+                                    node: "Native::Bridge::network_get".into(),
+                                });
+                            }
+                        }
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] network_get expects 1 String arg (url)".to_string(),
+                        node: "Native::Bridge::network_get".into(),
+                    })
+                }
                 _ => None,
             }
         } else if module == "ui" {
@@ -1533,6 +1569,63 @@ impl BridgeModule for CoreBridge {
                     Some(ExecResult::Fault {
                         msg: "[FFI] string_to_upper expects 1 String arg".to_string(),
                         node: "Native::Bridge::string_to_upper".into(),
+                    })
+                }
+                _ => None,
+            }
+        } else if module == "wgpu" {
+            match function {
+                "load_compute_shader" => {
+                    if args.len() == 1
+                        && let RelType::Str(source) = &args[0]
+                    {
+                        let id =
+                            crate::natives::registry::registry_load_compute_shader(source.clone());
+                        return Some(ExecResult::Value(RelType::Handle(
+                            crate::executor::NativeHandle(id),
+                        )));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] load_compute_shader expects 1 String arg (source)".to_string(),
+                        node: "Native::Bridge::load_compute_shader".into(),
+                    })
+                }
+                "dispatch_compute" => {
+                    if args.len() >= 4 {
+                        let shader_id = match &args[0] {
+                            RelType::Handle(crate::executor::NativeHandle(id)) => *id,
+                            _ => {
+                                return Some(ExecResult::Fault {
+                                    msg: "dispatch_compute: shader must be a Handle".into(),
+                                    node: "Native::Bridge::dispatch_compute".into(),
+                                });
+                            }
+                        };
+                        let x = match &args[1] {
+                            RelType::Int(i) => *i as u32,
+                            RelType::Float(f) => *f as u32,
+                            _ => 1,
+                        };
+                        let y = match &args[2] {
+                            RelType::Int(i) => *i as u32,
+                            RelType::Float(f) => *f as u32,
+                            _ => 1,
+                        };
+                        let z = match &args[3] {
+                            RelType::Int(i) => *i as u32,
+                            RelType::Float(f) => *f as u32,
+                            _ => 1,
+                        };
+
+                        let inputs = args[4..].to_vec();
+                        crate::natives::registry::registry_dispatch_compute(
+                            shader_id, x, y, z, inputs,
+                        );
+                        return Some(ExecResult::Value(RelType::Void));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] dispatch_compute expects at least 4 args (shader, x, y, z, ...inputs)".to_string(),
+                        node: "Native::Bridge::dispatch_compute".into(),
                     })
                 }
                 _ => None,

@@ -823,6 +823,20 @@ impl Parser {
                 b_min: Box::new(args.remove(0)),
                 b_max: Box::new(args.remove(0)),
             },
+            "LoadComputeShader" => Node::LoadComputeShader(Box::new(args.remove(0))),
+            "DispatchCompute" => {
+                let shader_id = Box::new(args.remove(0));
+                let x = Box::new(args.remove(0));
+                let y = Box::new(args.remove(0));
+                let z = Box::new(args.remove(0));
+                Node::DispatchCompute {
+                    shader_id,
+                    x,
+                    y,
+                    z,
+                    inputs: args,
+                }
+            }
             _ => Node::Call(name.to_string(), args), // Default to local Call
         }
     }

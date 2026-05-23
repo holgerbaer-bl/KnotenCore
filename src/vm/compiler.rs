@@ -427,11 +427,18 @@ impl Compiler {
                 true
             }
             Node::Import(file_path) => {
-                let path = if file_path.starts_with("core/") || file_path.starts_with("core\\") {
+                let mut path = if file_path.starts_with("core/") || file_path.starts_with("core\\") {
                     std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(file_path)
                 } else {
                     self.current_dir.join(file_path)
                 };
+
+                if !path.exists() {
+                    let fallback = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(file_path);
+                    if fallback.exists() {
+                        path = fallback;
+                    }
+                }
 
                 let Ok(abs_path) = std::fs::canonicalize(&path) else {
                     eprintln!(

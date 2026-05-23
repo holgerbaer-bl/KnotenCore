@@ -15,7 +15,6 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::MapCreate
         | Node::Load { .. }
         | Node::Import(_) => {}
-
         Node::Add(l, r)
         | Node::Sub(l, r)
         | Node::Mul(l, r)

@@ -873,7 +873,7 @@ impl VM {
                         ("test_lib", name.as_str())
                     } else if name.starts_with("array_") || name.starts_with("obj_") {
                         ("fs", name.as_str())
-                    } else if name.starts_with("net_") {
+                    } else if name.starts_with("net_") || name.starts_with("network_") {
                         ("net", name.as_str())
                     } else if name.starts_with("json_") {
                         ("json", name.as_str())
@@ -951,13 +951,16 @@ impl VM {
                     let key = self.stack.pop().unwrap_or(RelType::Void);
                     let obj = self.stack.pop().unwrap_or(RelType::Void);
 
-                    if let (RelType::Dict(map_arc), RelType::Str(k)) = (&obj, key) {
+                    if let (RelType::Dict(map_arc), RelType::Str(k)) = (&obj, &key) {
                         let res = map_arc
                             .lock()
                             .unwrap_or_else(|e| e.into_inner())
-                            .get(&k)
+                            .get(k)
                             .cloned()
                             .unwrap_or(RelType::Void);
+                        self.stack.push(res);
+                    } else if let (RelType::Object(map), RelType::Str(k)) = (&obj, &key) {
+                        let res = map.get(k).cloned().unwrap_or(RelType::Void);
                         self.stack.push(res);
                     } else {
                         // Silent fail mimicking optional structures or missing keys natively
@@ -1165,6 +1168,82 @@ mod tests {
             result
                 .unwrap_err()
                 .contains("Permission Denied: allow_network is false")
+        );
+    }
+
+    #[test]
+    fn test_vm_network_get_sandbox_block() {
+        let mut vm = VM::new();
+        let instructions = vec![
+            OpCode::Constant(0), // Push "https://api.github.com"
+            OpCode::ExternCall {
+                name_idx: 2,
+                arg_count: 1,
+            }, // "net", "network_get", 1 arg
+            OpCode::Return,
+        ];
+        let constants = vec![
+            RelType::Str("https://api.github.com".to_string()),
+            RelType::Str("net".to_string()),
+            RelType::Str("network_get".to_string()),
+        ];
+
+        let bridge = crate::natives::bridge::CoreBridge;
+        let result = vm.run(
+            &instructions,
+            &constants,
+            &AgentPermissions {
+                allow_network: false,
+                allowed_domains: vec![],
+                allow_fs_read: true,
+                allow_fs_write: false,
+            },
+            Some(&bridge),
+        );
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .contains("Permission Denied: allow_network is false")
+        );
+    }
+
+    #[test]
+    fn test_vm_network_get_failed_url() {
+        let mut vm = VM::new();
+        let instructions = vec![
+            OpCode::Constant(0), // Push invalid url
+            OpCode::ExternCall {
+                name_idx: 2,
+                arg_count: 1,
+            },
+            OpCode::Return,
+        ];
+        let constants = vec![
+            RelType::Str("http://this-does-not-exist.invalid".to_string()),
+            RelType::Str("net".to_string()),
+            RelType::Str("network_get".to_string()),
+        ];
+
+        let bridge = crate::natives::bridge::CoreBridge;
+        let result = vm.run(
+            &instructions,
+            &constants,
+            &AgentPermissions {
+                allow_network: true,
+                allowed_domains: vec![],
+                allow_fs_read: true,
+                allow_fs_write: false,
+            },
+            Some(&bridge),
+        );
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .contains("Network Error: HTTP Request Failed")
         );
     }
 

@@ -1424,6 +1424,31 @@ pub fn registry_get_mouse_delta_y() -> f32 {
     acc
 }
 
+pub fn registry_load_compute_shader(source: String) -> i64 {
+    let id = rand::random::<i64>().abs();
+    send_render_command(RenderCommand::LoadComputeShader {
+        id: id as usize,
+        source,
+    });
+    id
+}
+
+pub fn registry_dispatch_compute(
+    shader_id: i64,
+    x: u32,
+    y: u32,
+    z: u32,
+    inputs: Vec<crate::executor::RelType>,
+) {
+    send_render_command(RenderCommand::DispatchCompute {
+        shader_id: shader_id as usize,
+        x,
+        y,
+        z,
+        inputs,
+    });
+}
+
 pub fn registry_is_mouse_down() -> bool {
     let mut pressed = false;
     with_registry(|registry| {
