@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 180: The Parser Patch & DX Improvement (2026-05-23)
+Sprint 180: The Parser Patch. Fixed lexer comment handling, expression semicolon traps, and enabled direct JSON-AST .nod imports.
+- **Robust Comment Handling**: Updated `skip_whitespace` in both the root parser and the submodule parser to consume all characters in line comments (`//`) up to the next newline (`\n`), ensuring that colons inside comments (e.g. `// Test:`) do not trigger unexpected token errors.
+- **Semicolon Trap Fix**: Handled trailing semicolons after block expressions inside statement/block lists (e.g. `UIVBox { UILabel("a"); };`) in both the root parser and the submodule parser, preventing compiler crashes.
+- **Direct AST Imports**: Differentiated between `.nod` (JSON-AST) and `.knoten` (DSL text) imports in the VM compiler and AST validator, directly deserializing `.nod` files using `serde_json` and avoiding redundant DSL parsing.
+- **Panic Protection on Validation**: Added parser panic protection via `catch_unwind` to the AST validator when checking imported text scripts.
+- **Documentation**: Refreshed readme, llm.md, and changelog.md for Sprint 180.
+- **Verification**: Created `examples/parser_test.knoten` to verify lexer comment handling, expression semicolon traps, and direct `.nod` JSON-AST imports. Verified passing tests across both root and submodule crates.
+
 ## [v1.1.0] - Sprint 179: The Security Hotfix (2026-05-23)
 Sprint 179: The Security Hotfix. Patched critical sandbox bypass in texture loader, secured release panic profile, and eliminated runtime panics.
 - **Sandbox Security Hardening**: Patched `registry_load_texture` in `bridge.rs` to enforce `ffi_safety::validate_string` and `permissions.allow_fs_read` checking before any texture asset file is loaded.

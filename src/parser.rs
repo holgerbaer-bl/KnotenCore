@@ -87,8 +87,11 @@ impl<'a> Lexer<'a> {
                 self.advance();
             } else if c == '/'
                 && self.pos + 1 < self.input.len()
-                && self.input[self.pos + 1] as char == '/'
+                && self.input[self.pos + 1] == b'/'
             {
+                // Consume the two slashes
+                self.advance();
+                self.advance();
                 while let Some(c2) = self.peek_char() {
                     if c2 == '\n' {
                         break;
@@ -317,6 +320,10 @@ impl Parser {
     pub fn parse(&mut self) -> Node {
         let mut statements = Vec::new();
         while *self.peek() != Token::EOF {
+            if *self.peek() == Token::Semi {
+                self.advance();
+                continue;
+            }
             statements.push(self.parse_statement());
         }
         Node::Block(statements)
@@ -444,6 +451,10 @@ impl Parser {
         self.expect(Token::LBrace);
         let mut stmts = Vec::new();
         while *self.peek() != Token::RBrace && *self.peek() != Token::EOF {
+            if *self.peek() == Token::Semi {
+                self.advance();
+                continue;
+            }
             stmts.push(self.parse_statement());
         }
         self.expect(Token::RBrace);
@@ -599,6 +610,9 @@ impl Parser {
                         }
 
                         self.construct_node_from_call(&name, args, trailing_block)
+                    } else if *self.peek() == Token::LBrace {
+                        let block = self.parse_block();
+                        self.construct_node_from_call(&name, vec![block], None)
                     } else {
                         Node::Identifier(name)
                     }
@@ -811,5 +825,65 @@ impl Parser {
             },
             _ => Node::Call(name.to_string(), args), // Default to local Call
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_uivbox_parsing() {
+        let input = r#"UIWindow("ui", "Math FFI Demo", UIVBox { UILabel("a"); });"#;
+        let mut parser = Parser::new(input);
+        let ast = parser.parse();
+        assert_eq!(
+            ast,
+            Node::Block(vec![Node::UIWindow(
+                "ui".to_string(),
+                Box::new(Node::StringLiteral("Math FFI Demo".to_string())),
+                Box::new(Node::UIVBox(vec![Node::UILabel(Box::new(
+                    Node::StringLiteral("a".to_string())
+                ))]))
+            )])
+        );
+    }
+
+    #[test]
+    fn test_semicolon_trap() {
+        let input = r#"
+            UIVBox {
+                UILabel("a");
+            };
+            UILabel("b");
+        "#;
+        let mut parser = Parser::new(input);
+        let ast = parser.parse();
+        assert_eq!(
+            ast,
+            Node::Block(vec![
+                Node::UIVBox(vec![Node::UILabel(Box::new(Node::StringLiteral("a".to_string())))]),
+                Node::UILabel(Box::new(Node::StringLiteral("b".to_string())))
+            ])
+        );
+    }
+
+    #[test]
+    fn test_lexer_comments() {
+        let input = r#"
+            // Test: this is a comment with colon
+            let x = 5; // comment with colon: inside
+            // another comment
+            let y = 10;
+        "#;
+        let mut parser = Parser::new(input);
+        let ast = parser.parse();
+        assert_eq!(
+            ast,
+            Node::Block(vec![
+                Node::Assign("x".to_string(), Box::new(Node::IntLiteral(5))),
+                Node::Assign("y".to_string(), Box::new(Node::IntLiteral(10)))
+            ])
+        );
     }
 }

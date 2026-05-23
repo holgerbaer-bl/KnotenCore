@@ -600,6 +600,17 @@ KnotenCore has been hardened with critical security patches addressing findings 
 
 ---
 
+## 🛠️ The Parser Patch & DX Improvement (Sprint 180)
+
+Sprint 180 focuses on parser robustness, error resilience, and modular developer experience (DX):
+
+- **Robust Lexer Comments**: Updated the lexer to properly consume all characters in line comments (`//`) up to the next newline (`\n`), preventing colons inside comments (e.g., `// Test:`) from triggering unexpected token errors.
+- **Semicolon Trap Fix**: Handled trailing semicolons after block expressions inside statement/block lists (e.g., `UIVBox { UILabel("a"); };`) in both the root parser and the submodule parser.
+- **Direct AST Imports**: Differentiated between `.nod` (JSON-AST) and `.knoten` (DSL text) imports in the compiler and validator, directly deserializing `.nod` files using `serde_json` and avoiding redundant DSL parsing.
+- **Panic Protection on Validation**: Added parser panic protection via `catch_unwind` to the AST validator when checking imported text scripts.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

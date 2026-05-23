@@ -459,8 +459,22 @@ impl Compiler {
                     }
                 };
 
-                let mut parser = crate::parser::Parser::new(&source);
-                let child_ast = parser.parse();
+                let child_ast = if file_path.ends_with(".nod") {
+                    match serde_json::from_str::<Node>(&source) {
+                        Ok(node) => node,
+                        Err(e) => {
+                            eprintln!(
+                                "AOT Compiler Error: Failed to deserialize JSON-AST from {}: {}",
+                                abs_path.display(),
+                                e
+                            );
+                            return false;
+                        }
+                    }
+                } else {
+                    let mut parser = crate::parser::Parser::new(&source);
+                    parser.parse()
+                };
 
                 // Track execution context (isolate Local variables) but share Functions and Globals
                 let old_dir = self.current_dir.clone();
@@ -756,5 +770,13 @@ mod tests {
             vec![OpCode::Constant(0), OpCode::Constant(0), OpCode::Add]
         );
         assert_eq!(compiler.constants, vec![RelType::Int(10)]);
+    }
+
+    #[test]
+    fn test_import_compilation() {
+        let mut compiler = Compiler::new();
+        let ast = Node::Import("examples/imported_ast.nod".to_string());
+        assert!(compiler.compile_node(&ast));
+        assert!(!compiler.instructions.is_empty());
     }
 }
