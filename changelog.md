@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 179: The Security Hotfix (2026-05-23)
+Sprint 179: The Security Hotfix. Patched critical sandbox bypass in texture loader, secured release panic profile, and eliminated runtime panics.
+- **Sandbox Security Hardening**: Patched `registry_load_texture` in `bridge.rs` to enforce `ffi_safety::validate_string` and `permissions.allow_fs_read` checking before any texture asset file is loaded.
+- **Panic Shield Release Preservation**: Changed `panic = "abort"` to `panic = "unwind"` in `Cargo.toml` for the release profile, ensuring the FFI panic shield remains active in production release builds.
+- **Panic Protection**: Hidden debug utility `registry_force_panic` behind a `#[cfg(debug_assertions)]` macro in both `registry.rs` and `bridge.rs` so that it is never compiled into release binaries.
+- **Runtime Panic Elimination**: Replaced a hard `panic!` call in the JSON parsing unit test in `machine.rs:1211` with a clean `Err` routing structure.
+- **Documentation**: Refreshed readme, llm.md, and changelog.md for Sprint 179.
+
 ## [v1.1.0] - Sprint 178: The GUI Stress Test (Calculator) (2026-05-20)
 Sprint 178: The GUI Stress Test. Implemented a fully functional interactive calculator application in `.knoten` DSL to validate the Virtual DOM reconciler, layout engine, and event bus.
 - **Interactive Calculator**: Created `examples/calculator.knoten` — a complete four-function calculator with a 4×4 button grid (digits 0–9, operators +−×÷, C, =) and a dynamic `UILabel` display. The entire UI tree is rebuilt and resent through `UIWindow` on each frame (~60 Hz), validating the retained-mode Virtual DOM reconciler pattern.

@@ -1169,7 +1169,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vm_json_parsing() {
+    fn test_vm_json_parsing() -> Result<(), String> {
         let mut vm = VM::new();
         // Valid JSON Test
         let instructions = vec![
@@ -1208,7 +1208,7 @@ mod tests {
                 &RelType::Str("1.0".to_string())
             );
         } else {
-            panic!("Expected JSON to parse into an Object natively!");
+            return Err("Expected JSON to parse into an Object natively!".into());
         }
 
         // Invalid JSON Test capturing gracefully Without Panics
@@ -1233,6 +1233,7 @@ mod tests {
 
         assert!(err_result.is_err());
         assert!(err_result.unwrap_err().contains("JSON Parse Error:"));
+        Ok(())
     }
 
     fn run_logic_ops(ops: Vec<OpCode>, constants: Vec<RelType>) -> Result<RelType, String> {

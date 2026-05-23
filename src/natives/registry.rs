@@ -1515,6 +1515,7 @@ pub fn registry_get_ultimate_answer() -> i64 {
 /// Sprint 170: Debug FFI function that intentionally panics to test the
 /// panic-safety layer in the VM bridge. Must be caught by `catch_unwind`
 /// in machine.rs — the application must NOT crash.
+#[cfg(debug_assertions)]
 pub fn registry_force_panic() {
     panic!("Simulated core dump from FFI!");
 }

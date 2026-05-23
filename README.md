@@ -589,6 +589,17 @@ A complete four-function calculator application in the `.knoten` DSL (`examples/
 
 ---
 
+## 🔒 The Security Hotfix (Sprint 179)
+
+KnotenCore has been hardened with critical security patches addressing findings from the v1.1.0 security audit:
+
+- **Sandbox Security Check**: Added strict FFI safety string validation (`validate_string`) and permissions check (`allow_fs_read`) to the texture loading pipeline (`registry_load_texture` in `bridge.rs`). Attempts to load a texture file without permissions will trigger a structured FFI fault.
+- **Release Profile Hardening**: Modified the release compilation profile in `Cargo.toml` from `panic = "abort"` to `panic = "unwind"`. This ensures the FFI panic boundary shield (`catch_unwind`) remains fully operational in optimized release builds.
+- **Debug Function Isolation**: Hidden the testing function `registry_force_panic` behind the `#[cfg(debug_assertions)]` macro in both `bridge.rs` and `registry.rs` to guarantee debug-only utilities are never compiled into production binaries.
+- **Runtime Panic Eradication**: Removed the last hard `panic!` call in the virtual machine test module (`machine.rs:1211`), replacing it with standard `Result`-based error routing (`Err`).
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

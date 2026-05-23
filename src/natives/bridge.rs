@@ -1249,6 +1249,7 @@ impl BridgeModule for CoreBridge {
                 ))),
                 // Sprint 163: Parse a String to Float for UI→3D value bridging.
                 // Returns 0.0 on invalid input (never faults — safe for live text fields).
+                #[cfg(debug_assertions)]
                 "registry_force_panic" => {
                     crate::natives::registry::registry_force_panic();
                     Some(ExecResult::Value(RelType::Void))
@@ -1294,9 +1295,28 @@ impl BridgeModule for CoreBridge {
                 }
                 // Sprint 165: Texture Loading
                 "registry_load_texture" => {
+                    if !permissions.allow_fs_read {
+                        return Some(ExecResult::Fault {
+                            msg:
+                                "Permission Denied: registry.registry_load_texture requires FS_READ"
+                                    .to_string(),
+                            node: "Bridge::registry.registry_load_texture".into(),
+                        });
+                    }
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]
                     {
+                        if crate::natives::ffi_safety::validate_string(
+                            path,
+                            "registry_load_texture",
+                        )
+                        .is_none()
+                        {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] registry_load_texture: invalid path string".to_string(),
+                                node: "Native::Bridge::registry_load_texture".into(),
+                            });
+                        }
                         return Some(ExecResult::Value(RelType::Int(
                             crate::natives::registry::registry_load_texture(path),
                         )));
