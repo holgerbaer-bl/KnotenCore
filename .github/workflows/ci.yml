@@ -13,6 +13,8 @@ jobs:
   quality:
     name: Test / Fmt / Clippy
     runs-on: windows-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
