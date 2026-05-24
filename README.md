@@ -671,6 +671,25 @@ if (has_cache) {
 
 ---
 
+## 🔧 Registry Refactoring (Sprint 184)
+
+The monolithic `registry.rs` (1641 lines) has been split into focused, single-concern modules:
+
+| Module | Responsibility |
+|---|---|
+| `geometry.rs` | `RegistryVertex`, `CachedMesh`, mesh generators (`generate_cube`, `generate_uv_sphere`, `generate_cylinder`) |
+| `physics.rs` | `PHYSICS_WORLD`, `EntityPhysics`, collision detection, raycast mouse picking |
+| `scene.rs` | `SceneEntity`, `SceneLight`, `RegistryWindowState`, spawn/camera/light lifecycle |
+| `registry.rs` | Handle lifecycle, window proxies, input, textures, audio, file I/O, GPU compute |
+
+**Removals:**
+- Dead Voxel code purged: `VoxelWorldState`, `SendVoxelWorld`, `NativeHandle::VoxelWorld`, and 3 stub functions.
+- Voxel FFI bindings removed from `bridge.rs`.
+
+**Sandbox hardening:** `registry_read_file`, `registry_write_file`, and `registry_load_texture` now validate paths via `validate_fs_path` / `validate_fs_path_write` before touching disk.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

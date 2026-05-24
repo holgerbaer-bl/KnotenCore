@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 184: The Great Registry Refactoring & Security Purge (2026-05-24)
+Sprint 184: The Great Registry Refactoring. Split the registry monolith into modular geometry, physics, and scene components, removed dead Voxel code, and secured legacy file and texture FFI functions.
+- **Modularization**: Extracted `RegistryVertex`, `CachedMesh`, and geometry generators (`generate_cube`, `generate_uv_sphere`, `generate_cylinder`) into `src/natives/geometry.rs`. Extracted `PHYSICS_WORLD`, `EntityPhysics`, `registry_check_collision`, and `registry_get_clicked_entity` into `src/natives/physics.rs`. Extracted `SceneEntity`, `SceneLight`, `RegistryWindowState`, spawn functions, camera, and light management into `src/natives/scene.rs`.
+- **Voxel Removal**: Purged all dead Voxel code — `VoxelWorldState`, `SendVoxelWorld`, `NativeHandle::VoxelWorld`, stub functions (`registry_voxel_world_create`, `registry_voxel_add_block`, `registry_voxel_render_frame`), and their bridge bindings in `bridge.rs`.
+- **Sandbox Security**: Secured `registry_read_file` with `validate_fs_path`, `registry_write_file` with `validate_fs_path_write`, and `registry_load_texture` with `validate_fs_path`. All three now validate paths before any disk I/O, closing remaining sandbox bypass vectors.
+- **Submodule Sync**: All 3 new modules and registry clean-up mirrored identically in `aether_compiler/`.
+- **Documentation**: README, llm.md, and changelog updated with Sprint 184.
+
 ## [v1.1.0] - Sprint 183: The Persistence & File I/O Expansion (2026-05-24)
 Sprint 183: The Persistence Update. Added native `file_read` and `file_write` operations secured by strict sandbox permissions (`--allow-read` / `--allow-write`).
 - **Native File I/O**: Implemented `file_read(path)` and `file_write(path, content)` in `bridge.rs` under the `fs` module. `file_read` returns `RelType::Str`; `file_write` returns `RelType::Bool`.
