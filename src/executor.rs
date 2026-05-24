@@ -800,12 +800,8 @@ impl ExecutionEngine {
                     ];
 
                     // Strict whitelist of functions requiring WRITE permissions
-                    let write_requires = [
-                        "registry_file_create",
-                        "fs_write",
-                        "fs_create",
-                        "fs_append",
-                    ];
+                    let write_requires =
+                        ["registry_file_create", "fs_write", "fs_create", "fs_append"];
 
                     if (read_requires.contains(&function.as_str())
                         && !self.permissions.allow_fs_read)
@@ -1082,8 +1078,7 @@ impl ExecutionEngine {
             Node::PlayNote(_, _, _) | Node::StopNote(_) | Node::PlayAudioFile(_) => {
                 ExecResult::Value(RelType::Void)
             }
-            Node::LoadSample(_, _)
-            | Node::PlaySample(_, _, _) => ExecResult::Value(RelType::Void),
+            Node::LoadSample(_, _) | Node::PlaySample(_, _, _) => ExecResult::Value(RelType::Void),
             _ => ExecResult::Fault {
                 msg: format!("Unsupported node in executor: {:?}", node),
                 node: "Executor".into(),
