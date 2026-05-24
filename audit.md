@@ -47,7 +47,7 @@ Dieses Dokument prüft die auf der veröffentlichten Website (`index.html` und `
 **Behauptung:** "Die neueste Iteration führt absturzsicheres File-I/O ein und ermöglicht Agenten, ein komplettes Branding dynamisch über den KnotenCore AST zu definieren."
 
 **Überprüfung: ✅ Bestanden**
-- `registry_read_file` und `registry_write_file` wurden verifiziert und nutzen standardisierte, absichernde Rust-Closures (`unwrap_or_else`), um App-Crashes bei fehlerhaften Lese/Schreibrechten oder fehlenden Dateien komplett zu eliminieren.
+- `file_read` und `file_write` (fs-Modul) wurden verifiziert und nutzen `validate_fs_path` / `validate_fs_path_write` sowie `allow_fs_read` / `allow_fs_write` Sandbox-Guards. Die älteren `registry_read_file`/`registry_write_file` wurden in Sprint 185 zugunsten der vereinheitlichten fs-API entfernt.
 - Das dynamische Styling wird per `Node::UISetStyle` sofort (immediate mode) in der `egui::Context`-Kette durchgereicht. Änderungen an Schatten, Eckenradien und Primärfarben können von der KI zur Laufzeit konfiguriert werden, was "Glassmorphism" direkt auf der Bare-Metal-Ebene ermöglicht.
 
 ## 6. AI-Readiness Benchmark (Sprint 127)
