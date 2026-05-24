@@ -2,7 +2,7 @@
   "Block": [
     {
       "Call": [
-        "registry_write_file",
+        "file_write",
         [
           {
             "StringLiteral": "benchmark/tasks/pipe_in.json"
@@ -81,7 +81,7 @@
     },
     {
       "Call": [
-        "registry_write_file",
+        "file_write",
         [
           {
             "StringLiteral": "benchmark/tasks/pipe_out.json"

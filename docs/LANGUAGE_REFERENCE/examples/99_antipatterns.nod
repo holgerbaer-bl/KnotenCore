@@ -56,7 +56,7 @@
 // ✅ CORRECT — Only call functions listed in native_functions.json.
 //              Use ExternCall with explicit module + function fields.
 // { "ExternCall": { "module": "registry", "function": "registry_file_create",    "args": [{ "StringLiteral": "out.txt" }] } }
-// { "ExternCall": { "module": "registry", "function": "registry_read_file",      "args": [{ "StringLiteral": "data.txt" }] } }
+// { "ExternCall": { "module": "registry", "function": "file_read",      "args": [{ "StringLiteral": "data.txt" }] } }
 // { "ExternCall": { "module": "registry", "function": "registry_create_window",  "args": [{ "IntLiteral": 800 }, { "IntLiteral": 600 }, { "StringLiteral": "App" }] } }
 // { "ExternCall": { "module": "net",      "function": "net_fetch",               "args": [{ "StringLiteral": "https://example.com" }] } }
 // { "ExternCall": { "module": "time",     "function": "time_sleep_ms",           "args": [{ "IntLiteral": 16 }] } }
@@ -150,7 +150,7 @@
 // ANTI-PATTERN 9: Using I/O without permission flags
 // ----------------------------------------------------------------
 
-// ❌ WRONG — Running a script that calls registry_read_file without
+// ❌ WRONG — Running a script that calls file_read without
 //            passing --allow-read returns ERR_IO_PERMISSION Fault.
 // cargo run --bin run_knc -- my_script.nod
 

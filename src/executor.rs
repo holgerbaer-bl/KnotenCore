@@ -205,12 +205,6 @@ pub struct ExecutionEngine {
     pub input_shift: bool,
     pub input_left_click: bool,
     pub interaction_active: bool,
-    pub selected_voxel_pos: Option<[i64; 3]>,
-    pub place_voxel_pos: Option<[i64; 3]>,
-    // ── Voxel map (CPU-side data only) ───────────────────────────────
-    pub voxel_map: HashMap<[i64; 3], u8>,
-    pub voxel_map_active: bool,
-    pub voxel_map_dirty: bool,
     pub interaction_enabled: bool,
     pub physics_enabled: bool,
     pub velocity_y: f32,
@@ -456,11 +450,6 @@ impl ExecutionEngine {
             input_shift: false,
             input_left_click: false,
             interaction_active: false,
-            selected_voxel_pos: None,
-            place_voxel_pos: None,
-            voxel_map: HashMap::new(),
-            voxel_map_active: false,
-            voxel_map_dirty: false,
             interaction_enabled: false,
             physics_enabled: false,
             velocity_y: 0.0,
@@ -590,39 +579,6 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Void)
             }
             Node::InitAudio => ExecResult::Value(RelType::Void),
-            Node::InitVoxelMap => {
-                self.voxel_map_active = true;
-                ExecResult::Value(RelType::Void)
-            }
-            Node::SetVoxel(x, y, z, id) => {
-                let vx = match self.evaluate(x) {
-                    ExecResult::Value(RelType::Int(i)) => i as i32,
-                    _ => 0,
-                };
-                let vy = match self.evaluate(y) {
-                    ExecResult::Value(RelType::Int(i)) => i as i32,
-                    _ => 0,
-                };
-                let vz = match self.evaluate(z) {
-                    ExecResult::Value(RelType::Int(i)) => i as i32,
-                    _ => 0,
-                };
-                let vid = match self.evaluate(id) {
-                    ExecResult::Value(RelType::Int(i)) => i as u8,
-                    _ => 0,
-                };
-                self.voxel_map
-                    .insert([vx as i64, vy as i64, vz as i64], vid);
-                self.voxel_map_dirty = true;
-                ExecResult::Value(RelType::Void)
-            }
-            Node::DrawVoxelGrid(_) => ExecResult::Value(RelType::Void),
-            Node::EnablePhysics(b) => {
-                if let ExecResult::Value(RelType::Bool(v)) = self.evaluate(b) {
-                    self.physics_enabled = v;
-                }
-                ExecResult::Value(RelType::Void)
-            }
             Node::AddWorldAABB { min, max } => {
                 let v_min = match self.evaluate(min) {
                     ExecResult::Value(v) => self.to_vec3(v),
@@ -641,12 +597,6 @@ impl ExecutionEngine {
                         node: "Node::AddWorldAABB".into(),
                     }
                 }
-            }
-            Node::EnableInteraction(b) => {
-                if let ExecResult::Value(RelType::Bool(v)) = self.evaluate(b) {
-                    self.interaction_enabled = v;
-                }
-                ExecResult::Value(RelType::Void)
             }
             Node::MouseGrab { enabled } => {
                 if let ExecResult::Value(RelType::Bool(v)) = self.evaluate(enabled) {
@@ -842,7 +792,6 @@ impl ExecutionEngine {
                 if module == "fs" || module == "registry" {
                     // Strict whitelist of functions requiring READ permissions
                     let read_requires = [
-                        "registry_read_file",
                         "registry_texture_load", // Loading a texture reads a file
                         "registry_play_sound",
                         "registry_loop_music",
@@ -851,13 +800,8 @@ impl ExecutionEngine {
                     ];
 
                     // Strict whitelist of functions requiring WRITE permissions
-                    let write_requires = [
-                        "registry_write_file",
-                        "registry_file_create",
-                        "fs_write",
-                        "fs_create",
-                        "fs_append",
-                    ];
+                    let write_requires =
+                        ["registry_file_create", "fs_write", "fs_create", "fs_append"];
 
                     if (read_requires.contains(&function.as_str())
                         && !self.permissions.allow_fs_read)
@@ -1134,10 +1078,7 @@ impl ExecutionEngine {
             Node::PlayNote(_, _, _) | Node::StopNote(_) | Node::PlayAudioFile(_) => {
                 ExecResult::Value(RelType::Void)
             }
-            Node::InitCamera(_)
-            | Node::LoadTextureAtlas(_, _)
-            | Node::LoadSample(_, _)
-            | Node::PlaySample(_, _, _) => ExecResult::Value(RelType::Void),
+            Node::LoadSample(_, _) | Node::PlaySample(_, _, _) => ExecResult::Value(RelType::Void),
             _ => ExecResult::Fault {
                 msg: format!("Unsupported node in executor: {:?}", node),
                 node: "Executor".into(),

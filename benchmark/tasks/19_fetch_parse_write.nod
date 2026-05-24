@@ -50,7 +50,7 @@
     },
     {
       "Call": [
-        "registry_write_file",
+        "file_write",
         [
           {
             "StringLiteral": "benchmark/tasks/write_result.txt"

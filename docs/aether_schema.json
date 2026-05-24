@@ -320,13 +320,6 @@
             ]
         },
         {
-            "title": "InitVoxelMap",
-            "type": "string",
-            "enum": [
-                "InitVoxelMap"
-            ]
-        },
-        {
             "title": "InitAudio",
             "type": "string",
             "enum": [

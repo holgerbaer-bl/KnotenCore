@@ -126,10 +126,6 @@
           "match": "\\b(InitAudio|PlayNote|StopNote|LoadSample|PlaySample)\\b"
         },
         {
-          "name": "support.function.voxel.knoten",
-          "match": "\\b(InitCamera|DrawVoxelGrid|LoadTextureAtlas|InitVoxelMap|SetVoxel|EnableInteraction|EnablePhysics)\\b"
-        },
-        {
           "name": "support.function.physics.knoten",
           "match": "\\b(AddWorldAABB|CheckCollision|Fetch|Extract)\\b"
         },
@@ -151,7 +147,7 @@
       "patterns": [
         {
           "name": "entity.name.function.registry.knoten",
-          "match": "\\b(registry_create_window|registry_window_update|registry_window_close|registry_fill_color|registry_draw_entity|registry_draw_cube|registry_draw_sphere|registry_draw_cylinder|registry_draw_rect|registry_draw_text|registry_texture_load|registry_set_camera|registry_set_camera_for_window|registry_is_key_pressed|registry_is_mouse_down|registry_get_mouse_delta_x|registry_get_mouse_delta_y|registry_get_last_char|registry_get_mouse_ray|registry_raycast_aabb|registry_read_file|registry_write_file|registry_file_create|registry_now|registry_window_render_frame|registry_get_ultimate_answer|registry_release)\\b"
+          "match": "\\b(registry_create_window|registry_window_update|registry_window_close|registry_fill_color|registry_draw_entity|registry_draw_cube|registry_draw_sphere|registry_draw_cylinder|registry_draw_rect|registry_draw_text|registry_texture_load|registry_set_camera|registry_set_camera_for_window|registry_is_key_pressed|registry_is_mouse_down|registry_get_mouse_delta_x|registry_get_mouse_delta_y|registry_get_last_char|registry_get_mouse_ray|registry_raycast_aabb|registry_file_create|registry_now|registry_window_render_frame|registry_release)\\b"
         }
       ]
     },

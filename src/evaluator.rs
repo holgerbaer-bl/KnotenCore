@@ -718,15 +718,8 @@ impl ExecutionEngine {
             | Node::UIFullscreen(_)
             | Node::UIGrid(_, _, _)
             | Node::UIScrollArea(_, _)
-            | Node::InitCamera(_)
-            | Node::DrawVoxelGrid(_)
-            | Node::LoadTextureAtlas(_, _)
             | Node::LoadSample(_, _)
             | Node::PlaySample(_, _, _)
-            | Node::InitVoxelMap
-            | Node::SetVoxel(_, _, _, _)
-            | Node::EnableInteraction(_)
-            | Node::EnablePhysics(_)
             | Node::Import(_)
             | Node::AddWorldAABB { .. }
             | Node::LoadComputeShader(_)

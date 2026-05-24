@@ -67,10 +67,6 @@
           "match": "\"(InitAudio|PlayNote|StopNote|LoadSample|PlaySample)\""
         },
         {
-          "name": "support.function.voxel.nod",
-          "match": "\"(InitCamera|DrawVoxelGrid|LoadTextureAtlas|InitVoxelMap|SetVoxel|EnableInteraction|EnablePhysics)\""
-        },
-        {
           "name": "entity.name.function.registry.nod",
           "match": "\"registry_[a-z_]+\""
         },

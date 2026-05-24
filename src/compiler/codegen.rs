@@ -36,7 +36,6 @@ impl Codegen {
                         | "registry_file_create"
                         | "registry_now"
                         | "registry_gpu_init"
-                        | "registry_voxel_world_create"
                         | "registry_texture_load"
                 )
             }
