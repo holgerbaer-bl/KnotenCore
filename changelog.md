@@ -2,6 +2,19 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 186: The Final Core Purge & Ecosystem Alignment (2026-05-24)
+Sprint 186: The Final Core Purge. Removed all 7 Voxel AST Node variants from the compiler core, deleted legacy Voxel examples and bench tasks, and aligned the entire ecosystem (schemas, docs, benchmarks, VSCode tooling) with the post-184 reality.
+- **AST Purge**: Removed `InitCamera`, `DrawVoxelGrid`, `LoadTextureAtlas`, `InitVoxelMap`, `SetVoxel`, `EnableInteraction`, `EnablePhysics` from `Node` enum in `ast.rs` (~8 lines).
+- **Executor Cleanup**: Removed 5 Voxel state fields (`voxel_map`, `selected_voxel_pos`, etc.) and all 7 Voxel match arms from `evaluate()`. Cleaned `registry_read_file` / `registry_write_file` from sandbox arrays (~56 lines).
+- **Validator / Evaluator / Optimizer**: Removed all Voxel node validation rules, stub handlers, and optimization paths (~37 lines across 3 files).
+- **Codegen**: Removed `registry_voxel_world_create` handle-detection string.
+- **Schemas**: Purged 7 Voxel node definitions from `node_types.json` (59 lines) and `aether_schema.json` (7 lines).
+- **Docs**: Removed Voxel section from `KNOTEN_SPEC.md` (32 lines). Cleaned `knoten_ai_context_v124.md` of Voxel grammar, schemas, and deleted registry function docs (219 lines). Updated `99_antipatterns.nod` to reference `file_read`.
+- **Benchmarks & Examples**: Updated 3 benchmark `.nod` files to use `file_write`. Deleted `examples/voxel/` directory and `voxel_genesis.nod`. Removed `tmp/fix_nods.py` and `tmp/generate_tasks.py`.
+- **VSCode Tooling**: Removed Voxel keywords and deleted registry functions from `knoten.tmLanguage.json` and `nod.tmLanguage.json`.
+- **Submodule Sync**: All 16 source + 10 doc + 8 tool/bench/examples changes mirrored in `aether_compiler/`.
+- **Documentation**: README, llm.md, and changelog updated.
+
 ## [v1.1.0] - Sprint 185: FFI Consolidation & Architectural Purge (2026-05-24)
 Sprint 185: FFI Consolidation. Consolidated sandboxed file I/O operations into the fs module, encapsulated geometry caches within the scene graph, updated EBNF grammar to purge legacy voxel nodes, and eliminated redundant FFI functions.
 - **FFI API Consolidation**: Removed `registry_read_file`, `registry_write_file`, and `registry_get_ultimate_answer` from `registry.rs` and their bridge bindings. All file I/O now goes through the `fs` module (`file_read` / `file_write`).

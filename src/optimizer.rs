@@ -9,7 +9,6 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::StringLiteral(_)
         | Node::Identifier(_)
         | Node::InitGraphics
-        | Node::InitVoxelMap
         | Node::InitAudio
         | Node::GetLastKeypress
         | Node::MapCreate
@@ -51,7 +50,6 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::MapHasKey(l, r)
         | Node::FileWrite(l, r)
         | Node::FSWrite(l, r)
-        | Node::LoadTextureAtlas(l, r)
         | Node::LoadSample(l, r) => {
             count += count_nodes(l) + count_nodes(r);
         }
@@ -74,12 +72,8 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::UILabel(val)
         | Node::UIButton(val)
         | Node::UITextInput(val)
-        | Node::InitCamera(val)
         | Node::FileRead(val)
         | Node::FSRead(val)
-        | Node::DrawVoxelGrid(val)
-        | Node::EnableInteraction(val)
-        | Node::EnablePhysics(val)
         | Node::Return(val) => {
             count += count_nodes(val);
         }
@@ -129,7 +123,7 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::PlaySample(w, h, t) => {
             count += count_nodes(w) + count_nodes(h) + count_nodes(t);
         }
-        Node::RenderAsset(a, b, c, d) | Node::SetVoxel(a, b, c, d) => {
+        Node::RenderAsset(a, b, c, d) => {
             count += count_nodes(a) + count_nodes(b) + count_nodes(c) + count_nodes(d);
         }
         Node::UISetStyle(a, b, c, d, opt_e, opt_f) => {
@@ -333,7 +327,6 @@ pub fn optimize(node: Node) -> Node {
         Node::Identifier(name) => Node::Identifier(name),
         Node::Import(path) => Node::Import(path),
         Node::InitGraphics => Node::InitGraphics,
-        Node::InitVoxelMap => Node::InitVoxelMap,
         Node::InitAudio => Node::InitAudio,
         Node::GetLastKeypress => Node::GetLastKeypress,
         Node::Fetch {
@@ -538,11 +531,6 @@ pub fn optimize(node: Node) -> Node {
         Node::UIFullscreen(b) => Node::UIFullscreen(Box::new(optimize(*b))),
         Node::UIGrid(cols, id, body) => Node::UIGrid(cols, id, Box::new(optimize(*body))),
         Node::UIScrollArea(id, body) => Node::UIScrollArea(id, Box::new(optimize(*body))),
-        Node::InitCamera(f) => Node::InitCamera(Box::new(optimize(*f))),
-        Node::DrawVoxelGrid(v) => Node::DrawVoxelGrid(Box::new(optimize(*v))),
-        Node::LoadTextureAtlas(p, s) => {
-            Node::LoadTextureAtlas(Box::new(optimize(*p)), Box::new(optimize(*s)))
-        }
         Node::LoadSample(id, p) => {
             Node::LoadSample(Box::new(optimize(*id)), Box::new(optimize(*p)))
         }
@@ -551,14 +539,6 @@ pub fn optimize(node: Node) -> Node {
             Box::new(optimize(*v)),
             Box::new(optimize(*p)),
         ),
-        Node::SetVoxel(x, y, z, id) => Node::SetVoxel(
-            Box::new(optimize(*x)),
-            Box::new(optimize(*y)),
-            Box::new(optimize(*z)),
-            Box::new(optimize(*id)),
-        ),
-        Node::EnableInteraction(b) => Node::EnableInteraction(Box::new(optimize(*b))),
-        Node::EnablePhysics(b) => Node::EnablePhysics(Box::new(optimize(*b))),
         Node::DrawRect {
             x,
             y,

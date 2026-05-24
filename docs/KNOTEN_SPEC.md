@@ -102,39 +102,6 @@ Operations take a left-hand side (`lhs`) and right-hand side (`rhs`).
 *   **`RenderMesh(Box<Node>, Box<Node>, Box<Node>)`**: Executes a RenderPass draw call to the screen (Shader Identifier, Vertex Buffer Array, MVP Matrix Uniform Array).
 *   **`PollEvents(Box<Node>)`**: Submits a block of nodes to run inside the Window Event Loop, intercepting close requests.
 
-#### `InitCamera`
-Initializes a First-Person 3D Camera mapping keyboard `WASD` inputs to matrix projections automatically.
-*   **Structure:** `{"InitCamera": [{"FloatLiteral": <FOV>}]}`
-
-#### `DrawVoxelGrid`
-Receives an array of voxel positions defining chunks of blocks in 3-dimensional space (instanced geometry).
-*   **Structure:** `{"DrawVoxelGrid": [{"ArrayCreate": [X, Y, Z, BlockID, X, Y, Z, BlockID, ...]}]}`
-
-*   **Structure:** `{"LoadTextureAtlas": [{"StringLiteral": "<Filepath>"}, {"FloatLiteral": <TileSize (e.g. 16.0)>}]}`
-
-#### `InitVoxelMap`
-Switches the voxel renderer from static instance arrays to a persistent, mutable internal `HashMap` state. This is required for real-time mining and building.
-*   **Structure:** `"InitVoxelMap"`
-
-#### `EnableInteraction`
-Activates 3D raycasting (DDA algorithm) and mouse input listeners. Left-click breaks blocks (Mining), Right-click places blocks (Building).
-*   **Structure:** `{"EnableInteraction": [{"BoolLiteral": <true/false>}]}`
-
-#### `EnablePhysics`
-Activates real-time player physics, including gravity, AABB collision against the Voxel Map, and jumping (Spacebar).
-*   **Structure:** `{"EnablePhysics": [{"BoolLiteral": <true/false>}]}`
-
-#### `SetVoxel`
-Directly modifies the persistent Voxel Map at the specified coordinates.
-*   **Standard Block IDs & Atlas Layout (4x4 tiles):**
-    - 1: **Grass** (Top: Tile 0, Side: Tile 1, Bottom: Tile 2/Dirt)
-    - 2: **Stone** (All: Tile 3)
-    - 3: **Sand** (All: Tile 4)
-    - 4: **Water** (All: Tile 5)
-    - 5: **Wood** (Top/Bottom: Tile 7, Side: Tile 6)
-    - 6: **Leaves** (All: Tile 8)
-*   **Structure:** `{"SetVoxel": [<X>, <Y>, <Z>, <BlockID>]}`
-
 #### `LoadSample`
 Reads an audio file into system RAM buffering bytes natively using the Rodio CPAL interface (Amiga Paula mapping).
 *   **Structure:** `{"LoadSample": [{"IntLiteral": <SampleID>}, {"StringLiteral": "<Filepath>"}]}`
@@ -200,6 +167,6 @@ The `run_knc` tool includes a built-in static analyzer that performs deep AST in
 ### 5.3. CLI Validation Mode
 Users can validate any script without executing it by using the `--check` flag:
 ```bash
-cargo run --bin run_knc -- --check examples/voxel/showcase_world.json
+cargo run --bin run_knc -- --check examples/hello_world.json
 ```
 If the script passes all checks, the tool outputs `Syntax OK`. Otherwise, it provides a detailed list of logical and structural errors.

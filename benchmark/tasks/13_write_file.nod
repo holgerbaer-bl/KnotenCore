@@ -2,7 +2,7 @@
   "Block": [
     {
       "Call": [
-        "registry_write_file",
+        "file_write",
         [
           {
             "StringLiteral": "benchmark/tasks/test_out.txt"

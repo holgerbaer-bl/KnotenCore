@@ -698,13 +698,11 @@ The monolithic `registry.rs` (1641 lines) has been split into focused, single-co
 
 ---
 
-## 🧹 FFI Consolidation (Sprint 185)
-
-Legacy FFI functions consolidated and redundant caches encapsulated:
-
-- **Removed**: `registry_read_file`, `registry_write_file`, `registry_get_ultimate_answer` — all file I/O now unified under `file_read` / `file_write` in the `fs` module.
-- **Cache migration**: `SENT_MESHES` moved from `registry.rs` into `scene.rs`. Mesh deduplication is now self-contained within the scene graph module.
-- **Cleanup**: Deleted entries removed from `native_functions.json`; sandbox permission table updated in `llm.md`.
+### 🧹 Core Purge & Ecosystem Alignment (Sprint 186)
+- **AST-Bereinigung**: 7 Voxel-Node-Varianten aus dem `Node`-Enum entfernt (`InitCamera`, `DrawVoxelGrid`, `LoadTextureAtlas`, `InitVoxelMap`, `SetVoxel`, `EnableInteraction`, `EnablePhysics`).
+- **Executor-Entschlackung**: Voxel-Zustandsfelder und Match-Arms aus Executor, Validator, Evaluator und Optimizer entfernt — insgesamt ~102 Zeilen toter Code.
+- **Schema-Synchronisation**: Voxel-Node-Definitionen aus `node_types.json`, `aether_schema.json`, `KNOTEN_SPEC.md` und `knoten_ai_context_v124.md` gelöscht.
+- **Ecosystem-Alignment**: 3 Benchmark-Dateien auf `file_write` migriert, Voxel-Beispiele gelöscht, temporäre Skripte entfernt, VSCode-Syntax-Highlighter bereinigt.
 
 ---
 

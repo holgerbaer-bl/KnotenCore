@@ -35,7 +35,6 @@ node        ::= literal
               | ui-node
               | graphics-3d
               | audio-node
-              | voxel-node
               | physics-node
               | system-node
               ;
@@ -78,7 +77,6 @@ system-node ::= '{"Time":null}' | '"Time"'
               | '{"UIFillParent":null}' | '"UIFillParent"'
               | '{"MapCreate":null}' | '"MapCreate"'
               | '{"InitAudio":null}' | '"InitAudio"'
-              | '{"InitVoxelMap":null}' | '"InitVoxelMap"'
               | '{"RaycastSimple":null}' | '"RaycastSimple"'
               ;
 
@@ -209,7 +207,6 @@ graphics-3d ::= init-window | load-shader | render-mesh | poll-events
               | fps-camera | mouse-grab | weapon-vm
               | render-canvas | transform-2d | sprite-2d
               | load-font | draw-text
-              | init-camera | draw-voxel | load-tex-atlas
               ;
 
 init-window ::= '{"InitWindow":' '[' node ',' node ',' node ']' '}' ;
@@ -259,16 +256,6 @@ stop-note   ::= '{"StopNote":' node '}' ;
 play-audio  ::= '{"PlayAudioFile":' node '}' ;
 load-sample ::= '{"LoadSample":' '[' node ',' node ']' '}' ;
 play-sample ::= '{"PlaySample":' '[' node ',' node ',' node ']' '}' ;
-
-(* ─── Voxel Engine ───────────────────────────────────────────── *)
-voxel-node  ::= init-camera | draw-voxel | load-tex-atlas
-              | set-voxel | enable-interaction | enable-physics ;
-init-camera ::= '{"InitCamera":' node '}' ;
-draw-voxel  ::= '{"DrawVoxelGrid":' node '}' ;
-load-tex-atlas ::= '{"LoadTextureAtlas":' '[' node ',' node ']' '}' ;
-set-voxel   ::= '{"SetVoxel":' '[' node ',' node ',' node ',' node ']' '}' ;
-enable-interaction ::= '{"EnableInteraction":' node '}' ;
-enable-physics ::= '{"EnablePhysics":' node '}' ;
 
 (* ─── Physics ────────────────────────────────────────────────── *)
 physics-node ::= add-world-aabb | check-collision ;
@@ -1344,60 +1331,6 @@ digit   ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
       "additionalProperties": false
     },
     {
-      "description": "Activate 3D FPS camera (voxel engine). fov in degrees.",
-      "type": "object",
-      "required": ["InitCamera"],
-      "properties": { "InitCamera": { "$ref": "#" } },
-      "additionalProperties": false
-    },
-    {
-      "description": "Render voxel grid from position array.",
-      "type": "object",
-      "required": ["DrawVoxelGrid"],
-      "properties": { "DrawVoxelGrid": { "$ref": "#" } },
-      "additionalProperties": false
-    },
-    {
-      "description": "Load tiled texture atlas. [path, tile_size:Float]",
-      "type": "object",
-      "required": ["LoadTextureAtlas"],
-      "properties": {
-        "LoadTextureAtlas": {
-          "type": "array",
-          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
-          "minItems": 2, "maxItems": 2
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Set a voxel at position. [x, y, z, voxel_id]",
-      "type": "object",
-      "required": ["SetVoxel"],
-      "properties": {
-        "SetVoxel": {
-          "type": "array",
-          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
-          "minItems": 4, "maxItems": 4
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Toggle raycasting + mouse-block interaction.",
-      "type": "object",
-      "required": ["EnableInteraction"],
-      "properties": { "EnableInteraction": { "$ref": "#" } },
-      "additionalProperties": false
-    },
-    {
-      "description": "Toggle gravity and AABB collision physics.",
-      "type": "object",
-      "required": ["EnablePhysics"],
-      "properties": { "EnablePhysics": { "$ref": "#" } },
-      "additionalProperties": false
-    },
-    {
       "description": "Register world AABB collision barrier.",
       "type": "object",
       "required": ["AddWorldAABB"],
@@ -1488,11 +1421,6 @@ digit   ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
       "description": "Initialise CPAL audio engine (unit node).",
       "type": "string",
       "enum": ["InitAudio"]
-    },
-    {
-      "description": "Transfer voxel state to mutable HashMap (unit node).",
-      "type": "string",
-      "enum": ["InitVoxelMap"]
     },
     {
       "description": "Engine uptime float in seconds (unit node).",
@@ -1818,48 +1746,6 @@ digit   ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
           "args": [
             { "Identifier": "fh" },
             { "StringLiteral": "Hello, World!" }
-          ]
-        }
-      }
-    },
-    {
-      "name": "registry_read_file",
-      "module": "registry",
-      "description": "Reads the entire contents of a file and returns a String. Path is canonicalized and must remain within the working directory.",
-      "parameters": [
-        { "name": "path", "type": "String", "required": true }
-      ],
-      "returns": "String",
-      "permissions": ["--allow-read"],
-      "errors": ["ERR_IO_PERMISSION", "ERR_FILE_NOT_FOUND", "ERR_PATH_ESCAPE"],
-      "example": {
-        "Assign": ["content", {
-          "ExternCall": {
-            "module": "registry",
-            "function": "registry_read_file",
-            "args": [ { "StringLiteral": "data/config.json" } ]
-          }
-        }]
-      }
-    },
-    {
-      "name": "registry_write_file",
-      "module": "registry",
-      "description": "Writes a String to a file, creating it if it does not exist. Returns Bool(true) on success.",
-      "parameters": [
-        { "name": "path",    "type": "String", "required": true },
-        { "name": "content", "type": "String", "required": true }
-      ],
-      "returns": "Bool",
-      "permissions": ["--allow-write"],
-      "errors": ["ERR_IO_PERMISSION", "ERR_PATH_ESCAPE"],
-      "example": {
-        "ExternCall": {
-          "module": "registry",
-          "function": "registry_write_file",
-          "args": [
-            { "StringLiteral": "output/result.txt" },
-            { "StringLiteral": "42" }
           ]
         }
       }
@@ -2367,7 +2253,6 @@ digit   ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
 // ✅ CORRECT — Only call functions listed in native_functions.json.
 //              Use ExternCall with explicit module + function fields.
 // { "ExternCall": { "module": "registry", "function": "registry_file_create",    "args": [{ "StringLiteral": "out.txt" }] } }
-// { "ExternCall": { "module": "registry", "function": "registry_read_file",      "args": [{ "StringLiteral": "data.txt" }] } }
 // { "ExternCall": { "module": "registry", "function": "registry_create_window",  "args": [{ "IntLiteral": 800 }, { "IntLiteral": 600 }, { "StringLiteral": "App" }] } }
 // { "ExternCall": { "module": "net",      "function": "net_fetch",               "args": [{ "StringLiteral": "https://example.com" }] } }
 // { "ExternCall": { "module": "time",     "function": "time_sleep_ms",           "args": [{ "IntLiteral": 16 }] } }
@@ -2455,20 +2340,6 @@ digit   ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
 // ✅ CORRECT — ALWAYS assign the return value back to the variable.
 //              This is the idiomatic state-binding pattern.
 // { "Assign": ["text", { "UITextInput": { "Identifier": "text" } }] }
-
-
-// ----------------------------------------------------------------
-// ANTI-PATTERN 9: Using I/O without permission flags
-// ----------------------------------------------------------------
-
-// ❌ WRONG — Running a script that calls registry_read_file without
-//            passing --allow-read returns ERR_IO_PERMISSION Fault.
-// cargo run --bin run_knc -- my_script.nod
-
-// ✅ CORRECT — Always pass the required flag.
-// cargo run --bin run_knc -- my_script.nod --allow-read
-// cargo run --bin run_knc -- my_script.nod --allow-read --allow-write
-// cargo run --bin run_knc -- my_script.nod --allow-net
 
 
 // ----------------------------------------------------------------

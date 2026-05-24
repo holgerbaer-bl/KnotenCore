@@ -70,7 +70,6 @@ impl Validator {
             | Node::BitAnd(l, r)
             | Node::BitShiftLeft(l, r)
             | Node::BitShiftRight(l, r)
-            | Node::LoadTextureAtlas(l, r)
             | Node::LoadSample(l, r) => {
                 self.check_node(l);
                 self.check_node(r);
@@ -142,10 +141,6 @@ impl Validator {
             | Node::UILabel(n)
             | Node::UIButton(n)
             | Node::UITextInput(n)
-            | Node::InitCamera(n)
-            | Node::DrawVoxelGrid(n)
-            | Node::EnableInteraction(n)
-            | Node::EnablePhysics(n)
             | Node::Return(n)
             | Node::Abs(n) => {
                 self.check_node(n);
@@ -267,7 +262,7 @@ impl Validator {
                 self.check_node(m);
             }
             Node::Time | Node::GlobalTime => {}
-            Node::RenderAsset(s, m, t, u) | Node::SetVoxel(s, m, t, u) => {
+            Node::RenderAsset(s, m, t, u) => {
                 self.check_node(s);
                 self.check_node(m);
                 self.check_node(t);
@@ -317,7 +312,6 @@ impl Validator {
             | Node::InitGraphics
             | Node::InitAudio
             | Node::GetLastKeypress
-            | Node::InitVoxelMap
             | Node::UIFillParent
             | Node::StopNote(_) => {}
             Node::DrawRect {

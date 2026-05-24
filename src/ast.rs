@@ -231,16 +231,8 @@ pub enum Node {
     UIGrid(i64, String, Box<Node>), // Columns, ID, Body
     UIScrollArea(String, Box<Node>), // ID, Body for native scrolling view
 
-    // Voxel Engine (Sprint 12 & 13)
-    InitCamera(Box<Node>),    // FOV (Float). Activates 3D FPS camera
-    DrawVoxelGrid(Box<Node>), // Array of Positions (XYZ layout)
-    LoadTextureAtlas(Box<Node>, Box<Node>), // Path (String), TileSize (Float)
     LoadSample(Box<Node>, Box<Node>), // ID (Int), Path (String)
     PlaySample(Box<Node>, Box<Node>, Box<Node>), // ID (Int), Volume (Float), Pitch (Float)
-    InitVoxelMap,             // Transfers Voxel control to a mutable HashMap
-    SetVoxel(Box<Node>, Box<Node>, Box<Node>, Box<Node>), // X, Y, Z, ID
-    EnableInteraction(Box<Node>), // Boolean (True): Activates Raycasting & Mouse Mapping
-    EnablePhysics(Box<Node>), // Boolean (True): Activates Gravity & Collision
     // Control Flow
     If(Box<Node>, Box<Node>, Option<Box<Node>>),
     While(Box<Node>, Box<Node>),

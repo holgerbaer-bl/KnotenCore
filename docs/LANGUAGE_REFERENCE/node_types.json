@@ -1051,60 +1051,6 @@
       "additionalProperties": false
     },
     {
-      "description": "Activate 3D FPS camera (voxel engine). fov in degrees.",
-      "type": "object",
-      "required": ["InitCamera"],
-      "properties": { "InitCamera": { "$ref": "#" } },
-      "additionalProperties": false
-    },
-    {
-      "description": "Render voxel grid from position array.",
-      "type": "object",
-      "required": ["DrawVoxelGrid"],
-      "properties": { "DrawVoxelGrid": { "$ref": "#" } },
-      "additionalProperties": false
-    },
-    {
-      "description": "Load tiled texture atlas. [path, tile_size:Float]",
-      "type": "object",
-      "required": ["LoadTextureAtlas"],
-      "properties": {
-        "LoadTextureAtlas": {
-          "type": "array",
-          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" } ],
-          "minItems": 2, "maxItems": 2
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Set a voxel at position. [x, y, z, voxel_id]",
-      "type": "object",
-      "required": ["SetVoxel"],
-      "properties": {
-        "SetVoxel": {
-          "type": "array",
-          "prefixItems": [ { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" }, { "$ref": "#" } ],
-          "minItems": 4, "maxItems": 4
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Toggle raycasting + mouse-block interaction.",
-      "type": "object",
-      "required": ["EnableInteraction"],
-      "properties": { "EnableInteraction": { "$ref": "#" } },
-      "additionalProperties": false
-    },
-    {
-      "description": "Toggle gravity and AABB collision physics.",
-      "type": "object",
-      "required": ["EnablePhysics"],
-      "properties": { "EnablePhysics": { "$ref": "#" } },
-      "additionalProperties": false
-    },
-    {
       "description": "Register world AABB collision barrier.",
       "type": "object",
       "required": ["AddWorldAABB"],
@@ -1195,11 +1141,6 @@
       "description": "Initialise CPAL audio engine (unit node).",
       "type": "string",
       "enum": ["InitAudio"]
-    },
-    {
-      "description": "Transfer voxel state to mutable HashMap (unit node).",
-      "type": "string",
-      "enum": ["InitVoxelMap"]
     },
     {
       "description": "Engine uptime float in seconds (unit node).",
