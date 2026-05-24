@@ -1,0 +1,34 @@
+// Sprint 188: Sandboxed Time Module — Chrono Integration Test
+// Demonstrates formatted wall-clock time output and UTC epoch timestamping.
+// Uses time_utc_timestamp to create a unique cache entry via file_write.
+// Run with: run_knc --allow-read --allow-write examples/time_stamping.knoten
+
+print("=== Sprint 188: Sandboxed Time Module ===");
+
+// ── Phase 1: Formatted local wall-clock time ─────────────────
+let formatted = time_get_string();
+print("  Local date/time: ");
+print(formatted);
+
+// ── Phase 2: UTC epoch timestamp ─────────────────────────────
+let epoch = time_utc_timestamp();
+print("  UTC epoch seconds: ");
+print(epoch);
+
+// ── Phase 3: Unique cache entry with timestamp ────────────────
+let cache_line = "cache_line_" + ToString(epoch);
+print("  Writing cache entry: " + cache_line);
+
+let payload = "{\"stamp\": " + ToString(epoch) + ", \"date\": \"" + formatted + "\"}";
+let ok = file_write("examples/time_cache.json", payload);
+print("  file_write result: ");
+print(ok);
+
+// ── Phase 4: Read back and verify ────────────────────────────
+let cached = file_read("examples/time_cache.json");
+let parsed = json_parse(cached);
+let read_stamp = parsed.stamp;
+print("  Read-back stamp matches epoch: ");
+print(read_stamp .eq epoch);
+
+print("=== Sprint 188: All phases complete ===");

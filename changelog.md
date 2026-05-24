@@ -2,6 +2,27 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 188: Sandboxed Time Module & Chrono Integration (2026-05-24)
+Sprint 188: Sandboxed Time Module. Integrated chrono crate to expose formatting and epoch timestamp utilities under the secure time FFI module.
+- **chrono Integration**: Added `chrono = "0.4"` to `Cargo.toml` (both copies). The crate provides timezone-safe date/time handling without any geolocation or hardware fingerprinting.
+- **time_get_string()** → `String`: Returns the current local system date and time formatted as `YYYY-MM-DD HH:MM:SS` using `chrono::Local::now().format()`.
+- **time_utc_timestamp()** → `Int`: Returns current UTC epoch seconds via `chrono::Utc::now().timestamp()`.
+- **Test Script**: Created `examples/time_stamping.knoten` — reads formatted time, captures epoch, writes unique cache entry with `file_write`, and verifies the roundtrip.
+- **Submodule Sync**: Identical FFI additions and Cargo.toml update in `aether_compiler/`.
+- **Documentation**: Updated `native_functions.json`, `llm.md`, `README.md`, and `changelog.md`.
+
+## [v1.1.0] - Sprint 187: WGPU Compute Pipeline & Matrix Standard Library (2026-05-24)
+Sprint 187: WGPU Compute Pipeline. Expanded GPGPU storage buffer capabilities, implemented compute pipeline caching, and added parallel matrix/vector helper modules to the math standard library.
+- **Storage Buffer Binding**: Wired up `DispatchCompute` in `window.rs` to serialize input `RelType` arrays into `wgpu::Buffer` (STORAGE + COPY_DST), create bind groups, and bind them to the compute pipeline. Previously, inputs were silently ignored during dispatch.
+- **Compute Pipeline Caching**: Confirmed and documented the existing `compute_pipelines: HashMap<usize, wgpu::ComputePipeline>` cache in `window.rs`. Shaders are compiled once, cached by ID, and reused on subsequent dispatches.
+- **Data Serialisation**: Added `inputs_to_storage_buffer()` and `collect_floats()` helper functions in `window.rs` that flatten structured `RelType` values (Arrays, Objects, Floats, Ints) into packed f32 byte buffers.
+- **math_vector_scale(array, factor)**: New FFI function under the `math` module. Multiplies each numeric element in an array by a scalar factor, returning a new `RelType::Array`. Pure Rust, no GPU dispatch required.
+- **math_matrix_transform(matrix, vector)**: New FFI function under the `math` module. Applies a 4×4 transformation matrix (16 floats) to a 3D or 4D vector using `glam::Mat4`, returning a 4-element result array.
+- **WGSL Shader**: Created `assets/shaders/data_preprocessor.wgsl` — a compute shader with `@group(0) @binding(0) var<storage, read_write> data: array<f32>;` that clamps values to [0, 1] and scales by 100. Demonstrates full storage-buffer roundtrip.
+- **Test Script**: Created `examples/compute_parallel.knoten` — tests `math_vector_scale`, `math_matrix_transform` (identity + translation), loads the WGSL shader, and dispatches 10,000-element array through the GPU compute pipeline.
+- **Submodule Sync**: All changes mirrored in `aether_compiler/` (window.rs, bridge.rs, examples, assets).
+- **Documentation**: README, llm.md, changelog, and `native_functions.json` updated.
+
 ## [v1.1.0] - Sprint 186: The Final Core Purge & Ecosystem Alignment (2026-05-24)
 Sprint 186: The Final Core Purge. Removed all 7 Voxel AST Node variants from the compiler core, deleted legacy Voxel examples and bench tasks, and aligned the entire ecosystem (schemas, docs, benchmarks, VSCode tooling) with the post-184 reality.
 - **AST Purge**: Removed `InitCamera`, `DrawVoxelGrid`, `LoadTextureAtlas`, `InitVoxelMap`, `SetVoxel`, `EnableInteraction`, `EnablePhysics` from `Node` enum in `ast.rs` (~8 lines).

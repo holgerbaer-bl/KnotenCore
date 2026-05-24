@@ -706,6 +706,22 @@ The monolithic `registry.rs` (1641 lines) has been split into focused, single-co
 
 ---
 
+### ⚡ WGPU Compute Pipeline (Sprint 187)
+- **GPGPU Storage Buffers**: `dispatch_compute` now serializes input `RelType` arrays into `wgpu::Buffer` (STORAGE + COPY_DST), creates bind groups, and binds them to the compute pipeline — enabling GPU-accelerated data processing directly from KnotenCore scripts.
+- **Pipeline Caching**: Shaders are compiled once and cached in `compute_pipelines`. Subsequent dispatches with the same shader ID skip WGSL recompilation.
+- **math_vector_scale(array, factor)**: Multiply every element in a numeric array by a scalar factor.
+- **math_matrix_transform(matrix, vector)**: Apply a 4×4 transformation matrix to a 3D/4D vector using `glam::Mat4`.
+- **WGSL Shader**: `assets/shaders/data_preprocessor.wgsl` demonstrates full storage-buffer roundtrip — normalization and scaling of float arrays on the GPU.
+
+---
+
+### 🕐 Sandboxed Time Module (Sprint 188)
+- **chrono Integration**: Formatted wall-clock time via `chrono = "0.4"`. No geolocation or hardware queries — strictly `SystemTime`-based.
+- **`time_get_string()`** → `String`: Returns `YYYY-MM-DD HH:MM:SS` local time.
+- **`time_utc_timestamp()`** → `Int`: Returns UTC epoch seconds (compatible with `cache_line_` patterns).
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 
