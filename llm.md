@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v1.1.0 (Sprint 186)
+# KnotenCore — AI Agent Reference (Routing Document) - v1.1.0 (Sprint 187)
 
 > **System Instruction for LLM Code Agents**
 >
@@ -68,6 +68,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Registry Refactoring** (Sprint 184) → Monolithic `registry.rs` split into `geometry.rs` (mesh generators), `physics.rs` (AABB collision/raycasting), and `scene.rs` (entities, lights, camera, spawn lifecycle). Dead Voxel code purged.
 - **FFI Consolidation** (Sprint 185) → Removed `registry_read_file`, `registry_write_file`, `registry_get_ultimate_answer`. All sandboxed file I/O is now exclusively via `file_read` / `file_write` in the `fs` module. `SENT_MESHES` cache moved into `scene.rs` for self-contained mesh deduplication.
 - **Core Purge** (Sprint 186) → Removed all 7 Voxel AST Node variants (`InitCamera`, `DrawVoxelGrid`, `LoadTextureAtlas`, `InitVoxelMap`, `SetVoxel`, `EnableInteraction`, `EnablePhysics`) from the compiler core, executor, validator, evaluator, and optimizer. Cleaned schemas, benchmarks, docs, and VSCode tooling.
+- **WGPU Compute Pipeline** (Sprint 187) → Storage buffers wired up in `DispatchCompute`: inputs are serialized to `wgpu::Buffer` with bind group binding. Pipeline cache (`compute_pipelines`) confirmed operational. New `math_vector_scale(array, factor)` and `math_matrix_transform(matrix, vector)` FFI functions added.
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
 - **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time. The **VS Code Extension** automatically launches this server, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) directly in the editor before they reach the runtime. Tracing output is visible in the VS Code *Output → knoten-lsp* channel.
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.

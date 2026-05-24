@@ -1457,6 +1457,96 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::math_random".into(),
                     })
                 }
+                // Sprint 187: Parallel vector scale — multiply each element by a factor
+                "math_vector_scale" => {
+                    if args.len() == 2
+                        && let RelType::Array(arr) = &args[0]
+                        && let RelType::Float(factor) = &args[1]
+                    {
+                        let scaled: Vec<RelType> = arr
+                            .iter()
+                            .map(|elem| match elem {
+                                RelType::Float(f) => RelType::Float(f * factor),
+                                RelType::Int(i) => RelType::Float(*i as f64 * factor),
+                                _ => elem.clone(),
+                            })
+                            .collect();
+                        return Some(ExecResult::Value(RelType::Array(scaled)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_vector_scale expects (Array, Float)".to_string(),
+                        node: "Native::Bridge::math_vector_scale".into(),
+                    })
+                }
+                // Sprint 187: 4×4 matrix-vector transformation using glam
+                "math_matrix_transform" => {
+                    if args.len() == 2
+                        && let RelType::Array(matrix_arr) = &args[0]
+                        && let RelType::Array(vector_arr) = &args[1]
+                    {
+                        if matrix_arr.len() == 16
+                            && (vector_arr.len() == 3 || vector_arr.len() == 4)
+                        {
+                            let extract = |v: &RelType| match v {
+                                RelType::Float(f) => *f as f32,
+                                RelType::Int(i) => *i as f32,
+                                _ => 0.0_f32,
+                            };
+                            let m = glam::Mat4::from_cols_array_2d(&[
+                                [
+                                    extract(&matrix_arr[0]),
+                                    extract(&matrix_arr[1]),
+                                    extract(&matrix_arr[2]),
+                                    extract(&matrix_arr[3]),
+                                ],
+                                [
+                                    extract(&matrix_arr[4]),
+                                    extract(&matrix_arr[5]),
+                                    extract(&matrix_arr[6]),
+                                    extract(&matrix_arr[7]),
+                                ],
+                                [
+                                    extract(&matrix_arr[8]),
+                                    extract(&matrix_arr[9]),
+                                    extract(&matrix_arr[10]),
+                                    extract(&matrix_arr[11]),
+                                ],
+                                [
+                                    extract(&matrix_arr[12]),
+                                    extract(&matrix_arr[13]),
+                                    extract(&matrix_arr[14]),
+                                    extract(&matrix_arr[15]),
+                                ],
+                            ]);
+                            let v = glam::Vec4::new(
+                                extract(&vector_arr[0]),
+                                extract(&vector_arr[1]),
+                                extract(&vector_arr[2]),
+                                if vector_arr.len() == 4 {
+                                    extract(&vector_arr[3])
+                                } else {
+                                    1.0
+                                },
+                            );
+                            let result = m * v;
+                            return Some(ExecResult::Value(RelType::Array(vec![
+                                RelType::Float(result.x as f64),
+                                RelType::Float(result.y as f64),
+                                RelType::Float(result.z as f64),
+                                RelType::Float(result.w as f64),
+                            ])));
+                        }
+                        return Some(ExecResult::Fault {
+                            msg: "[FFI] math_matrix_transform: matrix must be 16 floats, vector 3–4 floats".to_string(),
+                            node: "Native::Bridge::math_matrix_transform".into(),
+                        });
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_matrix_transform expects (Array[16], Array[3-4])"
+                            .to_string(),
+                        node: "Native::Bridge::math_matrix_transform".into(),
+                    })
+                }
                 _ => None,
             }
         } else if module == "string" {
