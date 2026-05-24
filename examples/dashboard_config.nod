@@ -12,7 +12,7 @@
       "Assign": [
         "MOCK_JSON",
         {
-          "StringLiteral": "{\"slideshow\": {\"title\": \"Local Mock Dashboard\", \"author\": \"Mock Agent\"}}"
+          "StringLiteral": "{\"slideshow\": {\"title\": \"Local Mock Dashboard\", \"author\": \"Mock Agent\", \"stats\": {\"views\": 142, \"active\": true}}, \"meta\": {\"version\": \"1.0\"}}"
         }
       ]
     }

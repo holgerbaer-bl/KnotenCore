@@ -622,6 +622,26 @@ Sprint 181 opens KnotenCore to the network by implementing outbound HTTP communi
 
 ---
 
+## 📊 Data Processing & JSON Mastery (Sprint 182)
+
+Full JSON processing pipeline with resilient parsing and deep object navigation:
+
+| Function | Description |
+|---|---|
+| `json_parse(s)` → `Object\|Array\|Void` | Parse JSON string; returns `Void` on invalid input (never crashes) |
+| `json_stringify(v)` → `String` | Serialize any value to JSON string |
+
+**Deep Object Access** via dot notation (`obj.key.subkey`) compiles to `PropertyGet` chains with automatic null-safe fallback — missing keys return `Void` instead of panicking.
+
+Example from `examples/dashboard.knoten`:
+```
+let payload = json_parse(http_response);
+let cpu  = payload.system.cpu.usage;     // 3-level deep access
+let auth = payload.meta.auth_token;      // Void if key missing
+```
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

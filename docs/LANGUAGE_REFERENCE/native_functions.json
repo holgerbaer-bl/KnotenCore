@@ -1137,6 +1137,46 @@
           ]
         }
       }
+    },
+    {
+      "name": "json_parse",
+      "module": "json",
+      "description": "Parses a JSON string into a native RelType::Object or RelType::Array. Returns Void on parse failure (never crashes the script). Invalid JSON is logged via stderr.",
+      "parameters": [
+        { "name": "payload", "type": "String", "required": true, "description": "Valid JSON string to parse" }
+      ],
+      "returns": "Object | Array | Void",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "json",
+          "function": "json_parse",
+          "args": [
+            { "StringLiteral": "{\"key\": \"value\"}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "json_stringify",
+      "module": "json",
+      "description": "Serializes a RelType value (Object, Array, String, Number, Bool, Void) into a JSON string. Unserializable types produce '[Unserializable: ...]'.",
+      "parameters": [
+        { "name": "value", "type": "Any", "required": true, "description": "Value to serialize" }
+      ],
+      "returns": "String",
+      "required_permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "json",
+          "function": "json_stringify",
+          "args": [
+            { "Identifier": "myObject" }
+          ]
+        }
+      }
     }
   ]
 }
