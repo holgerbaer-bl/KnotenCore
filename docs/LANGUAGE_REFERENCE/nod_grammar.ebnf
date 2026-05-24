@@ -27,11 +27,10 @@ node        ::= literal
               | io-node
               | control-flow
               | ui-node
-              | graphics-3d
-              | audio-node
-              | voxel-node
-              | physics-node
-              | system-node
+               | graphics-3d
+               | audio-node
+               | physics-node
+               | system-node
               ;
 
 (* ─── Literals ──────────────────────────────────────────────── *)
@@ -69,11 +68,10 @@ system-node ::= '{"Time":null}' | '"Time"'
               | '{"GlobalTime":null}' | '"GlobalTime"'
               | '{"InitGraphics":null}' | '"InitGraphics"'
               | '{"GetLastKeypress":null}' | '"GetLastKeypress"'
-              | '{"UIFillParent":null}' | '"UIFillParent"'
-              | '{"MapCreate":null}' | '"MapCreate"'
-              | '{"InitAudio":null}' | '"InitAudio"'
-              | '{"InitVoxelMap":null}' | '"InitVoxelMap"'
-              | '{"RaycastSimple":null}' | '"RaycastSimple"'
+               | '{"UIFillParent":null}' | '"UIFillParent"'
+               | '{"MapCreate":null}' | '"MapCreate"'
+               | '{"InitAudio":null}' | '"InitAudio"'
+               | '{"RaycastSimple":null}' | '"RaycastSimple"'
               ;
 
 (* ─── Logic / Comparison ────────────────────────────────────── *)
@@ -203,9 +201,7 @@ graphics-3d ::= init-window | load-shader | render-mesh | poll-events
               | fps-camera | mouse-grab | weapon-vm
               | render-canvas | transform-2d | sprite-2d
               | load-font | draw-text
-              | init-camera | draw-voxel | load-tex-atlas
               ;
-
 init-window ::= '{"InitWindow":' '[' node ',' node ',' node ']' '}' ;
 load-shader ::= '{"LoadShader":' node '}' ;
 render-mesh ::= '{"RenderMesh":' '[' node ',' node ',' node ']' '}' ;
@@ -253,16 +249,6 @@ stop-note   ::= '{"StopNote":' node '}' ;
 play-audio  ::= '{"PlayAudioFile":' node '}' ;
 load-sample ::= '{"LoadSample":' '[' node ',' node ']' '}' ;
 play-sample ::= '{"PlaySample":' '[' node ',' node ',' node ']' '}' ;
-
-(* ─── Voxel Engine ───────────────────────────────────────────── *)
-voxel-node  ::= init-camera | draw-voxel | load-tex-atlas
-              | set-voxel | enable-interaction | enable-physics ;
-init-camera ::= '{"InitCamera":' node '}' ;
-draw-voxel  ::= '{"DrawVoxelGrid":' node '}' ;
-load-tex-atlas ::= '{"LoadTextureAtlas":' '[' node ',' node ']' '}' ;
-set-voxel   ::= '{"SetVoxel":' '[' node ',' node ',' node ',' node ']' '}' ;
-enable-interaction ::= '{"EnableInteraction":' node '}' ;
-enable-physics ::= '{"EnablePhysics":' node '}' ;
 
 (* ─── Physics ────────────────────────────────────────────────── *)
 physics-node ::= add-world-aabb | check-collision ;
