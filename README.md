@@ -122,8 +122,8 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 KnotenCore is built for AI-driven execution with strict, audited security:
 - **True Zero Warnings**: The engine complies with mathematical strictness — `cargo clippy --lib` yields precisely 0 warnings, ensuring architectural purity and complete VM stack safety.
 - **Deny-by-Default** policy for all I/O. All permissions must be explicitly granted via CLI flags.
-- **`--allow-read`**: Enables `FSRead`, `IO.ReadFile`, and `registry_read_file`. Paths are canonicalized and verified against the working directory to prevent path-traversal attacks.
-- **`--allow-write`**: Enables `FSWrite`, `IO.WriteFile`, and `registry_write_file`. Write targets are normalized and boundary-checked.
+- **`--allow-read`**: Enables FS file reads (`file_read`) via the `fs` module. Paths are validated against the working directory to prevent path-traversal attacks.
+- **`--allow-write`**: Enables FS file writes (`file_write`) via the `fs` module. Write targets are normalized and boundary-checked.
 - **`--allow-network`**: Enables `Node::Fetch` and all outbound HTTP calls.
 - **`ExternCall Protection`**: FFI bridge calls pass through the same sandbox rule-set as standard nodes — there is no bypass.
 - **`Structured Faults`**: Unauthorized access returns `ExecResult::Fault` with specific permission-denial messages, enabling AI self-healing.
@@ -513,7 +513,7 @@ The CLI runner (`src/bin/run_knc.rs`) is fully panic-proofed — all `unwrap()`/
 Every FFI boundary call is now guarded by a formal safety layer (`src/natives/ffi_safety.rs`):
 
 - **Null-Pointer Equivalence**: All handle IDs (`i64`) are validated as `>= 0` at the FFI boundary; negative handles are logged via `eprintln!` and rejected as `ExecResult::Fault`.
-- **String Safety**: All file-path and resource-path arguments (`registry_file_create`, `registry_texture_load`, `registry_read_file`, `registry_write_file`) are validated for empty strings and embedded null bytes (`\0`) before any disk I/O.
+- **String Safety**: All file-path and resource-path arguments are validated for empty strings and embedded null bytes (`\0`) before any disk I/O.
 - **Use-After-Free Prevention**: `registry_destroy_entity` explicitly detects double-call on the same entity ID, logs a warning, and proceeds idempotently — no panic, no UB.
 - **Pure Safe Rust**: The entire FFI boundary uses zero `unsafe` dereferences. The safety module codifies the validation pattern so any future C-ABI bridge inherits the guards.
 
@@ -686,7 +686,15 @@ The monolithic `registry.rs` (1641 lines) has been split into focused, single-co
 - Dead Voxel code purged: `VoxelWorldState`, `SendVoxelWorld`, `NativeHandle::VoxelWorld`, and 3 stub functions.
 - Voxel FFI bindings removed from `bridge.rs`.
 
-**Sandbox hardening:** `registry_read_file`, `registry_write_file`, and `registry_load_texture` now validate paths via `validate_fs_path` / `validate_fs_path_write` before touching disk.
+**Sandbox hardening:** `registry_load_texture` now validates paths via `validate_fs_path` before touching disk. All file I/O exclusively routes through the `fs` module (`file_read` / `file_write`).
+
+---
+
+### 🔧 FFI Consolidation & Architectural Purge (Sprint 185)
+- **API-Bereinigung**: Redundante FFI-Schnittstellen (`registry_read_file`, `registry_write_file`) und die Legacy-Testfunktion `registry_get_ultimate_answer` wurden restlos eliminiert.
+- **Einheitlicher I/O**: Jeglicher Dateizugriff erfolgt nun ausnahmslos über das gesicherte `fs`-Modul (`file_read` / `file_write`).
+- **Zustandskapselung**: Der globale Geometrie-Cache (`SENT_MESHES`) wurde vollständig aus dem Kernel entfernt und autark in das `scene`-Modul gekapselt.
+- **Grammatik-Synchronisation**: Veraltete Voxel-Syntaxregeln wurden aus der EBNF-Grammatik entfernt.
 
 ---
 
