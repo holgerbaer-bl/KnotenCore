@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v1.1.0 (Sprint 182)
+# KnotenCore — AI Agent Reference (Routing Document) - v1.1.0 (Sprint 183)
 
 > **System Instruction for LLM Code Agents**
 >
@@ -64,6 +64,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Dynamic Lighting** (Sprint 167) → The WGSL shader implements Blinn-Phong shading with ambient light and up to 4 dynamic point lights. Use `registry_spawn_light(win, x, y, z, intensity) -> Int` to create a light and `registry_update_light_position(win, light_id, x, y, z)` to animate it. Light data is written per-frame to the camera UBO.
 - **Resource Cleanup** (Sprint 169) → Entities can be destroyed at any time via `registry_destroy_entity(win, id)`. This removes the entity from the scene graph and physics world immediately. Textures and geometry remain cached for other entities. RAM and VRAM remain stable under continuous spawn/destroy cycles.
 - **The Security Hotfix** (Sprint 179) → Hardened the runtime sandbox with FFI validation checks on texture loading, hidden debug panic hooks behind `debug_assertions`, routed VM unit tests through safe `Result` handlers, and forced `panic = "unwind"` in the release profile to preserve the FFI crash-protection shield.
+- **Persistence & File I/O** (Sprint 183) → Native `file_read(path)` and `file_write(path, content)` under the `fs` bridge module. Both enforce `ffi_safety::validate_string` path guards and `allow_fs_read` / `allow_fs_write` permissions. Combine with `json_parse` / `json_stringify` for stateful dashboards that survive restarts.
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
 - **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time. The **VS Code Extension** automatically launches this server, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) directly in the editor before they reach the runtime. Tracing output is visible in the VS Code *Output → knoten-lsp* channel.
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.

@@ -562,6 +562,58 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::array_len".into(),
                     })
                 }
+                // Sprint 183: file_read — sandboxed file read with permission check
+                "file_read" => {
+                    if !permissions.allow_fs_read {
+                        return Some(ExecResult::Fault {
+                            msg: "Permission Denied: fs.file_read requires FS_READ".to_string(),
+                            node: "Bridge::fs.file_read".into(),
+                        });
+                    }
+                    if args.len() == 1
+                        && let RelType::Str(path) = &args[0]
+                    {
+                        if crate::natives::ffi_safety::validate_string(path, "file_read").is_none()
+                        {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] file_read: invalid path string".to_string(),
+                                node: "Native::Bridge::file_read".into(),
+                            });
+                        }
+                        let content = crate::natives::fs::fs_read_file(path.clone());
+                        return Some(ExecResult::Value(RelType::Str(content)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] file_read expects 1 String arg (path)".to_string(),
+                        node: "Native::Bridge::file_read".into(),
+                    })
+                }
+                // Sprint 183: file_write — sandboxed file write with permission check
+                "file_write" => {
+                    if !permissions.allow_fs_write {
+                        return Some(ExecResult::Fault {
+                            msg: "Permission Denied: fs.file_write requires FS_WRITE".to_string(),
+                            node: "Bridge::fs.file_write".into(),
+                        });
+                    }
+                    if args.len() == 2
+                        && let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1])
+                    {
+                        if crate::natives::ffi_safety::validate_string(path, "file_write").is_none()
+                        {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] file_write: invalid path string".to_string(),
+                                node: "Native::Bridge::file_write".into(),
+                            });
+                        }
+                        let ok = std::fs::write(path, content).is_ok();
+                        return Some(ExecResult::Value(RelType::Bool(ok)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] file_write expects (String, String)".to_string(),
+                        node: "Native::Bridge::file_write".into(),
+                    })
+                }
                 _ => None,
             }
         } else if module == "registry" {
