@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use winit::window::Window as WinitWindow;
 
-use crate::natives::registry::{send_render_command, RenderCommand};
+use crate::natives::registry::{RenderCommand, send_render_command};
 
 /// Retained-mode scene graph entity
 pub struct SceneEntity {
@@ -59,10 +59,15 @@ pub struct RegistryWindowState {
 
 pub(crate) static NEXT_ENTITY_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
 pub(crate) static NEXT_LIGHT_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
+
 pub(crate) static SENT_MESHES: std::sync::Mutex<Option<std::collections::HashSet<String>>> =
     std::sync::Mutex::new(None);
 
-fn ensure_mesh_sent(mesh_name: &str, vertices: Vec<super::geometry::RegistryVertex>, indices: Vec<u32>) {
+fn ensure_mesh_sent(
+    mesh_name: &str,
+    vertices: Vec<super::geometry::RegistryVertex>,
+    indices: Vec<u32>,
+) {
     let mut guard = SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
     let sent = guard.get_or_insert_with(std::collections::HashSet::new);
     if !sent.contains(mesh_name) {
@@ -104,7 +109,9 @@ pub fn registry_spawn_cube(
 
     let base_aabb = crate::math::AABB::new([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]);
     let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = super::physics::PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
+    let mut phys_guard = super::physics::PHYSICS_WORLD
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let phys_map = phys_guard.get_or_insert_with(std::collections::HashMap::new);
     phys_map.insert(
         entity_id,
@@ -156,7 +163,9 @@ pub fn registry_spawn_sphere(
 
     let base_aabb = crate::math::AABB::new([-1.0, -1.0, -1.0], [1.0, 1.0, 1.0]);
     let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = super::physics::PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
+    let mut phys_guard = super::physics::PHYSICS_WORLD
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let phys_map = phys_guard.get_or_insert_with(std::collections::HashMap::new);
     phys_map.insert(
         entity_id,
@@ -207,7 +216,9 @@ pub fn registry_spawn_cylinder(
 
     let base_aabb = crate::math::AABB::new([-1.0, -0.5, -1.0], [1.0, 0.5, 1.0]);
     let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = super::physics::PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
+    let mut phys_guard = super::physics::PHYSICS_WORLD
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let phys_map = phys_guard.get_or_insert_with(std::collections::HashMap::new);
     phys_map.insert(
         entity_id,
@@ -241,7 +252,9 @@ pub fn registry_update_entity_transform(
     let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
     let mut final_transform = t;
 
-    let mut phys_guard = super::physics::PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
+    let mut phys_guard = super::physics::PHYSICS_WORLD
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     if let Some(phys_map) = phys_guard.as_mut()
         && let Some(phys) = phys_map.get_mut(&(entity_handle as usize))
     {
@@ -268,7 +281,9 @@ pub fn registry_destroy_entity(window_handle: i64, entity_id: i64) {
     }
     let eid = entity_id as usize;
 
-    let mut phys_guard = super::physics::PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
+    let mut phys_guard = super::physics::PHYSICS_WORLD
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let phys_existed = if let Some(phys_map) = phys_guard.as_mut() {
         phys_map.remove(&eid).is_some()
     } else {

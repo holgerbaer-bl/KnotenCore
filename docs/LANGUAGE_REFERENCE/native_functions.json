@@ -361,48 +361,6 @@
       }
     },
     {
-      "name": "registry_read_file",
-      "module": "registry",
-      "description": "Reads the entire contents of a file and returns a String. Path is canonicalized and must remain within the working directory.",
-      "parameters": [
-        { "name": "path", "type": "String", "required": true }
-      ],
-      "returns": "String",
-      "permissions": ["--allow-read"],
-      "errors": ["ERR_IO_PERMISSION", "ERR_FILE_NOT_FOUND", "ERR_PATH_ESCAPE"],
-      "example": {
-        "Assign": ["content", {
-          "ExternCall": {
-            "module": "registry",
-            "function": "registry_read_file",
-            "args": [ { "StringLiteral": "data/config.json" } ]
-          }
-        }]
-      }
-    },
-    {
-      "name": "registry_write_file",
-      "module": "registry",
-      "description": "Writes a String to a file, creating it if it does not exist. Returns Bool(true) on success.",
-      "parameters": [
-        { "name": "path",    "type": "String", "required": true },
-        { "name": "content", "type": "String", "required": true }
-      ],
-      "returns": "Bool",
-      "permissions": ["--allow-write"],
-      "errors": ["ERR_IO_PERMISSION", "ERR_PATH_ESCAPE"],
-      "example": {
-        "ExternCall": {
-          "module": "registry",
-          "function": "registry_write_file",
-          "args": [
-            { "StringLiteral": "output/result.txt" },
-            { "StringLiteral": "42" }
-          ]
-        }
-      }
-    },
-    {
       "name": "registry_is_key_pressed",
       "module": "registry",
       "description": "Polls the lock-free AtomicBool key table at O(1). Returns Bool(true) if the physical key is currently held. Supported keys: W A S D SPACE UP DOWN LEFT RIGHT.",
