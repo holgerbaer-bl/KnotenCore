@@ -876,7 +876,9 @@ mod tests {
         assert_eq!(
             ast,
             Node::Block(vec![
-                Node::UIVBox(vec![Node::UILabel(Box::new(Node::StringLiteral("a".to_string())))]),
+                Node::UIVBox(vec![Node::UILabel(Box::new(Node::StringLiteral(
+                    "a".to_string()
+                )))]),
                 Node::UILabel(Box::new(Node::StringLiteral("b".to_string())))
             ])
         );

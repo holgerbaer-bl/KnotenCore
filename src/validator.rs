@@ -221,7 +221,8 @@ impl Validator {
                     match fs::read_to_string(path) {
                         Ok(source) => {
                             let parsed_result = if path.ends_with(".nod") {
-                                serde_json::from_str::<Node>(&source).map_err(|e| format!("JSON Parse Error: {}", e))
+                                serde_json::from_str::<Node>(&source)
+                                    .map_err(|e| format!("JSON Parse Error: {}", e))
                             } else {
                                 // Parse as .knoten
                                 let mut parser = crate::parser::Parser::new(&source);
@@ -243,9 +244,7 @@ impl Validator {
                             };
                             match parsed_result {
                                 Ok(parsed) => self.check_node(&parsed),
-                                Err(e) => self
-                                    .errors
-                                    .push(format!("Import ({}): {}", path, e)),
+                                Err(e) => self.errors.push(format!("Import ({}): {}", path, e)),
                             }
                         }
                         Err(e) => self
