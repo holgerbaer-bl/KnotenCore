@@ -3,12 +3,16 @@ use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
-use winit::window::Window as WinitWindow;
 
 use std::collections::HashSet;
 use winit::keyboard::KeyCode;
 
 use std::sync::atomic::AtomicBool;
+
+// Sprint 184: Re-exports from extracted modules for backward compatibility
+pub use super::geometry::{CachedMesh, RegistryVertex, generate_cube, generate_cylinder, generate_uv_sphere};
+pub use super::physics::{EntityPhysics, PHYSICS_WORLD, registry_check_collision, registry_get_clicked_entity};
+pub use super::scene::{RegistryWindowState, SceneEntity, SceneLight, registry_destroy_entity, registry_set_camera, registry_set_camera_for_window, registry_spawn_cube, registry_spawn_cylinder, registry_spawn_light, registry_spawn_sphere, registry_update_entity_transform, registry_update_light_position};
 
 pub static GLOBAL_KEYS: [AtomicBool; 256] = [const { AtomicBool::new(false) }; 256];
 
@@ -112,7 +116,7 @@ pub fn exit_event_loop() {
 
 static RENDER_TX: Mutex<Option<winit::event_loop::EventLoopProxy<RenderCommand>>> =
     Mutex::new(None);
-static SENT_MESHES: Mutex<Option<HashSet<String>>> = Mutex::new(None);
+pub(crate) static SENT_MESHES: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
 pub static AUDIO_STATE: Mutex<Option<crate::audio::AudioManager>> = Mutex::new(None);
 
@@ -176,82 +180,10 @@ pub struct WindowProxy {
     pub input: Arc<Mutex<InputState>>,
 }
 
-// Retained-Mode Physics Store
-pub struct EntityPhysics {
-    pub base_aabb: crate::math::AABB,
-    pub world_aabb: crate::math::AABB,
-    pub transform: glam::Mat4,
-}
-
-pub static PHYSICS_WORLD: std::sync::Mutex<Option<HashMap<usize, EntityPhysics>>> =
-    std::sync::Mutex::new(None);
 pub static TEXTURE_ID_COUNTER: std::sync::Mutex<usize> = std::sync::Mutex::new(1); // 0 is reserved for default
 
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
-
-pub struct SceneEntity {
-    pub mesh_name: String,
-    pub texture_id: usize,
-    pub transform: glam::Mat4,
-}
-
-/// Sprint 167: A dynamic point light in the scene.
-pub struct SceneLight {
-    pub position: [f32; 3],
-    pub color: [f32; 3],
-    pub intensity: f32,
-}
-
-pub struct RegistryWindowState {
-    pub window: Arc<WinitWindow>,
-    pub input: Arc<Mutex<InputState>>,
-    pub surface: wgpu::Surface<'static>,
-    pub surface_format: wgpu::TextureFormat,
-    /// Sprint 86: store the full config so resize can just mutate width/height and reconfigure.
-    pub config: wgpu::SurfaceConfiguration,
-    pub device: Arc<wgpu::Device>,
-    pub queue: Arc<wgpu::Queue>,
-    pub pipeline: wgpu::RenderPipeline,
-    pub width: u32,
-    pub height: u32,
-    pub clear_color: wgpu::Color,
-    pub current_texture: Option<wgpu::SurfaceTexture>,
-    pub current_view: Option<wgpu::TextureView>,
-    pub encoder: Option<wgpu::CommandEncoder>,
-    // 3D Resources
-    pub depth_texture_view: wgpu::TextureView,
-    pub camera_buffer: wgpu::Buffer,
-    pub camera_bind_group: wgpu::BindGroup,
-    pub model_buffer: wgpu::Buffer,
-    pub model_bind_group: wgpu::BindGroup,
-    pub geometry_cache: HashMap<String, CachedMesh>,
-    pub texture_cache: HashMap<usize, wgpu::BindGroup>,
-    pub default_texture_bind_group: wgpu::BindGroup,
-    pub commands: Vec<RenderCommand>,
-    pub scene_graph: HashMap<usize, SceneEntity>,
-    /// Sprint 167: per-window dynamic light registry (max 4 active lights).
-    pub lights: HashMap<usize, SceneLight>,
-    // Egui State
-    pub egui_ctx: egui::Context,
-    pub egui_state: egui_winit::State,
-    pub egui_renderer: egui_wgpu::Renderer,
-    pub ui_tree: Vec<crate::ast::Node>,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct RegistryVertex {
-    pub position: [f32; 3],
-    pub normal: [f32; 3], // Sprint 85: Added - required by mesh3d.wgsl @location(1)
-    pub tex_coords: [f32; 2],
-}
-
-pub struct CachedMesh {
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
-    pub index_count: u32,
-}
 
 // The types of resources we can manage
 pub enum NativeHandle {
@@ -260,7 +192,6 @@ pub enum NativeHandle {
     File(File),
     Timestamp(std::time::Instant),
     GpuContext(GpuContext),
-    VoxelWorld(SendVoxelWorld),
     Texture(TextureAsset),
 }
 
@@ -294,25 +225,15 @@ pub struct TextureAsset {
 unsafe impl Send for TextureAsset {}
 unsafe impl Sync for TextureAsset {}
 
-// VoxelWorld — isometric software-rendered voxel scene
-pub struct VoxelWorldState {
-    pub width: usize,
-    pub height: usize,
-    pub voxels: Vec<[i32; 3]>,
-}
-
-pub struct SendVoxelWorld(pub VoxelWorldState);
-unsafe impl Send for SendVoxelWorld {}
-unsafe impl Sync for SendVoxelWorld {}
-
 // ── Isometric software renderer removed in Sprint 176 — superseded by WGPU 3D pipeline. ──
+// ── VoxelWorldState, SendVoxelWorld, NativeHandle::VoxelWorld removed in Sprint 184. ──
 
 // Global thread-safe registry
 // Instead of lazy_static we'll use a const Mutex with an Option since lazy_static might not be available
 static COUNTER_REGISTRY: Mutex<Option<HashMap<usize, RegistryEntry>>> = Mutex::new(None);
 static COUNTER_NEXT_ID: Mutex<usize> = Mutex::new(1);
 
-fn with_registry<F, R>(f: F) -> R
+pub(crate) fn with_registry<F, R>(f: F) -> R
 where
     F: FnOnce(&mut HashMap<usize, RegistryEntry>) -> R,
 {
@@ -440,10 +361,6 @@ pub fn registry_dump() -> i64 {
                 NativeHandle::File(_) => "File",
                 NativeHandle::Timestamp(_) => "Timestamp",
                 NativeHandle::GpuContext(_) => "GpuContext",
-                NativeHandle::VoxelWorld(SendVoxelWorld(s)) => {
-                    println!("      voxels={}, {}x{}", s.voxels.len(), s.width, s.height);
-                    "VoxelWorld"
-                }
                 NativeHandle::Texture(tex) => {
                     println!("      {}x{}", tex.width, tex.height);
                     "Texture"
@@ -693,20 +610,6 @@ pub fn registry_fill_color(window_handle: i64, _r: i64, _g: i64, _b: i64) {
     // Note: We could send a Command for this too.
 }
 
-// ── Voxel World Orchestration ─────────────────────────────────────────
-
-pub fn registry_voxel_world_create(_width: i64, _height: i64, _title: String) -> i64 {
-    eprintln!("[KnotenCore Voxel] Legacy Voxel module disabled in Sprint 51.");
-    -1
-}
-
-pub fn registry_voxel_add_block(_world_handle: i64, _x: i64, _y: i64, _z: i64) {}
-
-/// Renders one frame of the voxel scene. Returns true while the window is open.
-pub fn registry_voxel_render_frame(_world_handle: i64) -> bool {
-    false
-}
-
 pub struct RegistryModule;
 
 impl crate::natives::NativeModule for RegistryModule {
@@ -863,541 +766,6 @@ pub fn registry_texture_load(path: String) -> i64 {
     id as i64
 }
 
-static NEXT_ENTITY_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
-static NEXT_LIGHT_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
-
-#[allow(clippy::too_many_arguments)]
-pub fn registry_spawn_cube(
-    window_handle: i64,
-    texture_handle: i64,
-    w: f32,
-    h: f32,
-    d: f32,
-    x: f32,
-    y: f32,
-    z: f32,
-) -> i64 {
-    if window_handle < 0 || texture_handle < 0 {
-        return -1;
-    }
-
-    let mesh_name = "cube".to_string();
-    let mut guard = SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
-    let sent = guard.get_or_insert_with(HashSet::new);
-    if !sent.contains(&mesh_name) {
-        let (vertices, indices) = generate_cube();
-        send_render_command(RenderCommand::AddMesh {
-            name: mesh_name.clone(),
-            vertices,
-            indices,
-        });
-        sent.insert(mesh_name.clone());
-    }
-    drop(guard);
-
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let entity_id = *id_guard;
-    *id_guard += 1;
-
-    let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
-    let s = glam::Mat4::from_scale(glam::Vec3::new(w, h, d));
-    let transform = t * s;
-
-    let base_aabb = crate::math::AABB::new([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]);
-    let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
-    let phys_map = phys_guard.get_or_insert_with(HashMap::new);
-    phys_map.insert(
-        entity_id,
-        EntityPhysics {
-            base_aabb,
-            world_aabb,
-            transform,
-        },
-    );
-
-    send_render_command(RenderCommand::SpawnEntity {
-        window_id: window_handle as usize,
-        entity_id,
-        mesh_name,
-        texture_id: texture_handle as usize,
-        transform,
-    });
-    entity_id as i64
-}
-
-pub fn registry_update_entity_transform(
-    window_handle: i64,
-    entity_handle: i64,
-    x: f32,
-    y: f32,
-    z: f32,
-) {
-    if window_handle < 0 || entity_handle < 0 {
-        return;
-    }
-    let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
-    let mut final_transform = t;
-
-    // Retained Physics: preserve old scale and update AABB
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(phys_map) = phys_guard.as_mut()
-        && let Some(phys) = phys_map.get_mut(&(entity_handle as usize))
-    {
-        let old_scale = phys.transform.to_scale_rotation_translation().0;
-        final_transform = t * glam::Mat4::from_scale(old_scale);
-        phys.transform = final_transform;
-        phys.world_aabb = phys.base_aabb.transform(&final_transform);
-    }
-
-    send_render_command(RenderCommand::UpdateEntityTransform {
-        window_id: window_handle as usize,
-        entity_id: entity_handle as usize,
-        transform: final_transform,
-    });
-}
-
-pub fn registry_destroy_entity(window_handle: i64, entity_id: i64) {
-    if window_handle < 0 || entity_id < 0 {
-        eprintln!(
-            "[FFI Safety] registry_destroy_entity rejected null handle: win={} entity={}",
-            window_handle, entity_id
-        );
-        return;
-    }
-    let eid = entity_id as usize;
-
-    // Remove from physics world — track whether it actually existed
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
-    let phys_existed = if let Some(phys_map) = phys_guard.as_mut() {
-        phys_map.remove(&eid).is_some()
-    } else {
-        false
-    };
-    drop(phys_guard);
-
-    if !phys_existed {
-        eprintln!(
-            "[FFI Safety] registry_destroy_entity: entity {} already freed or never existed",
-            eid
-        );
-    }
-
-    // Send render command to remove from scene graph (idempotent)
-    send_render_command(RenderCommand::RemoveEntity {
-        window_id: window_handle as usize,
-        entity_id: eid,
-    });
-}
-
-/// Sprint 167: Spawn a dynamic point light into the scene.
-/// Returns a unique light ID that can be used to update its position later.
-#[allow(clippy::too_many_arguments)]
-pub fn registry_spawn_light(
-    window_handle: i64,
-    x: f32,
-    y: f32,
-    z: f32,
-    r: f32,
-    g: f32,
-    b: f32,
-    intensity: f32,
-) -> i64 {
-    if window_handle < 0 {
-        return -1;
-    }
-    let mut id_guard = NEXT_LIGHT_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let light_id = *id_guard;
-    *id_guard += 1;
-
-    send_render_command(RenderCommand::SpawnLight {
-        window_id: window_handle as usize,
-        light_id,
-        x,
-        y,
-        z,
-        r,
-        g,
-        b,
-        intensity,
-    });
-    light_id as i64
-}
-
-/// Sprint 167: Update the position of an existing point light.
-pub fn registry_update_light_position(
-    window_handle: i64,
-    light_handle: i64,
-    x: f32,
-    y: f32,
-    z: f32,
-) {
-    if window_handle < 0 || light_handle < 0 {
-        return;
-    }
-    send_render_command(RenderCommand::UpdateLightPosition {
-        window_id: window_handle as usize,
-        light_id: light_handle as usize,
-        x,
-        y,
-        z,
-    });
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn registry_spawn_sphere(
-    window_handle: i64,
-    texture_handle: i64,
-    radius: f32,
-    rings: i32,
-    sectors: i32,
-    x: f32,
-    y: f32,
-    z: f32,
-) -> i64 {
-    if window_handle < 0 || texture_handle < 0 {
-        return -1;
-    }
-    let rings = rings.max(3) as u32;
-    let sectors = sectors.max(3) as u32;
-    let mesh_name = format!("sphere_{}_{}", rings, sectors);
-
-    let mut guard = SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
-    let sent = guard.get_or_insert_with(HashSet::new);
-    if !sent.contains(&mesh_name) {
-        let (vertices, indices) = generate_uv_sphere(rings, sectors);
-        send_render_command(RenderCommand::AddMesh {
-            name: mesh_name.clone(),
-            vertices,
-            indices,
-        });
-        sent.insert(mesh_name.clone());
-    }
-    drop(guard);
-
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let entity_id = *id_guard;
-    *id_guard += 1;
-
-    let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
-    let s = glam::Mat4::from_scale(glam::Vec3::splat(radius));
-    let transform = t * s;
-
-    let base_aabb = crate::math::AABB::new([-1.0, -1.0, -1.0], [1.0, 1.0, 1.0]);
-    let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
-    let phys_map = phys_guard.get_or_insert_with(HashMap::new);
-    phys_map.insert(
-        entity_id,
-        EntityPhysics {
-            base_aabb,
-            world_aabb,
-            transform,
-        },
-    );
-
-    send_render_command(RenderCommand::SpawnEntity {
-        window_id: window_handle as usize,
-        entity_id,
-        mesh_name,
-        texture_id: texture_handle as usize,
-        transform,
-    });
-    entity_id as i64
-}
-
-fn generate_uv_sphere(rings: u32, sectors: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-
-    for r in 0..=rings {
-        let phi = std::f32::consts::PI * (r as f32 / rings as f32);
-        for s in 0..=sectors {
-            let theta = 2.0 * std::f32::consts::PI * (s as f32 / sectors as f32);
-            let nx = phi.sin() * theta.cos();
-            let ny = phi.cos();
-            let nz = phi.sin() * theta.sin();
-            let u = s as f32 / sectors as f32;
-            let v = r as f32 / rings as f32;
-            // For a unit sphere, position == outward normal
-            vertices.push(RegistryVertex {
-                position: [nx, ny, nz],
-                normal: [nx, ny, nz],
-                tex_coords: [u, v],
-            });
-        }
-    }
-
-    for r in 0..rings {
-        for s in 0..sectors {
-            let first = r * (sectors + 1) + s;
-            let second = first + sectors + 1;
-            indices.push(first);
-            indices.push(second);
-            indices.push(first + 1);
-            indices.push(second);
-            indices.push(second + 1);
-            indices.push(first + 1);
-        }
-    }
-    (vertices, indices)
-}
-
-// Cube generator is handled by registry_spawn_cube directly since we need the mesh generated there
-
-#[allow(clippy::too_many_arguments)]
-pub fn registry_spawn_cylinder(
-    window_handle: i64,
-    texture_handle: i64,
-    radius: f32,
-    height: f32,
-    segments: i32,
-    x: f32,
-    y: f32,
-    z: f32,
-) -> i64 {
-    if window_handle < 0 || texture_handle < 0 {
-        return -1;
-    }
-    let segments = segments.max(3) as u32;
-    let mesh_name = format!("cylinder_{}", segments);
-
-    let mut guard = SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
-    let sent = guard.get_or_insert_with(HashSet::new);
-    if !sent.contains(&mesh_name) {
-        let (vertices, indices) = generate_cylinder(segments);
-        send_render_command(RenderCommand::AddMesh {
-            name: mesh_name.clone(),
-            vertices,
-            indices,
-        });
-        sent.insert(mesh_name.clone());
-    }
-    drop(guard);
-
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let entity_id = *id_guard;
-    *id_guard += 1;
-
-    let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
-    let s = glam::Mat4::from_scale(glam::Vec3::new(radius, height, radius));
-    let transform = t * s;
-
-    let base_aabb = crate::math::AABB::new([-1.0, -0.5, -1.0], [1.0, 0.5, 1.0]);
-    let world_aabb = base_aabb.transform(&transform);
-    let mut phys_guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
-    let phys_map = phys_guard.get_or_insert_with(HashMap::new);
-    phys_map.insert(
-        entity_id,
-        EntityPhysics {
-            base_aabb,
-            world_aabb,
-            transform,
-        },
-    );
-
-    send_render_command(RenderCommand::SpawnEntity {
-        window_id: window_handle as usize,
-        entity_id,
-        mesh_name,
-        texture_id: texture_handle as usize,
-        transform,
-    });
-    entity_id as i64
-}
-
-fn generate_cylinder(segments: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-
-    // Top center (normal points up)
-    vertices.push(RegistryVertex {
-        position: [0.0, 0.5, 0.0],
-        normal: [0.0, 1.0, 0.0],
-        tex_coords: [0.5, 0.5],
-    });
-    // Bottom center (normal points down)
-    vertices.push(RegistryVertex {
-        position: [0.0, -0.5, 0.0],
-        normal: [0.0, -1.0, 0.0],
-        tex_coords: [0.5, 0.5],
-    });
-
-    let base_idx_top: u32 = 0;
-    let base_idx_bottom: u32 = 1;
-
-    for i in 0..=segments {
-        let theta = 2.0 * std::f32::consts::PI * (i as f32 / segments as f32);
-        let x = theta.cos();
-        let z = theta.sin();
-        let u = i as f32 / segments as f32;
-        // Side normals point outward horizontally
-        let nx = x;
-        let nz = z;
-        // Top cap vertex
-        vertices.push(RegistryVertex {
-            position: [x, 0.5, z],
-            normal: [nx, 0.0, nz],
-            tex_coords: [u, 0.0],
-        });
-        // Bottom cap vertex
-        vertices.push(RegistryVertex {
-            position: [x, -0.5, z],
-            normal: [nx, 0.0, nz],
-            tex_coords: [u, 1.0],
-        });
-    }
-
-    for i in 0..segments {
-        let top0 = 2 + i * 2;
-        let bot0 = top0 + 1;
-        let top1 = top0 + 2;
-        let bot1 = top1 + 1;
-
-        // Side faces
-        indices.push(top0);
-        indices.push(bot0);
-        indices.push(top1);
-        indices.push(bot0);
-        indices.push(bot1);
-        indices.push(top1);
-
-        // Top cap
-        indices.push(base_idx_top);
-        indices.push(top1);
-        indices.push(top0);
-
-        // Bottom cap
-        indices.push(base_idx_bottom);
-        indices.push(bot0);
-        indices.push(bot1);
-    }
-    (vertices, indices)
-}
-
-/// Sprint 85: Generate a unit cube with per-face flat normals.
-fn generate_cube() -> (Vec<RegistryVertex>, Vec<u32>) {
-    // 6 faces × 4 vertices = 24 vertices; 6 faces × 2 triangles × 3 = 36 indices
-    #[allow(clippy::type_complexity)]
-    let faces: [([f32; 3], [[f32; 3]; 4], [[f32; 2]; 4]); 6] = [
-        // +Y top
-        (
-            [0.0, 1.0, 0.0],
-            [
-                [-0.5, 0.5, -0.5],
-                [0.5, 0.5, -0.5],
-                [0.5, 0.5, 0.5],
-                [-0.5, 0.5, 0.5],
-            ],
-            [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
-        ),
-        // -Y bottom
-        (
-            [0.0, -1.0, 0.0],
-            [
-                [-0.5, -0.5, 0.5],
-                [0.5, -0.5, 0.5],
-                [0.5, -0.5, -0.5],
-                [-0.5, -0.5, -0.5],
-            ],
-            [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
-        ),
-        // +Z front
-        (
-            [0.0, 0.0, 1.0],
-            [
-                [-0.5, -0.5, 0.5],
-                [0.5, -0.5, 0.5],
-                [0.5, 0.5, 0.5],
-                [-0.5, 0.5, 0.5],
-            ],
-            [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
-        ),
-        // -Z back
-        (
-            [0.0, 0.0, -1.0],
-            [
-                [0.5, -0.5, -0.5],
-                [-0.5, -0.5, -0.5],
-                [-0.5, 0.5, -0.5],
-                [0.5, 0.5, -0.5],
-            ],
-            [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
-        ),
-        // +X right
-        (
-            [1.0, 0.0, 0.0],
-            [
-                [0.5, -0.5, 0.5],
-                [0.5, -0.5, -0.5],
-                [0.5, 0.5, -0.5],
-                [0.5, 0.5, 0.5],
-            ],
-            [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
-        ),
-        // -X left
-        (
-            [-1.0, 0.0, 0.0],
-            [
-                [-0.5, -0.5, -0.5],
-                [-0.5, -0.5, 0.5],
-                [-0.5, 0.5, 0.5],
-                [-0.5, 0.5, -0.5],
-            ],
-            [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
-        ),
-    ];
-
-    let mut vertices = Vec::with_capacity(24);
-    let mut indices = Vec::with_capacity(36);
-
-    for (face_idx, (normal, positions, uvs)) in faces.iter().enumerate() {
-        let base = (face_idx * 4) as u32;
-        for (pos, uv) in positions.iter().zip(uvs.iter()) {
-            vertices.push(RegistryVertex {
-                position: *pos,
-                normal: *normal,
-                tex_coords: *uv,
-            });
-        }
-        // Two CCW triangles per face
-        indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
-    }
-    (vertices, indices)
-}
-
-/// Sprint 86: Compute a perspective view-proj matrix and send it to all windows.
-/// Called from scripts as: registry_set_camera(fov_deg, cam_x, cam_y, cam_z)
-pub fn registry_set_camera(fov_degrees: f32, cam_x: f32, cam_y: f32, cam_z: f32) {
-    registry_set_camera_for_window(0, fov_degrees, cam_x, cam_y, cam_z);
-}
-
-/// Sprint 86: Send a camera to a specific window (window_id = handle_id).
-/// Called from scripts as: registry_set_camera_for_window(win, fov_deg, cam_x, cam_y, cam_z)
-pub fn registry_set_camera_for_window(
-    window_id: i64,
-    fov_degrees: f32,
-    cam_x: f32,
-    cam_y: f32,
-    cam_z: f32,
-) {
-    use glam::{Mat4, Vec3};
-    let eye = Vec3::new(cam_x, cam_y, cam_z);
-    let target = Vec3::ZERO;
-    let up = Vec3::Y;
-    // Assume a reasonable aspect until the window reports its size via resize events.
-    let aspect = 16.0_f32 / 9.0_f32;
-    let proj = Mat4::perspective_rh(fov_degrees.to_radians(), aspect, 0.1, 1000.0);
-    let view = Mat4::look_at_rh(eye, target, up);
-    let vp = proj * view;
-    let vp_arr = vp.to_cols_array_2d();
-
-    send_render_command(RenderCommand::SetCamera {
-        window_id: window_id as usize,
-        view_proj: vp_arr,
-    });
-}
-
 pub fn registry_get_mouse_delta_x() -> f32 {
     let mut acc = 0.0;
     with_registry(|registry| {
@@ -1526,11 +894,28 @@ pub fn registry_get_last_char() -> i64 {
 }
 
 pub fn registry_read_file(path: String) -> String {
-    std::fs::read_to_string(&path).unwrap_or_else(|_| "".to_string())
+    let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(&path) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("[KnotenCore FS] Security error reading '{}': {}", path, e);
+            return String::new();
+        }
+    };
+    std::fs::read_to_string(&safe_path).unwrap_or_else(|e| {
+        eprintln!("[KnotenCore FS] Error reading '{}': {}", safe_path.display(), e);
+        String::new()
+    })
 }
 
 pub fn registry_write_file(path: String, content: String) -> bool {
-    std::fs::write(&path, content).is_ok()
+    let safe_path = match crate::executor::ExecutionEngine::validate_fs_path_write(&path) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("[KnotenCore FS] Security error writing '{}': {}", path, e);
+            return false;
+        }
+    };
+    std::fs::write(&safe_path, content).is_ok()
 }
 
 pub fn registry_get_ultimate_answer() -> i64 {
@@ -1548,7 +933,14 @@ pub fn registry_force_panic() {
 // ── Assets & Textures (Sprint 165) ──────────────────────────────────────
 
 pub fn registry_load_texture(path: &str) -> i64 {
-    let img_result = image::open(path);
+    let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(path) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("[KnotenCore Texture] Security error loading '{}': {}", path, e);
+            return 0;
+        }
+    };
+    let img_result = image::open(&safe_path);
     if let Ok(img) = img_result {
         let rgba = img.to_rgba8();
         let (width, height) = rgba.dimensions();
@@ -1569,73 +961,4 @@ pub fn registry_load_texture(path: &str) -> i64 {
     }
     // Return 0 (default texture) on error
     0
-}
-
-// ── Physics & Raycasting (Sprint 164) ───────────────────────────────────
-
-pub fn registry_check_collision(id1: i64, id2: i64) -> bool {
-    let guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(map) = guard.as_ref()
-        && let (Some(e1), Some(e2)) = (map.get(&(id1 as usize)), map.get(&(id2 as usize)))
-    {
-        return e1.world_aabb.intersects(&e2.world_aabb);
-    }
-    false
-}
-
-pub fn registry_get_clicked_entity(window_handle: i64) -> i64 {
-    if window_handle < 0 {
-        return -1;
-    }
-    let input = with_registry(|reg| {
-        if let Some(entry) = reg.get(&(window_handle as usize))
-            && let NativeHandle::Window(proxy) = &entry.handle
-        {
-            return Some(proxy.input.clone());
-        }
-        None
-    });
-
-    if let Some(input_arc) = input {
-        let mut state = input_arc.lock().unwrap_or_else(|e| e.into_inner());
-        if state.mouse_clicked {
-            state.mouse_clicked = false; // Consume click
-
-            // Unproject mouse coordinates to ray
-            let vp = glam::Mat4::from_cols_array_2d(&state.view_proj);
-            let inv_vp = vp.inverse();
-
-            let ndc_x = (state.mouse_x / state.window_width) * 2.0 - 1.0;
-            let ndc_y = 1.0 - (state.mouse_y / state.window_height) * 2.0;
-
-            let clip_near = glam::Vec4::new(ndc_x, ndc_y, 0.0, 1.0);
-            let clip_far = glam::Vec4::new(ndc_x, ndc_y, 1.0, 1.0);
-
-            let mut world_near = inv_vp * clip_near;
-            world_near /= world_near.w;
-
-            let mut world_far = inv_vp * clip_far;
-            world_far /= world_far.w;
-
-            let ray_origin = world_near.truncate();
-            let ray_dir = (world_far.truncate() - ray_origin).normalize();
-
-            // Raycast against physics world
-            let guard = PHYSICS_WORLD.lock().unwrap_or_else(|e| e.into_inner());
-            let mut hit_idx: i64 = -1;
-            let mut t_min = f32::MAX;
-            if let Some(map) = guard.as_ref() {
-                for (&id, phys) in map.iter() {
-                    if let Some(t) = phys.world_aabb.intersect_ray(ray_origin, ray_dir)
-                        && t < t_min
-                    {
-                        t_min = t;
-                        hit_idx = id as i64;
-                    }
-                }
-            }
-            return hit_idx;
-        }
-    }
-    -1
 }
