@@ -1496,23 +1496,49 @@ impl BridgeModule for CoreBridge {
                         && let RelType::Array(matrix_arr) = &args[0]
                         && let RelType::Array(vector_arr) = &args[1]
                     {
-                        if matrix_arr.len() == 16 && (vector_arr.len() == 3 || vector_arr.len() == 4) {
+                        if matrix_arr.len() == 16
+                            && (vector_arr.len() == 3 || vector_arr.len() == 4)
+                        {
                             let extract = |v: &RelType| match v {
                                 RelType::Float(f) => *f as f32,
                                 RelType::Int(i) => *i as f32,
                                 _ => 0.0_f32,
                             };
                             let m = glam::Mat4::from_cols_array_2d(&[
-                                [extract(&matrix_arr[0]), extract(&matrix_arr[1]), extract(&matrix_arr[2]), extract(&matrix_arr[3])],
-                                [extract(&matrix_arr[4]), extract(&matrix_arr[5]), extract(&matrix_arr[6]), extract(&matrix_arr[7])],
-                                [extract(&matrix_arr[8]), extract(&matrix_arr[9]), extract(&matrix_arr[10]), extract(&matrix_arr[11])],
-                                [extract(&matrix_arr[12]), extract(&matrix_arr[13]), extract(&matrix_arr[14]), extract(&matrix_arr[15])],
+                                [
+                                    extract(&matrix_arr[0]),
+                                    extract(&matrix_arr[1]),
+                                    extract(&matrix_arr[2]),
+                                    extract(&matrix_arr[3]),
+                                ],
+                                [
+                                    extract(&matrix_arr[4]),
+                                    extract(&matrix_arr[5]),
+                                    extract(&matrix_arr[6]),
+                                    extract(&matrix_arr[7]),
+                                ],
+                                [
+                                    extract(&matrix_arr[8]),
+                                    extract(&matrix_arr[9]),
+                                    extract(&matrix_arr[10]),
+                                    extract(&matrix_arr[11]),
+                                ],
+                                [
+                                    extract(&matrix_arr[12]),
+                                    extract(&matrix_arr[13]),
+                                    extract(&matrix_arr[14]),
+                                    extract(&matrix_arr[15]),
+                                ],
                             ]);
                             let v = glam::Vec4::new(
                                 extract(&vector_arr[0]),
                                 extract(&vector_arr[1]),
                                 extract(&vector_arr[2]),
-                                if vector_arr.len() == 4 { extract(&vector_arr[3]) } else { 1.0 },
+                                if vector_arr.len() == 4 {
+                                    extract(&vector_arr[3])
+                                } else {
+                                    1.0
+                                },
                             );
                             let result = m * v;
                             return Some(ExecResult::Value(RelType::Array(vec![
@@ -1528,7 +1554,8 @@ impl BridgeModule for CoreBridge {
                         });
                     }
                     Some(ExecResult::Fault {
-                        msg: "[FFI] math_matrix_transform expects (Array[16], Array[3-4])".to_string(),
+                        msg: "[FFI] math_matrix_transform expects (Array[16], Array[3-4])"
+                            .to_string(),
                         node: "Native::Bridge::math_matrix_transform".into(),
                     })
                 }

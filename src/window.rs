@@ -535,24 +535,21 @@ impl KnotenApp {
                             let storage = state.device.create_buffer(&wgpu::BufferDescriptor {
                                 label: Some("Compute Storage Buffer"),
                                 size: data_bytes.len() as u64,
-                                usage: wgpu::BufferUsages::STORAGE
-                                    | wgpu::BufferUsages::COPY_DST,
+                                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
                                 mapped_at_creation: false,
                             });
                             state.queue.write_buffer(&storage, 0, &data_bytes);
 
                             let bind_group_layout = pipeline.get_bind_group_layout(0);
                             let bind_group =
-                                state
-                                    .device
-                                    .create_bind_group(&wgpu::BindGroupDescriptor {
-                                        label: Some("Compute Bind Group"),
-                                        layout: &bind_group_layout,
-                                        entries: &[wgpu::BindGroupEntry {
-                                            binding: 0,
-                                            resource: storage.as_entire_binding(),
-                                        }],
-                                    });
+                                state.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                                    label: Some("Compute Bind Group"),
+                                    layout: &bind_group_layout,
+                                    entries: &[wgpu::BindGroupEntry {
+                                        binding: 0,
+                                        resource: storage.as_entire_binding(),
+                                    }],
+                                });
 
                             let mut encoder = state.device.create_command_encoder(
                                 &wgpu::CommandEncoderDescriptor {
@@ -560,12 +557,11 @@ impl KnotenApp {
                                 },
                             );
                             {
-                                let mut cpass = encoder.begin_compute_pass(
-                                    &wgpu::ComputePassDescriptor {
+                                let mut cpass =
+                                    encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                                         label: Some("Compute Pass"),
                                         timestamp_writes: None,
-                                    },
-                                );
+                                    });
                                 cpass.set_pipeline(pipeline);
                                 cpass.set_bind_group(0, &bind_group, &[]);
                                 cpass.dispatch_workgroups(x, y, z);
@@ -579,12 +575,11 @@ impl KnotenApp {
                                 },
                             );
                             {
-                                let mut cpass = encoder.begin_compute_pass(
-                                    &wgpu::ComputePassDescriptor {
+                                let mut cpass =
+                                    encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                                         label: Some("Compute Pass"),
                                         timestamp_writes: None,
-                                    },
-                                );
+                                    });
                                 cpass.set_pipeline(pipeline);
                                 cpass.dispatch_workgroups(x, y, z);
                             }
@@ -1237,10 +1232,7 @@ fn inputs_to_storage_buffer(inputs: &[crate::executor::RelType]) -> (Vec<u8>, u3
     if floats.is_empty() {
         return (Vec::new(), 0);
     }
-    let bytes: Vec<u8> = floats
-        .iter()
-        .flat_map(|f| f.to_le_bytes())
-        .collect();
+    let bytes: Vec<u8> = floats.iter().flat_map(|f| f.to_le_bytes()).collect();
     (bytes, floats.len() as u32)
 }
 
