@@ -524,26 +524,72 @@ impl KnotenApp {
                 x,
                 y,
                 z,
-                inputs: _,
+                inputs,
             } => {
                 if let Some(state) = self.windows.values().next() {
                     if let Some(pipeline) = self.compute_pipelines.get(&shader_id) {
-                        let mut encoder =
-                            state
-                                .device
-                                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                        // Sprint 187: Serialize inputs into a storage buffer
+                        let (data_bytes, element_count) = inputs_to_storage_buffer(&inputs);
+
+                        if element_count > 0 {
+                            let storage = state.device.create_buffer(&wgpu::BufferDescriptor {
+                                label: Some("Compute Storage Buffer"),
+                                size: data_bytes.len() as u64,
+                                usage: wgpu::BufferUsages::STORAGE
+                                    | wgpu::BufferUsages::COPY_DST,
+                                mapped_at_creation: false,
+                            });
+                            state.queue.write_buffer(&storage, 0, &data_bytes);
+
+                            let bind_group_layout = pipeline.get_bind_group_layout(0);
+                            let bind_group =
+                                state
+                                    .device
+                                    .create_bind_group(&wgpu::BindGroupDescriptor {
+                                        label: Some("Compute Bind Group"),
+                                        layout: &bind_group_layout,
+                                        entries: &[wgpu::BindGroupEntry {
+                                            binding: 0,
+                                            resource: storage.as_entire_binding(),
+                                        }],
+                                    });
+
+                            let mut encoder = state.device.create_command_encoder(
+                                &wgpu::CommandEncoderDescriptor {
                                     label: Some("Compute Encoder"),
-                                });
-                        {
-                            let mut cpass =
-                                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                                    label: Some("Compute Pass"),
-                                    timestamp_writes: None,
-                                });
-                            cpass.set_pipeline(pipeline);
-                            cpass.dispatch_workgroups(x, y, z);
+                                },
+                            );
+                            {
+                                let mut cpass = encoder.begin_compute_pass(
+                                    &wgpu::ComputePassDescriptor {
+                                        label: Some("Compute Pass"),
+                                        timestamp_writes: None,
+                                    },
+                                );
+                                cpass.set_pipeline(pipeline);
+                                cpass.set_bind_group(0, &bind_group, &[]);
+                                cpass.dispatch_workgroups(x, y, z);
+                            }
+                            state.queue.submit(std::iter::once(encoder.finish()));
+                        } else {
+                            // No data inputs — dispatch without bind group (backward compat)
+                            let mut encoder = state.device.create_command_encoder(
+                                &wgpu::CommandEncoderDescriptor {
+                                    label: Some("Compute Encoder"),
+                                },
+                            );
+                            {
+                                let mut cpass = encoder.begin_compute_pass(
+                                    &wgpu::ComputePassDescriptor {
+                                        label: Some("Compute Pass"),
+                                        timestamp_writes: None,
+                                    },
+                                );
+                                cpass.set_pipeline(pipeline);
+                                cpass.dispatch_workgroups(x, y, z);
+                            }
+                            state.queue.submit(std::iter::once(encoder.finish()));
                         }
-                        state.queue.submit(std::iter::once(encoder.finish()));
                     } else {
                         eprintln!("DispatchCompute failed: Shader {} not found.", shader_id);
                     }
@@ -1177,5 +1223,41 @@ fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {
 
         // Unsupported nodes are silently ignored (no panic).
         _ => {}
+    }
+}
+
+/// Sprint 187: Serialize RelType inputs into a packed f32 byte buffer for GPU storage.
+/// Returns (byte_data, element_count). Floats are written in little-endian f32 format.
+/// Structured objects and arrays are flattened.
+fn inputs_to_storage_buffer(inputs: &[crate::executor::RelType]) -> (Vec<u8>, u32) {
+    let mut floats: Vec<f32> = Vec::new();
+    for input in inputs {
+        collect_floats(input, &mut floats);
+    }
+    if floats.is_empty() {
+        return (Vec::new(), 0);
+    }
+    let bytes: Vec<u8> = floats
+        .iter()
+        .flat_map(|f| f.to_le_bytes())
+        .collect();
+    (bytes, floats.len() as u32)
+}
+
+fn collect_floats(rel: &crate::executor::RelType, out: &mut Vec<f32>) {
+    match rel {
+        crate::executor::RelType::Float(f) => out.push(*f as f32),
+        crate::executor::RelType::Int(i) => out.push(*i as f32),
+        crate::executor::RelType::Array(arr) => {
+            for item in arr {
+                collect_floats(item, out);
+            }
+        }
+        crate::executor::RelType::Object(map) => {
+            for v in map.values() {
+                collect_floats(v, out);
+            }
+        }
+        _ => {} // Skip non-numeric types
     }
 }
