@@ -1222,67 +1222,6 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_get_last_char".into(),
                     })
                 }
-                "registry_read_file" => {
-                    if !permissions.allow_fs_read {
-                        return Some(ExecResult::Fault {
-                            msg: "Permission Denied: registry.registry_read_file requires FS_READ"
-                                .to_string(),
-                            node: "Bridge::registry.registry_read_file".into(),
-                        });
-                    }
-                    if args.len() == 1
-                        && let RelType::Str(path) = &args[0]
-                    {
-                        if crate::natives::ffi_safety::validate_string(path, "registry_read_file")
-                            .is_none()
-                        {
-                            return Some(ExecResult::Fault {
-                                msg: "[FFI] registry_read_file: invalid path string".to_string(),
-                                node: "Native::Bridge::registry_read_file".into(),
-                            });
-                        }
-                        let content = crate::natives::registry::registry_read_file(path.clone());
-                        return Some(ExecResult::Value(RelType::Str(content)));
-                    }
-                    Some(ExecResult::Fault {
-                        msg: "[FFI] registry_read_file expects 1 String arg".to_string(),
-                        node: "Native::Bridge::registry_read_file".into(),
-                    })
-                }
-                "registry_write_file" => {
-                    if !permissions.allow_fs_write {
-                        return Some(ExecResult::Fault {
-                            msg:
-                                "Permission Denied: registry.registry_write_file requires FS_WRITE"
-                                    .to_string(),
-                            node: "Bridge::registry.registry_write_file".into(),
-                        });
-                    }
-                    if args.len() == 2
-                        && let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1])
-                    {
-                        if crate::natives::ffi_safety::validate_string(path, "registry_write_file")
-                            .is_none()
-                        {
-                            return Some(ExecResult::Fault {
-                                msg: "[FFI] registry_write_file: invalid path string".to_string(),
-                                node: "Native::Bridge::registry_write_file".into(),
-                            });
-                        }
-                        let ok = crate::natives::registry::registry_write_file(
-                            path.clone(),
-                            content.clone(),
-                        );
-                        return Some(ExecResult::Value(RelType::Bool(ok)));
-                    }
-                    Some(ExecResult::Fault {
-                        msg: "[FFI] registry_write_file expects (String, String)".to_string(),
-                        node: "Native::Bridge::registry_write_file".into(),
-                    })
-                }
-                "registry_get_ultimate_answer" => Some(ExecResult::Value(RelType::Int(
-                    crate::natives::registry::registry_get_ultimate_answer(),
-                ))),
                 // Sprint 163: Parse a String to Float for UI→3D value bridging.
                 // Returns 0.0 on invalid input (never faults — safe for live text fields).
                 #[cfg(debug_assertions)]

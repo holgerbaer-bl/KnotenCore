@@ -116,8 +116,6 @@ pub fn exit_event_loop() {
 
 static RENDER_TX: Mutex<Option<winit::event_loop::EventLoopProxy<RenderCommand>>> =
     Mutex::new(None);
-pub(crate) static SENT_MESHES: Mutex<Option<HashSet<String>>> = Mutex::new(None);
-
 pub static AUDIO_STATE: Mutex<Option<crate::audio::AudioManager>> = Mutex::new(None);
 
 pub fn init_audio_state() {
@@ -891,35 +889,6 @@ pub fn registry_get_last_char() -> i64 {
         }
     });
     last
-}
-
-pub fn registry_read_file(path: String) -> String {
-    let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(&path) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("[KnotenCore FS] Security error reading '{}': {}", path, e);
-            return String::new();
-        }
-    };
-    std::fs::read_to_string(&safe_path).unwrap_or_else(|e| {
-        eprintln!("[KnotenCore FS] Error reading '{}': {}", safe_path.display(), e);
-        String::new()
-    })
-}
-
-pub fn registry_write_file(path: String, content: String) -> bool {
-    let safe_path = match crate::executor::ExecutionEngine::validate_fs_path_write(&path) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("[KnotenCore FS] Security error writing '{}': {}", path, e);
-            return false;
-        }
-    };
-    std::fs::write(&safe_path, content).is_ok()
-}
-
-pub fn registry_get_ultimate_answer() -> i64 {
-    42
 }
 
 /// Sprint 170: Debug FFI function that intentionally panics to test the

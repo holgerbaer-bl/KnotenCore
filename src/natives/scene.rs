@@ -59,9 +59,11 @@ pub struct RegistryWindowState {
 
 pub(crate) static NEXT_ENTITY_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
 pub(crate) static NEXT_LIGHT_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
+pub(crate) static SENT_MESHES: std::sync::Mutex<Option<std::collections::HashSet<String>>> =
+    std::sync::Mutex::new(None);
 
 fn ensure_mesh_sent(mesh_name: &str, vertices: Vec<super::geometry::RegistryVertex>, indices: Vec<u32>) {
-    let mut guard = crate::natives::registry::SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
+    let mut guard = SENT_MESHES.lock().unwrap_or_else(|e| e.into_inner());
     let sent = guard.get_or_insert_with(std::collections::HashSet::new);
     if !sent.contains(mesh_name) {
         send_render_command(RenderCommand::AddMesh {
