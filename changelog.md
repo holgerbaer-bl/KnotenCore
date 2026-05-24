@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 188: Sandboxed Time Module & Chrono Integration (2026-05-24)
+Sprint 188: Sandboxed Time Module. Integrated chrono crate to expose formatting and epoch timestamp utilities under the secure time FFI module.
+- **chrono Integration**: Added `chrono = "0.4"` to `Cargo.toml` (both copies). The crate provides timezone-safe date/time handling without any geolocation or hardware fingerprinting.
+- **time_get_string()** → `String`: Returns the current local system date and time formatted as `YYYY-MM-DD HH:MM:SS` using `chrono::Local::now().format()`.
+- **time_utc_timestamp()** → `Int`: Returns current UTC epoch seconds via `chrono::Utc::now().timestamp()`.
+- **Test Script**: Created `examples/time_stamping.knoten` — reads formatted time, captures epoch, writes unique cache entry with `file_write`, and verifies the roundtrip.
+- **Submodule Sync**: Identical FFI additions and Cargo.toml update in `aether_compiler/`.
+- **Documentation**: Updated `native_functions.json`, `llm.md`, `README.md`, and `changelog.md`.
+
 ## [v1.1.0] - Sprint 187: WGPU Compute Pipeline & Matrix Standard Library (2026-05-24)
 Sprint 187: WGPU Compute Pipeline. Expanded GPGPU storage buffer capabilities, implemented compute pipeline caching, and added parallel matrix/vector helper modules to the math standard library.
 - **Storage Buffer Binding**: Wired up `DispatchCompute` in `window.rs` to serialize input `RelType` arrays into `wgpu::Buffer` (STORAGE + COPY_DST), create bind groups, and bind them to the compute pipeline. Previously, inputs were silently ignored during dispatch.

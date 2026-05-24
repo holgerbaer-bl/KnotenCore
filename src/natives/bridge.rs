@@ -145,6 +145,18 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::time_sleep_ms".into(),
                     })
                 }
+                // Sprint 188: Formatted local wall-clock time
+                "time_get_string" => {
+                    let now = chrono::Local::now();
+                    let formatted = now.format("%Y-%m-%d %H:%M:%S").to_string();
+                    Some(ExecResult::Value(RelType::Str(formatted)))
+                }
+                // Sprint 188: UTC epoch timestamp in seconds
+                "time_utc_timestamp" => {
+                    let now = chrono::Utc::now();
+                    let stamp = now.timestamp();
+                    Some(ExecResult::Value(RelType::Int(stamp)))
+                }
                 _ => None,
             }
         } else if module == "net" {

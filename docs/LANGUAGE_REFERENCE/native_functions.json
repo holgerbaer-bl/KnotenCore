@@ -782,6 +782,34 @@
       }
     },
     {
+      "name": "time_get_string",
+      "module": "time",
+      "description": "Returns the current local system date and time as a formatted string: YYYY-MM-DD HH:MM:SS. Uses chrono::Local for timezone-aware formatting. Never panics.",
+      "parameters": [],
+      "returns": "String",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["now", {
+          "ExternCall": { "module": "time", "function": "time_get_string", "args": [] }
+        }]
+      }
+    },
+    {
+      "name": "time_utc_timestamp",
+      "module": "time",
+      "description": "Returns the current UTC epoch timestamp in seconds as an Int. Uses chrono::Utc::now().timestamp().",
+      "parameters": [],
+      "returns": "Int",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "Assign": ["epoch", {
+          "ExternCall": { "module": "time", "function": "time_utc_timestamp", "args": [] }
+        }]
+      }
+    },
+    {
       "name": "ui_text_input_get",
       "module": "ui",
       "description": "Reads the current value of the global UI_TEXT_INPUT_BUFFER. Returns String. Part of the UITextInput state-binding pattern.",
