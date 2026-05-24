@@ -10,9 +10,18 @@ use winit::keyboard::KeyCode;
 use std::sync::atomic::AtomicBool;
 
 // Sprint 184: Re-exports from extracted modules for backward compatibility
-pub use super::geometry::{CachedMesh, RegistryVertex, generate_cube, generate_cylinder, generate_uv_sphere};
-pub use super::physics::{EntityPhysics, PHYSICS_WORLD, registry_check_collision, registry_get_clicked_entity};
-pub use super::scene::{RegistryWindowState, SceneEntity, SceneLight, registry_destroy_entity, registry_set_camera, registry_set_camera_for_window, registry_spawn_cube, registry_spawn_cylinder, registry_spawn_light, registry_spawn_sphere, registry_update_entity_transform, registry_update_light_position};
+pub use super::geometry::{
+    CachedMesh, RegistryVertex, generate_cube, generate_cylinder, generate_uv_sphere,
+};
+pub use super::physics::{
+    EntityPhysics, PHYSICS_WORLD, registry_check_collision, registry_get_clicked_entity,
+};
+pub use super::scene::{
+    RegistryWindowState, SceneEntity, SceneLight, registry_destroy_entity, registry_set_camera,
+    registry_set_camera_for_window, registry_spawn_cube, registry_spawn_cylinder,
+    registry_spawn_light, registry_spawn_sphere, registry_update_entity_transform,
+    registry_update_light_position,
+};
 
 pub static GLOBAL_KEYS: [AtomicBool; 256] = [const { AtomicBool::new(false) }; 256];
 
@@ -905,7 +914,10 @@ pub fn registry_load_texture(path: &str) -> i64 {
     let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(path) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("[KnotenCore Texture] Security error loading '{}': {}", path, e);
+            eprintln!(
+                "[KnotenCore Texture] Security error loading '{}': {}",
+                path, e
+            );
             return 0;
         }
     };
