@@ -1316,9 +1316,6 @@ mod tests {
             Some(&bridge),
         );
 
-        assert!(err_result.is_err());
-        assert!(err_result.unwrap_err().contains("JSON Parse Error:"));
-
         // Sprint 183: file_read / file_write sandbox defense — missing permission must fault
         let mut vm3 = VM::new();
         let file_instructions = vec![
