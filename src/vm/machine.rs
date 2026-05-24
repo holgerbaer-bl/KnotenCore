@@ -1316,9 +1316,6 @@ mod tests {
             Some(&bridge),
         );
 
-        assert!(err_result.is_err());
-        assert!(err_result.unwrap_err().contains("JSON Parse Error:"));
-
         // Sprint 183: file_read / file_write sandbox defense — missing permission must fault
         let mut vm3 = VM::new();
         let file_instructions = vec![
@@ -1385,6 +1382,78 @@ mod tests {
         );
         assert!(write_result.unwrap_err().contains("Permission Denied"));
         Ok(())
+    }
+
+    // Sprint 183: file_read / file_write sandbox defense — missing permission must fault
+    #[test]
+    fn test_vm_file_io_sandbox() {
+        let mut vm = VM::new();
+        let instructions = vec![
+            OpCode::Constant(0), // Push path
+            OpCode::ExternCall {
+                name_idx: 2,
+                arg_count: 1,
+            }, // file_read
+            OpCode::Return,
+        ];
+        let constants = vec![
+            RelType::Str("examples/cache.json".to_string()),
+            RelType::Str("fs".to_string()),
+            RelType::Str("file_read".to_string()),
+        ];
+
+        let bridge = crate::natives::bridge::CoreBridge;
+        let result = vm.run(
+            &instructions,
+            &constants,
+            &AgentPermissions {
+                allow_network: false,
+                allowed_domains: vec![],
+                allow_fs_read: false,
+                allow_fs_write: false,
+            },
+            Some(&bridge),
+        );
+        assert!(
+            result.is_err(),
+            "file_read without allow_fs_read must fault"
+        );
+        assert!(result.unwrap_err().contains("Permission Denied"));
+
+        // file_write without allow_fs_write must also fault
+        let mut vm2 = VM::new();
+        let instructions_write = vec![
+            OpCode::Constant(0), // path
+            OpCode::Constant(1), // content
+            OpCode::ExternCall {
+                name_idx: 4,
+                arg_count: 2,
+            }, // file_write
+            OpCode::Return,
+        ];
+        let constants_write = vec![
+            RelType::Str("examples/cache.json".to_string()),
+            RelType::Str("test".to_string()),
+            RelType::Str("fs".to_string()),
+            RelType::Str("file_write".to_string()),
+            RelType::Str("file_write".to_string()),
+        ];
+        let result2 = vm2.run(
+            &instructions_write,
+            &constants_write,
+            &AgentPermissions {
+                allow_network: false,
+                allowed_domains: vec![],
+                allow_fs_read: true,
+                allow_fs_write: false,
+            },
+            Some(&bridge),
+        );
+        assert!(
+            result2.is_err(),
+            "file_write without allow_fs_write must fault"
+        );
+        assert!(result2.unwrap_err().contains("Permission Denied"));
     }
 
     fn run_logic_ops(ops: Vec<OpCode>, constants: Vec<RelType>) -> Result<RelType, String> {

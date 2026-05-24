@@ -573,7 +573,8 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]
                     {
-                        if crate::natives::ffi_safety::validate_string(path, "file_read").is_none() {
+                        if crate::natives::ffi_safety::validate_string(path, "file_read").is_none()
+                        {
                             return Some(ExecResult::Fault {
                                 msg: "[FFI] file_read: invalid path string".to_string(),
                                 node: "Native::Bridge::file_read".into(),
@@ -598,7 +599,8 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 2
                         && let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1])
                     {
-                        if crate::natives::ffi_safety::validate_string(path, "file_write").is_none() {
+                        if crate::natives::ffi_safety::validate_string(path, "file_write").is_none()
+                        {
                             return Some(ExecResult::Fault {
                                 msg: "[FFI] file_write: invalid path string".to_string(),
                                 node: "Native::Bridge::file_write".into(),

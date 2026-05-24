@@ -642,6 +642,35 @@ let auth = payload.meta.auth_token;      // Void if key missing
 
 ---
 
+## 💾 Persistence & File I/O (Sprint 183)
+
+Native file I/O with strict sandbox permissions. The VM can persist and restore state across restarts:
+
+| Function | Description | Permission |
+|---|---|---|
+| `file_read(path)` → `String` | Read entire file into a string | `--allow-read` |
+| `file_write(path, content)` → `Bool` | Write string to file (create/overwrite) | `--allow-write` |
+
+**Security architecture:** Both functions enforce `ffi_safety::validate_string` on paths (rejects empty strings and null bytes) and check `AgentPermissions` (`allow_fs_read` / `allow_fs_write`). Without the matching CLI flag, the call returns a clean `ExecResult::Fault` — the script aborts safely, never escaping the sandbox.
+
+Example from `examples/dashboard.knoten`:
+```
+let cached_raw = file_read("cache.json");
+let cached = json_parse(cached_raw);
+let has_cache = obj_has_key(cached, "slideshow");
+
+if (has_cache) {
+    render(cached);
+} else {
+    let fresh = json_parse(MOCK_JSON);
+    let payload = json_stringify(fresh);
+    file_write("cache.json", payload);
+    render(fresh);
+}
+```
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

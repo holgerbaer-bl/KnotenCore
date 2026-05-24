@@ -1,15 +1,29 @@
 import "examples/dashboard_config.nod";
 
-let win = registry_create_window(680, 520, "Sprint 182: JSON Mastery Dashboard");
+let win = registry_create_window(680, 520, "Sprint 183: Persistence Dashboard");
 
-// ── Phase 1: JSON Parse & Deep Object Access ─────────────────
-print("=== Sprint 182: JSON Mastery Dashboard ===");
-print("Parsing mock JSON config...");
+// ── Phase 0: Attempt to load cached state from disk ─────────
+print("=== Sprint 183: Persistence Dashboard ===");
+print("Attempting to load cache.json...");
 
-let parsed = json_parse(MOCK_JSON);
-print("JSON parsed successfully.");
+let cached_raw = file_read("examples/cache.json");
+let cached = json_parse(cached_raw);
+let has_cache = obj_has_key(cached, "slideshow");
 
-// Deep object access: PropertyGet chain compiled from dot notation
+let parsed;
+let source_label;
+
+if (has_cache) {
+    print("Cache hit — restoring from disk.");
+    parsed = cached;
+    source_label = "(loaded from cache)";
+} else {
+    print("No cache found — falling back to MOCK_JSON.");
+    parsed = json_parse(MOCK_JSON);
+    source_label = "(loaded from config)";
+}
+
+// ── Phase 1: Deep Object Access ────────────────────────────
 let title    = parsed.slideshow.title;
 let author   = parsed.slideshow.author;
 let views    = parsed.slideshow.stats.views;
@@ -27,7 +41,7 @@ print(active);
 print("  meta.version:     ");
 print(version);
 
-// ── Phase 2: Null-Safe Fallback — missing key returns Void ──
+// ── Phase 2: Null-Safe Fallback ────────────────────────────
 let missing = parsed.slideshow.nonexistent_field;
 print("  missing key (should be Void): ");
 print(missing);
@@ -37,16 +51,18 @@ let re_serialized = json_stringify(parsed);
 print("=== JSON Stringify ===");
 print(re_serialized);
 
-// ── Phase 4: Invalid JSON → graceful Fault ──────────────────
-let bad = json_parse("{not valid json}");
-print("  Bad JSON result (should be Void after Fault): ");
-print(bad);
+// ── Phase 4: Persist state to disk ──────────────────────────
+print("=== Saving state to cache.json ===");
+let save_ok = file_write("examples/cache.json", re_serialized);
+print("  file_write result: ");
+print(save_ok);
 
 // ── Phase 5: UI Dashboard ───────────────────────────────────
 print("=== Rendering Dashboard UI ===");
 
 UIWindow("json_dashboard", "JSON Processing Dashboard", UIVBox {
-    UILabel("=== Sprint 182: JSON Mastery ===");
+    UILabel("=== Sprint 183: Persistence ===");
+    UILabel("Source: " + source_label);
     UILabel("Title: " + title);
     UILabel("Author: " + author);
     UILabel("Views: " + ToString(views));
@@ -54,4 +70,5 @@ UIWindow("json_dashboard", "JSON Processing Dashboard", UIVBox {
     UILabel("Version: " + version);
     UILabel("");
     UILabel("JSON roundtrip: " + re_serialized);
+    UILabel("Cache saved: " + ToString(save_ok));
 });

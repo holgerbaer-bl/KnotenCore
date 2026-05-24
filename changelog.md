@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 183: The Persistence & File I/O Expansion (2026-05-24)
+Sprint 183: The Persistence Update. Added native `file_read` and `file_write` operations secured by strict sandbox permissions (`--allow-read` / `--allow-write`).
+- **Native File I/O**: Implemented `file_read(path)` and `file_write(path, content)` in `bridge.rs` under the `fs` module. `file_read` returns `RelType::Str`; `file_write` returns `RelType::Bool`.
+- **Sandbox Hardening**: Both functions validate paths via `ffi_safety::validate_string` (rejects empty strings and null bytes) and enforce `permissions.allow_fs_read` / `allow_fs_write`. Missing permissions produce a clean `ExecResult::Fault` — no sandbox escape.
+- **VM Routing**: Added `file_` prefix to the dynamic module routing in `machine.rs`, mapping `file_read` / `file_write` to the `fs` bridge module.
+- **Dashboard Persistence**: Extended `examples/dashboard.knoten` to load `cache.json` on startup (rendering cached data before any network request) and persist the processed JSON state back to disk via `json_stringify` + `file_write`.
+- **Documentation**: Updated README Persistence section, `llm.md` Sprint 183 routing, `changelog.md`, and `native_functions.json` with full function specs and AST examples.
+
 ## [v1.1.0] - Sprint 182: The Data Processing & JSON Mastery (2026-05-23)
 Sprint 182: The Data Processing & JSON Mastery. Robust json_parse/json_stringify, deep object access, and null-safe property navigation for HTTP payload handling.
 - **JSON Parse Resilience**: `json_parse` in bridge.rs returns `RelType::Void` on parse failure instead of `ExecResult::Fault`. Invalid JSON is logged via `eprintln!` and the script continues.
