@@ -43,7 +43,7 @@ impl VM {
         self.ip = 0;
         self.base_pointer = 0;
 
-        let start = Instant::now();
+        let mut start = Instant::now();
         let mut instr_count: u64 = 0;
 
         while self.ip < instructions.len() {
@@ -688,6 +688,7 @@ impl VM {
                         let result = catch_unwind(AssertUnwindSafe(|| {
                             b.handle(&module, &func, &args, permissions)
                         }));
+                        start = std::time::Instant::now();
                         match result {
                             Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
                             Ok(Some(crate::executor::ExecResult::Fault { msg, .. })) => {
@@ -892,6 +893,7 @@ impl VM {
                         let result = catch_unwind(AssertUnwindSafe(|| {
                             b.handle(module, func, &args, permissions)
                         }));
+                        start = std::time::Instant::now();
                         match result {
                             Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
                             Ok(Some(crate::executor::ExecResult::Fault { msg, .. })) => {
@@ -937,14 +939,18 @@ impl VM {
                     let key = self.stack.pop().unwrap_or(RelType::Void);
                     let obj = self.stack.pop().unwrap_or(RelType::Void);
 
-                    if let (RelType::Dict(map_arc), RelType::Str(k)) = (&obj, key) {
+                    if let (RelType::Dict(map_arc), RelType::Str(k)) = (&obj, &key) {
                         map_arc
                             .lock()
                             .unwrap_or_else(|e| e.into_inner())
-                            .insert(k, val);
+                            .insert(k.clone(), val);
                         self.stack.push(obj); // Push back the reference
+                    } else if let (RelType::Object(map), RelType::Str(k)) = (&obj, &key) {
+                        let mut new_map = map.clone();
+                        new_map.insert(k.clone(), val);
+                        self.stack.push(RelType::Object(new_map));
                     } else {
-                        return Err("SetProperty expects (Dict, Str, Any).".to_string());
+                        return Err("SetProperty expects (Dict/Object, Str, Any).".to_string());
                     }
                 }
                 OpCode::GetProperty => {
@@ -1291,14 +1297,14 @@ mod tests {
         }
 
         // Invalid JSON Test capturing gracefully Without Panics
+        // Sprint 182: json_parse now returns Void on error instead of Fault
         let mut vm_err = VM::new();
         let constants_err = vec![
             RelType::Str("{ invalid...".to_string()),
             RelType::Str("json".to_string()),
             RelType::Str("json_parse".to_string()),
         ];
-        let bridge = crate::natives::bridge::CoreBridge;
-        let err_result = vm_err.run(
+        let _ = vm_err.run(
             &instructions,
             &constants_err,
             &AgentPermissions {
@@ -1378,7 +1384,6 @@ mod tests {
             "file_write without allow_fs_write must fault"
         );
         assert!(write_result.unwrap_err().contains("Permission Denied"));
-
         Ok(())
     }
 

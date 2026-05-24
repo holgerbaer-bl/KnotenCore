@@ -1,0 +1,57 @@
+import "examples/dashboard_config.nod";
+
+let win = registry_create_window(680, 520, "Sprint 182: JSON Mastery Dashboard");
+
+// ── Phase 1: JSON Parse & Deep Object Access ─────────────────
+print("=== Sprint 182: JSON Mastery Dashboard ===");
+print("Parsing mock JSON config...");
+
+let parsed = json_parse(MOCK_JSON);
+print("JSON parsed successfully.");
+
+// Deep object access: PropertyGet chain compiled from dot notation
+let title    = parsed.slideshow.title;
+let author   = parsed.slideshow.author;
+let views    = parsed.slideshow.stats.views;
+let active   = parsed.slideshow.stats.active;
+let version  = parsed.meta.version;
+
+print("  slideshow.title:  ");
+print(title);
+print("  slideshow.author: ");
+print(author);
+print("  slideshow.stats.views:  ");
+print(views);
+print("  slideshow.stats.active: ");
+print(active);
+print("  meta.version:     ");
+print(version);
+
+// ── Phase 2: Null-Safe Fallback — missing key returns Void ──
+let missing = parsed.slideshow.nonexistent_field;
+print("  missing key (should be Void): ");
+print(missing);
+
+// ── Phase 3: JSON Stringify roundtrip ───────────────────────
+let re_serialized = json_stringify(parsed);
+print("=== JSON Stringify ===");
+print(re_serialized);
+
+// ── Phase 4: Invalid JSON → graceful Fault ──────────────────
+let bad = json_parse("{not valid json}");
+print("  Bad JSON result (should be Void after Fault): ");
+print(bad);
+
+// ── Phase 5: UI Dashboard ───────────────────────────────────
+print("=== Rendering Dashboard UI ===");
+
+UIWindow("json_dashboard", "JSON Processing Dashboard", UIVBox {
+    UILabel("=== Sprint 182: JSON Mastery ===");
+    UILabel("Title: " + title);
+    UILabel("Author: " + author);
+    UILabel("Views: " + ToString(views));
+    UILabel("Active: " + ToString(active));
+    UILabel("Version: " + version);
+    UILabel("");
+    UILabel("JSON roundtrip: " + re_serialized);
+});

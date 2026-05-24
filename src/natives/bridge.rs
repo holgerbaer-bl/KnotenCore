@@ -107,10 +107,8 @@ impl BridgeModule for CoreBridge {
                         match crate::natives::fs::fs_parse_json(payload) {
                             Ok(parsed) => return Some(ExecResult::Value(parsed)),
                             Err(e) => {
-                                return Some(ExecResult::Fault {
-                                    msg: format!("JSON Parse Error: {}", e),
-                                    node: "Native::Bridge::json_parse".into(),
-                                });
+                                eprintln!("[KnotenCore JSON] Parse error: {}", e);
+                                return Some(ExecResult::Value(RelType::Void));
                             }
                         }
                     }

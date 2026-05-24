@@ -611,6 +611,37 @@ Sprint 180 focuses on parser robustness, error resilience, and modular developer
 
 ---
 
+## 🛠️ The Telemetry Dashboard & HTTP Bridge (Sprint 181)
+
+Sprint 181 opens KnotenCore to the network by implementing outbound HTTP communication via the FFI bridge and showcasing it in a modular dashboard application:
+
+- **HTTP GET FFI support**: Added the `network_get(url)` function under the `net` module in both the root FFI bridge and the compiler submodule's bridge, leveraging the existing `ureq` HTTP client.
+- **Network Sandboxing**: Restricts outbound connections via the `--allow-network` (or `--allow-net`) agent runtime permission. Attempts to make network requests without this permission result in a structured `ExecResult::Fault`.
+- **Modular Telemetry Dashboard**: Created `examples/dashboard.knoten` displaying live container metrics, styled with vertical boxes, buttons, and dynamic text labels. It loads configuration constants and mock data from `examples/dashboard_config.nod` to demonstrate the deserialization patch from Sprint 180.
+- **Standard Library Network Mapping**: Exposes FFI calls in `stdlib/network.nod`.
+
+---
+
+## 📊 Data Processing & JSON Mastery (Sprint 182)
+
+Full JSON processing pipeline with resilient parsing and deep object navigation:
+
+| Function | Description |
+|---|---|
+| `json_parse(s)` → `Object\|Array\|Void` | Parse JSON string; returns `Void` on invalid input (never crashes) |
+| `json_stringify(v)` → `String` | Serialize any value to JSON string |
+
+**Deep Object Access** via dot notation (`obj.key.subkey`) compiles to `PropertyGet` chains with automatic null-safe fallback — missing keys return `Void` instead of panicking.
+
+Example from `examples/dashboard.knoten`:
+```
+let payload = json_parse(http_response);
+let cpu  = payload.system.cpu.usage;     // 3-level deep access
+let auth = payload.meta.auth_token;      // Void if key missing
+```
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

@@ -2,6 +2,22 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 182: The Data Processing & JSON Mastery (2026-05-23)
+Sprint 182: The Data Processing & JSON Mastery. Robust json_parse/json_stringify, deep object access, and null-safe property navigation for HTTP payload handling.
+- **JSON Parse Resilience**: `json_parse` in bridge.rs returns `RelType::Void` on parse failure instead of `ExecResult::Fault`. Invalid JSON is logged via `eprintln!` and the script continues.
+- **Deep Object Access**: Dot-notation (`parsed.slideshow.stats.views`) compiles to PropertyGet opcode chains. Missing keys return `RelType::Void` — no crash. Works on both `RelType::Object` and `RelType::Dict`.
+- **Object Mutation Fix**: `OpCode::SetProperty` extended to support `RelType::Object` (clone-on-write) alongside `RelType::Dict` (in-place Arc mutation).
+- **Dashboard Demo**: `examples/dashboard.knoten` imports `dashboard_config.nod`, parses nested JSON, deep-accesses 5 fields, demonstrates null-safe fallback on missing keys, `json_stringify` roundtrip, and renders a metrics UI.
+- **Documentation**: README Data Processing section, llm.md Sprint 182, changelog, native_functions.json updated.
+
+## [v1.1.0] - Sprint 181: The Telemetry Dashboard & HTTP Bridge (2026-05-23)
+Sprint 181: The Telemetry Dashboard. Exposed ureq HTTP client to the FFI bridge and built a modular network dashboard showcase.
+- **HTTP GET FFI Support**: Implemented a new FFI function `network_get(url)` under the `net` module in both the root FFI bridge and the compiler submodule's bridge, leveraging the existing `ureq` HTTP client.
+- **Network Sandboxing**: Restricts outbound connections via the `--allow-network` agent runtime permission. Attempts to make network requests without this permission result in a structured `ExecResult::Fault`.
+- **Modular Telemetry Dashboard**: Created `examples/dashboard.knoten` displaying live container metrics, styled with vertical boxes, buttons, and dynamic text labels. It loads configuration constants and mock data from `examples/dashboard_config.nod` to demonstrate the deserialization patch from Sprint 180.
+- **Standard Library Network Mapping**: Exposes FFI calls in `stdlib/network.nod`.
+- **Documentation**: Refreshed readme, llm.md, and changelog.md for Sprint 181. Documented `network_get` in `docs/LANGUAGE_REFERENCE/native_functions.json`.
+
 ## [v1.1.0] - Sprint 180: The Parser Patch & DX Improvement (2026-05-23)
 Sprint 180: The Parser Patch. Fixed lexer comment handling, expression semicolon traps, and enabled direct JSON-AST .nod imports.
 - **Robust Comment Handling**: Updated `skip_whitespace` in both the root parser and the submodule parser to consume all characters in line comments (`//`) up to the next newline (`\n`), ensuring that colons inside comments (e.g. `// Test:`) do not trigger unexpected token errors.
