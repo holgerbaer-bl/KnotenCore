@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 185: FFI Consolidation & Architectural Purge (2026-05-24)
+Sprint 185: FFI Consolidation. Consolidated sandboxed file I/O operations into the fs module, encapsulated geometry caches within the scene graph, and purged legacy FFI functions.
+- **FFI API Consolidation**: Removed `registry_read_file`, `registry_write_file`, and `registry_get_ultimate_answer` from `registry.rs` and their bridge bindings. All file I/O now goes through the `fs` module (`file_read` / `file_write`).
+- **Cache Encapsulation**: Moved `SENT_MESHES` static from `registry.rs` into `scene.rs`. The `ensure_mesh_sent` function now accesses the local cache directly — no cross-module static coupling.
+- **Documentation**: Removed deleted functions from `native_functions.json`. Updated README, llm.md, and changelog.
+- **Submodule Sync**: Identical FFI purge applied to `aether_compiler/` (registry.rs, scene.rs, bridge.rs).
+
 ## [v1.1.0] - Sprint 184: The Great Registry Refactoring & Security Purge (2026-05-24)
 Sprint 184: The Great Registry Refactoring. Split the registry monolith into modular geometry, physics, and scene components, removed dead Voxel code, and secured legacy file and texture FFI functions.
 - **Modularization**: Extracted `RegistryVertex`, `CachedMesh`, and geometry generators (`generate_cube`, `generate_uv_sphere`, `generate_cylinder`) into `src/natives/geometry.rs`. Extracted `PHYSICS_WORLD`, `EntityPhysics`, `registry_check_collision`, and `registry_get_clicked_entity` into `src/natives/physics.rs`. Extracted `SceneEntity`, `SceneLight`, `RegistryWindowState`, spawn functions, camera, and light management into `src/natives/scene.rs`.
