@@ -867,7 +867,7 @@ impl VM {
                         ("registry", name.as_str())
                     } else if name.starts_with("ui_") {
                         ("ui", name.as_str())
-                    } else if name.starts_with("fs_") {
+                    } else if name.starts_with("fs_") || name.starts_with("file_") {
                         ("fs", name.as_str())
                     } else if name.starts_with("test_") {
                         ("test_lib", name.as_str())
@@ -1312,6 +1312,73 @@ mod tests {
 
         assert!(err_result.is_err());
         assert!(err_result.unwrap_err().contains("JSON Parse Error:"));
+
+        // Sprint 183: file_read / file_write sandbox defense — missing permission must fault
+        let mut vm3 = VM::new();
+        let file_instructions = vec![
+            OpCode::Constant(0), // Push path
+            OpCode::ExternCall {
+                name_idx: 2,
+                arg_count: 1,
+            }, // file_read
+            OpCode::Return,
+        ];
+        let file_constants = vec![
+            RelType::Str("examples/cache.json".to_string()),
+            RelType::Str("fs".to_string()),
+            RelType::Str("file_read".to_string()),
+        ];
+        let file_result = vm3.run(
+            &file_instructions,
+            &file_constants,
+            &AgentPermissions {
+                allow_network: false,
+                allowed_domains: vec![],
+                allow_fs_read: false,
+                allow_fs_write: false,
+            },
+            Some(&bridge),
+        );
+        assert!(
+            file_result.is_err(),
+            "file_read without allow_fs_read must fault"
+        );
+        assert!(file_result.unwrap_err().contains("Permission Denied"));
+
+        let mut vm4 = VM::new();
+        let write_instructions = vec![
+            OpCode::Constant(0), // path
+            OpCode::Constant(1), // content
+            OpCode::ExternCall {
+                name_idx: 4,
+                arg_count: 2,
+            }, // file_write
+            OpCode::Return,
+        ];
+        let write_constants = vec![
+            RelType::Str("examples/cache.json".to_string()),
+            RelType::Str("test".to_string()),
+            RelType::Str("fs".to_string()),
+            RelType::Str("file_write".to_string()),
+            RelType::Str("file_write".to_string()),
+        ];
+        let write_result = vm4.run(
+            &write_instructions,
+            &write_constants,
+            &AgentPermissions {
+                allow_network: false,
+                allowed_domains: vec![],
+                allow_fs_read: true,
+                allow_fs_write: false,
+            },
+            Some(&bridge),
+        );
+        assert!(
+            write_result.is_err(),
+            "file_write without allow_fs_write must fault"
+        );
+        assert!(write_result.unwrap_err().contains("Permission Denied"));
+
         Ok(())
     }
 
