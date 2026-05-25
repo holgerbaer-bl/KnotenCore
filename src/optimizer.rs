@@ -969,7 +969,10 @@ fn substitute_identifier(node: &Node, name: &str, value: i64) -> Node {
     match node {
         Node::Identifier(id) if id == name => Node::IntLiteral(value),
         Node::Block(nodes) => Node::Block(
-            nodes.iter().map(|n| substitute_identifier(n, name, value)).collect(),
+            nodes
+                .iter()
+                .map(|n| substitute_identifier(n, name, value))
+                .collect(),
         ),
         Node::Add(l, r) => Node::Add(
             Box::new(substitute_identifier(l, name, value)),
@@ -1029,9 +1032,12 @@ fn substitute_identifier(node: &Node, name: &str, value: i64) -> Node {
             Box::new(substitute_identifier(l, name, value)),
             Box::new(substitute_identifier(r, name, value)),
         ),
-        Node::UIVBox(children) => {
-            Node::UIVBox(children.iter().map(|c| substitute_identifier(c, name, value)).collect())
-        }
+        Node::UIVBox(children) => Node::UIVBox(
+            children
+                .iter()
+                .map(|c| substitute_identifier(c, name, value))
+                .collect(),
+        ),
         Node::UILabel(inner) => Node::UILabel(Box::new(substitute_identifier(inner, name, value))),
         Node::UIWindow(id, title, body_n) => Node::UIWindow(
             id.clone(),
