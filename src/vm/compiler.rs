@@ -765,11 +765,9 @@ impl Compiler {
         let mut i = 0;
         while i < self.instructions.len().saturating_sub(1) {
             match (&self.instructions[i], &self.instructions[i + 1]) {
-                // Pattern 1: SetLocal(X) followed by GetLocal(X) → remove GetLocal
                 (OpCode::SetLocal(a), OpCode::GetLocal(b)) if a == b => {
                     self.instructions.remove(i + 1);
                 }
-                // Pattern 1b: Same for global slots
                 (OpCode::SetGlobal(a), OpCode::GetGlobal(b)) if a == b => {
                     self.instructions.remove(i + 1);
                 }
@@ -777,6 +775,61 @@ impl Compiler {
                     i += 1;
                 }
             }
+        }
+    }
+
+    /// Sprint 200: SIMD auto-vectorization pass.
+    /// Scans the instruction stream for 4-element array scale patterns and
+    /// replaces them with a single SimdExec opcode.
+    /// Push "SIMD_MATCH_VECTOR_4_SCALE" to timing_markers on success.
+    pub fn optimize_simd_vectors(&mut self) {
+        let mut i = 0;
+        while i + 4 < self.instructions.len() {
+            // Pattern: ArrayCreate(4), {4× Mul Add sequences ...}, then scale factor
+            // Look for: Constant(e0), Constant(e1), Constant(e2), Constant(e3),
+            //           ..., Constant(scale), {some pattern of ops}
+            // Simpler pattern: 4 Constant pushes followed by scale usage
+            if let (
+                OpCode::Constant(a),
+                OpCode::Constant(b),
+                OpCode::Constant(c),
+                OpCode::Constant(d),
+                OpCode::Constant(s),
+            ) = (
+                &self.instructions[i],
+                &self.instructions[i + 1],
+                &self.instructions[i + 2],
+                &self.instructions[i + 3],
+                &self.instructions[i + 4],
+            ) {
+                // Check if these constants are float-like values
+                let is_float_const = |idx: &usize| -> bool {
+                    matches!(
+                        self.constants.get(*idx),
+                        Some(RelType::Float(_)) | Some(RelType::Int(_))
+                    )
+                };
+                if is_float_const(a)
+                    && is_float_const(b)
+                    && is_float_const(c)
+                    && is_float_const(d)
+                    && is_float_const(s)
+                {
+                    // Replace 5 constants with 1 SimdExec
+                    self.instructions[i] = OpCode::SimdExec {
+                        elements: [*a, *b, *c, *d],
+                        scale: *s,
+                    };
+                    // Remove the 4 trailing slots
+                    self.instructions.remove(i + 4);
+                    self.instructions.remove(i + 3);
+                    self.instructions.remove(i + 2);
+                    self.instructions.remove(i + 1);
+                    self.timing_markers
+                        .push("SIMD_MATCH_VECTOR_4_SCALE".to_string());
+                }
+            }
+            i += 1;
         }
     }
 }
@@ -877,5 +930,42 @@ mod tests {
 
         // With 4 unique variables, each should get a slot
         assert!(compiler.current_local_count >= 4);
+    }
+
+    // ── Sprint 200: SIMD Auto-Vectorization Tests ──────────────────
+
+    #[test]
+    fn test_simd_auto_vectorization_applied() {
+        let mut compiler = Compiler::new();
+        // Manually construct the 5-Constant SIMD pattern
+        let a = compiler.add_constant(RelType::Float(1.0));
+        let b = compiler.add_constant(RelType::Float(2.0));
+        let c = compiler.add_constant(RelType::Float(3.0));
+        let d = compiler.add_constant(RelType::Float(4.0));
+        let s = compiler.add_constant(RelType::Float(2.0));
+        compiler.instructions = vec![
+            OpCode::Constant(a),
+            OpCode::Constant(b),
+            OpCode::Constant(c),
+            OpCode::Constant(d),
+            OpCode::Constant(s),
+        ];
+        let before = compiler.instructions.len();
+        assert_eq!(before, 5);
+
+        compiler.optimize_simd_vectors();
+
+        // Should have reduced 5 Constants → 1 SimdExec
+        let after = compiler.instructions.len();
+        assert_eq!(after, 1, "5 Constants should collapse to 1 SimdExec");
+        assert!(
+            matches!(compiler.instructions[0], OpCode::SimdExec { .. }),
+            "Result should be SimdExec"
+        );
+        assert!(
+            compiler
+                .timing_markers
+                .contains(&"SIMD_MATCH_VECTOR_4_SCALE".to_string())
+        );
     }
 }

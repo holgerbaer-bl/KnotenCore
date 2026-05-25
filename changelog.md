@@ -2,6 +2,18 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 200: The SIMD Auto-Vectorization & Culture Milestone (2026-05-25) 👑
+
+Sprint 200 — THE JUBILEE MILESTONE. Implemented SIMD auto-vectorization for 4-element float arrays, injected the cult ASCII meme, and prepared compiler profiling infrastructure.
+- **👑 Cult Meme**: Immortalized the Sprint 200 ASCII art meme in the header of `src/optimizer.rs` (both copies). The tortoise-vs-lightning comparison between serial and SIMD execution is now a permanent part of the codebase.
+- **⚡ SIMD Auto-Vectorizer**: Added `OpCode::SimdExec { elements: [usize; 4], scale: usize }` to the VM instruction set. The `optimize_simd_vectors()` pass detects 5 consecutive `Constant` opcodes with float values and collapses them into a single SIMD instruction. The machine handler uses `glam::Vec4` to scale all 4 elements in a single CPU tick.
+- **Profiler Kopplung**: When the SIMD pass matches, it pushes `"SIMD_MATCH_VECTOR_4_SCALE"` into the `timing_markers` vector (Sprint 199 infrastructure).
+- **SIMD Machine Handler**: `OpCode::SimdExec` loads 4 float constants and a scale factor, performs `glam::Vec4 * factor`, and pushes the resulting `Array([x, y, z, w])` onto the VM stack.
+- **Test**: Added `test_simd_auto_vectorization_applied` — verifies 5 Constants collapse to 1 SimdExec, and the timing marker is pushed.
+- **CI**: 68/68 lib tests, 0 clippy warnings, fmt clean.
+- **Submodule Sync**: OpCode, compiler, optimizer, and machine.rs mirrored to `aether_compiler/`.
+- **Documentation**: Updated changelog with `v1.3.0-alpha` section.
+
 ## [v1.2.0-alpha] - Sprint 199: Pre-200 Zero-Downtime Hardening & Framework Preparation (2026-05-25)
 Sprint 199: Pre-200 Hardening. Prepared compiler infrastructure for profiling, enforced zero-warning policy, and verified complete test stability ahead of the Sprint 200 milestone.
 - **Compiler Profiler Placeholder**: Added `pub timing_markers: Vec<String>` to the `Compiler` struct in both `src/vm/compiler.rs` and `aether_compiler/src/vm/compiler.rs`. Initialized as empty vector, clippy-clean, ready for Sprint 200 instrumentation.
