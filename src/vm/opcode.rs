@@ -66,4 +66,10 @@ pub enum OpCode {
 
     LoadComputeShader,
     DispatchCompute(usize), // arg_count
+
+    // Sprint 200: SIMD auto-vectorization — 4-element parallel scale
+    SimdExec {
+        elements: [usize; 4], // constant pool indices for the 4 float elements
+        scale: usize,         // constant pool index for the scale factor
+    },
 }

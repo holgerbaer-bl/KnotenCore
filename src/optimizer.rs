@@ -1229,6 +1229,32 @@ impl TypeChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // =========================================================================
+    // 👑 SPRINT 200 JUBILEE MEME: THE EVOLUTION OF SPEED 👑
+    // =========================================================================
+    //
+    //  CRITICAL CODE PATH (SEQUENTIAL):
+    //  for i in 0..4 { array[i] += factor; }
+    //
+    //  🐢 THE AVERAGE IMPERATIVE DEV:     🚀 THE KNOTENCORE JUBILEE OPTIMIZER:
+    //       ___________                         ___________
+    //      |  __   __  |                       |  __   __  |
+    //      |  🧠   🧠  |                       |  ⚡   ⚡  |
+    //      |___  ▲  ___|                       |___  ▲  ___|
+    //          \___/                               \___/
+    //            |                                   |
+    //       /========= \                        /========= \
+    //      |  [f32;4]  |                       |  [f32x4]  |
+    //      |  Serial   |                       |  S I M D  |
+    //       \=========/                         \=========/
+    //            |                                   |
+    //      - Takt 1: elem[0] 🐌                - ALL 4 ELEMENTS
+    //      - Takt 2: elem[1] 🐌                  IN A SINGLE CPU TICK! 🏎️💨
+    //      - Takt 3: elem[2] 🐌
+    //      - Takt 4: elem[3] 🐌                "Look what they need to mimic
+    //                                           a fraction of our power."
+    // =========================================================================
+
     use crate::ast::Node;
 
     fn lit_i(v: i64) -> Node {

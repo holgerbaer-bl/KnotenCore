@@ -855,6 +855,35 @@ impl VM {
                     );
                     self.stack.push(RelType::Void);
                 }
+                // Sprint 200: SIMD auto-vectorization — 4-element scale in a single CPU tick
+                OpCode::SimdExec { elements, scale } => {
+                    let factor = match constants.get(*scale) {
+                        Some(RelType::Float(f)) => *f as f32,
+                        Some(RelType::Int(i)) => *i as f32,
+                        _ => {
+                            return Err("SimdExec: scale factor must be Float or Int".into());
+                        }
+                    };
+                    let el = |i: usize| -> Result<f32, String> {
+                        match constants.get(i) {
+                            Some(RelType::Float(f)) => Ok(*f as f32),
+                            Some(RelType::Int(v)) => Ok(*v as f32),
+                            _ => Err("SimdExec: element must be Float or Int".into()),
+                        }
+                    };
+                    let v = glam::Vec4::new(
+                        el(elements[0])?,
+                        el(elements[1])?,
+                        el(elements[2])?,
+                        el(elements[3])?,
+                    ) * factor;
+                    self.stack.push(RelType::Array(vec![
+                        RelType::Float(v.x as f64),
+                        RelType::Float(v.y as f64),
+                        RelType::Float(v.z as f64),
+                        RelType::Float(v.w as f64),
+                    ]));
+                }
                 OpCode::ExternCall {
                     name_idx,
                     arg_count,
