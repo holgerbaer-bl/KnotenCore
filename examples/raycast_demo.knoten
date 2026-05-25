@@ -37,11 +37,13 @@ while (running) {
         print("RAYCAST HIT! Entity ID:");
         print(clicked_id);
         
-        if (clicked_id == cube_id && bullet_moving == false) {
-            print("Target locked! Firing bullet...");
-            bullet_moving = true;
-            bullet_x = -4.0; 
-            registry_update_entity_transform(win, bullet_id, bullet_x, 0.0, 0.0);
+        if (clicked_id == cube_id) {
+            if (bullet_moving == false) {
+                print("Target locked! Firing bullet...");
+                bullet_moving = true;
+                bullet_x = -4.0;
+                registry_update_entity_transform(win, bullet_id, bullet_x, 0.0, 0.0);
+            }
         }
     }
     
