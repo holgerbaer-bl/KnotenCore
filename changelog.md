@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 191: Ecosystem Calibration & Documentation Alignment (2026-05-24)
+Sprint 191: Ecosystem Calibration. Verified and aligned all documentation, schemas, and standard library files with the current codebase state.
+- **native_functions.json Audit**: Confirmed `ui_bar_chart` and `ui_progress_gauge` (Sprint 189) entries present with complete parameter descriptions, return types, and AST call examples.
+- **knoten_ai_context_v124.md**: Verified zero references to deleted functions (`registry_read_file`, `registry_write_file`, `registry_get_ultimate_answer`).
+- **stdlib/ & core/ Scan**: Scanned all `.nod` files — no legacy registry I/O calls found. All file access uses the modern `file_read` / `file_write` from the `fs` module.
+- **Documentation**: Updated README, llm.md, and changelog with Sprint 191 entry.
+
 ## [v1.1.0] - Sprint 190: The Iron Shield Hardening & GPU Determinism (2026-05-24)
 Sprint 190: The Iron Shield Hardening. Closed critical sandbox bypass vectors, enforced network constraints, ensured GPU buffer determinism, and wrapped FFI calls in panic-safe guards.
 - **Symlink Blocking**: Added symlink detection via `std::fs::symlink_metadata` to both `validate_fs_path` and `validate_fs_path_write`. Any path component that is a symbolic link returns `Err(...)`, which cascades to `ExecResult::Fault` at the call site.
