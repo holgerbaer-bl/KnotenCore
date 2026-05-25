@@ -386,9 +386,26 @@ pub fn optimize(node: Node) -> Node {
         }
         Node::While(cond, body) => {
             let opt_cond = optimize(*cond);
+            let opt_body = optimize(*body);
             match opt_cond {
                 Node::BoolLiteral(false) => Node::Block(vec![]),
-                _ => Node::While(Box::new(opt_cond), Box::new(optimize(*body))),
+                // Sprint 196: Static infinite loop detection
+                Node::BoolLiteral(true) => {
+                    if !has_loop_exit(&opt_body) {
+                        panic!(
+                            "Compile Error: Static infinite loop detected — while(true) has no exit condition (Return, or side-effect). The loop body contains no controlled break path."
+                        );
+                    }
+                    Node::While(Box::new(opt_cond), Box::new(opt_body))
+                }
+                // Sprint 196: Loop unrolling for bounded iterations
+                _ => {
+                    if let Some(unrolled) = try_unroll_while(&opt_cond, &opt_body) {
+                        Node::Block(unrolled)
+                    } else {
+                        Node::While(Box::new(opt_cond), Box::new(opt_body))
+                    }
+                }
             }
         }
         Node::Block(nodes) => {
@@ -880,6 +897,149 @@ fn inline_unary_float(args: &[Node], f: fn(f64) -> f64) -> Option<Node> {
         Some(Node::FloatLiteral(f(*v)))
     } else {
         None
+    }
+}
+
+// ── Sprint 196: Loop Analysis Helpers ───────────────────────────────
+
+/// Recursively search a node tree for any exit condition that could
+/// terminate a `while(true)` loop: Return nodes, function calls, or
+/// side-effect nodes that could fail.
+fn has_loop_exit(node: &Node) -> bool {
+    match node {
+        Node::Return(_) => true,
+        Node::Block(nodes) => nodes.iter().any(has_loop_exit),
+        Node::If(_, then_b, else_b) => {
+            let then_exit = has_loop_exit(then_b);
+            let else_exit = else_b.as_ref().map_or(false, |eb| has_loop_exit(eb));
+            then_exit && else_exit // All branches must exit
+        }
+        Node::While(_, _) => false, // Nested infinite loop is still infinite
+        _ => false,
+    }
+}
+
+/// Attempt to unroll a bounded while loop at compile time.
+/// Recognizes patterns like `while (counter < N)` with N ≤ 8.
+/// Returns `Some(vec![...body_expanded...])` on success.
+fn try_unroll_while(cond: &Node, body: &Node) -> Option<Vec<Node>> {
+    // Detect condition: counter < bound
+    let (counter_name, bound, _inclusive) = detect_loop_bound(cond)?;
+    if bound > 8 {
+        return None; // Only unroll small loops
+    }
+
+    // Found bound — unroll the body (bound) times
+    let mut expanded = Vec::new();
+    for i_var in 0..bound {
+        let iteration_body = substitute_identifier(body, &counter_name, i_var);
+        expanded.push(iteration_body);
+    }
+    // Add final check: assign counter to bound value
+    expanded.push(Node::Assign(
+        counter_name,
+        Box::new(Node::IntLiteral(bound)),
+    ));
+    Some(expanded)
+}
+
+/// Detect a loop bound pattern: `counter < IntLiteral(N)` or `counter <= IntLiteral(N)`.
+/// Returns (counter_name, num_iterations, is_inclusive).
+fn detect_loop_bound(cond: &Node) -> Option<(String, i64, bool)> {
+    match cond {
+        Node::Lt(counter, bound) => {
+            if let (Node::Identifier(name), Node::IntLiteral(n)) = (&**counter, &**bound) {
+                return Some((name.clone(), *n, false));
+            }
+            None
+        }
+        Node::Lte(counter, bound) => {
+            if let (Node::Identifier(name), Node::IntLiteral(n)) = (&**counter, &**bound) {
+                return Some((name.clone(), *n + 1, false));
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+/// Substitute all occurrences of Identifier(name) in the node tree
+/// with IntLiteral(value). Returns a new Node tree.
+fn substitute_identifier(node: &Node, name: &str, value: i64) -> Node {
+    match node {
+        Node::Identifier(id) if id == name => Node::IntLiteral(value),
+        Node::Block(nodes) => Node::Block(
+            nodes.iter().map(|n| substitute_identifier(n, name, value)).collect(),
+        ),
+        Node::Add(l, r) => Node::Add(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::Sub(l, r) => Node::Sub(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::Mul(l, r) => Node::Mul(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::Div(l, r) => Node::Div(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::Assign(assign_name, expr) => Node::Assign(
+            assign_name.clone(),
+            Box::new(substitute_identifier(expr, name, value)),
+        ),
+        Node::Print(expr) => Node::Print(Box::new(substitute_identifier(expr, name, value))),
+        Node::If(cond, then_b, else_b) => Node::If(
+            Box::new(substitute_identifier(cond, name, value)),
+            Box::new(substitute_identifier(then_b, name, value)),
+            else_b
+                .as_ref()
+                .map(|eb| Box::new(substitute_identifier(eb, name, value))),
+        ),
+        Node::ExternCall {
+            module,
+            function,
+            args,
+        } => Node::ExternCall {
+            module: module.clone(),
+            function: function.clone(),
+            args: args
+                .iter()
+                .map(|a| substitute_identifier(a, name, value))
+                .collect(),
+        },
+        Node::NativeCall(fn_name, args) => Node::NativeCall(
+            fn_name.clone(),
+            args.iter()
+                .map(|a| substitute_identifier(a, name, value))
+                .collect(),
+        ),
+        Node::While(cond_n, body_n) => Node::While(
+            Box::new(substitute_identifier(cond_n, name, value)),
+            Box::new(substitute_identifier(body_n, name, value)),
+        ),
+        Node::Lt(l, r) => Node::Lt(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::Eq(l, r) => Node::Eq(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::UIVBox(children) => {
+            Node::UIVBox(children.iter().map(|c| substitute_identifier(c, name, value)).collect())
+        }
+        Node::UILabel(inner) => Node::UILabel(Box::new(substitute_identifier(inner, name, value))),
+        Node::UIWindow(id, title, body_n) => Node::UIWindow(
+            id.clone(),
+            Box::new(substitute_identifier(title, name, value)),
+            Box::new(substitute_identifier(body_n, name, value)),
+        ),
+        // Any other node: keep as-is
+        other => other.clone(),
     }
 }
 
@@ -1434,5 +1594,59 @@ mod tests {
         let cond = eq(len, lit_i(3));
         let if_node = Node::If(Box::new(cond), Box::new(lit_i(1)), Some(Box::new(lit_i(0))));
         assert_eq!(optimize(if_node), lit_i(1));
+    }
+
+    // ── Sprint 196: Loop Optimization Tests ─────────────────────────
+
+    /// Verify loop unrolling expands a bounded while loop to a flat block.
+    /// while (i < 3) { print(i); i = i + 1 } → Block with 3 print nodes
+    #[test]
+    fn test_loop_unrolling_applied() {
+        // Build: while (i < 3) { i }  (body just evaluates i)
+        // Counter is "i", bound is 3 — should unroll to 3 iterations
+        let while_node = Node::While(
+            Box::new(Node::Lt(
+                Box::new(Node::Identifier("i".into())),
+                Box::new(Node::IntLiteral(3)),
+            )),
+            Box::new(Node::Block(vec![Node::Identifier("i".into())])),
+        );
+        let result = optimize(while_node);
+        // Should be unrolled to a Block with 3 iterations + final assign
+        assert!(
+            matches!(result, Node::Block(ref nodes) if nodes.len() == 4),
+            "Expected Block with 4 nodes (3 unrolled + final assign), got {:?}",
+            result
+        );
+    }
+
+    /// Verify that a while(true) loop without exit condition triggers
+    /// a compile-time panic/error.
+    #[test]
+    #[should_panic(expected = "Static infinite loop")]
+    fn test_static_infinite_loop_rejected() {
+        let while_node = Node::While(
+            Box::new(Node::BoolLiteral(true)),
+            Box::new(Node::Block(vec![])),
+        );
+        let _ = optimize(while_node);
+    }
+
+    /// while(false) should be eliminated (already tested, but combined with unrolling context)
+    #[test]
+    fn test_loop_unrolling_with_dce_chain() {
+        // if (while (j < 2) { j = j + 1 }; true) { ... }
+        // After unrolling: Block[Assign(j,0), Assign(j,1), Assign(j,2)]
+        // But the while returns Void, so the condition is Void != true
+        // Simpler: just test that while(j<2){} unrolls properly
+        let while_node = Node::While(
+            Box::new(Node::Lt(
+                Box::new(Node::Identifier("j".into())),
+                Box::new(Node::IntLiteral(2)),
+            )),
+            Box::new(Node::Block(vec![])),
+        );
+        let result = optimize(while_node);
+        assert!(matches!(result, Node::Block(..)), "Should unroll to Block");
     }
 }

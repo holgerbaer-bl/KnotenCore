@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] - Sprint 196: Advanced Loop Optimizations & Static Bound Analysis (2026-05-25)
+Sprint 196: Loop Optimizations. Implemented compile-time loop unrolling for bounded while-loops and static infinite loop detection in the optimizer.
+- **Loop Unrolling**: `try_unroll_while()` recognizes `while (counter < N)` patterns with `N ≤ 8`. The loop body is replicated N times via `substitute_identifier()`, replacing the counter variable with sequential integer values. The unrolled body is emitted as a flat `Node::Block`.
+- **Static Infinite Loop Detection**: `has_loop_exit()` performs a recursive tree scan on `while(true)` bodies. If no `Return`, bidirectional `If`, or other exit path is found, the optimizer panics with `"Compile Error: Static infinite loop detected"`.
+- **Bound Detection**: `detect_loop_bound()` extracts the counter variable and iteration count from `Lt(Identifier, IntLiteral)` and `Lte(Identifier, IntLiteral)` condition patterns.
+- **Unit Tests**: Added 3 loop optimization tests (`test_loop_unrolling_applied`, `test_static_infinite_loop_rejected`, `test_loop_unrolling_with_dce_chain`).
+- **Submodule Sync**: All optimizer changes mirrored to `aether_compiler/`.
+- **Documentation**: Updated changelog, README, llm.md.
+
 ## [v1.2.0-alpha] - Sprint 195: Watchdog Consolidation, Domain Alignment & File Purge (2026-05-25)
 Sprint 195: Watchdog Consolidation. Eliminated index.html, hardened VM/JIT watchdogs against FFI reset bypass, and aligned domain references to knotencore.de.
 - **File Purge**: Deleted `index.html` from repository root and submodule.
