@@ -2,6 +2,11 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] — Official Release (2026-05-24) 🚀
+**The AI-Native Reforging Milestone.** Sprints 184–191: Registry modulization, core purge, iron shield hardening, WGPU compute pipeline, sandboxed time module, databound UI components, ecosystem calibration.
+- **76/76 tests** (21 unit + 55 integration) passing. **0 clippy warnings** across workspace.
+- [Full bilingual release notes](https://github.com/holgerbaer-bl/KnotenCore/releases/tag/v1.1.0)
+
 ## [v1.1.0] - Sprint 191: Ecosystem Calibration & Documentation Alignment (2026-05-24)
 Sprint 191: Ecosystem Calibration. Verified and aligned all documentation, schemas, and standard library files with the current codebase state.
 - **native_functions.json Audit**: Confirmed `ui_bar_chart` and `ui_progress_gauge` (Sprint 189) entries present with complete parameter descriptions, return types, and AST call examples.
