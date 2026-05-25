@@ -278,10 +278,27 @@ impl Parser {
         loop {
             let line = lexer.line;
             let col = lexer.col;
-            let t = lexer.next_token().expect("Lexer error during tokenization");
-            tokens.push((t.clone(), line, col));
-            if t == Token::EOF {
-                break;
+            match lexer.next_token() {
+                Ok(t) => {
+                    tokens.push((t.clone(), line, col));
+                    if t == Token::EOF {
+                        break;
+                    }
+                }
+                Err(e) => {
+                    eprintln!(
+                        "{}",
+                        serde_json::json!({
+                            "status": "error",
+                            "errors": [{
+                                "code": "ERR_LEXER",
+                                "message": format!("Lexer error: {:?}", e),
+                                "agent_hint": "Check for unexpected characters in the .knoten source."
+                            }]
+                        })
+                    );
+                    break;
+                }
             }
         }
         Self { tokens, pos: 0 }

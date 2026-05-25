@@ -12,8 +12,8 @@ let cached_raw = file_read("examples/cache.json");
 let cached = json_parse(cached_raw);
 let has_cache = obj_has_key(cached, "slideshow");
 
-let parsed;
-let source_label;
+let parsed = json_parse("{}");
+let source_label = "none";
 
 if (has_cache) {
     print("Cache hit — restoring from disk.");
