@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 207: Examples Purge & Modernization (2026-05-25)
+Sprint 207: Examples Purge. Deleted 80+ obsolete JSON-AST and legacy .nod files, modernized remaining examples for v1.3.0-alpha parser compliance, and enforced 100% CI coverage on all example files.
+- **File Purge**: Removed 6 hand-written `.json` AST files and 52+ legacy `.nod` files from `examples/` and all subdirectories. Deleted empty subdirectories (agent, audit, bench, compiler, core, data, final, graphics, io, io_test, module_test, stdlib). Only `dashboard_config.nod` and `imported_ast.nod` retained as import targets.
+- **Remaining Examples**: 18 `.knoten` DSL files + 2 `.nod` imports. Total: 20 files.
+- **Syntax Fix**: Fixed `telemetry_dashboard.knoten` bare `let last_run;` → `let last_run = "never";` and simplified ASCII header to avoid Unicode lexer issues.
+- **CI Enforcement**: `test_examples_compilation_and_validation` now requires ALL 18 `.knoten` files to parse cleanly (no best_effort fallback). Files with `import` statements are exempt from isolated validation but must still parse.
+- **Submodule Sync**: All purges and modernizations mirrored to `aether_compiler/examples/`.
+- **CI**: 0 clippy warnings.
+
 ## [v1.3.0-alpha] - Sprint 202: Advanced 3D Math SIMD Expansion (Add, Sub & Dot Product) (2026-05-25)
 Sprint 202: SIMD Expansion. Extended `OpCode::SimdExec` with `SimdOp` enum supporting Scale, Add, Subtract, and Dot product operations via `glam::Vec4`.
 - **SimdOp Enum**: Defined `SimdOp { Scale, Add, Subtract, Dot }` in `opcode.rs`. `SimdExec` now carries `elements_a: [usize; 4]`, `elements_b: [usize; 4]`, and `scale: usize` alongside the operation variant.

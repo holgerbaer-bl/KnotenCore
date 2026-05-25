@@ -328,28 +328,56 @@ fn test_examples_compilation_and_validation() {
     use std::path::Path;
 
     let examples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples");
-    
-    // Files that must parse cleanly (no imports, standalone syntax)
-    let must_pass = [
-        "time_stamping.knoten",
+    let example_files = [
         "calculator.knoten",
-    ];
-    
-    // Files that may have imports or complex structures
-    let best_effort = [
-        "dashboard.knoten",
-        "telemetry_dashboard.knoten",
         "compute_parallel.knoten",
+        "control_room.knoten",
+        "dashboard.knoten",
+        "light_demo.knoten",
+        "math_demo.knoten",
+        "memory_stress.knoten",
+        "panic_test.knoten",
+        "parser_test.knoten",
+        "random_demo.knoten",
+        "raycast_demo.knoten",
+        "RESCUE_3D.knoten",
+        "scene_demo.knoten",
+        "telemetry_dashboard.knoten",
+        "texture_demo.knoten",
+        "time_stamping.knoten",
+        "ui_demo.knoten",
+        "watchdog_test.knoten",
     ];
 
     let mut parsed = 0;
-
-    for file in must_pass.iter().chain(best_effort.iter()) {
+    for file in &example_files {
         let path = examples_dir.join(file);
-        if !path.exists() {
-            println!("Skipping missing: {}", file);
-            continue;
+        assert!(
+            path.exists(),
+            "Example file must exist: {}",
+            file
+        );
+        let source = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+            panic!("Failed to read '{}': {}", file, e);
+        });
+        let mut parser = Parser::new(&source);
+        let ast = parser
+            .parse()
+            .unwrap_or_else(|e| panic!("Parse error in '{}': {:?}", file, e));
+        // Sprint 207 part 2: Validate all examples
+        let mut validator = Validator::new();
+        let validate_result = validator.validate(&ast);
+        // Files with imports may fail validation in isolation
+        let has_imports = source.contains("import \"");
+        if let Err(errors) = validate_result {
+            if !has_imports {
+                panic!("Validation errors in '{}': {:?}", file, errors);
+            }
         }
+        parsed += 1;
+    }
+    assert_eq!(parsed, example_files.len(), "All examples must parse and validate");
+}
         total += 1;
         let source = std::fs::read_to_string(&path).unwrap_or_else(|e| {
             panic!("Failed to read '{}': {}", file, e);

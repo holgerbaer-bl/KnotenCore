@@ -1,15 +1,6 @@
-// ═══════════════════════════════════════════════════════════════════════
-// KnotenCore v1.2.0-alpha — Ultimate Telemetry Dashboard
-// Sprint 198: Integration Showcase (Sprints 184–197)
-//
+// Sprint 198: KnotenCore Telemetry Dashboard
+// Domain: https://knotencore.de/
 // Run: run_knc --allow-read --allow-write examples/telemetry_dashboard.knoten
-//
-// Demonstrates: constant folding, loop unrolling, peephole optimization,
-// math inlining, network sandbox, file persistence, WGPU compute dispatch,
-// databound UI charts/gauges, and sandboxed chrono timestamps.
-// ───────────────────────────────────────────────────────────────────────
-// Domain Reference: https://knotencore.de/
-// ═══════════════════════════════════════════════════════════════════════
 
 let win = registry_create_window(800, 640, "KnotenCore v1.2 – Telemetry Dashboard");
 
@@ -21,7 +12,7 @@ let cache_raw = file_read("examples/telemetry_cache.json");
 let cache_data = json_parse(cache_raw);
 let has_cache = obj_has_key(cache_data, "last_run");
 
-let last_run;
+let last_run = "never";
 if (has_cache) {
     print("  Cache hit — restoring previous session.");
     last_run = cache_data.last_run;
