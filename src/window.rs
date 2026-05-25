@@ -602,35 +602,35 @@ impl KnotenApp {
                 if let Some(state) = self.windows.values().next()
                     && let Some(storage) = self.compute_buffers.get(&shader_id)
                 {
-                        let size = storage.size();
-                        let staging = state.device.create_buffer(&wgpu::BufferDescriptor {
-                            label: Some("Compute Staging Buffer"),
-                            size,
-                            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-                            mapped_at_creation: false,
-                        });
-                        let mut encoder = state.device.create_command_encoder(
-                            &wgpu::CommandEncoderDescriptor { label: None },
-                        );
-                        encoder.copy_buffer_to_buffer(storage, 0, &staging, 0, size);
-                        state.queue.submit(std::iter::once(encoder.finish()));
+                    let size = storage.size();
+                    let staging = state.device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("Compute Staging Buffer"),
+                        size,
+                        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                        mapped_at_creation: false,
+                    });
+                    let mut encoder = state
+                        .device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+                    encoder.copy_buffer_to_buffer(storage, 0, &staging, 0, size);
+                    state.queue.submit(std::iter::once(encoder.finish()));
 
-                        let slice = staging.slice(..);
-                        slice.map_async(wgpu::MapMode::Read, |_| {});
-                        state.device.poll(wgpu::Maintain::Wait);
-                        let data = slice.get_mapped_range().to_vec();
+                    let slice = staging.slice(..);
+                    slice.map_async(wgpu::MapMode::Read, |_| {});
+                    state.device.poll(wgpu::Maintain::Wait);
+                    let data = slice.get_mapped_range().to_vec();
 
-                        let floats: Vec<f32> = data
-                            .chunks_exact(4)
-                            .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-                            .collect();
+                    let floats: Vec<f32> = data
+                        .chunks_exact(4)
+                        .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+                        .collect();
 
-                        let mut guard = crate::natives::registry::COMPUTE_RESULTS
-                            .lock()
-                            .unwrap_or_else(|e| e.into_inner());
-                        let map = guard.get_or_insert_with(HashMap::new);
-                        map.insert(shader_id, floats);
-                    }
+                    let mut guard = crate::natives::registry::COMPUTE_RESULTS
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    let map = guard.get_or_insert_with(HashMap::new);
+                    map.insert(shader_id, floats);
+                }
             }
             RenderCommand::AddMesh {
                 name,
@@ -1120,8 +1120,10 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
 
                     // Sprint 205: Batch entities by (mesh_name, texture_id)
                     // to eliminate redundant vertex/index/bind-group rebinding
-                    let mut batches: HashMap<(String, usize), Vec<&crate::natives::scene::SceneEntity>> =
-                        HashMap::new();
+                    let mut batches: HashMap<
+                        (String, usize),
+                        Vec<&crate::natives::scene::SceneEntity>,
+                    > = HashMap::new();
                     for entity in state.scene_graph.values() {
                         let key = (entity.mesh_name.clone(), entity.texture_id);
                         batches.entry(key).or_default().push(entity);
