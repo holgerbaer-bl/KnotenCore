@@ -10,6 +10,7 @@ pub struct Compiler {
     pub locals: Vec<std::collections::HashMap<String, usize>>,
     pub current_local_count: usize,
     pub freed_slots: Vec<usize>, // Sprint 197: pooled free register slots
+    pub timing_markers: Vec<String>, // Sprint 199: pre-200 profiling placeholder
     pub imported_files: std::collections::HashSet<String>,
     pub current_dir: std::path::PathBuf,
 }
@@ -23,6 +24,7 @@ impl Compiler {
             locals: Vec::new(),
             current_local_count: 0,
             freed_slots: Vec::new(),
+            timing_markers: Vec::new(),
             imported_files: std::collections::HashSet::new(),
             current_dir: std::env::current_dir().unwrap_or_default(),
         }
