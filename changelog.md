@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 189: Databound UI Components & Chart Framework (2026-05-24)
+Sprint 189: Databound UI Components. Extended the 2D UI framework with native UIBarChart and UIProgressGauge components for live telemetric data visualization.
+- **ui_bar_chart(label, data)**: Pushes a labeled bar chart to the egui render queue. Accepts a String label and an Array of numeric values. Invalid types return `ExecResult::Fault` without blocking the render loop.
+- **ui_progress_gauge(label, value, min, max)**: Pushes a progress bar to the egui render queue. Accepts labeled Float value with min/max range. Animated fill via `egui::ProgressBar::new(fraction).animate(true)`.
+- **Buffer Architecture**: Charts and gauges use a thread-safe queue pattern (`BAR_CHART_QUEUE`, `PROGRESS_GAUGE_QUEUE` in `ui.rs`). FFI calls push data; `window.rs` drains and renders each frame inside the `CentralPanel`. Zero allocations on the hot path after the initial frame.
+- **Bar Chart Rendering**: Painted rectangles with value-dependent colors and floating-point labels via direct egui painter API. Height proportional to `value / max_value`.
+- **Dashboard Update**: `examples/dashboard.knoten` now displays CPU history and network throughput as bar charts, plus RAM/disk usage as animated progress gauges. Uses `time_get_string()` and `time_utc_timestamp()` from Sprint 188 for cache stamping.
+- **Submodule Sync**: Identical changes in `aether_compiler/` (ui.rs, bridge.rs, window.rs, dashboard.knoten).
+- **Documentation**: Updated `native_functions.json`, `README.md`, `llm.md`, `changelog.md`.
+
 ## [v1.1.0] - Sprint 188: Sandboxed Time Module & Chrono Integration (2026-05-24)
 Sprint 188: Sandboxed Time Module. Integrated chrono crate to expose formatting and epoch timestamp utilities under the secure time FFI module.
 - **chrono Integration**: Added `chrono = "0.4"` to `Cargo.toml` (both copies). The crate provides timezone-safe date/time handling without any geolocation or hardware fingerprinting.

@@ -722,6 +722,14 @@ The monolithic `registry.rs` (1641 lines) has been split into focused, single-co
 
 ---
 
+### 📊 Databound UI Components (Sprint 189)
+- **`ui_bar_chart(label, data)`**: Native bar chart — accepts a String label and Array of numbers. Bars are painted with value-proportional heights and gradient colors via the egui painter API.
+- **`ui_progress_gauge(label, value, min, max)`**: Animated progress bar via `egui::ProgressBar`. Displays `value / max` as a filled fraction with floating-point overlay text.
+- **Thread-safe buffers**: `BAR_CHART_QUEUE` and `PROGRESS_GAUGE_QUEUE` in `ui.rs` — pushed from FFI, drained and rendered each frame, zero alloc after first frame.
+- **Dashboard**: `examples/dashboard.knoten` shows 2 bar charts + 2 progress gauges with Sprint 188 `time_get_string()` cache stamping.
+
+---
+
 ## Compliance & Community Flow
 
 This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 

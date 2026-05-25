@@ -1009,6 +1009,8 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                         for node in &state.ui_tree {
                             render_egui_node(ui, node);
                         }
+                        // Sprint 189: Render buffered charts and gauges
+                        render_buffered_charts(ui);
                     });
 
                 let egui::FullOutput {
@@ -1218,6 +1220,62 @@ fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {
 
         // Unsupported nodes are silently ignored (no panic).
         _ => {}
+    }
+}
+
+/// Sprint 189: Render bar charts and progress gauges from the UI buffer queues.
+/// Drains both queues — data is consumed once per frame.
+fn render_buffered_charts(ui: &mut egui::Ui) {
+    // ── Progress Gauges ─────────────────────────────────────────
+    let gauges = crate::natives::ui::ui_drain_progress_gauges();
+    for (label, value, min, max) in gauges {
+        let fraction = if max > min {
+            ((value - min) / (max - min)).clamp(0.0, 1.0) as f32
+        } else {
+            0.5
+        };
+        ui.label(&label);
+        ui.add(
+            egui::ProgressBar::new(fraction)
+                .text(format!("{:.1} / {:.0}", value, max))
+                .animate(true),
+        );
+    }
+
+    // ── Bar Charts ──────────────────────────────────────────────
+    let charts = crate::natives::ui::ui_drain_bar_charts();
+    for (label, values) in charts {
+        ui.label(&label);
+        ui.horizontal(|ui| {
+            let max_val = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
+            let bar_width = 24.0;
+            ui.spacing_mut().item_spacing = egui::Vec2::new(2.0, 0.0);
+            for v in &values {
+                let h = (*v / max_val * 80.0).max(4.0) as f32;
+                let (rect, _) = ui.allocate_exact_size(
+                    egui::Vec2::new(bar_width, h),
+                    egui::Sense::hover(),
+                );
+                if ui.is_rect_visible(rect) {
+                    let painter = ui.painter();
+                    let t = (*v / max_val) as f32;
+                    let color = egui::Color32::from_rgb(
+                        (128.0 + 127.0 * t) as u8,
+                        (80.0 + 80.0 * (1.0 - t)) as u8,
+                        220,
+                    );
+                    painter.rect_filled(rect, 0.0, color);
+                    painter.text(
+                        rect.center_bottom() + egui::Vec2::new(0.0, 12.0),
+                        egui::Align2::CENTER_TOP,
+                        format!("{:.1}", v),
+                        egui::FontId::proportional(9.0),
+                        egui::Color32::WHITE,
+                    );
+                }
+            }
+            ui.spacing_mut().item_spacing = egui::Vec2::new(4.0, 2.0);
+        });
     }
 }
 

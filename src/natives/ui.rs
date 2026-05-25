@@ -94,3 +94,34 @@ pub fn ui_is_key_down(_key_name: String) -> bool {
 pub fn ui_get_key_pressed() -> String {
     String::new()
 }
+
+// ── Sprint 189: Databound chart & gauge buffers ───────────────────
+/// Bar chart queue: label → data values (cleared each frame after rendering).
+pub static BAR_CHART_QUEUE: Mutex<Vec<(String, Vec<f64>)>> = Mutex::new(Vec::new());
+
+/// Progress gauge queue: (label, value, min, max) — cleared each frame.
+pub static PROGRESS_GAUGE_QUEUE: Mutex<Vec<(String, f64, f64, f64)>> = Mutex::new(Vec::new());
+
+/// Push a bar chart to the render queue. Called from the FFI bridge.
+pub fn ui_push_bar_chart(label: String, data: Vec<f64>) {
+    let mut guard = BAR_CHART_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+    guard.push((label, data));
+}
+
+/// Push a progress gauge to the render queue. Called from the FFI bridge.
+pub fn ui_push_progress_gauge(label: String, value: f64, min: f64, max: f64) {
+    let mut guard = PROGRESS_GAUGE_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+    guard.push((label, value, min, max));
+}
+
+/// Drain the bar chart queue for rendering. Returns all entries and clears the queue.
+pub fn ui_drain_bar_charts() -> Vec<(String, Vec<f64>)> {
+    let mut guard = BAR_CHART_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+    std::mem::take(&mut *guard)
+}
+
+/// Drain the progress gauge queue for rendering. Returns all entries and clears the queue.
+pub fn ui_drain_progress_gauges() -> Vec<(String, f64, f64, f64)> {
+    let mut guard = PROGRESS_GAUGE_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+    std::mem::take(&mut *guard)
+}

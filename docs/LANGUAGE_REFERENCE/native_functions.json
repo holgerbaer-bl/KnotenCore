@@ -842,6 +842,54 @@
       }
     },
     {
+      "name": "ui_bar_chart",
+      "module": "ui",
+      "description": "Pushes a native bar chart to the egui render queue. Accepts a String label and an Array of numeric values. Bars are painted with value-proportional heights and floating-point labels.",
+      "parameters": [
+        { "name": "label", "type": "String", "required": true },
+        { "name": "data", "type": "Array", "required": true, "description": "Array of Float/Int values" }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_TYPE_MISMATCH"],
+      "example": {
+        "ExternCall": {
+          "module": "ui",
+          "function": "ui_bar_chart",
+          "args": [
+            { "StringLiteral": "CPU History" },
+            { "ArrayLiteral": [{"FloatLiteral": 0.12}, {"FloatLiteral": 0.34}, {"FloatLiteral": 0.56}] }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ui_progress_gauge",
+      "module": "ui",
+      "description": "Pushes an animated progress gauge to the egui render queue. Accepts a String label, Float value, Float min, Float max. Rendered via egui::ProgressBar with animation.",
+      "parameters": [
+        { "name": "label", "type": "String", "required": true },
+        { "name": "value", "type": "Float", "required": true },
+        { "name": "min", "type": "Float", "required": true },
+        { "name": "max", "type": "Float", "required": true }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_TYPE_MISMATCH"],
+      "example": {
+        "ExternCall": {
+          "module": "ui",
+          "function": "ui_progress_gauge",
+          "args": [
+            { "StringLiteral": "RAM Usage" },
+            { "FloatLiteral": 42.5 },
+            { "FloatLiteral": 0.0 },
+            { "FloatLiteral": 64.0 }
+          ]
+        }
+      }
+    },
+    {
       "name": "registry_get_mouse_ray",
       "module": "registry",
       "description": "Calculates the Screen-to-World unprojected 3D ray of the mouse cursor relative to the window's view-projection matrix.",
