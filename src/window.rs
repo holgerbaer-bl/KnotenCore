@@ -405,6 +405,14 @@ impl KnotenApp {
                     }],
                 });
 
+                // Sprint 206: Instance buffer for hardware instancing
+                let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("Instance Buffer"),
+                    size: (std::mem::size_of::<crate::executor::InstanceData>() * 1024) as u64,
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                });
+
                 // Default material bind group (material BGL has only binding 0/1 = texture/sampler)
                 let default_texture_bind_group =
                     device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -449,6 +457,7 @@ impl KnotenApp {
                         device,
                         queue,
                         pipeline,
+                        instance_buffer, // Sprint 206
                         width,
                         height,
                         clear_color: wgpu::Color::BLACK,
@@ -1143,15 +1152,27 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                             );
                             rpass.set_bind_group(1, mat_bg, &[]);
 
-                            for entity in entities {
-                                state.queue.write_buffer(
-                                    &state.model_buffer,
-                                    0,
-                                    bytemuck::cast_slice(&entity.transform.to_cols_array()),
-                                );
-                                rpass.set_bind_group(2, &state.model_bind_group, &[]);
-                                rpass.draw_indexed(0..mesh.index_count, 0, 0..1);
-                            }
+                            // Sprint 206: Upload all instance transforms and draw in one call
+                            let instance_count = entities.len() as u32;
+                            let instance_data: Vec<crate::executor::InstanceData> = entities
+                                .iter()
+                                .map(|e| crate::executor::InstanceData {
+                                    transform: e.transform.to_cols_array_2d(),
+                                    color_offset: [1.0, 1.0, 1.0, 1.0],
+                                    material_pbr: [0.0, 0.5, 1.0, 0.0],
+                                })
+                                .collect();
+                            state.queue.write_buffer(
+                                &state.instance_buffer,
+                                0,
+                                bytemuck::cast_slice(&instance_data),
+                            );
+                            rpass.set_vertex_buffer(
+                                1,
+                                state.instance_buffer.slice(0..(instance_count as u64 * 96)),
+                            );
+                            rpass.set_bind_group(2, &state.model_bind_group, &[]);
+                            rpass.draw_indexed(0..mesh.index_count, 0, 0..instance_count);
                         }
                     }
                 }
