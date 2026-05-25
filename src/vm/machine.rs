@@ -52,10 +52,8 @@ impl VM {
             self.ip += 1;
 
             instr_count += 1;
-            // Sprint 195: Use accumulated CPU time to prevent FFI reset bypass
-            let elapsed_since_check = start.elapsed();
             if instr_count.is_multiple_of(1000)
-                && accumulated_cpu + elapsed_since_check >= std::time::Duration::from_millis(50)
+                && accumulated_cpu + start.elapsed() >= std::time::Duration::from_millis(50)
             {
                 eprintln!(
                     "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
@@ -688,12 +686,10 @@ impl VM {
                     }
 
                     if let Some(b) = bridge {
-                        // Sprint 195: Accumulate CPU time before FFI (prevent reset bypass)
-                        accumulated_cpu += start.elapsed();
                         let result = catch_unwind(AssertUnwindSafe(|| {
                             b.handle(&module, &func, &args, permissions)
                         }));
-                        // Restart slice timer after FFI — accumulated_cpu is preserved
+                        accumulated_cpu += start.elapsed();
                         start = std::time::Instant::now();
                         match result {
                             Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
@@ -907,12 +903,10 @@ impl VM {
                     };
 
                     if let Some(b) = bridge {
-                        // Sprint 195: Accumulate CPU time before FFI (prevent reset bypass)
-                        accumulated_cpu += start.elapsed();
                         let result = catch_unwind(AssertUnwindSafe(|| {
                             b.handle(module, func, &args, permissions)
                         }));
-                        // Restart slice timer after FFI — accumulated_cpu is preserved
+                        accumulated_cpu += start.elapsed();
                         start = std::time::Instant::now();
                         match result {
                             Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
