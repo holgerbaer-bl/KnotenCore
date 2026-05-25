@@ -5,8 +5,6 @@
 // camera state. If it hits the cube, it triggers a bullet which moves towards the cube
 // until `registry_check_collision` detects an overlap.
 
-import "core/time.nod";
-
 let win = registry_create_window(800, 600, "KnotenCore - Raycast & Physics Demo");
 
 // Position camera slightly elevated
