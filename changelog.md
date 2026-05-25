@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] - Sprint 192: Compiler Optimization Phase 1 (2026-05-25)
+Sprint 192: Compiler Optimization Phase 1. Verified and documented existing constant folding, dead code elimination, and added 29 dedicated unit tests.
+- **Constant Folding Confirmed**: `optimize_math_op()` already folds binary math ops (Add, Sub, Mul, Div) for `IntLiteral`/`FloatLiteral` pairs at compile time. Division by zero is correctly preserved as a runtime node.
+- **Logical Folding Confirmed**: `optimize_eq()`, `optimize_lt()`, `optimize_gt()`, and `optimize_bitwise()` already fold deterministic comparisons to `BoolLiteral` at compile time.
+- **Dead Code Elimination Confirmed**: `Node::If` with `BoolLiteral(true)` collapses to the then-branch; `BoolLiteral(false)` collapses to the else-branch or an empty `Block([])`. `Node::While` with `BoolLiteral(false)` is eliminated entirely.
+- **Unit Tests**: Added 29 dedicated tests covering: int/float folding (+ - * /), nested expressions (`5 + 10 * 2` → `IntLiteral(25)`), identity folding (x - 0, x * 1), div-by-zero preservation, Eq/Lt/Gt folding, bitwise AND, If DCE (true/false/nested/folded-condition), While DCE, full-pipeline math+cmp+dce, and node-count reduction verification (7 nodes → 1 node).
+- **Submodule Sync**: Tests mirrored to main `src/optimizer.rs`.
+- **Documentation**: Changelog updated with v1.2.0-alpha section.
+
 ## [v1.1.0] — Official Release (2026-05-24) 🚀
 **The AI-Native Reforging Milestone.** Sprints 184–191: Registry modulization, core purge, iron shield hardening, WGPU compute pipeline, sandboxed time module, databound UI components, ecosystem calibration.
 - **76/76 tests** (21 unit + 55 integration) passing. **0 clippy warnings** across workspace.
