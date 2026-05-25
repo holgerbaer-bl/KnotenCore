@@ -839,12 +839,18 @@ pub fn registry_compute_readback(shader_id: i64) -> Vec<crate::executor::RelType
             if let Some(map) = guard.as_ref()
                 && let Some(floats) = map.get(&(shader_id as usize))
             {
-                return floats.iter().map(|f| crate::executor::RelType::Float(*f as f64)).collect();
+                return floats
+                    .iter()
+                    .map(|f| crate::executor::RelType::Float(*f as f64))
+                    .collect();
             }
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
-    eprintln!("[KnotenCore Compute] Readback timeout for shader {}", shader_id);
+    eprintln!(
+        "[KnotenCore Compute] Readback timeout for shader {}",
+        shader_id
+    );
     vec![]
 }
 
