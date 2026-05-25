@@ -1761,6 +1761,27 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::dispatch_compute".into(),
                     })
                 }
+                // Sprint 204: Read back GPU compute results
+                "compute_readback" => {
+                    if args.len() == 1 {
+                        let shader_id = match &args[0] {
+                            RelType::Handle(crate::executor::NativeHandle(id)) => *id,
+                            RelType::Int(id) => *id,
+                            _ => {
+                                return Some(ExecResult::Fault {
+                                    msg: "[FFI] compute_readback expects 1 Handle or Int arg (shader_id)".to_string(),
+                                    node: "Native::Bridge::compute_readback".into(),
+                                });
+                            }
+                        };
+                        let result = crate::natives::registry::registry_compute_readback(shader_id);
+                        return Some(ExecResult::Value(RelType::Array(result)));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] compute_readback expects 1 arg (shader_id)".to_string(),
+                        node: "Native::Bridge::compute_readback".into(),
+                    })
+                }
                 _ => None,
             }
         } else {
