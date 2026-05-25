@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 201: Panic-Free Parser Refactoring & CLI Hardening (2026-05-25)
+Sprint 201: Panic-Free Parser. Eliminated all hard panics from the parser and CLI, replacing them with structured `Result<Node, ParseError>` error handling.
+- **Result-Based Parsing**: Changed `Parser::parse()` signature from `-> Node` to `-> Result<Node, ParseError>`. All internal `parse_*` functions propagate errors via `?` operator instead of panicking.
+- **ParseError Enum**: Defined `ParseError` variants: `InvalidJson`, `MissingField`, `UnexpectedToken`, `UnexpectedChar`, `UnexpectedNode`, `Other`. Invalid syntax now returns `Err(ParseError)` with structured JSON diagnostics, never crashing the process.
+- **Panic Purge**: Replaced `diagnostic_panic()` (which called `panic!()`) with `parse_error()` (returns `ParseError`). Replaced `expect()` panics with `Result` propagation. Removed `unwrap()` calls on `parse()` and `peek_char()`.
+- **Caller Updates**: Updated `src/bin/run_knc.rs`, `src/vm/compiler.rs`, `src/validator.rs`, and `src/bin/knoten_build.rs` to handle the new `Result` return type. Removed `catch_unwind` wrappers that were masking parser panics.
+- **Test**: Added `test_parser_invalid_syntax_returns_err` — verifies `"let x = ;"` returns `Err(ParseError)` instead of crashing.
+- **Submodule Sync**: Parser and all caller updates mirrored to `aether_compiler/`.
+- **CI**: 69/69 lib tests, 0 clippy warnings, fmt clean.
+
 ## [v1.3.0-alpha] - Sprint 200: The SIMD Auto-Vectorization & Culture Milestone (2026-05-25) 👑
 
 Sprint 200 — THE JUBILEE MILESTONE. Implemented SIMD auto-vectorization for 4-element float arrays, injected the cult ASCII meme, and prepared compiler profiling infrastructure.

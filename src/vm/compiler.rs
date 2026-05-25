@@ -491,7 +491,17 @@ impl Compiler {
                     }
                 } else {
                     let mut parser = crate::parser::Parser::new(&source);
-                    parser.parse()
+                    match parser.parse() {
+                        Ok(node) => node,
+                        Err(e) => {
+                            eprintln!(
+                                "AOT Compiler Error: Failed to parse {}: {:?}",
+                                abs_path.display(),
+                                e
+                            );
+                            return false;
+                        }
+                    }
                 };
 
                 // Track execution context (isolate Local variables) but share Functions and Globals

@@ -1,5 +1,15 @@
 use crate::ast::Node;
 
+#[derive(Debug, Clone)]
+pub enum ParseError {
+    InvalidJson(String),
+    MissingField(String),
+    UnexpectedToken { expected: String, found: String },
+    UnexpectedChar(char),
+    UnexpectedNode(String),
+    Other(String),
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Ident(String),
@@ -104,13 +114,15 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Result<Token, ParseError> {
         self.skip_whitespace();
         if self.pos >= self.input.len() {
-            return Token::EOF;
+            return Ok(Token::EOF);
         }
 
-        let c = self.peek_char().unwrap();
+        let c = self
+            .peek_char()
+            .ok_or_else(|| ParseError::Other("Unexpected EOF".into()))?;
 
         if c.is_ascii_alphabetic() || c == '_' {
             let mut s = String::new();
@@ -122,7 +134,7 @@ impl<'a> Lexer<'a> {
                     break;
                 }
             }
-            return match s.as_str() {
+            return Ok(match s.as_str() {
                 "let" => Token::KeywordLet,
                 "if" => Token::KeywordIf,
                 "else" => Token::KeywordElse,
@@ -132,7 +144,7 @@ impl<'a> Lexer<'a> {
                 "import" => Token::KeywordImport,
                 "null" => Token::BuiltinNull,
                 _ => Token::Ident(s),
-            };
+            });
         }
 
         if c.is_ascii_digit() {
@@ -160,9 +172,15 @@ impl<'a> Lexer<'a> {
                 }
             }
             if is_float {
-                return Token::Float(s.parse().unwrap());
+                return Ok(Token::Float(
+                    s.parse()
+                        .map_err(|_| ParseError::Other(format!("Invalid float: {}", s)))?,
+                ));
             } else {
-                return Token::Int(s.parse().unwrap());
+                return Ok(Token::Int(
+                    s.parse()
+                        .map_err(|_| ParseError::Other(format!("Invalid int: {}", s)))?,
+                ));
             }
         }
 
@@ -177,13 +195,13 @@ impl<'a> Lexer<'a> {
                 s.push(ch);
                 self.advance();
             }
-            return Token::Str(s);
+            return Ok(Token::Str(s));
         }
 
         self.advance();
         let next_c = self.peek_char().unwrap_or(' ');
 
-        match c {
+        Ok(match c {
             '(' => Token::LParen,
             ')' => Token::RParen,
             '{' => Token::LBrace,
@@ -244,15 +262,8 @@ impl<'a> Lexer<'a> {
                 Token::NotEq
             }
             '%' => Token::Modulo,
-            _ => {
-                let escaped_hint = format!("Unexpected char '{}'", c).replace("\"", "\\\"");
-                let json = format!(
-                    r#"{{"diagnostic": {{"line": {}, "col": {}, "hint": "{}"}}}}"#,
-                    self.line, self.col, escaped_hint
-                );
-                panic!("{}", json);
-            }
-        }
+            _ => return Err(ParseError::UnexpectedChar(c)),
+        })
     }
 }
 
@@ -268,7 +279,7 @@ impl Parser {
         loop {
             let line = lexer.line;
             let col = lexer.col;
-            let t = lexer.next_token();
+            let t = lexer.next_token().expect("Lexer error during tokenization");
             tokens.push((t.clone(), line, col));
             if t == Token::EOF {
                 break;
@@ -281,10 +292,6 @@ impl Parser {
         &self.tokens[self.pos].0
     }
 
-    fn peek_pos(&self) -> (usize, usize) {
-        (self.tokens[self.pos].1, self.tokens[self.pos].2)
-    }
-
     fn advance(&mut self) -> Token {
         let t = self.tokens[self.pos].0.clone();
         if self.pos < self.tokens.len() - 1 {
@@ -293,83 +300,83 @@ impl Parser {
         t
     }
 
-    fn diagnostic_panic(&self, hint: &str) -> ! {
-        let (line, col) = self.peek_pos();
-        let escaped_hint = hint.replace("\"", "\\\"");
-        let json = format!(
-            r#"{{"diagnostic": {{"line": {}, "col": {}, "hint": "{}"}}}}"#,
-            line, col, escaped_hint
-        );
-        panic!("{}", json);
+    fn parse_error(&self, msg: String) -> ParseError {
+        let json = serde_json::json!({
+            "status": "error", "errors": [{ "code": "ERR_SYNTAX", "message": msg, "agent_hint": "Check the .knoten or .nod file syntax per knotencore.de documentation." }]
+        });
+        eprintln!("{}", json);
+        ParseError::Other(msg)
     }
 
-    fn expect(&mut self, expected: Token) {
-        let (line, col) = self.peek_pos();
+    fn expect(&mut self, expected: Token) -> Result<(), ParseError> {
         let t = self.advance();
         if t != expected {
-            let escaped_hint =
-                format!("Expected {:?}, found {:?}", expected, t).replace("\"", "\\\"");
-            let json = format!(
-                r#"{{"diagnostic": {{"line": {}, "col": {}, "hint": "{}"}}}}"#,
-                line, col, escaped_hint
-            );
-            panic!("{}", json);
+            Err(self.parse_error(format!(
+                "Expected {:?}, found {:?}",
+                expected, t
+            )))
+        } else {
+            Ok(())
         }
     }
 
-    pub fn parse(&mut self) -> Node {
+    pub fn parse(&mut self) -> Result<Node, ParseError> {
         let mut statements = Vec::new();
         while *self.peek() != Token::EOF {
             if *self.peek() == Token::Semi {
                 self.advance();
                 continue;
             }
-            statements.push(self.parse_statement());
+            statements.push(self.parse_statement()?);
         }
-        Node::Block(statements)
+        Ok(Node::Block(statements))
     }
 
-    fn parse_statement(&mut self) -> Node {
+    fn parse_statement(&mut self) -> Result<Node, ParseError> {
         match self.peek() {
             Token::KeywordLet => {
                 self.advance();
                 let ident = match self.advance() {
                     Token::Ident(name) => name,
-                    _ => self.diagnostic_panic("Expected identifier after let"),
+                    _ => return Err(self.parse_error("Expected identifier after let".into())),
                 };
-                self.expect(Token::Assign);
-                let expr = self.parse_expression();
-                self.expect(Token::Semi);
-                Node::Assign(ident, Box::new(expr))
+                self.expect(Token::Assign)?;
+                let expr = self.parse_expression()?;
+                self.expect(Token::Semi)?;
+                Ok(Node::Assign(ident, Box::new(expr)))
             }
             Token::KeywordIf => {
                 self.advance();
-                self.expect(Token::LParen);
-                let cond = self.parse_expression();
-                self.expect(Token::RParen);
-                let then_branch = self.parse_block();
+                self.expect(Token::LParen)?;
+                let cond = self.parse_expression()?;
+                self.expect(Token::RParen)?;
+                let then_branch = self.parse_block()?;
                 let mut else_branch = None;
                 if *self.peek() == Token::KeywordElse {
                     self.advance();
-                    else_branch = Some(Box::new(self.parse_block()));
+                    else_branch = Some(Box::new(self.parse_block()?));
                 }
-                Node::If(Box::new(cond), Box::new(then_branch), else_branch)
+                Ok(Node::If(
+                    Box::new(cond),
+                    Box::new(then_branch),
+                    else_branch,
+                ))
             }
             Token::KeywordWhile => {
                 self.advance();
-                self.expect(Token::LParen);
-                let cond = self.parse_expression();
-                self.expect(Token::RParen);
-                let body = self.parse_block();
-                Node::While(Box::new(cond), Box::new(body))
+                self.expect(Token::LParen)?;
+                let cond = self.parse_expression()?;
+                self.expect(Token::RParen)?;
+                let body = self.parse_block()?;
+                Ok(Node::While(Box::new(cond), Box::new(body)))
             }
             Token::KeywordFn => {
                 self.advance();
                 let name = match self.advance() {
                     Token::Ident(name) => name,
-                    _ => self.diagnostic_panic("Expected function name"),
+                    _ => return Err(self.parse_error("Expected function name".into())),
                 };
-                self.expect(Token::LParen);
+                self.expect(Token::LParen)?;
                 let mut args = Vec::new();
                 while *self.peek() != Token::RParen {
                     if let Token::Ident(arg) = self.advance() {
@@ -379,40 +386,44 @@ impl Parser {
                         self.advance();
                     }
                 }
-                self.expect(Token::RParen);
-                let body = self.parse_block();
-                Node::FnDef(name, args, Box::new(body))
+                self.expect(Token::RParen)?;
+                let body = self.parse_block()?;
+                Ok(Node::FnDef(name, args, Box::new(body)))
             }
             Token::KeywordReturn => {
                 self.advance();
-                let expr = self.parse_expression();
-                self.expect(Token::Semi);
-                Node::Return(Box::new(expr))
+                let expr = self.parse_expression()?;
+                self.expect(Token::Semi)?;
+                Ok(Node::Return(Box::new(expr)))
             }
             Token::KeywordImport => {
                 self.advance();
                 let file_path = match self.advance() {
                     Token::Str(s) => s,
-                    _ => self.diagnostic_panic("Expected string literal after import"),
+                    _ => {
+                        return Err(
+                            self.parse_error("Expected string literal after import".into())
+                        )
+                    }
                 };
-                self.expect(Token::Semi);
-                Node::Import(file_path)
+                self.expect(Token::Semi)?;
+                Ok(Node::Import(file_path))
             }
             Token::LBrace => self.parse_block(),
             _ => {
-                let expr = self.parse_expression();
+                let expr = self.parse_expression()?;
 
                 // Check for -> { block } which is If(expr, Block, None)
                 if *self.peek() == Token::Arrow {
                     self.advance();
-                    let block = self.parse_block();
-                    return Node::If(Box::new(expr), Box::new(block), None);
+                    let block = self.parse_block()?;
+                    return Ok(Node::If(Box::new(expr), Box::new(block), None));
                 }
 
                 // Check for fat arrow => { block } for async callbacks (Fetch)
                 if *self.peek() == Token::FatArrow {
                     self.advance();
-                    let callback = self.parse_block();
+                    let callback = self.parse_block()?;
 
                     if let Node::Call(name, args) = expr
                         && name == "Fetch"
@@ -421,155 +432,163 @@ impl Parser {
                         let method = if let Node::StringLiteral(s) = &args[0] {
                             s.clone()
                         } else {
-                            self.diagnostic_panic("Fetch expects Method as string")
+                            return Err(
+                                self.parse_error("Fetch expects Method as string".into())
+                            );
                         };
                         let url = if let Node::StringLiteral(s) = &args[1] {
                             s.clone()
                         } else {
-                            self.diagnostic_panic("Fetch expects URL as string")
+                            return Err(
+                                self.parse_error("Fetch expects URL as string".into())
+                            );
                         };
-                        return Node::Fetch {
+                        return Ok(Node::Fetch {
                             method,
                             url,
                             callback: Box::new(callback),
-                        };
+                        });
                     }
-                    self.diagnostic_panic(
-                        "FatArrow '=>' can only be used with Fetch(method, url) calls",
-                    );
+                    return Err(self.parse_error(
+                        "FatArrow '=>' can only be used with Fetch(method, url) calls".into(),
+                    ));
                 }
 
                 if *self.peek() == Token::Semi {
                     self.advance(); // consume semi
                 }
-                expr
+                Ok(expr)
             }
         }
     }
 
-    fn parse_block(&mut self) -> Node {
-        self.expect(Token::LBrace);
+    fn parse_block(&mut self) -> Result<Node, ParseError> {
+        self.expect(Token::LBrace)?;
         let mut stmts = Vec::new();
         while *self.peek() != Token::RBrace && *self.peek() != Token::EOF {
             if *self.peek() == Token::Semi {
                 self.advance();
                 continue;
             }
-            stmts.push(self.parse_statement());
+            stmts.push(self.parse_statement()?);
         }
-        self.expect(Token::RBrace);
-        Node::Block(stmts)
+        self.expect(Token::RBrace)?;
+        Ok(Node::Block(stmts))
     }
 
-    fn parse_expression(&mut self) -> Node {
+    fn parse_expression(&mut self) -> Result<Node, ParseError> {
         self.parse_assignment()
     }
 
-    fn parse_assignment(&mut self) -> Node {
-        let left = self.parse_comparison();
+    fn parse_assignment(&mut self) -> Result<Node, ParseError> {
+        let left = self.parse_comparison()?;
         if *self.peek() == Token::Assign {
             self.advance();
-            let right = self.parse_expression(); // right-associative
+            let right = self.parse_expression()?; // right-associative
             match left {
-                Node::Identifier(name) => Node::Assign(name, Box::new(right)),
-                Node::ArrayGet(arr, index) => Node::ArraySet(arr, index, Box::new(right)),
-                Node::MapGet(map, key) => Node::MapSet(map, key, Box::new(right)),
-                Node::PropertyGet(obj, prop) => Node::PropertySet(obj, prop, Box::new(right)),
-                Node::Index(container, idx) => Node::ArraySet(container, idx, Box::new(right)), // Fallback mapping
-                _ => self.diagnostic_panic("Invalid assignment target"),
+                Node::Identifier(name) => Ok(Node::Assign(name, Box::new(right))),
+                Node::ArrayGet(arr, index) => Ok(Node::ArraySet(arr, index, Box::new(right))),
+                Node::MapGet(map, key) => Ok(Node::MapSet(map, key, Box::new(right))),
+                Node::PropertyGet(obj, prop) => Ok(Node::PropertySet(obj, prop, Box::new(right))),
+                Node::Index(container, idx) => {
+                    Ok(Node::ArraySet(container, idx, Box::new(right)))
+                }
+                _ => Err(self.parse_error("Invalid assignment target".into())),
             }
         } else {
-            left
+            Ok(left)
         }
     }
 
-    fn parse_comparison(&mut self) -> Node {
-        let mut node = self.parse_term();
+    fn parse_comparison(&mut self) -> Result<Node, ParseError> {
+        let mut node = self.parse_term()?;
         loop {
             match self.peek() {
                 Token::EqEq => {
                     self.advance();
-                    node = Node::Eq(Box::new(node), Box::new(self.parse_term()));
+                    node = Node::Eq(Box::new(node), Box::new(self.parse_term()?));
                 }
                 Token::Lt => {
                     self.advance();
-                    node = Node::Lt(Box::new(node), Box::new(self.parse_term()));
+                    node = Node::Lt(Box::new(node), Box::new(self.parse_term()?));
                 }
                 Token::Gt => {
                     self.advance();
-                    node = Node::Gt(Box::new(node), Box::new(self.parse_term()));
+                    node = Node::Gt(Box::new(node), Box::new(self.parse_term()?));
                 }
                 Token::LtEq => {
                     self.advance();
-                    node = Node::Lte(Box::new(node), Box::new(self.parse_term()));
+                    node = Node::Lte(Box::new(node), Box::new(self.parse_term()?));
                 }
                 Token::GtEq => {
                     self.advance();
-                    node = Node::Gte(Box::new(node), Box::new(self.parse_term()));
+                    node = Node::Gte(Box::new(node), Box::new(self.parse_term()?));
                 }
                 Token::NotEq => {
                     self.advance();
-                    node = Node::NotEq(Box::new(node), Box::new(self.parse_term()));
+                    node = Node::NotEq(Box::new(node), Box::new(self.parse_term()?));
                 }
                 _ => break,
             }
         }
-        node
+        Ok(node)
     }
 
-    fn parse_term(&mut self) -> Node {
-        let mut node = self.parse_factor();
+    fn parse_term(&mut self) -> Result<Node, ParseError> {
+        let mut node = self.parse_factor()?;
         loop {
             match self.peek() {
                 Token::Plus => {
                     self.advance();
-                    node = Node::Add(Box::new(node), Box::new(self.parse_factor()));
+                    node = Node::Add(Box::new(node), Box::new(self.parse_factor()?));
                 }
                 Token::Minus => {
                     self.advance();
-                    node = Node::Sub(Box::new(node), Box::new(self.parse_factor()));
+                    node = Node::Sub(Box::new(node), Box::new(self.parse_factor()?));
                 }
                 _ => break,
             }
         }
-        node
+        Ok(node)
     }
 
-    fn parse_factor(&mut self) -> Node {
-        let mut node = self.parse_primary();
+    fn parse_factor(&mut self) -> Result<Node, ParseError> {
+        let mut node = self.parse_primary()?;
         loop {
             match self.peek() {
                 Token::Star => {
                     self.advance();
-                    node = Node::Mul(Box::new(node), Box::new(self.parse_primary()));
+                    node = Node::Mul(Box::new(node), Box::new(self.parse_primary()?));
                 }
                 Token::Slash => {
                     self.advance();
-                    node = Node::Div(Box::new(node), Box::new(self.parse_primary()));
+                    node = Node::Div(Box::new(node), Box::new(self.parse_primary()?));
                 }
                 Token::Modulo => {
                     self.advance();
-                    node = Node::Modulo(Box::new(node), Box::new(self.parse_primary()));
+                    node = Node::Modulo(Box::new(node), Box::new(self.parse_primary()?));
                 }
                 Token::Shl => {
                     self.advance();
-                    node = Node::BitShiftLeft(Box::new(node), Box::new(self.parse_primary()));
+                    node =
+                        Node::BitShiftLeft(Box::new(node), Box::new(self.parse_primary()?));
                 }
                 Token::Shr => {
                     self.advance();
-                    node = Node::BitShiftRight(Box::new(node), Box::new(self.parse_primary()));
+                    node =
+                        Node::BitShiftRight(Box::new(node), Box::new(self.parse_primary()?));
                 }
                 Token::Amp => {
                     self.advance();
-                    node = Node::BitAnd(Box::new(node), Box::new(self.parse_primary()));
+                    node = Node::BitAnd(Box::new(node), Box::new(self.parse_primary()?));
                 }
                 _ => break,
             }
         }
-        node
+        Ok(node)
     }
 
-    fn parse_primary(&mut self) -> Node {
+    fn parse_primary(&mut self) -> Result<Node, ParseError> {
         let mut node = match self.peek().clone() {
             Token::Int(v) => {
                 self.advance();
@@ -596,23 +615,23 @@ impl Parser {
                         self.advance(); // consume '('
                         let mut args = Vec::new();
                         while *self.peek() != Token::RParen {
-                            args.push(self.parse_expression());
+                            args.push(self.parse_expression()?);
                             if *self.peek() == Token::Comma {
                                 self.advance();
                             }
                         }
-                        self.expect(Token::RParen);
+                        self.expect(Token::RParen)?;
 
                         // Trailing closure block support
                         let mut trailing_block = None;
                         if *self.peek() == Token::LBrace {
-                            trailing_block = Some(Box::new(self.parse_block()));
+                            trailing_block = Some(Box::new(self.parse_block()?));
                         }
 
-                        self.construct_node_from_call(&name, args, trailing_block)
+                        return self.construct_node_from_call(&name, args, trailing_block);
                     } else if *self.peek() == Token::LBrace {
-                        let block = self.parse_block();
-                        self.construct_node_from_call(&name, vec![block], None)
+                        let block = self.parse_block()?;
+                        return self.construct_node_from_call(&name, vec![block], None);
                     } else {
                         Node::Identifier(name)
                     }
@@ -620,24 +639,24 @@ impl Parser {
             }
             Token::Minus => {
                 self.advance();
-                Node::Neg(Box::new(self.parse_primary()))
+                Node::Neg(Box::new(self.parse_primary()?))
             }
             Token::LParen => {
                 self.advance();
-                let expr = self.parse_expression();
-                self.expect(Token::RParen);
+                let expr = self.parse_expression()?;
+                self.expect(Token::RParen)?;
                 expr
             }
             Token::LBracket => {
                 self.advance();
                 let mut args = Vec::new();
                 while *self.peek() != Token::RBracket {
-                    args.push(self.parse_expression());
+                    args.push(self.parse_expression()?);
                     if *self.peek() == Token::Comma {
                         self.advance();
                     }
                 }
-                self.expect(Token::RBracket);
+                self.expect(Token::RBracket)?;
                 Node::ArrayCreate(args)
             }
             Token::LBrace => {
@@ -662,28 +681,34 @@ impl Parser {
                         let key = match self.advance() {
                             Token::Ident(name) => name,
                             Token::Str(s) => s,
-                            other => self.diagnostic_panic(&format!(
-                                "Expected property name in object literal, found {:?}",
-                                other
-                            )),
+                            other => {
+                                return Err(self.parse_error(format!(
+                                    "Expected property name in object literal, found {:?}",
+                                    other
+                                )))
+                            }
                         };
-                        self.expect(Token::Colon);
-                        let val = self.parse_expression();
+                        self.expect(Token::Colon)?;
+                        let val = self.parse_expression()?;
                         map.insert(key, val);
 
                         if *self.peek() == Token::Comma {
                             self.advance();
                         }
                     }
-                    self.expect(Token::RBrace);
+                    self.expect(Token::RBrace)?;
                     Node::ObjectLiteral(map)
                 } else {
-                    self.parse_block()
+                    return self.parse_block();
                 }
             }
             _ => {
-                let hint = format!("Unexpected token in expression: {:?}", self.peek());
-                self.diagnostic_panic(&hint)
+                return Err(
+                    self.parse_error(format!(
+                        "Unexpected token in expression: {:?}",
+                        self.peek()
+                    ))
+                )
             }
         };
 
@@ -691,21 +716,21 @@ impl Parser {
         loop {
             if *self.peek() == Token::LBracket {
                 self.advance();
-                let idx = self.parse_expression();
-                self.expect(Token::RBracket);
+                let idx = self.parse_expression()?;
+                self.expect(Token::RBracket)?;
                 node = Node::Index(Box::new(node), Box::new(idx));
             } else if *self.peek() == Token::Dot {
                 self.advance();
                 if let Token::Ident(prop) = self.advance() {
                     node = Node::PropertyGet(Box::new(node), prop);
                 } else {
-                    self.diagnostic_panic("Expected property name after dot");
+                    return Err(self.parse_error("Expected property name after dot".into()));
                 }
             } else {
                 break;
             }
         }
-        node
+        Ok(node)
     }
 
     fn construct_node_from_call(
@@ -713,13 +738,13 @@ impl Parser {
         name: &str,
         mut args: Vec<Node>,
         trailing_block: Option<Box<Node>>,
-    ) -> Node {
+    ) -> Result<Node, ParseError> {
         // Automatically append trailing block if present
         if let Some(b) = trailing_block {
             args.push(*b);
         }
 
-        match name {
+        Ok(match name {
             // AST Map generated directly by Agent
             "Print" | "print" => Node::Print(Box::new(args.remove(0))),
             "Time" => Node::Time,
@@ -734,7 +759,7 @@ impl Parser {
                 if let Node::StringLiteral(s) = args.remove(0) {
                     s
                 } else {
-                    self.diagnostic_panic("UIWindow expects exact String ID arg")
+                    return Err(self.parse_error("UIWindow expects exact String ID arg".into()));
                 },
                 Box::new(args.remove(0)),
                 Box::new(args.remove(0)),
@@ -746,7 +771,9 @@ impl Parser {
                 if let Node::StringLiteral(s) = args.remove(0) {
                     s
                 } else {
-                    self.diagnostic_panic("UIScrollArea expects exact String ID arg")
+                    return Err(
+                        self.parse_error("UIScrollArea expects exact String ID arg".into())
+                    );
                 },
                 Box::new(args.remove(0)),
             ),
@@ -772,12 +799,12 @@ impl Parser {
                 if let Node::IntLiteral(i) = args.remove(0) {
                     i
                 } else {
-                    self.diagnostic_panic("UIGrid expects Int args")
+                    return Err(self.parse_error("UIGrid expects Int args".into()));
                 },
                 if let Node::StringLiteral(s) = args.remove(0) {
                     s
                 } else {
-                    self.diagnostic_panic("UIGrid expects String ID")
+                    return Err(self.parse_error("UIGrid expects String ID".into()));
                 },
                 Box::new(args.remove(0)),
             ),
@@ -798,8 +825,12 @@ impl Parser {
             }
             "Concat" => Node::Concat(Box::new(args.remove(0)), Box::new(args.remove(0))),
             "ArrayLen" => Node::ArrayLen(Box::new(args.remove(0))),
-            "ArrayPush" => Node::ArrayPush(Box::new(args.remove(0)), Box::new(args.remove(0))),
-            "ArrayGet" => Node::ArrayGet(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "ArrayPush" => {
+                Node::ArrayPush(Box::new(args.remove(0)), Box::new(args.remove(0)))
+            }
+            "ArrayGet" => {
+                Node::ArrayGet(Box::new(args.remove(0)), Box::new(args.remove(0)))
+            }
             "ArraySet" => Node::ArraySet(
                 Box::new(args.remove(0)),
                 Box::new(args.remove(0)),
@@ -812,11 +843,15 @@ impl Parser {
                 Box::new(args.remove(0)),
                 Box::new(args.remove(0)),
             ),
-            "MapHasKey" => Node::MapHasKey(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "MapHasKey" => {
+                Node::MapHasKey(Box::new(args.remove(0)), Box::new(args.remove(0)))
+            }
             "ToString" => Node::ToString(Box::new(args.remove(0))),
             "FileRead" => Node::FileRead(Box::new(args.remove(0))),
             "FSRead" => Node::FSRead(Box::new(args.remove(0))),
-            "FSWrite" => Node::FSWrite(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "FSWrite" => {
+                Node::FSWrite(Box::new(args.remove(0)), Box::new(args.remove(0)))
+            }
             "CheckCollision" => Node::CheckCollision {
                 a_min: Box::new(args.remove(0)),
                 a_max: Box::new(args.remove(0)),
@@ -838,7 +873,7 @@ impl Parser {
                 }
             }
             _ => Node::Call(name.to_string(), args), // Default to local Call
-        }
+        })
     }
 }
 
@@ -850,7 +885,7 @@ mod tests {
     fn test_uivbox_parsing() {
         let input = r#"UIWindow("ui", "Math FFI Demo", UIVBox { UILabel("a"); });"#;
         let mut parser = Parser::new(input);
-        let ast = parser.parse();
+        let ast = parser.parse().unwrap();
         assert_eq!(
             ast,
             Node::Block(vec![Node::UIWindow(
@@ -872,7 +907,7 @@ mod tests {
             UILabel("b");
         "#;
         let mut parser = Parser::new(input);
-        let ast = parser.parse();
+        let ast = parser.parse().unwrap();
         assert_eq!(
             ast,
             Node::Block(vec![
@@ -893,13 +928,23 @@ mod tests {
             let y = 10;
         "#;
         let mut parser = Parser::new(input);
-        let ast = parser.parse();
+        let ast = parser.parse().unwrap();
         assert_eq!(
             ast,
             Node::Block(vec![
                 Node::Assign("x".to_string(), Box::new(Node::IntLiteral(5))),
                 Node::Assign("y".to_string(), Box::new(Node::IntLiteral(10)))
             ])
+        );
+    }
+
+    #[test]
+    fn test_parser_invalid_syntax_returns_err() {
+        let mut parser = Parser::new("let x = ;");
+        let result = parser.parse();
+        assert!(
+            result.is_err(),
+            "Invalid syntax should return Err(ParseError)"
         );
     }
 }

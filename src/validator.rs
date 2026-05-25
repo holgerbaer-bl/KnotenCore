@@ -221,21 +221,7 @@ impl Validator {
                             } else {
                                 // Parse as .knoten
                                 let mut parser = crate::parser::Parser::new(&source);
-                                match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                                    parser.parse()
-                                })) {
-                                    Ok(node) => Ok(node),
-                                    Err(err) => {
-                                        let msg = if let Some(s) = err.downcast_ref::<&str>() {
-                                            s.to_string()
-                                        } else if let Some(s) = err.downcast_ref::<String>() {
-                                            s.clone()
-                                        } else {
-                                            "Unknown parser error".to_string()
-                                        };
-                                        Err(format!("Parser Error: {}", msg))
-                                    }
-                                }
+                                parser.parse().map_err(|e| format!("Parser Error: {:?}", e))
                             };
                             match parsed_result {
                                 Ok(parsed) => self.check_node(&parsed),

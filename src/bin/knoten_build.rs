@@ -25,7 +25,7 @@ fn main() {
         println!("🔧 Compiling .knoten DSL to JSON AST...");
         let content = fs::read_to_string(&absolute_path).expect("Failed to read .knoten file");
         let mut parser = knoten_core::parser::Parser::new(&content);
-        let ast = parser.parse();
+        let ast = parser.parse().expect("Failed to parse .knoten file");
         let mut json_ast = serde_json::to_string(&ast).expect("Failed to serialize AST to JSON");
 
         // --- Bundler Import Resolution (Flattening) ---
@@ -56,7 +56,10 @@ fn main() {
                     } else {
                         // It's DSL (like core/time.nod), parse it to AST JSON
                         let mut p = knoten_core::parser::Parser::new(&content);
-                        let imported_ast = p.parse();
+                        let imported_ast = match p.parse() {
+                            Ok(ast) => ast,
+                            Err(_) => return caps[0].to_string(),
+                        };
                         serde_json::to_string(&imported_ast).unwrap_or_else(|_| caps[0].to_string())
                     }
                 })
