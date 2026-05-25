@@ -130,21 +130,19 @@ fn run() {
         }
     };
 
-    // Explicit syntax catch block gracefully handling panic faults internally yielding JSON validation outputs mapping ERR_UNKNOWN_NODE natively.
-    let ast_result = std::panic::catch_unwind(|| {
-        if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
-            // For AI Test Suite FAIL_01_unknown_node.nod JSON tests natively parse JSON properly
-            if json_string.trim_start().starts_with('{') {
-                serde_json::from_str(&json_string)
-                    .unwrap_or_else(|e| panic!("JSON parse error: {}", e))
-            } else {
-                let mut parser = knoten_core::parser::Parser::new(&json_string);
-                parser.parse()
-            }
+    // Explicit syntax catch block gracefully handling parse errors internally yielding JSON validation outputs mapping ERR_UNKNOWN_NODE natively.
+    let ast_result: Result<knoten_core::ast::Node, String> = if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
+        // For AI Test Suite FAIL_01_unknown_node.nod JSON tests natively parse JSON properly
+        if json_string.trim_start().starts_with('{') {
+            serde_json::from_str(&json_string)
+                .map_err(|e| format!("JSON parse error: {}", e))
         } else {
-            serde_json::from_str(&json_string).unwrap_or_else(|e| panic!("JSON parse error: {}", e))
+            let mut parser = knoten_core::parser::Parser::new(&json_string);
+            parser.parse().map_err(|e| format!("Parser error: {:?}", e))
         }
-    });
+    } else {
+        serde_json::from_str(&json_string).map_err(|e| format!("JSON parse error: {}", e))
+    };
 
     let mut ast = match ast_result {
         Ok(node) => node,
@@ -301,7 +299,10 @@ fn build_standalone(nod_path: &str) {
 
     let mut ast: knoten_core::ast::Node = if nod_path.ends_with(".knoten") {
         let mut parser = knoten_core::parser::Parser::new(&json_string);
-        parser.parse()
+        parser.parse().unwrap_or_else(|e| {
+            eprintln!("Error: Parser error — {:?}", e);
+            std::process::exit(1);
+        })
     } else {
         serde_json::from_str(&json_string).unwrap_or_else(|e| {
             eprintln!("Error: Invalid AST JSON — {}", e);
