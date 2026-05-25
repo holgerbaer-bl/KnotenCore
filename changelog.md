@@ -2,6 +2,11 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] — Pre-Release (2026-05-25) 🚀
+**The Compiler Evolution & Sandbox Hardening Milestone.** Sprints 192–198: AOT compiler optimizations (folding, inlining, unrolling, peephole), multi-layer watchdogs, domain suffix fix, index.html purge, ultimate telemetry dashboard.
+- **138/138 tests** passing. **0 clippy warnings** across workspace.
+- [Full bilingual release notes](https://github.com/holgerbaer-bl/KnotenCore/releases/tag/v1.2.0-alpha)
+
 ## [v1.2.0-alpha] - Sprint 198: Application Layer — The Ultimate Telemetry Dashboard (2026-05-25)
 Sprint 198: Application Integration. Created `examples/telemetry_dashboard.knoten` — a comprehensive showcase demonstrating every optimization and hardening from Sprints 184–197 in a single application.
 - **Dashboard Features**:
