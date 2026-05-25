@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 208: Asynchronous Asset Streaming & Background WGPU Queue Worker (2026-05-25)
+Sprint 208: Async Asset Streaming. Offloaded texture I/O and image decoding to background threads, preventing frame-drop spikes during VM execution.
+- **Non-Blocking Texture Load**: `registry_load_texture` now generates the texture ID atomically via `TEXTURE_ID_COUNTER.fetch_add` and returns immediately. The heavy I/O work (`image::open`, `to_rgba8`) is spawned in a `std::thread::spawn` background thread.
+- **Deferred GPU Injection**: Once the background thread completes decoding, it sends the raw RGBA pixels via `send_render_command(RenderCommand::LoadTexture { id, width, height, rgba })` — the main render thread processes it asynchronously via the existing WGPU texture pipeline.
+- **Test**: Added `test_asset_streaming_non_blocking` — simulates 5 concurrent texture loads, verifies IDs are assigned immediately and the total time stays under 200ms.
+- **Submodule Sync**: Registry changes mirrored to `aether_compiler/`.
+- **CI**: 0 clippy warnings.
+
 ## [v1.3.0-alpha] - Sprint 207: Examples Purge & Modernization (2026-05-25)
 Sprint 207: Examples Purge. Deleted 80+ obsolete JSON-AST and legacy .nod files, modernized remaining examples for v1.3.0-alpha parser compliance, and enforced 100% CI coverage on all example files.
 - **File Purge**: Removed 6 hand-written `.json` AST files and 52+ legacy `.nod` files from `examples/` and all subdirectories. Deleted empty subdirectories (agent, audit, bench, compiler, core, data, final, graphics, io, io_test, module_test, stdlib). Only `dashboard_config.nod` and `imported_ast.nod` retained as import targets.

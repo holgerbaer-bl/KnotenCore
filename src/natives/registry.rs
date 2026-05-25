@@ -938,8 +938,7 @@ pub fn registry_force_panic() {
     panic!("Simulated core dump from FFI!");
 }
 
-// ── Assets & Textures (Sprint 165) ──────────────────────────────────────
-
+// Sprint 208: Asynchronous texture loading — I/O offloaded to background thread
 pub fn registry_load_texture(path: &str) -> i64 {
     let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(path) {
         Ok(p) => p,
@@ -951,23 +950,26 @@ pub fn registry_load_texture(path: &str) -> i64 {
             return 0;
         }
     };
-    let img_result = image::open(&safe_path);
-    if let Ok(img) = img_result {
-        let rgba = img.to_rgba8();
-        let (width, height) = rgba.dimensions();
-        let raw_data = rgba.into_raw();
+    // Generate texture ID immediately — non-blocking
+    let id = TEXTURE_ID_COUNTER.fetch_add(1, Ordering::Relaxed) as i64;
+    let path_owned = path.to_string();
 
-        let id = TEXTURE_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+    std::thread::spawn(move || {
+        let img_result = image::open(&safe_path);
+        if let Ok(img) = img_result {
+            let rgba = img.to_rgba8();
+            let (width, height) = rgba.dimensions();
+            let raw_data = rgba.into_raw();
+            send_render_command(RenderCommand::LoadTexture {
+                id: id as usize,
+                width,
+                height,
+                rgba: raw_data,
+            });
+        } else {
+            eprintln!("[KnotenCore Texture] Failed to load '{}'", path_owned);
+        }
+    });
 
-        send_render_command(RenderCommand::LoadTexture {
-            id,
-            width,
-            height,
-            rgba: raw_data,
-        });
-
-        return id as i64;
-    }
-    // Return 0 (default texture) on error
-    0
+    id
 }
