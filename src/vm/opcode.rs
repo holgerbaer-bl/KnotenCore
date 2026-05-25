@@ -70,6 +70,6 @@ pub enum OpCode {
     // Sprint 200: SIMD auto-vectorization — 4-element parallel scale
     SimdExec {
         elements: [usize; 4], // constant pool indices for the 4 float elements
-        scale: usize,          // constant pool index for the scale factor
+        scale: usize,         // constant pool index for the scale factor
     },
 }
