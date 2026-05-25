@@ -112,6 +112,10 @@ pub enum RenderCommand {
         z: u32,
         inputs: Vec<crate::executor::RelType>,
     },
+    // Sprint 204: Read back compute shader results from GPU to VM
+    ReadComputeResult {
+        shader_id: usize,
+    },
     RemoveEntity {
         window_id: usize,
         entity_id: usize,
@@ -188,6 +192,9 @@ pub struct WindowProxy {
 }
 
 pub static TEXTURE_ID_COUNTER: AtomicUsize = AtomicUsize::new(1); // 0 is reserved for default
+
+// Sprint 204: GPU compute result readback buffer (shader_id → Vec<f32>)
+pub static COMPUTE_RESULTS: Mutex<Option<HashMap<usize, Vec<f32>>>> = Mutex::new(None);
 
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
@@ -810,6 +817,35 @@ pub fn registry_dispatch_compute(
         z,
         inputs,
     });
+}
+
+// Sprint 204: Read back GPU compute results into the VM
+pub fn registry_compute_readback(shader_id: i64) -> Vec<crate::executor::RelType> {
+    // Clear any stale result
+    {
+        let mut guard = COMPUTE_RESULTS.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(map) = guard.as_mut() {
+            map.remove(&(shader_id as usize));
+        }
+    }
+    // Send readback command to the render thread
+    send_render_command(RenderCommand::ReadComputeResult {
+        shader_id: shader_id as usize,
+    });
+    // Poll for the result (render thread will populate COMPUTE_RESULTS)
+    for _ in 0..1000 {
+        {
+            let guard = COMPUTE_RESULTS.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(map) = guard.as_ref()
+                && let Some(floats) = map.get(&(shader_id as usize))
+            {
+                return floats.iter().map(|f| crate::executor::RelType::Float(*f as f64)).collect();
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    eprintln!("[KnotenCore Compute] Readback timeout for shader {}", shader_id);
+    vec![]
 }
 
 pub fn registry_is_mouse_down() -> bool {

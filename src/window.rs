@@ -10,6 +10,8 @@ pub struct KnotenApp {
     pub windows: HashMap<usize, RegistryWindowState>,
     pub window_id_map: HashMap<WindowId, usize>,
     pub compute_pipelines: HashMap<usize, wgpu::ComputePipeline>,
+    // Sprint 204: stored compute buffers for readback
+    pub compute_buffers: HashMap<usize, wgpu::Buffer>,
 }
 
 impl Default for KnotenApp {
@@ -24,6 +26,7 @@ impl KnotenApp {
             windows: HashMap::new(),
             window_id_map: HashMap::new(),
             compute_pipelines: HashMap::new(),
+            compute_buffers: HashMap::new(),
         }
     }
 
@@ -567,6 +570,8 @@ impl KnotenApp {
                                 cpass.dispatch_workgroups(x, y, z);
                             }
                             state.queue.submit(std::iter::once(encoder.finish()));
+                            // Sprint 204: Store buffer for readback
+                            self.compute_buffers.insert(shader_id, storage);
                         } else {
                             // No data inputs — dispatch without bind group (backward compat)
                             let mut encoder = state.device.create_command_encoder(
@@ -591,6 +596,41 @@ impl KnotenApp {
                 } else {
                     eprintln!("DispatchCompute failed: No WGPU window/device available.");
                 }
+            }
+            // Sprint 204: Read back compute shader results from GPU to CPU
+            RenderCommand::ReadComputeResult { shader_id } => {
+                if let Some(state) = self.windows.values().next()
+                    && let Some(storage) = self.compute_buffers.get(&shader_id)
+                {
+                        let size = storage.size();
+                        let staging = state.device.create_buffer(&wgpu::BufferDescriptor {
+                            label: Some("Compute Staging Buffer"),
+                            size,
+                            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                            mapped_at_creation: false,
+                        });
+                        let mut encoder = state.device.create_command_encoder(
+                            &wgpu::CommandEncoderDescriptor { label: None },
+                        );
+                        encoder.copy_buffer_to_buffer(storage, 0, &staging, 0, size);
+                        state.queue.submit(std::iter::once(encoder.finish()));
+
+                        let slice = staging.slice(..);
+                        slice.map_async(wgpu::MapMode::Read, |_| {});
+                        state.device.poll(wgpu::Maintain::Wait);
+                        let data = slice.get_mapped_range().to_vec();
+
+                        let floats: Vec<f32> = data
+                            .chunks_exact(4)
+                            .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+                            .collect();
+
+                        let mut guard = crate::natives::registry::COMPUTE_RESULTS
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
+                        let map = guard.get_or_insert_with(HashMap::new);
+                        map.insert(shader_id, floats);
+                    }
             }
             RenderCommand::AddMesh {
                 name,
