@@ -1,8 +1,0 @@
-{
-  "Print": {
-    "Add": [
-      { "IntLiteral": 10 },
-      { "IntLiteral": 20 }
-    ]
-  }
-}

@@ -1,4 +1,0 @@
-import "math.nod";
-
-let result = add(10, 25);
-print(result);

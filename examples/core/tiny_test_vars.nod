@@ -1,7 +1,0 @@
-{
-  "Block": [
-    { "Assign": ["x", { "IntLiteral": 10 }] },
-    { "Assign": ["y", { "IntLiteral": 20 }] },
-    { "Print": { "Add": [{ "Identifier": "x" }, { "Identifier": "y" }] } }
-  ]
-}
