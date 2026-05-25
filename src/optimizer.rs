@@ -966,3 +966,269 @@ impl TypeChecker {
         }
     }
 }
+
+// ── Sprint 192: Constant Folding & Dead Code Elimination Tests ──────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::Node;
+
+    fn lit_i(v: i64) -> Node {
+        Node::IntLiteral(v)
+    }
+    fn lit_f(v: f64) -> Node {
+        Node::FloatLiteral(v)
+    }
+    fn lit_b(v: bool) -> Node {
+        Node::BoolLiteral(v)
+    }
+    fn add(l: Node, r: Node) -> Node {
+        Node::Add(Box::new(l), Box::new(r))
+    }
+    fn sub(l: Node, r: Node) -> Node {
+        Node::Sub(Box::new(l), Box::new(r))
+    }
+    fn mul(l: Node, r: Node) -> Node {
+        Node::Mul(Box::new(l), Box::new(r))
+    }
+    fn div(l: Node, r: Node) -> Node {
+        Node::Div(Box::new(l), Box::new(r))
+    }
+    fn eq(l: Node, r: Node) -> Node {
+        Node::Eq(Box::new(l), Box::new(r))
+    }
+    fn lt(l: Node, r: Node) -> Node {
+        Node::Lt(Box::new(l), Box::new(r))
+    }
+    fn gt(l: Node, r: Node) -> Node {
+        Node::Gt(Box::new(l), Box::new(r))
+    }
+
+    // ── Constant Folding: Math Ops ──────────────────────────────────
+
+    #[test]
+    fn fold_add_int() {
+        assert_eq!(optimize(add(lit_i(5), lit_i(10))), lit_i(15));
+    }
+
+    #[test]
+    fn fold_sub_int() {
+        assert_eq!(optimize(sub(lit_i(100), lit_i(37))), lit_i(63));
+    }
+
+    #[test]
+    fn fold_mul_int() {
+        assert_eq!(optimize(mul(lit_i(6), lit_i(7))), lit_i(42));
+    }
+
+    #[test]
+    fn fold_div_int() {
+        assert_eq!(optimize(div(lit_i(60), lit_i(5))), lit_i(12));
+    }
+
+    #[test]
+    fn fold_add_float() {
+        assert_eq!(optimize(add(lit_f(2.5), lit_f(3.5))), lit_f(6.0));
+    }
+
+    #[test]
+    fn fold_mul_float() {
+        assert_eq!(optimize(mul(lit_f(3.0), lit_f(4.0))), lit_f(12.0));
+    }
+
+    #[test]
+    fn fold_div_float() {
+        assert_eq!(optimize(div(lit_f(10.0), lit_f(4.0))), lit_f(2.5));
+    }
+
+    /// 5 + 10 * 2 → operator precedence: Mul first → IntLiteral(25)
+    #[test]
+    fn fold_nested_expression() {
+        // 5 + 10 * 2  →  (5 + (10 * 2)) parsed as add(5, mul(10, 2))
+        let expr = add(lit_i(5), mul(lit_i(10), lit_i(2)));
+        assert_eq!(optimize(expr), lit_i(25));
+    }
+
+    /// (1 + 2) * 3 → IntLiteral(9)
+    #[test]
+    fn fold_parenthesized_expression() {
+        let expr = mul(add(lit_i(1), lit_i(2)), lit_i(3));
+        assert_eq!(optimize(expr), lit_i(9));
+    }
+
+    /// Deeply nested: ((4 + 6) * 2) / 5 → IntLiteral(4)
+    #[test]
+    fn fold_deeply_nested() {
+        let expr = div(mul(add(lit_i(4), lit_i(6)), lit_i(2)), lit_i(5));
+        assert_eq!(optimize(expr), lit_i(4));
+    }
+
+    /// Division by zero must NOT be folded — keep the Div node intact
+    #[test]
+    fn no_fold_div_by_zero_int() {
+        let expr = div(lit_i(10), lit_i(0));
+        let result = optimize(expr);
+        assert!(matches!(result, Node::Div(..)));
+    }
+
+    /// Division by zero for floats must NOT be folded
+    #[test]
+    fn no_fold_div_by_zero_float() {
+        let expr = div(lit_f(10.0), lit_f(0.0));
+        let result = optimize(expr);
+        assert!(matches!(result, Node::Div(..)));
+    }
+
+    // ── Constant Folding: Logical Comparisons ───────────────────────
+
+    #[test]
+    fn fold_eq_int_true() {
+        assert_eq!(optimize(eq(lit_i(42), lit_i(42))), lit_b(true));
+    }
+
+    #[test]
+    fn fold_eq_int_false() {
+        assert_eq!(optimize(eq(lit_i(42), lit_i(99))), lit_b(false));
+    }
+
+    #[test]
+    fn fold_eq_float() {
+        assert_eq!(optimize(eq(lit_f(1.0), lit_f(1.0))), lit_b(true));
+    }
+
+    #[test]
+    fn fold_lt_int() {
+        assert_eq!(optimize(lt(lit_i(3), lit_i(7))), lit_b(true));
+        assert_eq!(optimize(lt(lit_i(7), lit_i(3))), lit_b(false));
+    }
+
+    #[test]
+    fn fold_gt_int() {
+        assert_eq!(optimize(gt(lit_i(100), lit_i(50))), lit_b(true));
+        assert_eq!(optimize(gt(lit_i(10), lit_i(10))), lit_b(false));
+    }
+
+    /// Folding a comparison inside a math expression: (if (5 == 5) { 10 } else { 0 }) * 2 → 20
+    #[test]
+    fn fold_comparison_in_expression() {
+        let if_node = Node::If(
+            Box::new(eq(lit_i(5), lit_i(5))),
+            Box::new(lit_i(10)),
+            Some(Box::new(lit_i(0))),
+        );
+        let expr = mul(if_node, lit_i(2));
+        // If folds to 10 (true branch), then 10 * 2 = 20
+        assert_eq!(optimize(expr), lit_i(20));
+    }
+
+    // ── Dead Code Elimination: If Nodes ────────────────────────────
+
+    #[test]
+    fn dce_if_true_eliminates_false_branch() {
+        let if_node = Node::If(
+            Box::new(lit_b(true)),
+            Box::new(lit_i(42)),
+            Some(Box::new(lit_i(0))),
+        );
+        assert_eq!(optimize(if_node), lit_i(42));
+    }
+
+    #[test]
+    fn dce_if_false_with_else_uses_else() {
+        let if_node = Node::If(
+            Box::new(lit_b(false)),
+            Box::new(lit_i(42)),
+            Some(Box::new(lit_i(99))),
+        );
+        assert_eq!(optimize(if_node), lit_i(99));
+    }
+
+    #[test]
+    fn dce_if_false_no_else_removes_node() {
+        let if_node = Node::If(Box::new(lit_b(false)), Box::new(lit_i(42)), None);
+        assert_eq!(optimize(if_node), Node::Block(vec![]));
+    }
+
+    /// If condition is a folded expression that resolves to true
+    #[test]
+    fn dce_if_folded_condition_true() {
+        // if (10 > 5) { 100 } else { 0 }  → 10 > 5 folds to true → then-branch
+        let if_node = Node::If(
+            Box::new(gt(lit_i(10), lit_i(5))),
+            Box::new(lit_i(100)),
+            Some(Box::new(lit_i(0))),
+        );
+        assert_eq!(optimize(if_node), lit_i(100));
+    }
+
+    /// Nested: if (if (true) { true } else { false }) { 1 } else { 2 } → 1
+    #[test]
+    fn dce_nested_if() {
+        let inner_if = Node::If(
+            Box::new(lit_b(true)),
+            Box::new(lit_b(true)),
+            Some(Box::new(lit_b(false))),
+        );
+        let outer_if = Node::If(
+            Box::new(inner_if),
+            Box::new(lit_i(1)),
+            Some(Box::new(lit_i(2))),
+        );
+        assert_eq!(optimize(outer_if), lit_i(1));
+    }
+
+    // ── While Loop Dead Code Elimination ───────────────────────────
+
+    #[test]
+    fn dce_while_false_removes_loop() {
+        let while_node = Node::While(Box::new(lit_b(false)), Box::new(lit_i(999)));
+        assert_eq!(optimize(while_node), Node::Block(vec![]));
+    }
+
+    // ── Mixed: Constant Folding + Dead Code Elimination ────────────
+
+    /// if (5 + 5 == 10) { 50 / 5 } else { 0 * 99 } → IntLiteral(10)
+    #[test]
+    fn full_pipeline_math_cmp_dce() {
+        let cond = eq(add(lit_i(5), lit_i(5)), lit_i(10));
+        let then_branch = div(lit_i(50), lit_i(5));
+        let else_branch = mul(lit_i(0), lit_i(99));
+        let if_node = Node::If(
+            Box::new(cond),
+            Box::new(then_branch),
+            Some(Box::new(else_branch)),
+        );
+        assert_eq!(optimize(if_node), lit_i(10));
+    }
+
+    /// Verify fold preserves node count: 7 nodes → 1 node
+    #[test]
+    fn fold_reduces_node_count() {
+        let expr = add(add(lit_i(1), lit_i(2)), add(lit_i(3), lit_i(4)));
+        let before = count_nodes(&expr);
+        assert_eq!(before, 7); // 4 literals + 3 Add nodes
+        let after = count_nodes(&optimize(expr));
+        assert_eq!(after, 1); // single IntLiteral(10)
+    }
+
+    /// Subtract zero should fold: x - 0 → x (identity)
+    #[test]
+    fn fold_sub_zero_int() {
+        assert_eq!(optimize(sub(lit_i(42), lit_i(0))), lit_i(42));
+    }
+
+    /// Multiply by one should fold: x * 1 → x (identity)
+    #[test]
+    fn fold_mul_one_int() {
+        assert_eq!(optimize(mul(lit_i(42), lit_i(1))), lit_i(42));
+    }
+
+    // ── Bitwise Constant Folding ───────────────────────────────────
+
+    #[test]
+    fn fold_bitwise_and() {
+        let expr = Node::BitAnd(Box::new(lit_i(0xFF)), Box::new(lit_i(0x0F)));
+        assert_eq!(optimize(expr), lit_i(0x0F));
+    }
+}
