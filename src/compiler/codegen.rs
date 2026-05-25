@@ -37,6 +37,7 @@ impl Codegen {
                         | "registry_now"
                         | "registry_gpu_init"
                         | "registry_texture_load"
+                        | "load_compute_shader"
                 )
             }
             Node::Identifier(name) => {
@@ -326,7 +327,28 @@ impl Codegen {
                 }
             }
             // Sprint 38/39/40 MVP support boundary
-            _ => format!("/* Unsupported node in Sprint 40 codegen: {:?} */", node),
+            // Sprint 190: Modern node types — AOT delegates to runtime for side-effectful nodes
+            Node::ExternCall { module, function, args } => {
+                let arg_strs: Vec<String> = args
+                    .iter()
+                    .map(|a| self.generate(a, false))
+                    .collect();
+                format!(
+                    "knoten_core::natives::bridge::CoreBridge.handle(\"{}\", \"{}\", &[{}], &knoten_core::executor::AgentPermissions::default())",
+                    module,
+                    function,
+                    arg_strs.join(", ")
+                )
+            }
+            Node::UIVBox(_children) => "/* UIVBox (UI rendering — AOT delegates to JIT) */".to_string(),
+            Node::UILabel(_) => "/* UILabel */".to_string(),
+            Node::UIButton(_) => "/* UIButton */".to_string(),
+            Node::UIWindow(_, _, _) => "/* UIWindow */".to_string(),
+            Node::UIHorizontal(_) => "/* UIHorizontal */".to_string(),
+            Node::UITextInput(_) => "/* UITextInput */".to_string(),
+            Node::LoadComputeShader(_) => "/* LoadComputeShader (AOT delegates to JIT) */".to_string(),
+            Node::DispatchCompute { .. } => "/* DispatchCompute (AOT delegates to JIT) */".to_string(),
+            _ => format!("/* Unsupported node in Sprint 190 codegen: {:?} */", node),
         }
     }
 }

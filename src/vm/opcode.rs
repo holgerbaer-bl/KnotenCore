@@ -60,6 +60,7 @@ pub enum OpCode {
     UIWindow(usize, usize), // (id_idx, children_count)
     UILabel,
     UIButton,
+    UITextInput,
     UIHBox(usize),
     UIVBox(usize),
 

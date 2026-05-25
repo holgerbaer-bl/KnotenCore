@@ -1302,8 +1302,13 @@ fn collect_floats(rel: &crate::executor::RelType, out: &mut Vec<f32>) {
             }
         }
         crate::executor::RelType::Object(map) => {
-            for v in map.values() {
-                collect_floats(v, out);
+            // Sprint 190: Sort keys alphabetically for deterministic GPU buffer layout
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            for k in keys {
+                if let Some(v) = map.get(k) {
+                    collect_floats(v, out);
+                }
             }
         }
         _ => {} // Skip non-numeric types
