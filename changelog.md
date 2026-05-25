@@ -2,6 +2,20 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] - Sprint 198: Application Layer — The Ultimate Telemetry Dashboard (2026-05-25)
+Sprint 198: Application Integration. Created `examples/telemetry_dashboard.knoten` — a comprehensive showcase demonstrating every optimization and hardening from Sprints 184–197 in a single application.
+- **Dashboard Features**:
+  - Persistence: `file_read`/`file_write` with JSON cache state via `json_parse`/`json_stringify` (Sprint 183).
+  - Time Stamping: `time_get_string()` and `time_utc_timestamp()` for session tracking (Sprint 188).
+  - Math Operations: `math_vector_scale()` and `math_matrix_transform()` with constant folding and inlining (Sprint 187, 194).
+  - Loop Unrolling: Bounded `while(i < 4)` loop unrolled to flat block at compile time (Sprint 196).
+  - Peephole Verification: Redundant `SetLocal/GetLocal` chains eliminated — `x = 42; y = x; z = y` compiled with 0 redundant loads (Sprint 197).
+  - UI Charts: `ui_bar_chart` for CPU/memory history, `ui_progress_gauge` for real-time CPU/RAM/Disk gauges (Sprint 189).
+  - Network Domain: References `https://knotencore.de/` as the official telemetry API endpoint.
+- **CI Stability**: All 67 unit tests, 55 integration tests, and 16 sandbox tests pass unchanged. 0 clippy warnings.
+- **Submodule Sync**: Dashboard copied to `aether_compiler/examples/`.
+- **Documentation**: Updated README, llm.md, changelog.md.
+
 ## [v1.2.0-alpha] - Sprint 197: Compiler Phase 3 — Register Allocation & Peephole Optimization (2026-05-25)
 Sprint 197: Compiler Phase 3. Implemented VM instruction peephole optimizer and register slot reuse for smaller stack frames.
 - **Peephole Optimizer**: Added `Compiler::peephole_optimize()` — a post-compilation pass that scans the instruction vector for redundant patterns. Eliminates `SetLocal(X)` immediately followed by `GetLocal(X)` (same slot), and equivalent `SetGlobal(X)`/`GetGlobal(X)` pairs. The value is already on the VM stack — no need to reload.
