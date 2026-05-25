@@ -787,6 +787,7 @@ impl KnotenApp {
                             mesh_name,
                             texture_id,
                             transform,
+                            is_dirty: true, // Sprint 209
                         },
                     );
                 }
@@ -808,6 +809,7 @@ impl KnotenApp {
                     && let Some(entity) = state.scene_graph.get_mut(&entity_id)
                 {
                     entity.transform = transform;
+                    entity.is_dirty = true; // Sprint 209
                 }
             }
             // Sprint 167: Spawn a dynamic point light
@@ -1152,21 +1154,26 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                             );
                             rpass.set_bind_group(1, mat_bg, &[]);
 
-                            // Sprint 206: Upload all instance transforms and draw in one call
+                            // Sprint 209: Check if any entity in batch is dirty
+                            let _instance_count = entities.len() as u32;
+                            let batch_dirty = entities.iter().any(|e| e.is_dirty);
+
+                            if batch_dirty {
+                                let instance_data: Vec<crate::executor::InstanceData> = entities
+                                    .iter()
+                                    .map(|e| crate::executor::InstanceData {
+                                        transform: e.transform.to_cols_array_2d(),
+                                        color_offset: [1.0, 1.0, 1.0, 1.0],
+                                        material_pbr: [0.0, 0.5, 1.0, 0.0],
+                                    })
+                                    .collect();
+                                state.queue.write_buffer(
+                                    &state.instance_buffer,
+                                    0,
+                                    bytemuck::cast_slice(&instance_data),
+                                );
+                            }
                             let instance_count = entities.len() as u32;
-                            let instance_data: Vec<crate::executor::InstanceData> = entities
-                                .iter()
-                                .map(|e| crate::executor::InstanceData {
-                                    transform: e.transform.to_cols_array_2d(),
-                                    color_offset: [1.0, 1.0, 1.0, 1.0],
-                                    material_pbr: [0.0, 0.5, 1.0, 0.0],
-                                })
-                                .collect();
-                            state.queue.write_buffer(
-                                &state.instance_buffer,
-                                0,
-                                bytemuck::cast_slice(&instance_data),
-                            );
                             rpass.set_vertex_buffer(
                                 1,
                                 state.instance_buffer.slice(0..(instance_count as u64 * 96)),
@@ -1174,6 +1181,10 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                             rpass.set_bind_group(2, &state.model_bind_group, &[]);
                             rpass.draw_indexed(0..mesh.index_count, 0, 0..instance_count);
                         }
+                    }
+                    // Sprint 209: Clear all dirty flags after rendering
+                    for entity in state.scene_graph.values_mut() {
+                        entity.is_dirty = false;
                     }
                 }
 
