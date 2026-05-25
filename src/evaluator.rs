@@ -505,11 +505,23 @@ impl ExecutionEngine {
                 },
             },
             Node::While(cond, body) => {
+                let jit_start = std::time::Instant::now();
+                let mut jit_iters: u64 = 0;
                 while let ExecResult::Value(RelType::Bool(true)) = self.evaluate_inner(cond) {
                     match self.evaluate_inner(body) {
                         ExecResult::Value(v) => self.release_handles(&v),
                         ExecResult::ReturnBlockInfo(v) => return ExecResult::ReturnBlockInfo(v),
                         ExecResult::Fault { msg, node } => return ExecResult::Fault { msg, node },
+                    }
+                    jit_iters += 1;
+                    if jit_iters % 1000 == 0 && jit_start.elapsed() >= std::time::Duration::from_millis(50) {
+                        eprintln!(
+                            "[KnotenCore Watchdog] JIT execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
+                        );
+                        return ExecResult::Fault {
+                            msg: "Watchdog: Execution timeout exceeded (50ms)".into(),
+                            node: "Node::While".into(),
+                        };
                     }
                 }
                 ExecResult::Value(RelType::Void)
