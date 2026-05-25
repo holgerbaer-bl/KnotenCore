@@ -182,7 +182,10 @@ impl BridgeModule for CoreBridge {
                             if !permissions
                                 .allowed_domains
                                 .iter()
-                                .any(|d| domain.ends_with(d) || domain == d.as_str())
+                                .any(|d| {
+                                    domain == d.as_str()
+                                        || domain.ends_with(&format!(".{}", d))
+                                })
                             {
                                 return Some(ExecResult::Fault {
                                     msg: format!(
@@ -244,7 +247,10 @@ impl BridgeModule for CoreBridge {
                             if !permissions
                                 .allowed_domains
                                 .iter()
-                                .any(|d| domain.ends_with(d) || domain == d.as_str())
+                                .any(|d| {
+                                    domain == d.as_str()
+                                        || domain.ends_with(&format!(".{}", d))
+                                })
                             {
                                 return Some(ExecResult::Fault {
                                     msg: format!(
