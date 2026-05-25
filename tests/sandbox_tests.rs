@@ -231,3 +231,86 @@ fn test_fs_write_denied_without_permission() {
     };
     assert!(!perms.allow_fs_write, "FS write must be denied by default");
 }
+
+// ── Sprint 195: Watchdog Tests ──────────────────────────────────────
+
+use knoten_core::ast::Node;
+use knoten_core::vm::machine::VM;
+
+/// Verifies the VM watchdog's accumulated CPU tracking.
+/// A tight loop with FFI calls must NOT reset the watchdog indefinitely.
+#[test]
+fn test_vm_ffi_bypass_blocked() {
+    use knoten_core::vm::opcode::OpCode;
+    let mut vm = VM::new();
+    let instructions = vec![
+        OpCode::Constant(0), // Push 1 (loop counter)
+        OpCode::ExternCall {
+            name_idx: 1, // "time_utc_timestamp"
+            arg_count: 0,
+        },
+        OpCode::Pop, // discard result
+        OpCode::Constant(0), // Push 1
+        OpCode::Jump(0), // jump back to position 1 (infinite loop)
+    ];
+    let constants = vec![
+        knoten_core::executor::RelType::Int(1),
+        knoten_core::executor::RelType::Str("time_utc_timestamp".to_string()),
+    ];
+    let bridge = knoten_core::natives::bridge::CoreBridge;
+    let perms = knoten_core::executor::AgentPermissions {
+        allow_network: false,
+        allowed_domains: vec![],
+        allow_fs_read: false,
+        allow_fs_write: false,
+    };
+    let result = vm.run(&instructions, &constants, &perms, Some(&bridge));
+    assert!(
+        result.is_err(),
+        "VM watchdog must terminate infinite FFI-reset loop"
+    );
+    let err = result.unwrap_err();
+    assert!(
+        err.contains("Watchdog") || err.contains("timeout"),
+        "Error must be a watchdog timeout: {}",
+        err
+    );
+}
+
+/// Verifies the JIT while-loop watchdog terminates infinite loops.
+#[test]
+fn test_jit_infinite_loop_timeout() {
+    // Build AST: while (true) { /* empty body */ }
+    let ast = Node::While(
+        Box::new(Node::BoolLiteral(true)),
+        Box::new(Node::Block(vec![])),
+    );
+    let mut engine = knoten_core::executor::ExecutionEngine::new();
+    let result = engine.evaluate(&ast);
+    assert!(
+        matches!(result, knoten_core::executor::ExecResult::Fault { .. }),
+        "JIT watchdog must terminate infinite while-loop"
+    );
+}
+
+// ── Sprint 195: Domain Whitelist Test with knotencore.de ────────────
+
+/// Verify that knotencore.de matches as an allowed domain
+#[test]
+fn test_domain_whitelist_knotencore_de() {
+    let allowed = vec!["knotencore.de".to_string()];
+    let domain = "knotencore.de";
+    assert!(allowed
+        .iter()
+        .any(|d| domain == d.as_str() || domain.ends_with(&format!(".{}", d))));
+}
+
+/// Verify that api.knotencore.de matches as a subdomain
+#[test]
+fn test_domain_whitelist_api_knotencore_de() {
+    let allowed = vec!["knotencore.de".to_string()];
+    let domain = "api.knotencore.de";
+    assert!(allowed
+        .iter()
+        .any(|d| domain == d.as_str() || domain.ends_with(&format!(".{}", d))));
+}

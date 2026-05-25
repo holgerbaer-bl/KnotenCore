@@ -45,14 +45,17 @@ impl VM {
 
         let mut start = Instant::now();
         let mut instr_count: u64 = 0;
+        let mut accumulated_cpu: std::time::Duration = std::time::Duration::ZERO;
 
         while self.ip < instructions.len() {
             let op = &instructions[self.ip];
             self.ip += 1;
 
             instr_count += 1;
+            // Sprint 195: Use accumulated CPU time to prevent FFI reset bypass
+            let elapsed_since_check = start.elapsed();
             if instr_count.is_multiple_of(1000)
-                && start.elapsed() >= std::time::Duration::from_millis(50)
+                && accumulated_cpu + elapsed_since_check >= std::time::Duration::from_millis(50)
             {
                 eprintln!(
                     "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
@@ -685,9 +688,12 @@ impl VM {
                     }
 
                     if let Some(b) = bridge {
+                        // Sprint 195: Accumulate CPU time before FFI (prevent reset bypass)
+                        accumulated_cpu += start.elapsed();
                         let result = catch_unwind(AssertUnwindSafe(|| {
                             b.handle(&module, &func, &args, permissions)
                         }));
+                        // Restart slice timer after FFI — accumulated_cpu is preserved
                         start = std::time::Instant::now();
                         match result {
                             Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),
@@ -901,9 +907,12 @@ impl VM {
                     };
 
                     if let Some(b) = bridge {
+                        // Sprint 195: Accumulate CPU time before FFI (prevent reset bypass)
+                        accumulated_cpu += start.elapsed();
                         let result = catch_unwind(AssertUnwindSafe(|| {
                             b.handle(module, func, &args, permissions)
                         }));
+                        // Restart slice timer after FFI — accumulated_cpu is preserved
                         start = std::time::Instant::now();
                         match result {
                             Ok(Some(crate::executor::ExecResult::Value(v))) => self.stack.push(v),

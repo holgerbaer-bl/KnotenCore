@@ -505,7 +505,19 @@ impl ExecutionEngine {
                 },
             },
             Node::While(cond, body) => {
+                // Sprint 195: JIT Watchdog — hard 50ms timeout
+                let jit_start = std::time::Instant::now();
+                let mut jit_iters: u64 = 0;
                 while let ExecResult::Value(RelType::Bool(true)) = self.evaluate_inner(cond) {
+                    jit_iters += 1;
+                    if jit_iters % 1000 == 0
+                        && jit_start.elapsed() >= std::time::Duration::from_millis(50)
+                    {
+                        return ExecResult::Fault {
+                            msg: "JIT Watchdog Timeout: while-loop exceeded 50ms".into(),
+                            node: "Node::While".into(),
+                        };
+                    }
                     match self.evaluate_inner(body) {
                         ExecResult::Value(v) => self.release_handles(&v),
                         ExecResult::ReturnBlockInfo(v) => return ExecResult::ReturnBlockInfo(v),

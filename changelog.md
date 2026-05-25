@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] - Sprint 195: Watchdog Consolidation, Domain Alignment & File Purge (2026-05-25)
+Sprint 195: Watchdog Consolidation. Eliminated index.html, hardened VM/JIT watchdogs against FFI reset bypass, and aligned domain references to knotencore.de.
+- **File Purge**: Deleted `index.html` from repository root and submodule.
+- **Domain Alignment**: Updated README and llm.md to reference the official homepage `https://knotencore.de/`.
+- **JIT Watchdog**: Added 50ms hard timeout to `Node::While` evaluation in `evaluator.rs`. Infinite JIT while-loops are now terminated with `ExecResult::Fault("JIT Watchdog Timeout")`.
+- **VM Watchdog Accumulation**: Fixed the FFI reset bypass in `machine.rs`. The watchdog now tracks `accumulated_cpu: Duration` across FFI calls. Each FFI call adds the elapsed slice time to the accumulator instead of resetting the timer. A script that calls FFI in a tight loop is terminated at 50ms cumulative CPU time.
+- **Sandbox Tests Expanded**: Added `test_jit_infinite_loop_timeout` and `test_vm_ffi_bypass_blocked` (16 total sandbox tests). Added domain whitelist tests for `knotencore.de` and `api.knotencore.de`.
+- **Submodule Sync**: Watchdog changes and index.html deletion mirrored in `aether_compiler/`.
+- **Documentation**: Updated changelog, README, llm.md.
+
 ## [v1.2.0-alpha] - Sprint 194: Compiler Optimization Phase 2 — AST Function Inlining (2026-05-25)
 Sprint 194: Compiler Optimization Phase 2. Implemented compile-time function inlining for trivial native FFI calls, eliminating runtime overhead for constant math/string expressions.
 - **Math Inlining**: `math_vector_scale([vals], factor)`, `math_sin/cos/sqrt/abs/tan(v)`, and `math_pi` are evaluated at compile time when all arguments are literals. The FFI call is replaced by a folded `ArrayCreate` or `FloatLiteral` node.
