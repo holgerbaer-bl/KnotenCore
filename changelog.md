@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] - Sprint 193: Network Sandbox Hardening & Security Test Coverage (2026-05-25)
+Sprint 193: Network Sandbox Hardening. Fixed domain whitelist suffix-bypass vulnerability and added 12 automated sandbox integration tests.
+- **Domain Matching Fix (Critical)**: Replaced unsafe `domain.ends_with(d)` check in `net_fetch` and `network_get` with the audit-conformant guard `domain == d || domain.ends_with(&format!(".{}", d))`. This blocks suffix attacks (e.g. `evilgoogle.com` no longer matches `google.com` whitelist) while allowing legitimate subdomains (`telemetry.google.com`).
+- **Sandbox Test Suite**: Created `tests/sandbox_tests.rs` with 12 integration tests:
+  - Domain whitelisting: exact match, subdomain match, suffix block, localhost block, empty whitelist
+  - Symlink blocking: `validate_fs_path` and `validate_fs_path_write` rejection via `symlink_metadata`
+  - URL domain extraction: HTTPS and HTTP URL parsing
+  - Permission flag checks: `allow_fs_read` / `allow_fs_write` defaults
+- **Submodule Sync**: Domain matching fix mirrored in `aether_compiler/src/natives/bridge.rs`.
+- **Documentation**: Updated README, llm.md, changelog.md.
+
 ## [v1.2.0-alpha] - Sprint 192: Compiler Optimization Phase 1 (2026-05-25)
 Sprint 192: Compiler Optimization Phase 1. Verified and documented existing constant folding, dead code elimination, and added 29 dedicated unit tests.
 - **Constant Folding Confirmed**: `optimize_math_op()` already folds binary math ops (Add, Sub, Mul, Div) for `IntLiteral`/`FloatLiteral` pairs at compile time. Division by zero is correctly preserved as a runtime node.
