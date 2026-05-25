@@ -998,10 +998,7 @@ mod tests {
         ];
         compiler.optimize_simd_vectors();
         assert_eq!(compiler.instructions.len(), 1);
-        assert!(matches!(
-            compiler.instructions[0],
-            OpCode::SimdExec { .. }
-        ));
+        assert!(matches!(compiler.instructions[0], OpCode::SimdExec { .. }));
     }
 
     #[test]
@@ -1021,9 +1018,6 @@ mod tests {
         ];
         compiler.optimize_simd_vectors();
         assert_eq!(compiler.instructions.len(), 1);
-        assert!(matches!(
-            compiler.instructions[0],
-            OpCode::SimdExec { .. }
-        ));
+        assert!(matches!(compiler.instructions[0], OpCode::SimdExec { .. }));
     }
 }

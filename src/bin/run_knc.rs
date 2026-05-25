@@ -131,18 +131,18 @@ fn run() {
     };
 
     // Explicit syntax catch block gracefully handling parse errors internally yielding JSON validation outputs mapping ERR_UNKNOWN_NODE natively.
-    let ast_result: Result<knoten_core::ast::Node, String> = if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
-        // For AI Test Suite FAIL_01_unknown_node.nod JSON tests natively parse JSON properly
-        if json_string.trim_start().starts_with('{') {
-            serde_json::from_str(&json_string)
-                .map_err(|e| format!("JSON parse error: {}", e))
+    let ast_result: Result<knoten_core::ast::Node, String> =
+        if file_path.ends_with(".knoten") || file_path.ends_with(".nod") {
+            // For AI Test Suite FAIL_01_unknown_node.nod JSON tests natively parse JSON properly
+            if json_string.trim_start().starts_with('{') {
+                serde_json::from_str(&json_string).map_err(|e| format!("JSON parse error: {}", e))
+            } else {
+                let mut parser = knoten_core::parser::Parser::new(&json_string);
+                parser.parse().map_err(|e| format!("Parser error: {:?}", e))
+            }
         } else {
-            let mut parser = knoten_core::parser::Parser::new(&json_string);
-            parser.parse().map_err(|e| format!("Parser error: {:?}", e))
-        }
-    } else {
-        serde_json::from_str(&json_string).map_err(|e| format!("JSON parse error: {}", e))
-    };
+            serde_json::from_str(&json_string).map_err(|e| format!("JSON parse error: {}", e))
+        };
 
     let mut ast = match ast_result {
         Ok(node) => node,
