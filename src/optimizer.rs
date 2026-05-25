@@ -400,6 +400,10 @@ pub fn optimize(node: Node) -> Node {
         Node::FnDef(name, params, body) => Node::FnDef(name, params, Box::new(optimize(*body))),
         Node::Call(name, args) => Node::Call(name, args.into_iter().map(optimize).collect()),
         Node::NativeCall(name, args) => {
+            // Sprint 194: Try inlining before recursive optimization
+            if let Some(inlined) = try_inline_native(&name, &args) {
+                return optimize(inlined);
+            }
             Node::NativeCall(name, args.into_iter().map(optimize).collect())
         }
         Node::ExternCall {
@@ -420,7 +424,17 @@ pub fn optimize(node: Node) -> Node {
         Node::Load { key } => Node::Load { key },
         Node::ArrayCreate(nodes) => Node::ArrayCreate(nodes.into_iter().map(optimize).collect()),
         Node::ArrayGet(arr, index) => {
-            Node::ArrayGet(Box::new(optimize(*arr)), Box::new(optimize(*index)))
+            let opt_arr = optimize(*arr);
+            let opt_idx = optimize(*index);
+            // Sprint 194: Fold ArrayGet(ArrayCreate(elems), IntLiteral(i)) at compile time
+            if let (Node::ArrayCreate(elems), Node::IntLiteral(i)) = (&opt_arr, &opt_idx) {
+                let idx = *i as usize;
+                if idx < elems.len() {
+                    return elems[idx].clone();
+                }
+                return Node::StringLiteral("".into()); // Void-equivalent for OOB
+            }
+            Node::ArrayGet(Box::new(opt_arr), Box::new(opt_idx))
         }
         Node::ArraySet(arr, index, val) => Node::ArraySet(
             Box::new(optimize(*arr)),
@@ -789,6 +803,83 @@ fn optimize_bitwise(left: Node, right: Node, op: char) -> Node {
             '>' => Node::BitShiftRight(Box::new(opt_l), Box::new(opt_r)),
             _ => unreachable!(),
         },
+    }
+}
+
+// ── Sprint 194: Function Inlining ───────────────────────────────────
+/// Attempt to inline a native FFI call at compile time if all args are literals.
+/// Returns `Some(folded_node)` on success, or `None` to fall through to runtime.
+fn try_inline_native(name: &str, args: &[Node]) -> Option<Node> {
+    match name {
+        "math_vector_scale" => {
+            if args.len() == 2 {
+                let (arr, factor) = (&args[0], &args[1]);
+                if let (Node::ArrayCreate(elems), Node::FloatLiteral(f)) = (arr, factor) {
+                    let scaled: Vec<Node> = elems
+                        .iter()
+                        .map(|e| match e {
+                            Node::FloatLiteral(v) => Some(Node::FloatLiteral(v * f)),
+                            Node::IntLiteral(v) => Some(Node::FloatLiteral(*v as f64 * f)),
+                            _ => None,
+                        })
+                        .collect::<Option<Vec<_>>>()?;
+                    return Some(Node::ArrayCreate(scaled));
+                }
+            }
+            None
+        }
+        "math_sin" => inline_unary_float(args, f64::sin),
+        "math_cos" => inline_unary_float(args, f64::cos),
+        "math_sqrt" => inline_unary_float(args, f64::sqrt),
+        "math_abs" => inline_unary_float(args, f64::abs),
+        "math_tan" => inline_unary_float(args, f64::tan),
+        "math_pi" => {
+            if args.is_empty() {
+                Some(Node::FloatLiteral(std::f64::consts::PI))
+            } else {
+                None
+            }
+        }
+        "math_random" => None, // never inline non-deterministic
+        "string_len" => {
+            if args.len() == 1
+                && let Node::StringLiteral(s) = &args[0]
+            {
+                Some(Node::IntLiteral(s.chars().count() as i64))
+            } else {
+                None
+            }
+        }
+        "string_concat" => {
+            if args.len() == 2
+                && let (Node::StringLiteral(a), Node::StringLiteral(b)) = (&args[0], &args[1])
+            {
+                Some(Node::StringLiteral(format!("{}{}", a, b)))
+            } else {
+                None
+            }
+        }
+        "string_to_upper" => {
+            if args.len() == 1
+                && let Node::StringLiteral(s) = &args[0]
+            {
+                Some(Node::StringLiteral(s.to_uppercase()))
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
+/// Helper: inline a unary float function if the arg is a literal.
+fn inline_unary_float(args: &[Node], f: fn(f64) -> f64) -> Option<Node> {
+    if args.len() == 1
+        && let Node::FloatLiteral(v) = &args[0]
+    {
+        Some(Node::FloatLiteral(f(*v)))
+    } else {
+        None
     }
 }
 
@@ -1230,5 +1321,128 @@ mod tests {
     fn fold_bitwise_and() {
         let expr = Node::BitAnd(Box::new(lit_i(0xFF)), Box::new(lit_i(0x0F)));
         assert_eq!(optimize(expr), lit_i(0x0F));
+    }
+
+    // ── Sprint 194: Function Inlining Tests ────────────────────────
+
+    fn native(name: &str, args: Vec<Node>) -> Node {
+        Node::NativeCall(name.to_string(), args)
+    }
+    fn arr(elems: Vec<Node>) -> Node {
+        Node::ArrayCreate(elems)
+    }
+
+    #[test]
+    fn inline_math_vector_scale_float() {
+        // math_vector_scale([1.0, 2.0], 2.0) → [2.0, 4.0]
+        let call = native(
+            "math_vector_scale",
+            vec![arr(vec![lit_f(1.0), lit_f(2.0), lit_f(3.0)]), lit_f(2.0)],
+        );
+        assert_eq!(
+            optimize(call),
+            arr(vec![lit_f(2.0), lit_f(4.0), lit_f(6.0)])
+        );
+    }
+
+    #[test]
+    fn inline_math_sin() {
+        let call = native("math_sin", vec![lit_f(std::f64::consts::PI / 2.0)]);
+        assert_eq!(optimize(call), lit_f(1.0));
+    }
+
+    #[test]
+    fn inline_math_cos() {
+        let call = native("math_cos", vec![lit_f(0.0)]);
+        assert_eq!(optimize(call), lit_f(1.0));
+    }
+
+    #[test]
+    fn inline_math_sqrt() {
+        let call = native("math_sqrt", vec![lit_f(16.0)]);
+        assert_eq!(optimize(call), lit_f(4.0));
+    }
+
+    #[test]
+    fn inline_math_abs() {
+        let call = native("math_abs", vec![lit_f(-42.0)]);
+        assert_eq!(optimize(call), lit_f(42.0));
+    }
+
+    #[test]
+    fn inline_math_pi() {
+        let call = native("math_pi", vec![]);
+        assert_eq!(optimize(call), lit_f(std::f64::consts::PI));
+    }
+
+    #[test]
+    fn no_inline_math_random() {
+        // Random must NOT be inlined
+        let call = native("math_random", vec![lit_f(0.0), lit_f(1.0)]);
+        let result = optimize(call);
+        assert!(matches!(result, Node::NativeCall(..)));
+    }
+
+    #[test]
+    fn inline_string_len() {
+        let call = native("string_len", vec![Node::StringLiteral("hello".into())]);
+        assert_eq!(optimize(call), lit_i(5));
+    }
+
+    #[test]
+    fn inline_string_concat() {
+        let call = native(
+            "string_concat",
+            vec![
+                Node::StringLiteral("Hello ".into()),
+                Node::StringLiteral("World".into()),
+            ],
+        );
+        assert_eq!(
+            optimize(call),
+            Node::StringLiteral("Hello World".into())
+        );
+    }
+
+    #[test]
+    fn inline_string_to_upper() {
+        let call = native("string_to_upper", vec![Node::StringLiteral("hello".into())]);
+        assert_eq!(optimize(call), Node::StringLiteral("HELLO".into()));
+    }
+
+    /// Chain: math_vector_scale + array indexing + if + DCE → single literal
+    /// if (math_vector_scale([2.0], 2.0)[0] == 4.0) { 100 } else { 0 } → IntLiteral(100)
+    #[test]
+    fn inline_fold_dce_chain() {
+        // math_vector_scale([2.0], 2.0) → [4.0]
+        let scaled = native(
+            "math_vector_scale",
+            vec![arr(vec![lit_f(2.0)]), lit_f(2.0)],
+        );
+        // [4.0][0] → 4.0
+        let indexed = Node::ArrayGet(Box::new(scaled), Box::new(lit_i(0)));
+        // 4.0 == 4.0 → true
+        let cond = eq(indexed, lit_f(4.0));
+        // if (true) { 100 } else { 0 } → 100
+        let if_node = Node::If(
+            Box::new(cond),
+            Box::new(lit_i(100)),
+            Some(Box::new(lit_i(0))),
+        );
+        assert_eq!(optimize(if_node), lit_i(100));
+    }
+
+    /// Chain: string_len + comparison + if → single literal
+    /// if (string_len("abc") == 3) { 1 } else { 0 } → IntLiteral(1)
+    #[test]
+    fn inline_string_chain_to_literal() {
+        let len = native("string_len", vec![Node::StringLiteral("abc".into())]);
+        let cond = eq(len, lit_i(3));
+        let if_node = Node::If(
+            Box::new(cond),
+            Box::new(lit_i(1)),
+            Some(Box::new(lit_i(0))),
+        );
+        assert_eq!(optimize(if_node), lit_i(1));
     }
 }

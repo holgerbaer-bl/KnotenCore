@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] - Sprint 194: Compiler Optimization Phase 2 — AST Function Inlining (2026-05-25)
+Sprint 194: Compiler Optimization Phase 2. Implemented compile-time function inlining for trivial native FFI calls, eliminating runtime overhead for constant math/string expressions.
+- **Math Inlining**: `math_vector_scale([vals], factor)`, `math_sin/cos/sqrt/abs/tan(v)`, and `math_pi` are evaluated at compile time when all arguments are literals. The FFI call is replaced by a folded `ArrayCreate` or `FloatLiteral` node.
+- **String Inlining**: `string_len(s)`, `string_concat(a, b)`, and `string_to_upper(s)` are folded to constants for literal string arguments.
+- **Non-Determinism Guard**: `math_random` is explicitly excluded from inlining — random values must remain runtime-evaluated.
+- **ArrayGet Folding**: Extended `optimize()` to fold `ArrayGet(ArrayCreate(elems), IntLiteral(i))` to the indexed element at compile time, enabling deeper chain optimization.
+- **Enabled Full-Pipeline Chains**: Expressions like `if (math_vector_scale([2.0], 2.0)[0] == 4.0) { 100 } else { 0 }` now collapse to a single `IntLiteral(100)` through inlining → folding → DCE.
+- **Unit Tests**: Added 12 dedicated inlining tests covering all math/string functions, random exclusion, and the full chain pipeline.
+- **Submodule Sync**: All optimizer changes mirrored to `aether_compiler/src/optimizer.rs` (41 tests total: 29 Phase 1 + 12 Phase 2).
+
 ## [v1.2.0-alpha] - Sprint 193: Network Sandbox Hardening & Security Test Coverage (2026-05-25)
 Sprint 193: Network Sandbox Hardening. Fixed domain whitelist suffix-bypass vulnerability and added 12 automated sandbox integration tests.
 - **Domain Matching Fix (Critical)**: Replaced unsafe `domain.ends_with(d)` check in `net_fetch` and `network_get` with the audit-conformant guard `domain == d || domain.ends_with(&format!(".{}", d))`. This blocks suffix attacks (e.g. `evilgoogle.com` no longer matches `google.com` whitelist) while allowing legitimate subdomains (`telemetry.google.com`).
