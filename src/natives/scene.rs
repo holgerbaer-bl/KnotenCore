@@ -35,6 +35,8 @@ pub struct RegistryWindowState {
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
     pub pipeline: wgpu::RenderPipeline,
+    // Sprint 206: Instance buffer for hardware instancing (1024 instances)
+    pub instance_buffer: wgpu::Buffer,
     pub width: u32,
     pub height: u32,
     pub clear_color: wgpu::Color,
