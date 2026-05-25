@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] - Sprint 199: Pre-200 Zero-Downtime Hardening & Framework Preparation (2026-05-25)
+Sprint 199: Pre-200 Hardening. Prepared compiler infrastructure for profiling, enforced zero-warning policy, and verified complete test stability ahead of the Sprint 200 milestone.
+- **Compiler Profiler Placeholder**: Added `pub timing_markers: Vec<String>` to the `Compiler` struct in both `src/vm/compiler.rs` and `aether_compiler/src/vm/compiler.rs`. Initialized as empty vector, clippy-clean, ready for Sprint 200 instrumentation.
+- **CI Gate Enforcement**: `cargo fmt --all -- --check` ✅, `cargo clippy --workspace --all-targets -- -D warnings` ✅ (0 warnings), all 138 tests passed.
+- **Documentation**: Updated changelog marking the pre-200 readiness state. All references point to `https://knotencore.de/`.
+
 ## [v1.2.0-alpha] — Pre-Release (2026-05-25) 🚀
 **The Compiler Evolution & Sandbox Hardening Milestone.** Sprints 192–198: AOT compiler optimizations (folding, inlining, unrolling, peephole), multi-layer watchdogs, domain suffix fix, index.html purge, ultimate telemetry dashboard.
 - **138/138 tests** passing. **0 clippy warnings** across workspace.
