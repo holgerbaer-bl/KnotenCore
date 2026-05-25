@@ -16,6 +16,8 @@ pub struct SceneEntity {
     pub mesh_name: String,
     pub texture_id: usize,
     pub transform: glam::Mat4,
+    /// Sprint 209: Dirty flag — set true on spawn/update, cleared after GPU upload
+    pub is_dirty: bool,
 }
 
 /// Retained-mode dynamic point light

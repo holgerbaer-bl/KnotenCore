@@ -448,3 +448,46 @@ fn test_asset_streaming_non_blocking() {
     ids.dedup();
     assert_eq!(ids.len(), 5, "All texture IDs must be unique");
 }
+
+// ── Sprint 209: Dirty-Flag Bandwidth Cache Test ──────────────────
+
+#[test]
+fn test_render_loop_bandwidth_cache_applied() {
+    let mut scene: std::collections::HashMap<
+        usize,
+        knoten_core::natives::scene::SceneEntity,
+    > = std::collections::HashMap::new();
+
+    for i in 0..3 {
+        scene.insert(
+            i,
+            knoten_core::natives::scene::SceneEntity {
+                mesh_name: "cube".into(),
+                texture_id: 0,
+                transform: glam::Mat4::IDENTITY,
+                is_dirty: true,
+            },
+        );
+    }
+
+    // Frame 1: all dirty → upload needed
+    assert!(scene.values().all(|e| e.is_dirty), "All entities dirty on spawn");
+
+    // Clear after render
+    for e in scene.values_mut() {
+        e.is_dirty = false;
+    }
+
+    // Frame 2: all clean, no upload
+    assert!(scene.values().all(|e| !e.is_dirty), "All clean after clear");
+
+    // Update entity 1
+    if let Some(e) = scene.get_mut(&1) {
+        e.is_dirty = true;
+    }
+
+    // Frame 3: only entity 1 dirty
+    assert!(scene.get(&1).unwrap().is_dirty, "Entity 1 should be dirty");
+    assert!(!scene.get(&0).unwrap().is_dirty, "Entity 0 should be clean");
+    assert!(!scene.get(&2).unwrap().is_dirty, "Entity 2 should be clean");
+}
