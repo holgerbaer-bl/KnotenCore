@@ -249,9 +249,9 @@ fn test_vm_ffi_bypass_blocked() {
             name_idx: 1, // "time_utc_timestamp"
             arg_count: 0,
         },
-        OpCode::Pop, // discard result
+        OpCode::Pop,         // discard result
         OpCode::Constant(0), // Push 1
-        OpCode::Jump(0), // jump back to position 1 (infinite loop)
+        OpCode::Jump(0),     // jump back to position 1 (infinite loop)
     ];
     let constants = vec![
         knoten_core::executor::RelType::Int(1),
@@ -300,9 +300,11 @@ fn test_jit_infinite_loop_timeout() {
 fn test_domain_whitelist_knotencore_de() {
     let allowed = vec!["knotencore.de".to_string()];
     let domain = "knotencore.de";
-    assert!(allowed
-        .iter()
-        .any(|d| domain == d.as_str() || domain.ends_with(&format!(".{}", d))));
+    assert!(
+        allowed
+            .iter()
+            .any(|d| domain == d.as_str() || domain.ends_with(&format!(".{}", d)))
+    );
 }
 
 /// Verify that api.knotencore.de matches as a subdomain
@@ -310,7 +312,9 @@ fn test_domain_whitelist_knotencore_de() {
 fn test_domain_whitelist_api_knotencore_de() {
     let allowed = vec!["knotencore.de".to_string()];
     let domain = "api.knotencore.de";
-    assert!(allowed
-        .iter()
-        .any(|d| domain == d.as_str() || domain.ends_with(&format!(".{}", d))));
+    assert!(
+        allowed
+            .iter()
+            .any(|d| domain == d.as_str() || domain.ends_with(&format!(".{}", d)))
+    );
 }

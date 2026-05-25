@@ -514,7 +514,9 @@ impl ExecutionEngine {
                         ExecResult::Fault { msg, node } => return ExecResult::Fault { msg, node },
                     }
                     jit_iters += 1;
-                    if jit_iters % 1000 == 0 && jit_start.elapsed() >= std::time::Duration::from_millis(50) {
+                    if jit_iters % 1000 == 0
+                        && jit_start.elapsed() >= std::time::Duration::from_millis(50)
+                    {
                         eprintln!(
                             "[KnotenCore Watchdog] JIT execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
                         );
