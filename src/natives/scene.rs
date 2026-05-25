@@ -4,9 +4,9 @@
 //! camera, and GPU lifecycle. Calls into geometry (mesh generation) and
 //! physics (AABB registration).
 
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use winit::window::Window as WinitWindow;
 
 use crate::natives::registry::{RenderCommand, send_render_command};

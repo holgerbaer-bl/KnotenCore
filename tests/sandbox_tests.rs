@@ -323,8 +323,8 @@ fn test_domain_whitelist_api_knotencore_de() {
 
 #[test]
 fn test_registry_parallel_lock_contention_immune() {
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::thread;
 
     let counter = Arc::new(AtomicUsize::new(1));
