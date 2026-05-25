@@ -17,13 +17,13 @@ print("Memory stress test started. Monitoring RAM and VRAM...");
 
 // Pre-allocate entity ID storage
 let max_entities = 50;
-let mut ids = [];
-let mut idx = 0;
-let mut frame = 0;
+let ids = [];
+let idx = 0;
+let frame = 0;
 
 while (true) {
     // Spawn batch of entities
-    let mut j = 0;
+    let j = 0;
     while (j < 10) {
         let x = math_random(-8.0, 8.0);
         let z = math_random(-8.0, 8.0);

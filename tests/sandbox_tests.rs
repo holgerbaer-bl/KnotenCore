@@ -367,12 +367,11 @@ fn test_examples_compilation_and_validation() {
         // Sprint 207 part 2: Validate all examples
         let mut validator = Validator::new();
         let validate_result = validator.validate(&ast);
-        // Files with imports may fail validation in isolation
         let has_imports = source.contains("import \"");
-        if let Err(errors) = validate_result {
-            if !has_imports {
-                panic!("Validation errors in '{}': {:?}", file, errors);
-            }
+        if let Err(errors) = validate_result
+            && !has_imports
+        {
+            panic!("Validation errors in '{}': {:?}", file, errors);
         }
         parsed += 1;
     }

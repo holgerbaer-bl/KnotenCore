@@ -48,8 +48,8 @@ print("  Constant folded value (100 - 25*2): " + ToString(gauge_offset));
 // ═══ SECTION 5: Bounded Loop — Loop Unrolling (Sprint 196) ════════
 // This loop is unrolled at compile time: while(i < 4){...} → flat Block
 print("=== Loop Optimizer Demo ===");
-let mut avg_cpu = 0.0;
-let mut i = 0;
+let avg_cpu = 0.0;
+let i = 0;
 while (i .lt 4) {
     let idx = i * 2;
     let val = idx + 1;
