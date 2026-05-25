@@ -179,14 +179,9 @@ impl BridgeModule for CoreBridge {
                                 .split('/')
                                 .next()
                                 .unwrap_or("");
-                            if !permissions
-                                .allowed_domains
-                                .iter()
-                                .any(|d| {
-                                    domain == d.as_str()
-                                        || domain.ends_with(&format!(".{}", d))
-                                })
-                            {
+                            if !permissions.allowed_domains.iter().any(|d| {
+                                domain == d.as_str() || domain.ends_with(&format!(".{}", d))
+                            }) {
                                 return Some(ExecResult::Fault {
                                     msg: format!(
                                         "Network Denied: domain '{}' not in allowed list",
@@ -244,14 +239,9 @@ impl BridgeModule for CoreBridge {
                                 .split('/')
                                 .next()
                                 .unwrap_or("");
-                            if !permissions
-                                .allowed_domains
-                                .iter()
-                                .any(|d| {
-                                    domain == d.as_str()
-                                        || domain.ends_with(&format!(".{}", d))
-                                })
-                            {
+                            if !permissions.allowed_domains.iter().any(|d| {
+                                domain == d.as_str() || domain.ends_with(&format!(".{}", d))
+                            }) {
                                 return Some(ExecResult::Fault {
                                     msg: format!(
                                         "Network Denied: domain '{}' not in allowed list",

@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether KnotenCore — Deterministic AI-Native Execution Engine</title>
+    <meta name="description" content="Technical portal and interactive documentation for Aether KnotenCore, a sandboxed Stack-VM and JIT execution runtime with native WGPU rendering and compiler optimization.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #06070d;
+            --bg-surface: rgba(15, 17, 28, 0.7);
+            --bg-card: rgba(22, 26, 43, 0.45);
+            --border-glow: rgba(255, 255, 255, 0.08);
+            
+            /* Accents */
+            --accent-cyan: #00f0ff;
+            --accent-purple: #bd00ff;
+            --accent-green: #00ff66;
+            --accent-warning: #ffb700;
+            --text-primary: #f1f3f9;
+            --text-secondary: #9aa2b6;
+            --text-muted: #626a7f;
+            
+            --cyan-glow: rgba(0, 240, 255, 0.15);
+            --purple-glow: rgba(189, 0, 255, 0.15);
+            --green-glow: rgba(0, 255, 102, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(189, 0, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                linear-gradient(rgba(255, 255, 255, 0.003) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.003) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        a:hover {
+            opacity: 0.8;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border-glow);
+            padding: 1.5rem 0;
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(6, 7, 13, 0.8);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-svg {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 0 8px var(--accent-purple));
+        }
+
+        .brand-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 255, 102, 0.08);
+            border: 1px solid rgba(0, 255, 102, 0.2);
+            padding: 0.4rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse-green 2s infinite;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 6rem 0 4rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2.5rem auto;
+            font-weight: 300;
+        }
+
+        .engine-stats {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.25rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        .stat-val.purple {
+            color: var(--accent-purple);
+            text-shadow: 0 0 10px var(--purple-glow);
+        }
+
+        .stat-val.green {
+            color: var(--accent-green);
+            text-shadow: 0 0 10px var(--green-glow);
+        }
+
+        .stat-lbl {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.25rem;
+        }
+
+        /* Glassmorphic Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Section Layout */
+        .section-header {
+            margin-bottom: 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .section-title-wrap h2 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-desc {
+            color: var(--text-secondary);
+            max-width: 600px;
+        }
+
+        /* Timeline Section */
+        .timeline-section {
+            padding: 4rem 0;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glow);
+            padding: 0.3rem;
+            border-radius: 9999px;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.5rem 1.25rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active, .filter-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .timeline-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .timeline-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 240px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-purple);
+        }
+
+        .timeline-card.security::before {
+            background: var(--accent-green);
+        }
+
+        .timeline-card.compiler::before {
+            background: var(--accent-cyan);
+        }
+
+        .sprint-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .timeline-card.security .sprint-num { color: var(--accent-green); }
+        .timeline-card.compiler .sprint-num { color: var(--accent-cyan); }
+
+        .sprint-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin: 0.75rem 0;
+            letter-spacing: -0.3px;
+        }
+
+        .sprint-summary {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            flex-grow: 1;
+        }
+
+        .sprint-tags {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        /* Pipeline Section */
+        .pipeline-section {
+            padding: 5rem 0;
+            background: rgba(10, 11, 16, 0.4);
+            border-top: 1px solid var(--border-glow);
+            border-bottom: 1px solid var(--border-glow);
+        }
+
+        .pipeline-flow {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            position: relative;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 992px) {
+            .pipeline-flow {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .flow-node {
+            cursor: pointer;
+            position: relative;
+            text-align: center;
+            border: 1px solid var(--border-glow);
+            background: rgba(18, 20, 29, 0.4);
+            padding: 2.5rem 1.5rem;
+        }
+
+        .flow-node.active {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 15px var(--purple-glow);
+            background: rgba(22, 26, 43, 0.8);
+        }
+
+        .flow-node.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+        }
+
+        .node-step {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .node-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .node-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .pipeline-detail-card {
+            margin-top: 2rem;
+            background: rgba(15, 17, 28, 0.9);
+            border: 1px solid var(--border-glow);
+            padding: 2rem;
+            border-radius: 16px;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-glow);
+            padding-bottom: 0.75rem;
+        }
+
+        .detail-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        .detail-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            background: #020205;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            color: #d1d5db;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        /* Audit Section */
+        .audit-section {
+            padding: 5rem 0;
+        }
+
+        .audit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .audit-card {
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .audit-card.warning {
+            border-left-color: var(--accent-warning);
+        }
+
+        .audit-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .audit-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .audit-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            background: rgba(0, 255, 102, 0.08);
+            border: 1px solid rgba(0, 255, 102, 0.15);
+            color: var(--accent-green);
+        }
+
+        .audit-badge.warning {
+            background: rgba(255, 183, 0, 0.08);
+            border: 1px solid rgba(255, 183, 0, 0.15);
+            color: var(--accent-warning);
+        }
+
+        .audit-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.3px;
+        }
+
+        .audit-summary {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-toggle-fix {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-toggle-fix:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-cyan);
+        }
+
+        .audit-details-panel {
+            display: none;
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border-glow);
+            padding-top: 1.5rem;
+        }
+
+        .audit-details-panel.show {
+            display: block;
+        }
+
+        .audit-details-panel h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .audit-details-panel p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* Simulator Section */
+        .sim-section {
+            padding: 5rem 0;
+            background: rgba(10, 11, 16, 0.4);
+            border-top: 1px solid var(--border-glow);
+            border-bottom: 1px solid var(--border-glow);
+        }
+
+        .sim-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 992px) {
+            .sim-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sim-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .sim-tab {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-glow);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sim-tab.active {
+            background: rgba(189, 0, 255, 0.1);
+            border-color: var(--accent-purple);
+            color: var(--text-primary);
+        }
+
+        .sim-editor {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            background: #020205;
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 1.25rem;
+            height: 380px;
+            color: #e5e7eb;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            position: relative;
+        }
+
+        .sim-console {
+            background: #010103;
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 12px;
+            padding: 1.25rem;
+            height: 380px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-cyan);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
+        }
+
+        .console-output {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .console-line {
+            margin-bottom: 0.4rem;
+        }
+
+        .console-line.info { color: var(--text-muted); }
+        .console-line.success { color: var(--accent-green); }
+        .console-line.error { color: #ff4d4d; }
+
+        .btn-run-sim {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            color: #fff;
+            padding: 0.8rem 1.8rem;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(189, 0, 255, 0.25);
+            margin-top: 1rem;
+        }
+
+        .btn-run-sim:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.4);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-glow);
+            padding: 3rem 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        /* Animations */
+        @keyframes pulse-green {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 255, 102, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(0, 255, 102, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 255, 102, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="brand">
+                <svg class="brand-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="25" y="25" width="50" height="50" rx="12" stroke="url(#paint0_linear)" stroke-width="6"/>
+                    <path d="M50 15L85 50L50 85L15 50L50 15Z" stroke="url(#paint1_linear)" stroke-width="4"/>
+                    <circle cx="50" cy="50" r="10" fill="url(#paint2_linear)"/>
+                    <defs>
+                        <linearGradient id="paint0_linear" x1="25" y1="25" x2="75" y2="75" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#00F0FF"/>
+                            <stop offset="1" stop-color="#BD00FF"/>
+                        </linearGradient>
+                        <linearGradient id="paint1_linear" x1="15" y1="15" x2="85" y2="85" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#BD00FF"/>
+                            <stop offset="1" stop-color="#00FF66"/>
+                        </linearGradient>
+                        <linearGradient id="paint2_linear" x1="40" y1="40" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#00F0FF"/>
+                            <stop offset="1" stop-color="#BD00FF"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="brand-title">KNOTENCORE</span>
+            </div>
+            
+            <div class="status-badge" id="system-status-badge">
+                <span class="status-dot"></span>
+                <span>VM ACTIVE — 91/91 TESTS OK</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero container">
+        <h1>Deterministic AI-Native Execution Engine</h1>
+        <p class="hero-subtitle">
+            A high-performance register stack-VM and JIT executor designed for AI code agents. Secure sandbox policies, parallel GPGPU compute, and native Retained UI rendering.
+        </p>
+        
+        <div class="engine-stats">
+            <div class="stat-item">
+                <div class="stat-val">91 / 91</div>
+                <div class="stat-lbl">Passing Tests</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val purple">JIT / AOT</div>
+                <div class="stat-lbl">Execution Modes</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val green">&lt; 50ms</div>
+                <div class="stat-lbl">Sandbox Watchdog</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pipeline Visualizer -->
+    <section class="pipeline-section" id="pipeline-viewer">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-title-wrap">
+                    <h2>AST Compilation & Execution Pipeline</h2>
+                    <p class="section-desc">Click on each stage to explore how KnotenCore executes JSON AST payloads.</p>
+                </div>
+            </div>
+
+            <div class="pipeline-flow" id="flow-container">
+                <div class="card flow-node active" id="node-stage-1" onclick="selectStage(1)">
+                    <div class="node-step">STAGE 01</div>
+                    <div class="node-title">JSON AST Input</div>
+                    <div class="node-desc">Structured code blocks fed directly to the executor core.</div>
+                </div>
+                <div class="card flow-node" id="node-stage-2" onclick="selectStage(2)">
+                    <div class="node-step">STAGE 02</div>
+                    <div class="node-title">AST Parser</div>
+                    <div class="node-desc">Validates shape, handles scopes, and resolves dependencies.</div>
+                </div>
+                <div class="card flow-node" id="node-stage-3" onclick="selectStage(3)">
+                    <div class="node-step">STAGE 03</div>
+                    <div class="node-title">AST Optimizer</div>
+                    <div class="node-desc">Folds constants and eliminates dead code branches.</div>
+                </div>
+                <div class="card flow-node" id="node-stage-4" onclick="selectStage(4)">
+                    <div class="node-step">STAGE 04</div>
+                    <div class="node-title">Dual Execution</div>
+                    <div class="node-desc">Pure math to Stack-VM; UI/IO side-effects to FFI sandbox.</div>
+                </div>
+            </div>
+
+            <div class="pipeline-detail-card" id="pipeline-detail">
+                <div class="detail-header">
+                    <span class="detail-title" id="stage-detail-title">JSON AST Input</span>
+                    <span class="tag" style="background: rgba(0, 240, 255, 0.1); color: var(--accent-cyan)">Format: .nod</span>
+                </div>
+                <div class="detail-code" id="stage-detail-code">
+{
+  "Node": "Add",
+  "args": [
+    { "Node": "IntLiteral", "value": 5 },
+    {
+      "Node": "Mul",
+      "args": [
+        { "Node": "IntLiteral", "value": 10 },
+        { "Node": "IntLiteral", "value": 2 }
+      ]
+    }
+  ]
+}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Audit -->
+    <section class="audit-section container" id="security-dashboard">
+        <div class="section-header">
+            <div class="section-title-wrap">
+                <h2>Iron Shield Security Audits</h2>
+                <p class="section-desc">Audit results and verified resolutions for vulnerabilities identified between Sprints 189 and 193.</p>
+            </div>
+        </div>
+
+        <div class="audit-grid">
+            <!-- Audit 1 -->
+            <div class="card audit-card" id="audit-symlink">
+                <div class="audit-meta">
+                    <span class="audit-id">AUDIT-190-FS</span>
+                    <span class="audit-badge">RESOLVED</span>
+                </div>
+                <h3 class="audit-title">Symlink-Bypass in FS</h3>
+                <p class="audit-summary">
+                    Syntactic directory checks failed when handling symbolic links, allowing file modifications outside the workspace sandbox.
+                </p>
+                <button class="btn-toggle-fix" onclick="toggleAuditFix('symlink')">
+                    <span>View Fixing Patch</span>
+                </button>
+                
+                <div class="audit-details-panel" id="fix-details-symlink">
+                    <h4>Patch Diff (executor.rs):</h4>
+                    <div class="detail-code">
++ for component in check_path.components() {
++     accumulated.push(component);
++     if accumulated.exists() {
++         if std::fs::symlink_metadata(&accumulated)?.file_type().is_symlink() {
++             return Err("Symlink blocked");
++         }
++     }
++ }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit 2 -->
+            <div class="card audit-card" id="audit-dns">
+                <div class="audit-meta">
+                    <span class="audit-id">AUDIT-193-NET</span>
+                    <span class="audit-badge">RESOLVED</span>
+                </div>
+                <h3 class="audit-title">DNS Suffix Bypass</h3>
+                <p class="audit-summary">
+                    Domains matching suffix checks (ends_with) allowed hijacking (e.g. evilgoogle.com matching google.com whitelists).
+                </p>
+                <button class="btn-toggle-fix" onclick="toggleAuditFix('dns')">
+                    <span>View Fixing Patch</span>
+                </button>
+                
+                <div class="audit-details-panel" id="fix-details-dns">
+                    <h4>Patch Diff (bridge.rs):</h4>
+                    <div class="detail-code">
+- domain.ends_with(d) || domain == d.as_str()
++ domain == d.as_str() || domain.ends_with(&format!(".{}", d))
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit 3 -->
+            <div class="card audit-card" id="audit-timeout">
+                <div class="audit-meta">
+                    <span class="audit-id">AUDIT-190-NET</span>
+                    <span class="audit-badge">RESOLVED</span>
+                </div>
+                <h3 class="audit-title">Synchronous Network Hangs</h3>
+                <p class="audit-summary">
+                    HTTP requests lacked timeouts. A non-responsive web server could lock the execution thread and bypass the watchdog limit.
+                </p>
+                <button class="btn-toggle-fix" onclick="toggleAuditFix('timeout')">
+                    <span>View Fixing Patch</span>
+                </button>
+                
+                <div class="audit-details-panel" id="fix-details-timeout">
+                    <h4>Patch Diff (bridge.rs):</h4>
+                    <div class="detail-code">
+- ureq::get(url).call()
++ ureq::get(url)
++     .timeout(std::time::Duration::from_secs(5))
++     .call()
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit 4 -->
+            <div class="card audit-card" id="audit-gpu">
+                <div class="audit-meta">
+                    <span class="audit-id">AUDIT-190-GPU</span>
+                    <span class="audit-badge">RESOLVED</span>
+                </div>
+                <h3 class="audit-title">GPU Buffer Jitter</h3>
+                <p class="audit-summary">
+                    Object maps flat-serialized in hash order resulting in random float alignments and unstable WGPU compute dispatches.
+                </p>
+                <button class="btn-toggle-fix" onclick="toggleAuditFix('gpu')">
+                    <span>View Fixing Patch</span>
+                </button>
+                
+                <div class="audit-details-panel" id="fix-details-gpu">
+                    <h4>Patch Diff (window.rs):</h4>
+                    <div class="detail-code">
++ let mut keys: Vec<&String> = map.keys().collect();
++ keys.sort();
++ for k in keys {
++     collect_floats(map.get(k).unwrap(), out);
++ }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit 5 -->
+            <div class="card audit-card" id="audit-panic">
+                <div class="audit-meta">
+                    <span class="audit-id">AUDIT-190-JIT</span>
+                    <span class="audit-badge">RESOLVED</span>
+                </div>
+                <h3 class="audit-title">JIT FFI Panic Crashes</h3>
+                <p class="audit-summary">
+                    Uncaught native module panics terminated the host process in JIT mode, bypassing general exception routing.
+                </p>
+                <button class="btn-toggle-fix" onclick="toggleAuditFix('panic')">
+                    <span>View Fixing Patch</span>
+                </button>
+                
+                <div class="audit-details-panel" id="fix-details-panic">
+                    <h4>Patch Diff (executor.rs):</h4>
+                    <div class="detail-code">
++ let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++     mod_.handle(name, &v_args, &self.permissions)
++ }));
++ match result {
++     Ok(Some(res)) => return res,
++     Err(_) => return ExecResult::Fault { ... }
++ }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit 6 -->
+            <div class="card audit-card warning" id="audit-watchdog">
+                <div class="audit-meta">
+                    <span class="audit-id">AUDIT-193-JIT</span>
+                    <span class="audit-badge warning">STUBBED</span>
+                </div>
+                <h3 class="audit-title">JIT Loop Watchdog</h3>
+                <p class="audit-summary">
+                    The 50ms execution watchdog is present in the Stack-VM opcode loop but absent in the JIT AST Evaluator.
+                </p>
+                <button class="btn-toggle-fix" onclick="toggleAuditFix('watchdog')">
+                    <span>View Observation</span>
+                </button>
+                
+                <div class="audit-details-panel" id="fix-details-watchdog">
+                    <h4>Architectural Observation:</h4>
+                    <p>
+                        Pure execution logic is compiled to bytecodes and runs via VM. While JIT execution is intended for layout and FFI calls, recursive/infinite while loops within JIT modules remain unthrottled. Watchdog addition to evaluator.rs is slated for Sprint 195.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Simulator -->
+    <section class="sim-section" id="interactive-simulator">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-title-wrap">
+                    <h2>KnotenCore Execution Simulator</h2>
+                    <p class="section-desc">Select a preset program to simulate its validation, optimization, and sandboxed run.</p>
+                </div>
+            </div>
+
+            <div class="sim-layout">
+                <!-- Editor Panel -->
+                <div>
+                    <div class="sim-selector">
+                        <button class="sim-tab active" onclick="loadPreset('math')" id="tab-math">Constant Folding</button>
+                        <button class="sim-tab" onclick="loadPreset('symlink')" id="tab-symlink">Symlink Block</button>
+                        <button class="sim-tab" onclick="loadPreset('network')" id="tab-network">DNS Suffix Block</button>
+                    </div>
+                    <div class="sim-editor" id="code-editor">
+                    </div>
+                    <button class="btn-run-sim" onclick="runSimulation()">Compile & Run AST</button>
+                </div>
+
+                <!-- Console Panel -->
+                <div class="sim-console">
+                    <div class="console-output" id="console-out">
+                        <div class="console-line info">[KnotenCore System Terminal ready]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sprint Log -->
+    <section class="timeline-section container" id="milestones">
+        <div class="section-header">
+            <div class="section-title-wrap">
+                <h2>Sprint Release Chronology</h2>
+                <p class="section-desc">Explore the development history of KnotenCore. Filter milestones using the tag buttons below.</p>
+            </div>
+            
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="filterTimeline('all')" id="f-all">All</button>
+                <button class="filter-btn" onclick="filterTimeline('security')" id="f-security">Security</button>
+                <button class="filter-btn" onclick="filterTimeline('compiler')" id="f-compiler">Compiler</button>
+                <button class="filter-btn" onclick="filterTimeline('graphics')" id="f-graphics">Graphics & UI</button>
+            </div>
+        </div>
+
+        <div class="timeline-grid" id="timeline-box">
+            <!-- Sprint 193 -->
+            <div class="card timeline-card security">
+                <div class="sprint-num">Sprint 193 <span>v1.2.0-alpha</span></div>
+                <h3 class="sprint-title">Network Sandbox Hardening</h3>
+                <p class="sprint-summary">
+                    Patched suffix-bypass vulnerability. Integrated 12 automated integration tests for symlinks, whitelists, and FS sandboxing.
+                </p>
+                <div class="sprint-tags">
+                    <span class="tag">Security</span>
+                    <span class="tag">Tests</span>
+                </div>
+            </div>
+
+            <!-- Sprint 192 -->
+            <div class="card timeline-card compiler">
+                <div class="sprint-num">Sprint 192 <span>v1.2.0-alpha</span></div>
+                <h3 class="sprint-title">Compiler Optimization Phase 1</h3>
+                <h3 class="sprint-title" style="display:none">Optimization Phase 1</h3>
+                <p class="sprint-summary">
+                    Documented existing constant folding and dead code elimination pathways. Integrated 29 dedicated compiler tests.
+                </p>
+                <div class="sprint-tags">
+                    <span class="tag">Compiler</span>
+                    <span class="tag">Optimization</span>
+                </div>
+            </div>
+
+            <!-- Sprint 190 -->
+            <div class="card timeline-card security">
+                <div class="sprint-num">Sprint 190 <span>v1.1.0</span></div>
+                <h3 class="sprint-title">The Iron Shield Hardening</h3>
+                <p class="sprint-summary">
+                    Added path canonicalization symlink checking, FFI panic catch-unwinds, and alphabetical key buffer ordering.
+                </p>
+                <div class="sprint-tags">
+                    <span class="tag">Security</span>
+                    <span class="tag">WGPU</span>
+                </div>
+            </div>
+
+            <!-- Sprint 189 -->
+            <div class="card timeline-card graphics">
+                <div class="sprint-num">Sprint 189 <span>v1.1.0</span></div>
+                <h3 class="sprint-title">Databound Retained UI</h3>
+                <p class="sprint-summary">
+                    Implemented UIBarChart and UIProgressGauge natively using thread-safe rendering queues inside the Central egui Panel.
+                </p>
+                <div class="sprint-tags">
+                    <span class="tag">Graphics & UI</span>
+                    <span class="tag">egui</span>
+                </div>
+            </div>
+
+            <!-- Sprint 187 -->
+            <div class="card timeline-card compiler">
+                <div class="sprint-num">Sprint 187 <span>v1.1.0</span></div>
+                <h3 class="sprint-title">WGPU Compute Pipeline</h3>
+                <p class="sprint-summary">
+                    Wired DispatchCompute. Introduced parallel matrix scaling and transformation helpers to standard libraries.
+                </p>
+                <div class="sprint-tags">
+                    <span class="tag">Compiler</span>
+                    <span class="tag">GPU Compute</span>
+                </div>
+            </div>
+
+            <!-- Sprint 126 -->
+            <div class="card timeline-card security">
+                <div class="sprint-num">Sprint 126 <span>v1.0.0</span></div>
+                <h3 class="sprint-title">AI-Readiness Baseline</h3>
+                <p class="sprint-summary">
+                    Established 20 standardised test cases for external code generation validation, documenting clean compile paths.
+                </p>
+                <div class="sprint-tags">
+                    <span class="tag">Security</span>
+                    <span class="tag">AI Agents</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>Aether Core — KnotenCore. Under Active Development & Hardening. 2026.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript logic -->
+    <script>
+        // Pipeline Stage Details
+        const stageData = {
+            1: {
+                title: "JSON AST Input",
+                format: "Format: .nod",
+                code: `{
+  "Node": "Add",
+  "args": [
+    { "Node": "IntLiteral", "value": 5 },
+    {
+      "Node": "Mul",
+      "args": [
+        { "Node": "IntLiteral", "value": 10 },
+        { "Node": "IntLiteral", "value": 2 }
+      ]
+    }
+  ]
+}`
+            },
+            2: {
+                title: "AST Parser",
+                format: "Format: Rust AST Nodes",
+                code: `// src/parser.rs parses JSON and builds a structured AST Node tree
+pub enum Node {
+    IntLiteral(i64),
+    FloatLiteral(f64),
+    Add(Box<Node>, Box<Node>),
+    Mul(Box<Node>, Box<Node>),
+    // ...
+}
+
+// Emitted: Add(IntLiteral(5), Mul(IntLiteral(10), IntLiteral(2)))`
+            },
+            3: {
+                title: "AST Optimizer",
+                format: "Optimization: Constant Folding",
+                code: `// src/optimizer.rs - evaluates constant terms recursively at compile time
+fn optimize_math_op(left: Node, right: Node, op: char) -> Node {
+    match (optimize(left), optimize(right)) {
+        (IntLiteral(l), IntLiteral(r)) => IntLiteral(l * r), // 10 * 2 folds to 20
+        // ...
+    }
+}
+
+// Add(IntLiteral(5), IntLiteral(20)) folds to -> IntLiteral(25)`
+            },
+            4: {
+                title: "Dual Execution",
+                format: "Result: Value(25)",
+                code: `// AOT Path: Compiles to Flat Bytecode executed by VM Register Stack
+OpCode::Constant(5)
+OpCode::Constant(20)
+OpCode::Add
+OpCode::Return
+
+// VM Output: IntLiteral(25)
+// No heap allocations on the hot execution path!`
+            }
+        };
+
+        function selectStage(stageNum) {
+            // Remove active class from all
+            document.querySelectorAll('.flow-node').forEach(node => {
+                node.classList.remove('active');
+            });
+            // Add active to current
+            document.getElementById(`node-stage-${stageNum}`).classList.add('active');
+            
+            // Update details
+            const data = stageData[stageNum];
+            document.getElementById('stage-detail-title').innerText = data.title;
+            document.getElementById('stage-detail-code').innerText = data.code;
+        }
+
+        // Toggle Fix Display
+        function toggleAuditFix(auditId) {
+            const panel = document.getElementById(`fix-details-${auditId}`);
+            panel.classList.toggle('show');
+        }
+
+        // Sprint Timeline Filters
+        function filterTimeline(category) {
+            // Update buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`f-${category}`).classList.add('active');
+
+            // Filter cards
+            document.querySelectorAll('.timeline-card').forEach(card => {
+                if (category === 'all' || card.classList.contains(category)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Simulator Presets
+        const presets = {
+            math: {
+                title: "Constant Folding & DCE Simulator",
+                code: `{
+  "Node": "If",
+  "cond": {
+    "Node": "Eq",
+    "left": {
+      "Node": "Add",
+      "args": [ { "Node": "IntLiteral", "value": 5 }, { "Node": "IntLiteral", "value": 5 } ]
+    },
+    "right": { "Node": "IntLiteral", "value": 10 }
+  },
+  "then_branch": {
+    "Node": "Div",
+    "args": [ { "Node": "IntLiteral", "value": 50 }, { "Node": "IntLiteral", "value": 5 } ]
+  },
+  "else_branch": {
+    "Node": "Mul",
+    "args": [ { "Node": "IntLiteral", "value": 0 }, { "Node": "IntLiteral", "value": 99 } ]
+  }
+}`
+            },
+            symlink: {
+                title: "Symlink Sandbox Attack Simulator",
+                code: `{
+  "Node": "FileWrite",
+  "path": "d:/Tools/Aether Core/assets/symlink_to_system32/attack.txt",
+  "content": "bypassing sandbox write constraints..."
+}`
+            },
+            network: {
+                title: "DNS Suffix Hijack Simulator",
+                code: `{
+  "Node": "ExternCall",
+  "module": "net",
+  "function": "network_get",
+  "args": [ { "Node": "StringLiteral", "value": "https://evilgoogle.com/metric" } ]
+}`
+            }
+        };
+
+        let currentPreset = 'math';
+
+        function loadPreset(name) {
+            currentPreset = name;
+            document.querySelectorAll('.sim-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(`tab-${name}`).classList.add('active');
+            document.getElementById('code-editor').innerText = presets[name].code;
+            
+            const consoleOut = document.getElementById('console-out');
+            consoleOut.innerHTML = `<div class="console-line info">[Loaded Preset: ${presets[name].title}]</div>`;
+        }
+
+        function runSimulation() {
+            const consoleOut = document.getElementById('console-out');
+            consoleOut.innerHTML = '';
+            
+            function print(text, type = '') {
+                const line = document.createElement('div');
+                line.className = `console-line ${type}`;
+                line.innerText = text;
+                consoleOut.appendChild(line);
+                consoleOut.scrollTop = consoleOut.scrollHeight;
+            }
+
+            print("Initiating KnotenCore AST validation...", "info");
+            
+            setTimeout(() => {
+                print("Parsing JSON AST payload...", "info");
+                
+                setTimeout(() => {
+                    if (currentPreset === 'math') {
+                        print("Validator: AST check passed.", "success");
+                        print("Optimizer: constant folding initiated...", "info");
+                        print("  * Folded Add(5, 5) -> IntLiteral(10)", "info");
+                        print("  * Folded Eq(10, 10) -> BoolLiteral(true)", "info");
+                        print("  * Folded Div(50, 5) -> IntLiteral(10)", "info");
+                        print("Optimizer: dead code elimination initiated...", "info");
+                        print("  * Condition resolved to TRUE. Eliminating else_branch.", "info");
+                        print("  * Reduced node count: 15 nodes -> 1 node.", "success");
+                        print("VM: starting execution of folded code block...", "info");
+                        print("VM execution output: Value(10)", "success");
+                    } else if (currentPreset === 'symlink') {
+                        print("Validator: checking permissions...", "info");
+                        print("Validator: allow_fs_write is TRUE. Validating path components...", "info");
+                        print("  * Checking element: d:", "info");
+                        print("  * Checking element: d:/Tools", "info");
+                        print("  * Checking element: d:/Tools/Aether Core", "info");
+                        print("  * Checking element: d:/Tools/Aether Core/assets", "info");
+                        print("  * Checking element: d:/Tools/Aether Core/assets/symlink_to_system32", "info");
+                        print("  * [CRITICAL] Symlink detected! Pointing to C:/Windows/System32", "error");
+                        print("VM Execution Fault: Symlink blocked: 'd:/Tools/Aether Core/assets/symlink_to_system32' is a symbolic link (at Node::FileWrite)", "error");
+                    } else if (currentPreset === 'network') {
+                        print("Validator: checking permissions...", "info");
+                        print("Validator: allow_network is TRUE. Reading allowed_domains whitelist...", "info");
+                        print("  * Whitelisted: ['google.com']", "info");
+                        print("  * Target URL: https://evilgoogle.com/metric", "info");
+                        print("  * Parsed domain: evilgoogle.com", "info");
+                        print("  * Matching: evilgoogle.com == google.com -> FALSE", "info");
+                        print("  * Matching: evilgoogle.com ends_with .google.com -> FALSE", "info");
+                        print("  * [CRITICAL] Domain whitelist match failed.", "error");
+                        print("VM Execution Fault: Network Denied: domain 'evilgoogle.com' not in allowed list (at Native::Bridge::network_get)", "error");
+                    }
+                }, 400);
+            }, 300);
+        }
+
+        // Init
+        loadPreset('math');
+    </script>
+</body>
+</html>
