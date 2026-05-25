@@ -14,7 +14,7 @@ fn test_domain_whitelist_exact_match() {
     let engine = ExecutionEngine {
         permissions: AgentPermissions {
             allow_network: true,
-            allowed_domains: vec!["google.com".to_string()],
+            allowed_domains: ["google.com".to_string()].to_vec(),
             allow_fs_read: false,
             allow_fs_write: false,
         },
@@ -31,7 +31,7 @@ fn test_domain_whitelist_exact_match() {
 /// Subdomain match: telemetry.google.com allowed when google.com is whitelisted
 #[test]
 fn test_domain_whitelist_subdomain_match() {
-    let allowed = vec!["google.com".to_string()];
+    let allowed = ["google.com".to_string()];
 
     let domain = "telemetry.google.com";
     let matched = allowed
@@ -46,7 +46,7 @@ fn test_domain_whitelist_subdomain_match() {
 /// Suffix attack: evilgoogle.com must NOT match google.com
 #[test]
 fn test_domain_whitelist_suffix_block() {
-    let allowed = vec!["google.com".to_string()];
+    let allowed = ["google.com".to_string()];
 
     let domain = "evilgoogle.com";
     let matched = allowed
@@ -61,7 +61,7 @@ fn test_domain_whitelist_suffix_block() {
 /// Localhost must be blocked when not in whitelist
 #[test]
 fn test_domain_whitelist_localhost_blocked() {
-    let allowed = vec!["google.com".to_string()];
+    let allowed = ["google.com".to_string()];
 
     let domain = "localhost";
     let matched = allowed
@@ -298,7 +298,7 @@ fn test_jit_infinite_loop_timeout() {
 /// Verify that knotencore.de matches as an allowed domain
 #[test]
 fn test_domain_whitelist_knotencore_de() {
-    let allowed = vec!["knotencore.de".to_string()];
+    let allowed = ["knotencore.de".to_string()];
     let domain = "knotencore.de";
     assert!(
         allowed
@@ -310,7 +310,7 @@ fn test_domain_whitelist_knotencore_de() {
 /// Verify that api.knotencore.de matches as a subdomain
 #[test]
 fn test_domain_whitelist_api_knotencore_de() {
-    let allowed = vec!["knotencore.de".to_string()];
+    let allowed = ["knotencore.de".to_string()];
     let domain = "api.knotencore.de";
     assert!(
         allowed
