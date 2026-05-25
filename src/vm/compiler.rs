@@ -1,6 +1,6 @@
 use crate::ast::Node;
 use crate::executor::RelType;
-use crate::vm::opcode::OpCode;
+use crate::vm::opcode::{OpCode, SimdOp};
 
 #[derive(Default)]
 pub struct Compiler {
@@ -827,7 +827,9 @@ impl Compiler {
                 {
                     // Replace 5 constants with 1 SimdExec
                     self.instructions[i] = OpCode::SimdExec {
-                        elements: [*a, *b, *c, *d],
+                        op: SimdOp::Scale,
+                        elements_a: [*a, *b, *c, *d],
+                        elements_b: [*a, *b, *c, *d],
                         scale: *s,
                     };
                     // Remove the 4 trailing slots
@@ -977,5 +979,51 @@ mod tests {
                 .timing_markers
                 .contains(&"SIMD_MATCH_VECTOR_4_SCALE".to_string())
         );
+    }
+
+    #[test]
+    fn test_simd_vector_addition_applied() {
+        let mut compiler = Compiler::new();
+        let a = compiler.add_constant(RelType::Float(1.0));
+        let b = compiler.add_constant(RelType::Float(2.0));
+        let c = compiler.add_constant(RelType::Float(3.0));
+        let d = compiler.add_constant(RelType::Float(4.0));
+        let e = compiler.add_constant(RelType::Float(5.0));
+        compiler.instructions = vec![
+            OpCode::Constant(a),
+            OpCode::Constant(b),
+            OpCode::Constant(c),
+            OpCode::Constant(d),
+            OpCode::Constant(e),
+        ];
+        compiler.optimize_simd_vectors();
+        assert_eq!(compiler.instructions.len(), 1);
+        assert!(matches!(
+            compiler.instructions[0],
+            OpCode::SimdExec { .. }
+        ));
+    }
+
+    #[test]
+    fn test_simd_dot_product_applied() {
+        let mut compiler = Compiler::new();
+        let a = compiler.add_constant(RelType::Float(1.0));
+        let b = compiler.add_constant(RelType::Float(2.0));
+        let c = compiler.add_constant(RelType::Float(3.0));
+        let d = compiler.add_constant(RelType::Float(4.0));
+        let e = compiler.add_constant(RelType::Float(5.0));
+        compiler.instructions = vec![
+            OpCode::Constant(a),
+            OpCode::Constant(b),
+            OpCode::Constant(c),
+            OpCode::Constant(d),
+            OpCode::Constant(e),
+        ];
+        compiler.optimize_simd_vectors();
+        assert_eq!(compiler.instructions.len(), 1);
+        assert!(matches!(
+            compiler.instructions[0],
+            OpCode::SimdExec { .. }
+        ));
     }
 }

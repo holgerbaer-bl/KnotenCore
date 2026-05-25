@@ -1,3 +1,12 @@
+// Sprint 202: SIMD operation types for auto-vectorization
+#[derive(Debug, Clone, PartialEq)]
+pub enum SimdOp {
+    Scale,     // elements * factor
+    Add,       // elements_a + elements_b
+    Subtract,  // elements_a - elements_b
+    Dot,       // elements_a · elements_b → scalar
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
     Constant(usize),
@@ -67,9 +76,11 @@ pub enum OpCode {
     LoadComputeShader,
     DispatchCompute(usize), // arg_count
 
-    // Sprint 200: SIMD auto-vectorization — 4-element parallel scale
+    // Sprint 200/202: SIMD auto-vectorization — 4-element parallel ops
     SimdExec {
-        elements: [usize; 4], // constant pool indices for the 4 float elements
-        scale: usize,         // constant pool index for the scale factor
+        op: SimdOp,
+        elements_a: [usize; 4], // constant pool indices for the 4 float elements (first operand)
+        elements_b: [usize; 4], // constant pool indices for second operand (Add/Sub/Dot)
+        scale: usize,           // constant pool index for scale factor (Scale only)
     },
 }

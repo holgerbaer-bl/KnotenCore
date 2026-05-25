@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 202: Advanced 3D Math SIMD Expansion (Add, Sub & Dot Product) (2026-05-25)
+Sprint 202: SIMD Expansion. Extended `OpCode::SimdExec` with `SimdOp` enum supporting Scale, Add, Subtract, and Dot product operations via `glam::Vec4`.
+- **SimdOp Enum**: Defined `SimdOp { Scale, Add, Subtract, Dot }` in `opcode.rs`. `SimdExec` now carries `elements_a: [usize; 4]`, `elements_b: [usize; 4]`, and `scale: usize` alongside the operation variant.
+- **Machine Handler**: `SimdOp::Scale` — `glam::Vec4 * factor`. `SimdOp::Add`/`Subtract` — `Vec4 + Vec4` / `Vec4 - Vec4`. `SimdOp::Dot` — `Vec4::dot()` returning a single `RelType::Float` scalar.
+- **Tests**: Added `test_simd_vector_addition_applied` and `test_simd_dot_product_applied`. 3 total SIMD tests, all passing.
+- **Submodule Sync**: Opcode, machine, and compiler mirrors in `aether_compiler/`.
+- **CI**: 71/71 lib tests, 0 clippy warnings, fmt clean.
+
 ## [v1.3.0-alpha] - Sprint 201: Panic-Free Parser Refactoring & CLI Hardening (2026-05-25)
 Sprint 201: Panic-Free Parser. Eliminated all hard panics from the parser and CLI, replacing them with structured `Result<Node, ParseError>` error handling.
 - **Result-Based Parsing**: Changed `Parser::parse()` signature from `-> Node` to `-> Result<Node, ParseError>`. All internal `parse_*` functions propagate errors via `?` operator instead of panicking.
