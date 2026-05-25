@@ -911,7 +911,7 @@ fn has_loop_exit(node: &Node) -> bool {
         Node::Block(nodes) => nodes.iter().any(has_loop_exit),
         Node::If(_, then_b, else_b) => {
             let then_exit = has_loop_exit(then_b);
-            let else_exit = else_b.as_ref().map_or(false, |eb| has_loop_exit(eb));
+            let else_exit = else_b.as_ref().is_some_and(|eb| has_loop_exit(eb));
             then_exit && else_exit // All branches must exit
         }
         Node::While(_, _) => false, // Nested infinite loop is still infinite
