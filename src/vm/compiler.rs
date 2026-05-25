@@ -625,6 +625,13 @@ impl Compiler {
                 self.instructions.push(OpCode::UIButton);
                 true
             }
+            Node::UITextInput(seed_node) => {
+                if !self.compile_node(seed_node) {
+                    return false;
+                }
+                self.instructions.push(OpCode::UITextInput);
+                true
+            }
             Node::UIHorizontal(body) => {
                 let count = if let Node::Block(children) = &**body {
                     for child in children {

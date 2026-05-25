@@ -171,7 +171,29 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1
                         && let RelType::Str(url) = &args[0]
                     {
-                        match ureq::get(url).call() {
+                        // Sprint 190: Domain whitelist check
+                        if !permissions.allowed_domains.is_empty() {
+                            let domain = url
+                                .trim_start_matches("https://")
+                                .trim_start_matches("http://")
+                                .split('/')
+                                .next()
+                                .unwrap_or("");
+                            if !permissions.allowed_domains.iter().any(|d| domain.ends_with(d) || domain == d.as_str()) {
+                                return Some(ExecResult::Fault {
+                                    msg: format!(
+                                        "Network Denied: domain '{}' not in allowed list",
+                                        domain
+                                    ),
+                                    node: "Native::Bridge::net_fetch".into(),
+                                });
+                            }
+                        }
+                        // Sprint 190: Hard 5-second timeout
+                        match ureq::get(url)
+                            .timeout(std::time::Duration::from_secs(5))
+                            .call()
+                        {
                             Ok(response) => match response.into_string() {
                                 Ok(body) => return Some(ExecResult::Value(RelType::Str(body))),
                                 Err(e) => {
@@ -207,7 +229,29 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1
                         && let RelType::Str(url) = &args[0]
                     {
-                        match ureq::get(url).call() {
+                        // Sprint 190: Domain whitelist check
+                        if !permissions.allowed_domains.is_empty() {
+                            let domain = url
+                                .trim_start_matches("https://")
+                                .trim_start_matches("http://")
+                                .split('/')
+                                .next()
+                                .unwrap_or("");
+                            if !permissions.allowed_domains.iter().any(|d| domain.ends_with(d) || domain == d.as_str()) {
+                                return Some(ExecResult::Fault {
+                                    msg: format!(
+                                        "Network Denied: domain '{}' not in allowed list",
+                                        domain
+                                    ),
+                                    node: "Native::Bridge::network_get".into(),
+                                });
+                            }
+                        }
+                        // Sprint 190: Hard 5-second timeout
+                        match ureq::get(url)
+                            .timeout(std::time::Duration::from_secs(5))
+                            .call()
+                        {
                             Ok(response) => match response.into_string() {
                                 Ok(body) => return Some(ExecResult::Value(RelType::Str(body))),
                                 Err(e) => {

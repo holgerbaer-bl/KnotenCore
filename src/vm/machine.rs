@@ -745,6 +745,17 @@ impl VM {
                             Box::new(crate::ast::Node::StringLiteral(text)),
                         ))));
                 }
+                OpCode::UITextInput => {
+                    let text_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let text = match text_val {
+                        RelType::Str(s) => s,
+                        v => v.to_string(),
+                    };
+                    self.stack
+                        .push(RelType::ASTNode(Box::new(crate::ast::Node::UITextInput(
+                            Box::new(crate::ast::Node::StringLiteral(text)),
+                        ))));
+                }
                 OpCode::UIHBox(count) => {
                     let mut children = Vec::with_capacity(*count);
                     for _ in 0..*count {

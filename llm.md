@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v1.1.0 (Sprint 189)
+# KnotenCore — AI Agent Reference (Routing Document) - v1.1.0 (Sprint 190)
 
 > **System Instruction for LLM Code Agents**
 >
@@ -71,6 +71,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **WGPU Compute Pipeline** (Sprint 187) → Storage buffers wired up in `DispatchCompute`: inputs are serialized to `wgpu::Buffer` with bind group binding. Pipeline cache (`compute_pipelines`) confirmed operational. New `math_vector_scale(array, factor)` and `math_matrix_transform(matrix, vector)` FFI functions added.
 - **Sandboxed Time Module** (Sprint 188) → `time_get_string()` returns formatted wall-clock time (`YYYY-MM-DD HH:MM:SS`). `time_utc_timestamp()` returns UTC epoch seconds. Uses `chrono = "0.4"` for timezone-safe date/time handling.
 - **Databound UI Components** (Sprint 189) → `ui_bar_chart(label, data)` renders native bar charts from numeric arrays. `ui_progress_gauge(label, value, min, max)` renders animated progress bars. Thread-safe buffer queues updated each frame.
+- **Iron Shield Hardening** (Sprint 190) → Symlink blocking via `symlink_metadata` in both path validators. Network domain whitelist + 5-second timeout on all HTTP calls. GPU buffer keys sorted for deterministic memory layout. `catch_unwind` guards on all FFI/bridge dispatch paths.
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
 - **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time. The **VS Code Extension** automatically launches this server, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) directly in the editor before they reach the runtime. Tracing output is visible in the VS Code *Output → knoten-lsp* channel.
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.

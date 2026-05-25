@@ -766,8 +766,25 @@ impl ExecutionEngine {
                     }
                 }
                 for mod_ in &self.native_modules {
-                    if let Some(res) = mod_.handle(name, &v_args, &self.permissions) {
-                        return res;
+                    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        mod_.handle(name, &v_args, &self.permissions)
+                    }));
+                    match result {
+                        Ok(Some(res)) => return res,
+                        Ok(None) => {}
+                        Err(panic_payload) => {
+                            let msg = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                                s.to_string()
+                            } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                                s.clone()
+                            } else {
+                                "Unknown FFI panic".to_string()
+                            };
+                            return ExecResult::Fault {
+                                msg: format!("Native FFI Panic: {}", msg),
+                                node: "Node::NativeCall".into(),
+                            };
+                        }
                     }
                 }
                 ExecResult::Fault {
@@ -951,11 +968,26 @@ impl ExecutionEngine {
                     }
                 }
 
-                if let Some(res) = self
-                    .bridge
-                    .handle(module, function, &v_args, &self.permissions)
-                {
-                    return res;
+                let bridge_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    self.bridge
+                        .handle(module, function, &v_args, &self.permissions)
+                }));
+                match bridge_result {
+                    Ok(Some(res)) => return res,
+                    Ok(None) => {}
+                    Err(panic_payload) => {
+                        let msg = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                            s.to_string()
+                        } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                            s.clone()
+                        } else {
+                            "Unknown FFI panic".to_string()
+                        };
+                        return ExecResult::Fault {
+                            msg: format!("ExternCall FFI Panic: {}", msg),
+                            node: "Node::ExternCall".into(),
+                        };
+                    }
                 }
                 ExecResult::Fault {
                     msg: format!("Extern function '{}.{}' not found", module, function),
@@ -1090,9 +1122,33 @@ impl ExecutionEngine {
 impl ExecutionEngine {
     /// FINDING-05: Validate and canonicalize a filesystem path for read operations.
     /// The resolved path must be a descendant of the current working directory.
+    /// Sprint 190: Symlink blocking — rejects any path containing a symbolic link.
     pub fn validate_fs_path(path: &str) -> Result<PathBuf, String> {
         let cwd = std::env::current_dir()
             .map_err(|e| format!("Cannot determine working directory: {}", e))?;
+        // Sprint 190: Walk each path component and reject symlinks
+        let path_obj = std::path::Path::new(path);
+        let check_path = if path_obj.is_absolute() {
+            path_obj.to_path_buf()
+        } else {
+            cwd.join(path_obj)
+        };
+        // Check each component for symlinks
+        let mut accumulated = std::path::PathBuf::new();
+        for component in check_path.components() {
+            accumulated.push(component);
+            if accumulated.exists() {
+                match std::fs::symlink_metadata(&accumulated) {
+                    Ok(meta) if meta.file_type().is_symlink() => {
+                        return Err(format!(
+                            "Symlink blocked: '{}' is a symbolic link",
+                            accumulated.display()
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+        }
         // For reads: the file must already exist, so we can canonicalize directly.
         let canonical = dunce::canonicalize(path)
             .map_err(|e| format!("Path '{}' is invalid or does not exist: {}", path, e))?;
@@ -1107,6 +1163,7 @@ impl ExecutionEngine {
 
     /// FINDING-05: Validate a filesystem path for write operations.
     /// For writes, the file may not yet exist — we validate the parent directory.
+    /// Sprint 190: Symlink blocking — rejects any path containing a symbolic link.
     pub fn validate_fs_path_write(path: &str) -> Result<std::path::PathBuf, String> {
         let cwd = std::env::current_dir()
             .map_err(|e| format!("Cannot determine working directory: {}", e))?;
@@ -1117,6 +1174,22 @@ impl ExecutionEngine {
         } else {
             cwd.join(target)
         };
+        // Sprint 190: Walk each component and reject symlinks
+        let mut accumulated = std::path::PathBuf::new();
+        for component in abs.components() {
+            accumulated.push(component);
+            if accumulated.exists() {
+                match std::fs::symlink_metadata(&accumulated) {
+                    Ok(meta) if meta.file_type().is_symlink() => {
+                        return Err(format!(
+                            "Symlink blocked: '{}' is a symbolic link",
+                            accumulated.display()
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+        }
         // Normalize by resolving ".." components without requiring the path to exist
         let mut normalized = std::path::PathBuf::new();
         for component in abs.components() {

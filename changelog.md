@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.1.0] - Sprint 190: The Iron Shield Hardening & GPU Determinism (2026-05-24)
+Sprint 190: The Iron Shield Hardening. Closed critical sandbox bypass vectors, enforced network constraints, ensured GPU buffer determinism, and wrapped FFI calls in panic-safe guards.
+- **Symlink Blocking**: Added symlink detection via `std::fs::symlink_metadata` to both `validate_fs_path` and `validate_fs_path_write`. Any path component that is a symbolic link returns `Err(...)`, which cascades to `ExecResult::Fault` at the call site.
+- **Network Domain Whitelist**: Implemented `allowed_domains` checking in `net_fetch` and `network_get`. If `permissions.allowed_domains` is non-empty, the URL domain is extracted and matched against the whitelist.
+- **Network Timeout Hardening**: Added `.timeout(std::time::Duration::from_secs(5))` to all `ureq::get(url)` calls, preventing synchronous thread hangs from unresponsive endpoints.
+- **GPU Buffer Determinism**: Modified `collect_floats()` in `window.rs` to sort `HashMap` keys alphabetically before iterating for `RelType::Object`, ensuring deterministic byte layout in `wgpu::Buffer` regardless of hash seed.
+- **AST Interpreter Panic Protection**: Wrapped all native module handler calls and bridge dispatch calls in `std::panic::catch_unwind(AssertUnwindSafe(...))`. FFI panics are now caught and converted to structured `ExecResult::Fault` messages without process termination.
+- **Compiler Sync**: Extended VM compiler (`UITextInput` opcode + handler in `compiler.rs`, `opcode.rs`, `machine.rs`) and AOT transpiler (`ExternCall` node handling, UI/compute stubs in `codegen.rs`, `load_compute_shader` handle detection).
+- **Submodule Sync**: All 7 files mirrored in `aether_compiler/`.
+- **Documentation**: Updated README, llm.md, changelog.md.
+
 ## [v1.1.0] - Sprint 189: Databound UI Components & Chart Framework (2026-05-24)
 Sprint 189: Databound UI Components. Extended the 2D UI framework with native UIBarChart and UIProgressGauge components for live telemetric data visualization.
 - **ui_bar_chart(label, data)**: Pushes a labeled bar chart to the egui render queue. Accepts a String label and an Array of numeric values. Invalid types return `ExecResult::Fault` without blocking the render loop.
