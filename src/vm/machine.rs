@@ -1,5 +1,5 @@
 use crate::executor::{AgentPermissions, ExecutionEngine, RelType};
-use crate::vm::opcode::OpCode;
+use crate::vm::opcode::{OpCode, SimdOp};
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::time::Instant;
@@ -855,34 +855,68 @@ impl VM {
                     );
                     self.stack.push(RelType::Void);
                 }
-                // Sprint 200: SIMD auto-vectorization — 4-element scale in a single CPU tick
-                OpCode::SimdExec { elements, scale } => {
-                    let factor = match constants.get(*scale) {
-                        Some(RelType::Float(f)) => *f as f32,
-                        Some(RelType::Int(i)) => *i as f32,
-                        _ => {
-                            return Err("SimdExec: scale factor must be Float or Int".into());
-                        }
-                    };
-                    let el = |i: usize| -> Result<f32, String> {
-                        match constants.get(i) {
+                // Sprint 200/202: SIMD auto-vectorization — 4-element parallel ops
+                OpCode::SimdExec {
+                    op,
+                    elements_a,
+                    elements_b,
+                    scale,
+                } => {
+                    let to_f32 = |idx: &usize| -> Result<f32, String> {
+                        match constants.get(*idx) {
                             Some(RelType::Float(f)) => Ok(*f as f32),
                             Some(RelType::Int(v)) => Ok(*v as f32),
                             _ => Err("SimdExec: element must be Float or Int".into()),
                         }
                     };
-                    let v = glam::Vec4::new(
-                        el(elements[0])?,
-                        el(elements[1])?,
-                        el(elements[2])?,
-                        el(elements[3])?,
-                    ) * factor;
-                    self.stack.push(RelType::Array(vec![
-                        RelType::Float(v.x as f64),
-                        RelType::Float(v.y as f64),
-                        RelType::Float(v.z as f64),
-                        RelType::Float(v.w as f64),
-                    ]));
+                    let load_vec4 = |indices: &[usize; 4]| -> Result<glam::Vec4, String> {
+                        Ok(glam::Vec4::new(
+                            to_f32(&indices[0])?,
+                            to_f32(&indices[1])?,
+                            to_f32(&indices[2])?,
+                            to_f32(&indices[3])?,
+                        ))
+                    };
+                    match op {
+                        SimdOp::Scale => {
+                            let factor = to_f32(scale)?;
+                            let v = load_vec4(elements_a)? * factor;
+                            self.stack.push(RelType::Array(vec![
+                                RelType::Float(v.x as f64),
+                                RelType::Float(v.y as f64),
+                                RelType::Float(v.z as f64),
+                                RelType::Float(v.w as f64),
+                            ]));
+                        }
+                        SimdOp::Add => {
+                            let a = load_vec4(elements_a)?;
+                            let b = load_vec4(elements_b)?;
+                            let v = a + b;
+                            self.stack.push(RelType::Array(vec![
+                                RelType::Float(v.x as f64),
+                                RelType::Float(v.y as f64),
+                                RelType::Float(v.z as f64),
+                                RelType::Float(v.w as f64),
+                            ]));
+                        }
+                        SimdOp::Subtract => {
+                            let a = load_vec4(elements_a)?;
+                            let b = load_vec4(elements_b)?;
+                            let v = a - b;
+                            self.stack.push(RelType::Array(vec![
+                                RelType::Float(v.x as f64),
+                                RelType::Float(v.y as f64),
+                                RelType::Float(v.z as f64),
+                                RelType::Float(v.w as f64),
+                            ]));
+                        }
+                        SimdOp::Dot => {
+                            let a = load_vec4(elements_a)?;
+                            let b = load_vec4(elements_b)?;
+                            let dot = a.dot(b);
+                            self.stack.push(RelType::Float(dot as f64));
+                        }
+                    }
                 }
                 OpCode::ExternCall {
                     name_idx,
