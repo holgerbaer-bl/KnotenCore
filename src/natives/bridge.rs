@@ -433,6 +433,50 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::ui_text_input_set".into(),
                     })
                 }
+                // Sprint 189: Native bar chart — label + data array
+                "ui_bar_chart" => {
+                    if args.len() == 2
+                        && let RelType::Str(label) = &args[0]
+                        && let RelType::Array(data) = &args[1]
+                    {
+                        let values: Vec<f64> = data
+                            .iter()
+                            .map(|v| match v {
+                                RelType::Float(f) => *f,
+                                RelType::Int(i) => *i as f64,
+                                _ => 0.0,
+                            })
+                            .collect();
+                        crate::natives::ui::ui_push_bar_chart(label.clone(), values);
+                        return Some(ExecResult::Value(RelType::Void));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] ui_bar_chart expects (String, Array)".to_string(),
+                        node: "Native::Bridge::ui_bar_chart".into(),
+                    })
+                }
+                // Sprint 189: Progress gauge — label, value, min, max
+                "ui_progress_gauge" => {
+                    if args.len() == 4
+                        && let RelType::Str(label) = &args[0]
+                        && let RelType::Float(value) = &args[1]
+                        && let RelType::Float(min) = &args[2]
+                        && let RelType::Float(max) = &args[3]
+                    {
+                        crate::natives::ui::ui_push_progress_gauge(
+                            label.clone(),
+                            *value,
+                            *min,
+                            *max,
+                        );
+                        return Some(ExecResult::Value(RelType::Void));
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] ui_progress_gauge expects (String, Float, Float, Float)"
+                            .to_string(),
+                        node: "Native::Bridge::ui_progress_gauge".into(),
+                    })
+                }
                 _ => None,
             }
         } else if module == "fs" {
