@@ -1398,10 +1398,7 @@ mod tests {
                 Node::StringLiteral("World".into()),
             ],
         );
-        assert_eq!(
-            optimize(call),
-            Node::StringLiteral("Hello World".into())
-        );
+        assert_eq!(optimize(call), Node::StringLiteral("Hello World".into()));
     }
 
     #[test]
@@ -1415,10 +1412,7 @@ mod tests {
     #[test]
     fn inline_fold_dce_chain() {
         // math_vector_scale([2.0], 2.0) → [4.0]
-        let scaled = native(
-            "math_vector_scale",
-            vec![arr(vec![lit_f(2.0)]), lit_f(2.0)],
-        );
+        let scaled = native("math_vector_scale", vec![arr(vec![lit_f(2.0)]), lit_f(2.0)]);
         // [4.0][0] → 4.0
         let indexed = Node::ArrayGet(Box::new(scaled), Box::new(lit_i(0)));
         // 4.0 == 4.0 → true
@@ -1438,11 +1432,7 @@ mod tests {
     fn inline_string_chain_to_literal() {
         let len = native("string_len", vec![Node::StringLiteral("abc".into())]);
         let cond = eq(len, lit_i(3));
-        let if_node = Node::If(
-            Box::new(cond),
-            Box::new(lit_i(1)),
-            Some(Box::new(lit_i(0))),
-        );
+        let if_node = Node::If(Box::new(cond), Box::new(lit_i(1)), Some(Box::new(lit_i(0))));
         assert_eq!(optimize(if_node), lit_i(1));
     }
 }
