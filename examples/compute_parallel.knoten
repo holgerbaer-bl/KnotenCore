@@ -67,7 +67,7 @@ print(data_len);
 
 print("Dispatching GPU compute on " + ToString(data_len) + " elements...");
 // 157 workgroups × 64 threads = 10,048 threads (>10,000 elements)
-let workgroups = (data_len + 0x3F) / 64;
+let workgroups = (data_len + 63) / 64;
 dispatch_compute(shader, workgroups, 1, 1, large_data);
 print("  Compute dispatched successfully.");
 
