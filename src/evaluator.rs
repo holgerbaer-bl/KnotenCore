@@ -514,7 +514,7 @@ impl ExecutionEngine {
                         ExecResult::Fault { msg, node } => return ExecResult::Fault { msg, node },
                     }
                     jit_iters += 1;
-                    if jit_iters % 1000 == 0
+                    if jit_iters.is_multiple_of(1000)
                         && jit_start.elapsed() >= std::time::Duration::from_millis(50)
                     {
                         eprintln!(
