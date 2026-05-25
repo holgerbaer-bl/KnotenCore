@@ -319,7 +319,65 @@ fn test_domain_whitelist_api_knotencore_de() {
     );
 }
 
-// ── Sprint 203: Lock-Free Registry Concurrency Test ────────────────
+// ── Sprint 207: Examples Compilation & Validation Test ────────────
+
+#[test]
+fn test_examples_compilation_and_validation() {
+    use knoten_core::parser::Parser;
+    use knoten_core::validator::Validator;
+    use std::path::Path;
+
+    let examples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples");
+    
+    // Files that must parse cleanly (no imports, standalone syntax)
+    let must_pass = [
+        "time_stamping.knoten",
+        "calculator.knoten",
+    ];
+    
+    // Files that may have imports or complex structures
+    let best_effort = [
+        "dashboard.knoten",
+        "telemetry_dashboard.knoten",
+        "compute_parallel.knoten",
+    ];
+
+    let mut parsed = 0;
+
+    for file in must_pass.iter().chain(best_effort.iter()) {
+        let path = examples_dir.join(file);
+        if !path.exists() {
+            println!("Skipping missing: {}", file);
+            continue;
+        }
+        total += 1;
+        let source = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+            panic!("Failed to read '{}': {}", file, e);
+        });
+        let mut parser = Parser::new(&source);
+        match parser.parse() {
+            Ok(ast) => {
+                let mut validator = Validator::new();
+                if let Err(errors) = validator.validate(&ast) {
+                    if must_pass.contains(&file) {
+                        panic!("Validation errors in '{}': {:?}", file, errors);
+                    }
+                    println!("Validation warnings in '{}': {:?}", file, errors);
+                } else {
+                    parsed += 1;
+                }
+            }
+            Err(e) => {
+                if must_pass.contains(&file) {
+                    panic!("Parse error in '{}': {:?}", file, e);
+                }
+                println!("Parse note for '{}': {:?} (may require imports)", file, e);
+            }
+        }
+    }
+
+    assert!(parsed >= 2, "At least 2 examples should parse cleanly, got {}", parsed);
+}
 
 #[test]
 fn test_registry_parallel_lock_contention_immune() {
