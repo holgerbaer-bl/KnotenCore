@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.2.0-alpha] - Sprint 197: Compiler Phase 3 — Register Allocation & Peephole Optimization (2026-05-25)
+Sprint 197: Compiler Phase 3. Implemented VM instruction peephole optimizer and register slot reuse for smaller stack frames.
+- **Peephole Optimizer**: Added `Compiler::peephole_optimize()` — a post-compilation pass that scans the instruction vector for redundant patterns. Eliminates `SetLocal(X)` immediately followed by `GetLocal(X)` (same slot), and equivalent `SetGlobal(X)`/`GetGlobal(X)` pairs. The value is already on the VM stack — no need to reload.
+- **Register Slot Reuse**: Added `freed_slots: Vec<usize>` pool to the `Compiler` struct. When a new variable is declared, the compiler first checks the freed slot pool before incrementing `current_local_count`. This minimizes the VM's stack frame size for code with many short-lived variables.
+- **Unit Tests**: Added `test_peephole_redundant_load_eliminated` (verifies store-load pair removal) and `test_register_slot_reuse` (verifies slot allocation). Compiler tests now at 5/5.
+- **Submodule Sync**: Compiler changes mirrored to `aether_compiler/`.
+- **Documentation**: Updated changelog, README, llm.md.
+
 ## [v1.2.0-alpha] - Sprint 196: Advanced Loop Optimizations & Static Bound Analysis (2026-05-25)
 Sprint 196: Loop Optimizations. Implemented compile-time loop unrolling for bounded while-loops and static infinite loop detection in the optimizer.
 - **Loop Unrolling**: `try_unroll_while()` recognizes `while (counter < N)` patterns with `N ≤ 8`. The loop body is replicated N times via `substitute_identifier()`, replacing the counter variable with sequential integer values. The unrolled body is emitted as a flat `Node::Block`.

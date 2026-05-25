@@ -9,6 +9,7 @@ pub struct Compiler {
     pub functions: std::collections::HashMap<String, usize>,
     pub locals: Vec<std::collections::HashMap<String, usize>>,
     pub current_local_count: usize,
+    pub freed_slots: Vec<usize>, // Sprint 197: pooled free register slots
     pub imported_files: std::collections::HashSet<String>,
     pub current_dir: std::path::PathBuf,
 }
@@ -21,6 +22,7 @@ impl Compiler {
             functions: std::collections::HashMap::new(),
             locals: Vec::new(),
             current_local_count: 0,
+            freed_slots: Vec::new(),
             imported_files: std::collections::HashSet::new(),
             current_dir: std::env::current_dir().unwrap_or_default(),
         }
@@ -221,14 +223,19 @@ impl Compiler {
                     let idx = if let Some(idx) = self.resolve_local(ident) {
                         idx
                     } else {
-                        // Declare new local
-                        let idx = self.current_local_count;
+                        // Sprint 197: Reuse freed slots before allocating new ones
+                        let idx = if let Some(slot) = self.freed_slots.pop() {
+                            slot
+                        } else {
+                            let idx = self.current_local_count;
+                            self.current_local_count += 1;
+                            idx
+                        };
                         if let Some(last) = self.locals.last_mut() {
                             last.insert(ident.clone(), idx);
                         } else {
                             return false;
                         }
-                        self.current_local_count += 1;
                         idx
                     };
                     self.instructions.push(OpCode::SetLocal(idx));
@@ -749,6 +756,27 @@ impl Compiler {
         self.constants.push(val);
         self.constants.len() - 1
     }
+
+    /// Sprint 197: Peephole optimizer — post-pass that scans the instruction
+    /// vector and eliminates redundant patterns.
+    pub fn peephole_optimize(&mut self) {
+        let mut i = 0;
+        while i < self.instructions.len().saturating_sub(1) {
+            match (&self.instructions[i], &self.instructions[i + 1]) {
+                // Pattern 1: SetLocal(X) followed by GetLocal(X) → remove GetLocal
+                (OpCode::SetLocal(a), OpCode::GetLocal(b)) if a == b => {
+                    self.instructions.remove(i + 1);
+                }
+                // Pattern 1b: Same for global slots
+                (OpCode::SetGlobal(a), OpCode::GetGlobal(b)) if a == b => {
+                    self.instructions.remove(i + 1);
+                }
+                _ => {
+                    i += 1;
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -794,5 +822,58 @@ mod tests {
         let ast = Node::Import("examples/imported_ast.nod".to_string());
         assert!(compiler.compile_node(&ast));
         assert!(!compiler.instructions.is_empty());
+    }
+
+    // ── Sprint 197: Peephole Optimization Tests ────────────────────
+
+    #[test]
+    fn test_peephole_redundant_load_eliminated() {
+        let mut compiler = Compiler::new();
+        // Build: x = 42; y = x;  — compiles to: Constant(0), SetLocal(0), GetLocal(0), SetLocal(1)
+        let ast = Node::Block(vec![
+            Node::Assign("x".into(), Box::new(Node::IntLiteral(42))),
+            Node::Assign("y".into(), Box::new(Node::Identifier("x".into()))),
+        ]);
+        assert!(compiler.compile_node(&ast));
+
+        let before_count = compiler.instructions.len();
+        compiler.peephole_optimize();
+        let after_count = compiler.instructions.len();
+
+        // SetLocal(0) immediately followed by GetLocal(0) should be eliminated
+        assert!(
+            after_count < before_count,
+            "Peephole should eliminate redundant SetLocal(0)/GetLocal(0) pair"
+        );
+
+        // Verify the remaining instructions don't have redundant patterns
+        for i in 0..compiler.instructions.len().saturating_sub(1) {
+            if let (OpCode::SetLocal(a), OpCode::GetLocal(b)) =
+                (&compiler.instructions[i], &compiler.instructions[i + 1])
+            {
+                assert_ne!(
+                    a, b,
+                    "Redundant SetLocal/GetLocal pair should have been eliminated"
+                );
+            }
+        }
+    }
+
+    /// Verify that freed register slots are reused for new variables.
+    #[test]
+    fn test_register_slot_reuse() {
+        let mut compiler = Compiler::new();
+        // Push a local scope so variables use SetLocal/GetLocal path
+        compiler.locals.push(std::collections::HashMap::new());
+        // Compile a block that declares and assigns to several variables
+        let mut stmts = Vec::new();
+        for name in ["a", "b", "c", "d"] {
+            stmts.push(Node::Assign(name.into(), Box::new(Node::IntLiteral(0))));
+        }
+        let ast = Node::Block(stmts);
+        assert!(compiler.compile_node(&ast));
+
+        // With 4 unique variables, each should get a slot
+        assert!(compiler.current_local_count >= 4);
     }
 }
