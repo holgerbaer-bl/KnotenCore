@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use std::collections::HashSet;
 use winit::keyboard::KeyCode;
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 // Sprint 184: Re-exports from extracted modules for backward compatibility
 pub use super::geometry::{
@@ -187,7 +187,7 @@ pub struct WindowProxy {
     pub input: Arc<Mutex<InputState>>,
 }
 
-pub static TEXTURE_ID_COUNTER: std::sync::Mutex<usize> = std::sync::Mutex::new(1); // 0 is reserved for default
+pub static TEXTURE_ID_COUNTER: AtomicUsize = AtomicUsize::new(1); // 0 is reserved for default
 
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
@@ -238,7 +238,7 @@ unsafe impl Sync for TextureAsset {}
 // Global thread-safe registry
 // Instead of lazy_static we'll use a const Mutex with an Option since lazy_static might not be available
 static COUNTER_REGISTRY: Mutex<Option<HashMap<usize, RegistryEntry>>> = Mutex::new(None);
-static COUNTER_NEXT_ID: Mutex<usize> = Mutex::new(1);
+static COUNTER_NEXT_ID: AtomicUsize = AtomicUsize::new(1);
 
 pub(crate) fn with_registry<F, R>(f: F) -> R
 where
@@ -288,9 +288,7 @@ pub fn registry_release(handle_id: i64) {
 
 // FFI Implementations
 pub fn registry_create_counter() -> i64 {
-    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let id = *id_guard;
-    *id_guard += 1;
+    let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
     let counter = StatefulCounter { count: 0 };
     with_registry(|registry| {
@@ -387,9 +385,7 @@ pub fn registry_dump() -> i64 {
 // ── Timestamp Orchestration ────────────────────────────────────────
 
 pub fn registry_now() -> i64 {
-    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let id = *id_guard;
-    *id_guard += 1;
+    let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
     with_registry(|registry| {
         registry.insert(
@@ -425,9 +421,7 @@ pub fn registry_elapsed_ms(handle_id: i64) -> i64 {
 // ── Window Orchestration ─────────────────────────────────────────
 
 pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
-    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let id = *id_guard;
-    *id_guard += 1;
+    let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
     let w = width as u32;
     let h = height as u32;
@@ -496,9 +490,7 @@ pub fn registry_window_close(handle_id: i64) {
 // ── File IO Orchestration ─────────────────────────────────────────
 
 pub fn registry_file_create(path: String) -> i64 {
-    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let id = *id_guard;
-    *id_guard += 1;
+    let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
     let safe_path = match crate::executor::ExecutionEngine::validate_fs_path_write(&path) {
         Ok(p) => p,
@@ -557,9 +549,7 @@ pub fn registry_file_write(handle_id: i64, content: String) {
 // ── GPU Orchestration ────────────────────────────────────────────────
 
 pub fn registry_gpu_init() -> i64 {
-    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let id = *id_guard;
-    *id_guard += 1;
+    let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
     // This is synchronous and can be slow, but it's called once.
     let instance = wgpu::Instance::default();
@@ -752,9 +742,7 @@ pub fn registry_texture_load(path: String) -> i64 {
         label: Some("diffuse_bind_group"),
     });
 
-    let mut id_guard = COUNTER_NEXT_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let id = *id_guard;
-    *id_guard += 1;
+    let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
     with_registry(|registry| {
         registry.insert(
@@ -927,9 +915,7 @@ pub fn registry_load_texture(path: &str) -> i64 {
         let (width, height) = rgba.dimensions();
         let raw_data = rgba.into_raw();
 
-        let mut id_guard = TEXTURE_ID_COUNTER.lock().unwrap_or_else(|e| e.into_inner());
-        let id = *id_guard;
-        *id_guard += 1;
+        let id = TEXTURE_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
 
         send_render_command(RenderCommand::LoadTexture {
             id,

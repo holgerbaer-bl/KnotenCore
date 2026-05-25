@@ -4,6 +4,7 @@
 //! camera, and GPU lifecycle. Calls into geometry (mesh generation) and
 //! physics (AABB registration).
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
 use winit::window::Window as WinitWindow;
@@ -57,8 +58,8 @@ pub struct RegistryWindowState {
     pub ui_tree: Vec<crate::ast::Node>,
 }
 
-pub(crate) static NEXT_ENTITY_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
-pub(crate) static NEXT_LIGHT_ID: std::sync::Mutex<usize> = std::sync::Mutex::new(1);
+pub(crate) static NEXT_ENTITY_ID: AtomicUsize = AtomicUsize::new(1);
+pub(crate) static NEXT_LIGHT_ID: AtomicUsize = AtomicUsize::new(1);
 
 pub(crate) static SENT_MESHES: std::sync::Mutex<Option<std::collections::HashSet<String>>> =
     std::sync::Mutex::new(None);
@@ -99,9 +100,7 @@ pub fn registry_spawn_cube(
     let (vertices, indices) = super::geometry::generate_cube();
     ensure_mesh_sent(&mesh_name, vertices, indices);
 
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let entity_id = *id_guard;
-    *id_guard += 1;
+    let entity_id = NEXT_ENTITY_ID.fetch_add(1, Ordering::Relaxed);
 
     let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
     let s = glam::Mat4::from_scale(glam::Vec3::new(w, h, d));
@@ -153,9 +152,7 @@ pub fn registry_spawn_sphere(
     let (vertices, indices) = super::geometry::generate_uv_sphere(rings, sectors);
     ensure_mesh_sent(&mesh_name, vertices, indices);
 
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let entity_id = *id_guard;
-    *id_guard += 1;
+    let entity_id = NEXT_ENTITY_ID.fetch_add(1, Ordering::Relaxed);
 
     let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
     let s = glam::Mat4::from_scale(glam::Vec3::splat(radius));
@@ -206,9 +203,7 @@ pub fn registry_spawn_cylinder(
     let (vertices, indices) = super::geometry::generate_cylinder(segments);
     ensure_mesh_sent(&mesh_name, vertices, indices);
 
-    let mut id_guard = NEXT_ENTITY_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let entity_id = *id_guard;
-    *id_guard += 1;
+    let entity_id = NEXT_ENTITY_ID.fetch_add(1, Ordering::Relaxed);
 
     let t = glam::Mat4::from_translation(glam::Vec3::new(x, y, z));
     let s = glam::Mat4::from_scale(glam::Vec3::new(radius, height, radius));
@@ -318,9 +313,7 @@ pub fn registry_spawn_light(
     if window_handle < 0 {
         return -1;
     }
-    let mut id_guard = NEXT_LIGHT_ID.lock().unwrap_or_else(|e| e.into_inner());
-    let light_id = *id_guard;
-    *id_guard += 1;
+    let light_id = NEXT_LIGHT_ID.fetch_add(1, Ordering::Relaxed);
 
     send_render_command(RenderCommand::SpawnLight {
         window_id: window_handle as usize,

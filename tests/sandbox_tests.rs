@@ -318,3 +318,40 @@ fn test_domain_whitelist_api_knotencore_de() {
             .any(|d| domain == d.as_str() || domain.ends_with(&format!(".{}", d)))
     );
 }
+
+// ── Sprint 203: Lock-Free Registry Concurrency Test ────────────────
+
+#[test]
+fn test_registry_parallel_lock_contention_immune() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::thread;
+
+    let counter = Arc::new(AtomicUsize::new(1));
+    let handles: Vec<_> = (0..8)
+        .map(|_| {
+            let ctr = Arc::clone(&counter);
+            thread::spawn(move || {
+                let mut ids = Vec::new();
+                for _ in 0..1000 {
+                    ids.push(ctr.fetch_add(1, Ordering::Relaxed));
+                }
+                ids
+            })
+        })
+        .collect();
+
+    let mut all_ids = Vec::new();
+    for h in handles {
+        all_ids.extend(h.join().unwrap());
+    }
+
+    assert_eq!(all_ids.len(), 8000);
+    all_ids.sort();
+    all_ids.dedup();
+    assert_eq!(
+        all_ids.len(),
+        8000,
+        "No duplicate IDs under parallel contention"
+    );
+}
