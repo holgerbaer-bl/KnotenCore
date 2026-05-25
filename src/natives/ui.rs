@@ -110,7 +110,9 @@ pub fn ui_push_bar_chart(label: String, data: Vec<f64>) {
 
 /// Push a progress gauge to the render queue. Called from the FFI bridge.
 pub fn ui_push_progress_gauge(label: String, value: f64, min: f64, max: f64) {
-    let mut guard = PROGRESS_GAUGE_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+    let mut guard = PROGRESS_GAUGE_QUEUE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     guard.push((label, value, min, max));
 }
 
@@ -122,6 +124,8 @@ pub fn ui_drain_bar_charts() -> Vec<(String, Vec<f64>)> {
 
 /// Drain the progress gauge queue for rendering. Returns all entries and clears the queue.
 pub fn ui_drain_progress_gauges() -> Vec<(String, f64, f64, f64)> {
-    let mut guard = PROGRESS_GAUGE_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+    let mut guard = PROGRESS_GAUGE_QUEUE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     std::mem::take(&mut *guard)
 }

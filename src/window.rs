@@ -1252,10 +1252,8 @@ fn render_buffered_charts(ui: &mut egui::Ui) {
             ui.spacing_mut().item_spacing = egui::Vec2::new(2.0, 0.0);
             for v in &values {
                 let h = (*v / max_val * 80.0).max(4.0) as f32;
-                let (rect, _) = ui.allocate_exact_size(
-                    egui::Vec2::new(bar_width, h),
-                    egui::Sense::hover(),
-                );
+                let (rect, _) =
+                    ui.allocate_exact_size(egui::Vec2::new(bar_width, h), egui::Sense::hover());
                 if ui.is_rect_visible(rect) {
                     let painter = ui.painter();
                     let t = (*v / max_val) as f32;
