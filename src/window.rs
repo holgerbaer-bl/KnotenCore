@@ -1118,33 +1118,38 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
                     rpass.set_pipeline(&state.pipeline);
                     rpass.set_bind_group(0, &state.camera_bind_group, &[]);
 
+                    // Sprint 205: Batch entities by (mesh_name, texture_id)
+                    // to eliminate redundant vertex/index/bind-group rebinding
+                    let mut batches: HashMap<(String, usize), Vec<&crate::natives::scene::SceneEntity>> =
+                        HashMap::new();
                     for entity in state.scene_graph.values() {
-                        let mesh_name = &entity.mesh_name;
-                        let texture_id = entity.texture_id;
-                        let transform = entity.transform;
+                        let key = (entity.mesh_name.clone(), entity.texture_id);
+                        batches.entry(key).or_default().push(entity);
+                    }
 
+                    for ((mesh_name, texture_id), entities) in &batches {
                         if let Some(mesh) = state.geometry_cache.get(mesh_name) {
-                            // Update model matrix
-                            state.queue.write_buffer(
-                                &state.model_buffer,
-                                0,
-                                bytemuck::cast_slice(&transform.to_cols_array()),
-                            );
+                            let mat_bg = state
+                                .texture_cache
+                                .get(texture_id)
+                                .unwrap_or(&state.default_texture_bind_group);
 
                             rpass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
                             rpass.set_index_buffer(
                                 mesh.index_buffer.slice(..),
                                 wgpu::IndexFormat::Uint32,
                             );
-
-                            let mat_bg = state
-                                .texture_cache
-                                .get(&texture_id)
-                                .unwrap_or(&state.default_texture_bind_group);
                             rpass.set_bind_group(1, mat_bg, &[]);
-                            rpass.set_bind_group(2, &state.model_bind_group, &[]);
 
-                            rpass.draw_indexed(0..mesh.index_count, 0, 0..1);
+                            for entity in entities {
+                                state.queue.write_buffer(
+                                    &state.model_buffer,
+                                    0,
+                                    bytemuck::cast_slice(&entity.transform.to_cols_array()),
+                                );
+                                rpass.set_bind_group(2, &state.model_bind_group, &[]);
+                                rpass.draw_indexed(0..mesh.index_count, 0, 0..1);
+                            }
                         }
                     }
                 }
