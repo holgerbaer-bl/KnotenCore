@@ -22,14 +22,10 @@ fn test_domain_whitelist_exact_match() {
     };
 
     // Verify domain extraction: google.com should match
-    assert!(engine
-        .permissions
-        .allowed_domains
-        .iter()
-        .any(|d| {
-            let domain = "google.com";
-            domain == d.as_str() || domain.ends_with(&format!(".{}", d))
-        }));
+    assert!(engine.permissions.allowed_domains.iter().any(|d| {
+        let domain = "google.com";
+        domain == d.as_str() || domain.ends_with(&format!(".{}", d))
+    }));
 }
 
 /// Subdomain match: telemetry.google.com allowed when google.com is whitelisted
@@ -41,7 +37,10 @@ fn test_domain_whitelist_subdomain_match() {
     let matched = allowed
         .iter()
         .any(|d| domain == d.as_str() || domain.ends_with(&format!(".{}", d)));
-    assert!(matched, "Subdomain telemetry.google.com should match google.com");
+    assert!(
+        matched,
+        "Subdomain telemetry.google.com should match google.com"
+    );
 }
 
 /// Suffix attack: evilgoogle.com must NOT match google.com
@@ -98,18 +97,12 @@ fn test_symlink_blocked_by_validate_fs_path() {
     std::os::unix::fs::symlink(&target_file, &symlink_file).ok();
     #[cfg(windows)]
     {
-        std::os::windows::fs::symlink_file(
-            Path::new(&target_file),
-            Path::new(&symlink_file),
-        )
-        .ok();
+        std::os::windows::fs::symlink_file(Path::new(&target_file), Path::new(&symlink_file)).ok();
     }
 
     // If the symlink exists and is detected, validate_fs_path should reject it
     if symlink_file.exists() {
-        let result = ExecutionEngine::validate_fs_path(
-            &symlink_file.to_string_lossy(),
-        );
+        let result = ExecutionEngine::validate_fs_path(&symlink_file.to_string_lossy());
         // Sprint 190: Symlink blocking rejects paths containing symlinks
         assert!(
             result.is_err(),
@@ -144,16 +137,11 @@ fn test_symlink_blocked_by_validate_fs_path_write() {
     std::os::unix::fs::symlink(&target_file, &symlink_file).ok();
     #[cfg(windows)]
     {
-        std::os::windows::fs::symlink_file(
-            Path::new(&target_file),
-            Path::new(&symlink_file),
-        )
-        .ok();
+        std::os::windows::fs::symlink_file(Path::new(&target_file), Path::new(&symlink_file)).ok();
     }
 
     if symlink_file.exists() {
-        let result =
-            ExecutionEngine::validate_fs_path_write(&symlink_file.to_string_lossy());
+        let result = ExecutionEngine::validate_fs_path_write(&symlink_file.to_string_lossy());
         assert!(
             result.is_err(),
             "validate_fs_path_write must reject symlink paths"
