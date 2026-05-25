@@ -172,10 +172,9 @@ impl<'a> Lexer<'a> {
                 }
             }
             if is_float {
-                return Ok(Token::Float(
-                    s.parse()
-                        .map_err(|_| ParseError::Other(format!("Invalid float: {}", s)))?,
-                ));
+                return Ok(Token::Float(s.parse().map_err(|_| {
+                    ParseError::Other(format!("Invalid float: {}", s))
+                })?));
             } else {
                 return Ok(Token::Int(
                     s.parse()
@@ -311,10 +310,7 @@ impl Parser {
     fn expect(&mut self, expected: Token) -> Result<(), ParseError> {
         let t = self.advance();
         if t != expected {
-            Err(self.parse_error(format!(
-                "Expected {:?}, found {:?}",
-                expected, t
-            )))
+            Err(self.parse_error(format!("Expected {:?}, found {:?}", expected, t)))
         } else {
             Ok(())
         }
@@ -356,11 +352,7 @@ impl Parser {
                     self.advance();
                     else_branch = Some(Box::new(self.parse_block()?));
                 }
-                Ok(Node::If(
-                    Box::new(cond),
-                    Box::new(then_branch),
-                    else_branch,
-                ))
+                Ok(Node::If(Box::new(cond), Box::new(then_branch), else_branch))
             }
             Token::KeywordWhile => {
                 self.advance();
@@ -401,9 +393,7 @@ impl Parser {
                 let file_path = match self.advance() {
                     Token::Str(s) => s,
                     _ => {
-                        return Err(
-                            self.parse_error("Expected string literal after import".into())
-                        )
+                        return Err(self.parse_error("Expected string literal after import".into()));
                     }
                 };
                 self.expect(Token::Semi)?;
@@ -432,16 +422,12 @@ impl Parser {
                         let method = if let Node::StringLiteral(s) = &args[0] {
                             s.clone()
                         } else {
-                            return Err(
-                                self.parse_error("Fetch expects Method as string".into())
-                            );
+                            return Err(self.parse_error("Fetch expects Method as string".into()));
                         };
                         let url = if let Node::StringLiteral(s) = &args[1] {
                             s.clone()
                         } else {
-                            return Err(
-                                self.parse_error("Fetch expects URL as string".into())
-                            );
+                            return Err(self.parse_error("Fetch expects URL as string".into()));
                         };
                         return Ok(Node::Fetch {
                             method,
@@ -490,9 +476,7 @@ impl Parser {
                 Node::ArrayGet(arr, index) => Ok(Node::ArraySet(arr, index, Box::new(right))),
                 Node::MapGet(map, key) => Ok(Node::MapSet(map, key, Box::new(right))),
                 Node::PropertyGet(obj, prop) => Ok(Node::PropertySet(obj, prop, Box::new(right))),
-                Node::Index(container, idx) => {
-                    Ok(Node::ArraySet(container, idx, Box::new(right)))
-                }
+                Node::Index(container, idx) => Ok(Node::ArraySet(container, idx, Box::new(right))),
                 _ => Err(self.parse_error("Invalid assignment target".into())),
             }
         } else {
@@ -570,13 +554,11 @@ impl Parser {
                 }
                 Token::Shl => {
                     self.advance();
-                    node =
-                        Node::BitShiftLeft(Box::new(node), Box::new(self.parse_primary()?));
+                    node = Node::BitShiftLeft(Box::new(node), Box::new(self.parse_primary()?));
                 }
                 Token::Shr => {
                     self.advance();
-                    node =
-                        Node::BitShiftRight(Box::new(node), Box::new(self.parse_primary()?));
+                    node = Node::BitShiftRight(Box::new(node), Box::new(self.parse_primary()?));
                 }
                 Token::Amp => {
                     self.advance();
@@ -685,7 +667,7 @@ impl Parser {
                                 return Err(self.parse_error(format!(
                                     "Expected property name in object literal, found {:?}",
                                     other
-                                )))
+                                )));
                             }
                         };
                         self.expect(Token::Colon)?;
@@ -704,11 +686,8 @@ impl Parser {
             }
             _ => {
                 return Err(
-                    self.parse_error(format!(
-                        "Unexpected token in expression: {:?}",
-                        self.peek()
-                    ))
-                )
+                    self.parse_error(format!("Unexpected token in expression: {:?}", self.peek()))
+                );
             }
         };
 
@@ -771,9 +750,7 @@ impl Parser {
                 if let Node::StringLiteral(s) = args.remove(0) {
                     s
                 } else {
-                    return Err(
-                        self.parse_error("UIScrollArea expects exact String ID arg".into())
-                    );
+                    return Err(self.parse_error("UIScrollArea expects exact String ID arg".into()));
                 },
                 Box::new(args.remove(0)),
             ),
@@ -825,12 +802,8 @@ impl Parser {
             }
             "Concat" => Node::Concat(Box::new(args.remove(0)), Box::new(args.remove(0))),
             "ArrayLen" => Node::ArrayLen(Box::new(args.remove(0))),
-            "ArrayPush" => {
-                Node::ArrayPush(Box::new(args.remove(0)), Box::new(args.remove(0)))
-            }
-            "ArrayGet" => {
-                Node::ArrayGet(Box::new(args.remove(0)), Box::new(args.remove(0)))
-            }
+            "ArrayPush" => Node::ArrayPush(Box::new(args.remove(0)), Box::new(args.remove(0))),
+            "ArrayGet" => Node::ArrayGet(Box::new(args.remove(0)), Box::new(args.remove(0))),
             "ArraySet" => Node::ArraySet(
                 Box::new(args.remove(0)),
                 Box::new(args.remove(0)),
@@ -843,15 +816,11 @@ impl Parser {
                 Box::new(args.remove(0)),
                 Box::new(args.remove(0)),
             ),
-            "MapHasKey" => {
-                Node::MapHasKey(Box::new(args.remove(0)), Box::new(args.remove(0)))
-            }
+            "MapHasKey" => Node::MapHasKey(Box::new(args.remove(0)), Box::new(args.remove(0))),
             "ToString" => Node::ToString(Box::new(args.remove(0))),
             "FileRead" => Node::FileRead(Box::new(args.remove(0))),
             "FSRead" => Node::FSRead(Box::new(args.remove(0))),
-            "FSWrite" => {
-                Node::FSWrite(Box::new(args.remove(0)), Box::new(args.remove(0)))
-            }
+            "FSWrite" => Node::FSWrite(Box::new(args.remove(0)), Box::new(args.remove(0))),
             "CheckCollision" => Node::CheckCollision {
                 a_min: Box::new(args.remove(0)),
                 a_max: Box::new(args.remove(0)),
