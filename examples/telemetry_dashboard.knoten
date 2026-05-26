@@ -116,3 +116,4 @@ UIWindow("main_dash", "Telemetry Dashboard – " + current_time, UIVBox {
     UILabel("CPU avg (4-sample): " + ToString(avg_cpu_final) + " %");
     UILabel("3D Point scaled 2x: " + ToString(transformed[0]) + ", " + ToString(transformed[1]) + ", " + ToString(transformed[2]));
 });
+
