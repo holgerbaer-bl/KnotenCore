@@ -17,7 +17,6 @@
 // CRITICAL: All 3D coordinates are strict floats (.0). The texture argument uses
 // Int(0) = default white material (Sprint 161 stabilization).
 
-import "core/time.nod";
 
 // ── 3D Scene Init ─────────────────────────────────────────────────
 let win = registry_create_window(900, 600, "KnotenCore — The Control Room");

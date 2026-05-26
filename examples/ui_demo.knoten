@@ -7,7 +7,6 @@
 // The UI tree is set ONCE (retained mode). The VM loop only polls
 // for events — it does NOT re-send the tree every frame.
 
-import "core/time.nod";
 
 // ── Init ──────────────────────────────────────────────────────────
 let win = registry_create_window(640, 400, "KnotenCore - UI Retained-Mode Demo");

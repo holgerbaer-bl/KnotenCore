@@ -7,7 +7,6 @@
 // Passing integers to float FFI args triggers ExecResult::Fault.
 // The texture argument accepts 0 (Int) to use the default white texture.
 
-import "core/time.nod";
 
 // ── Init Phase ─────────────────────────────────────────────────────
 let win = registry_create_window(1024, 768, "KnotenCore - Scene Graph Ping-Test");

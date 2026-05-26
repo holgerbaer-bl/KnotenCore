@@ -5,7 +5,6 @@
 // around it using trigonometric functions, casting real-time Blinn-Phong
 // illumination across its surfaces.
 
-import "core/time.nod";
 
 let win = registry_create_window(800, 600, "KnotenCore - Dynamic Lighting Demo");
 registry_set_camera_for_window(win, 60.0, 0.0, 4.0, 10.0);
