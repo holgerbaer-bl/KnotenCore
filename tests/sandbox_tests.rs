@@ -351,11 +351,7 @@ fn test_examples_compilation_and_validation() {
     let mut parsed = 0;
     for file in &example_files {
         let path = examples_dir.join(file);
-        assert!(
-            path.exists(),
-            "Example file must exist: {}",
-            file
-        );
+        assert!(path.exists(), "Example file must exist: {}", file);
         let source = std::fs::read_to_string(&path).unwrap_or_else(|e| {
             panic!("Failed to read '{}': {}", file, e);
         });
@@ -374,7 +370,11 @@ fn test_examples_compilation_and_validation() {
         }
         parsed += 1;
     }
-    assert_eq!(parsed, example_files.len(), "All examples must parse and validate");
+    assert_eq!(
+        parsed,
+        example_files.len(),
+        "All examples must parse and validate"
+    );
 }
 
 #[test]
@@ -416,8 +416,8 @@ fn test_registry_parallel_lock_contention_immune() {
 
 #[test]
 fn test_asset_streaming_non_blocking() {
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::thread;
     use std::time::Instant;
 
@@ -452,8 +452,8 @@ fn test_asset_streaming_non_blocking() {
 
 #[test]
 fn test_asset_streaming_fallback_applied() {
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::thread;
 
     let counter = Arc::new(AtomicUsize::new(1));
@@ -479,17 +479,19 @@ fn test_asset_streaming_fallback_applied() {
     assert_eq!(ids.len(), 3);
     ids.sort();
     ids.dedup();
-    assert_eq!(ids.len(), 3, "Failed texture loads must still assign unique IDs");
+    assert_eq!(
+        ids.len(),
+        3,
+        "Failed texture loads must still assign unique IDs"
+    );
 }
 
 // ── Sprint 209: Dirty-Flag Bandwidth Cache Test ──────────────────
 
 #[test]
 fn test_render_loop_bandwidth_cache_applied() {
-    let mut scene: std::collections::HashMap<
-        usize,
-        knoten_core::natives::scene::SceneEntity,
-    > = std::collections::HashMap::new();
+    let mut scene: std::collections::HashMap<usize, knoten_core::natives::scene::SceneEntity> =
+        std::collections::HashMap::new();
 
     for i in 0..3 {
         scene.insert(
@@ -504,7 +506,10 @@ fn test_render_loop_bandwidth_cache_applied() {
     }
 
     // Frame 1: all dirty → upload needed
-    assert!(scene.values().all(|e| e.is_dirty), "All entities dirty on spawn");
+    assert!(
+        scene.values().all(|e| e.is_dirty),
+        "All entities dirty on spawn"
+    );
 
     // Clear after render
     for e in scene.values_mut() {

@@ -972,9 +972,7 @@ pub fn registry_load_texture(path: &str) -> i64 {
             });
         } else {
             eprintln!("[KnotenCore Texture] Failed to load '{}'", path_owned);
-            send_render_command(RenderCommand::LoadTextureFailed {
-                id: id as usize,
-            });
+            send_render_command(RenderCommand::LoadTextureFailed { id: id as usize });
         }
     });
 
