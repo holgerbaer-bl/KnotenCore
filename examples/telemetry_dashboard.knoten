@@ -99,7 +99,7 @@ print("  3D point [10,20,30] scaled 2x: ");
 print(transformed);
 
 // ═══ SECTION 10: Persist State (Sprint 183) ════════════════════════
-let cache_json = "{\"last_run\": \"" + current_time + "\"}";
+let cache_json = "{last_run: " + current_time + "}";
 let save_ok = file_write("examples/telemetry_cache.json", cache_json);
 print("  Cache saved: " + ToString(save_ok));
 
