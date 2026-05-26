@@ -4,7 +4,6 @@
 // at random X and Z coordinates within the range [-5.0, 5.0].
 // Uses Int(0) for untextured cubes as specified.
 
-import "core/time.nod";
 
 let win = registry_create_window(800, 600, "KnotenCore - Chaos Protocol");
 registry_set_camera_for_window(win, 60.0, 0.0, 4.0, 10.0);

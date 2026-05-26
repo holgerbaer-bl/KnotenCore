@@ -4,7 +4,6 @@
 // It spawns a textured cube and an orbiting sphere whose position
 // is calculated using math_sin and math_cos in the VM loop.
 
-import "core/time.nod";
 
 let win = registry_create_window(800, 600, "KnotenCore - Math Orbit Demo");
 registry_set_camera_for_window(win, 60.0, 0.0, 4.0, 10.0);
