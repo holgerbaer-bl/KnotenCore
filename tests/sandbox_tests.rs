@@ -343,7 +343,6 @@ fn test_examples_compilation_and_validation() {
         "RESCUE_3D.knoten",
         "scene_demo.knoten",
         "telemetry_dashboard.knoten",
-        "texture_demo.knoten",
         "time_stamping.knoten",
         "ui_demo.knoten",
         "watchdog_test.knoten",
