@@ -19,7 +19,7 @@ print(epoch);
 let cache_line = "cache_line_" + ToString(epoch);
 print("  Writing cache entry: " + cache_line);
 
-let payload = "{\"stamp\": " + ToString(epoch) + ", \"date\": \"" + formatted + "\"}";
+let payload = "{stamp: " + ToString(epoch) + ", date: " + formatted + "}";
 let ok = file_write("examples/time_cache.json", payload);
 print("  file_write result: ");
 print(ok);
