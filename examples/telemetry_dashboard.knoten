@@ -73,9 +73,9 @@ print("  Peephole test — x=" + ToString(x) + " y=" + ToString(y) + " z=" + ToS
 
 // ═══ SECTION 7: Progress Gauges (Sprint 189) ═══════════════════════
 // Current values extracted from the latest data point
-let current_cpu = cpu_scaled[9];
-let current_mem = mem_raw[9];
-let current_dsk = dsk_raw[9];
+let current_cpu = array_get(cpu_scaled, 9);
+let current_mem = array_get(mem_raw, 9);
+let current_dsk = array_get(dsk_raw, 9);
 
 ui_progress_gauge("CPU Load", current_cpu, 0.0, 100.0);
 ui_progress_gauge("RAM Usage", current_mem, 0.0, 64.0);
