@@ -23,7 +23,7 @@ fn draw_board(win, board) {
 
     let i = 0;
     while (i < 8) {
-        let val = board[i];
+        let val = array_get(board, i);
         if (val != 0) {
             let sx = get_x(i);
             let sy = get_y(i);
