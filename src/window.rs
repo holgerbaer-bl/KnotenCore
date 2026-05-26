@@ -744,6 +744,73 @@ impl KnotenApp {
                     state.texture_cache.insert(id, bind_group);
                 }
             }
+            // Sprint 210: Fallback texture for async load failures
+            // Creates a 2x2 magenta-black checkerboard pattern
+            RenderCommand::LoadTextureFailed { id } => {
+                for state in self.windows.values_mut() {
+                    let magenta = [255u8, 0, 255, 255]; // Magenta RGBA
+                    let black = [0u8, 0, 0, 255]; // Black RGBA
+                    let checker: Vec<u8> = [magenta, black, black, magenta]
+                        .iter()
+                        .flatten()
+                        .copied()
+                        .collect();
+                    let texture_size = wgpu::Extent3d {
+                        width: 2,
+                        height: 2,
+                        depth_or_array_layers: 1,
+                    };
+                    let diffuse_texture = state.device.create_texture(&wgpu::TextureDescriptor {
+                        size: texture_size,
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                        label: Some(&format!("Fallback Texture {}", id)),
+                        view_formats: &[],
+                    });
+                    state.queue.write_texture(
+                        wgpu::ImageCopyTexture {
+                            texture: &diffuse_texture,
+                            mip_level: 0,
+                            origin: wgpu::Origin3d::ZERO,
+                            aspect: wgpu::TextureAspect::All,
+                        },
+                        &checker,
+                        wgpu::ImageDataLayout {
+                            offset: 0,
+                            bytes_per_row: Some(8),
+                            rows_per_image: Some(2),
+                        },
+                        texture_size,
+                    );
+                    let view = diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let sampler = state.device.create_sampler(&wgpu::SamplerDescriptor {
+                        address_mode_u: wgpu::AddressMode::Repeat,
+                        address_mode_v: wgpu::AddressMode::Repeat,
+                        mag_filter: wgpu::FilterMode::Nearest,
+                        min_filter: wgpu::FilterMode::Nearest,
+                        ..Default::default()
+                    });
+                    let material_bgl = state.pipeline.get_bind_group_layout(1);
+                    let bind_group = state.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        layout: &material_bgl,
+                        entries: &[
+                            wgpu::BindGroupEntry {
+                                binding: 0,
+                                resource: wgpu::BindingResource::TextureView(&view),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 1,
+                                resource: wgpu::BindingResource::Sampler(&sampler),
+                            },
+                        ],
+                        label: Some(&format!("Fallback Bind Group {}", id)),
+                    });
+                    state.texture_cache.insert(id, bind_group);
+                }
+            }
             RenderCommand::ExitEventLoop => {
                 event_loop.exit();
             }
