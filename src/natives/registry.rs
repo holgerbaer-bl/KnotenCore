@@ -101,6 +101,10 @@ pub enum RenderCommand {
         height: u32,
         rgba: Vec<u8>,
     },
+    // Sprint 210: Async texture load failure fallback
+    LoadTextureFailed {
+        id: usize,
+    },
     LoadComputeShader {
         id: usize,
         source: String,
@@ -968,6 +972,9 @@ pub fn registry_load_texture(path: &str) -> i64 {
             });
         } else {
             eprintln!("[KnotenCore Texture] Failed to load '{}'", path_owned);
+            send_render_command(RenderCommand::LoadTextureFailed {
+                id: id as usize,
+            });
         }
     });
 
