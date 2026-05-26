@@ -29,6 +29,6 @@ let cached = file_read("examples/time_cache.json");
 let parsed = json_parse(cached);
 let read_stamp = parsed.stamp;
 print("  Read-back stamp matches epoch: ");
-print(read_stamp .eq epoch);
+print(read_stamp == epoch);
 
 print("=== Sprint 188: All phases complete ===");

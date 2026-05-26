@@ -50,12 +50,12 @@ print("  Constant folded value (100 - 25*2): " + ToString(gauge_offset));
 print("=== Loop Optimizer Demo ===");
 let avg_cpu = 0.0;
 let i = 0;
-while (i .lt 4) {
+while (i < 4) {
     let idx = i * 2;
     let val = idx + 1;
     avg_cpu = avg_cpu + val;
     i = i + 1;
-    if (i .gt 3) {
+    if (i > 3) {
         i = 5;
     };
 }
