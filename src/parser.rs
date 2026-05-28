@@ -1,4 +1,4 @@
-use crate::ast::Node;
+use knoten_core_types::ast::Node;
 
 #[derive(Debug, Clone)]
 pub enum ParseError {

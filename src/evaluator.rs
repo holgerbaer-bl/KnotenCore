@@ -1,4 +1,4 @@
-use crate::ast::Node;
+use knoten_core_types::ast::Node;
 use crate::executor::{ExecResult, ExecutionEngine, RelType, StackFrame};
 use std::collections::HashMap;
 

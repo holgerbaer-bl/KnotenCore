@@ -1,4 +1,4 @@
-use crate::ast::Node;
+use knoten_core_types::ast::Node;
 use crate::natives::NativeModule;
 use crate::natives::bridge::{BridgeModule, CoreBridge};
 use std::collections::HashMap;
