@@ -1,6 +1,6 @@
-use crate::ast::Node;
+use knoten_core_types::ast::Node;
 use crate::executor::RelType;
-use crate::vm::opcode::{OpCode, SimdOp};
+use knoten_core_types::opcode::{OpCode, SimdOp};
 
 #[derive(Default)]
 pub struct Compiler {
@@ -849,7 +849,7 @@ impl Compiler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::Node;
+    use knoten_core_types::ast::Node;
 
     #[test]
     fn test_compile_add() {

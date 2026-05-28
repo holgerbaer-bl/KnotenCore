@@ -1,5 +1,5 @@
 [package]
-name = "knoten_core"
+name = "aether_compiler"
 version = "1.1.0"
 edition = "2024"
 
@@ -55,10 +55,7 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 dashmap = "6.1.0"
 regex = "1.10"
 chrono = "0.4"
-knoten_core_types = { path = "knoten_core_types" }
-
-[workspace]
-members = ["knoten_core_types"]
+knoten_core_types = { path = "../knoten_core_types" }
 
 [profile.release]
 opt-level = "z"

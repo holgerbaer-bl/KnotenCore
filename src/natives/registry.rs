@@ -87,7 +87,7 @@ pub enum RenderCommand {
     UpdateWindow(usize),
     UpdateUI {
         window_id: usize,
-        nodes: Vec<crate::ast::Node>,
+        nodes: Vec<knoten_core_types::ast::Node>,
     },
     CloseWindow(usize),
     AddMesh {
@@ -158,19 +158,19 @@ pub fn send_render_command(cmd: RenderCommand) {
 
 /// Sprint 162: Send a UI tree to a specific window for retained-mode rendering.
 /// The window ID must match a window previously created with `registry_create_window`.
-pub fn send_ui_nodes_to(window_id: usize, nodes: Vec<crate::ast::Node>) {
+pub fn send_ui_nodes_to(window_id: usize, nodes: Vec<knoten_core_types::ast::Node>) {
     send_render_command(RenderCommand::UpdateUI { window_id, nodes });
 }
 
 /// Legacy helper: broadcasts to window 1 (single-window scripts).
-pub fn send_ui_nodes(nodes: Vec<crate::ast::Node>) {
+pub fn send_ui_nodes(nodes: Vec<knoten_core_types::ast::Node>) {
     send_ui_nodes_to(1, nodes);
 }
 
 /// Sprint 162: Set the retained UI tree for a window.
 /// Accepts a window handle (i64) and a vector of AST nodes.
 /// The render thread will autonomously draw this tree at 60 FPS.
-pub fn registry_ui_set(window_handle: i64, nodes: Vec<crate::ast::Node>) {
+pub fn registry_ui_set(window_handle: i64, nodes: Vec<knoten_core_types::ast::Node>) {
     if window_handle < 0 {
         return;
     }

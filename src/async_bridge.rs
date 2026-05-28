@@ -1,4 +1,4 @@
-use crate::ast::Node;
+use knoten_core_types::ast::Node;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 

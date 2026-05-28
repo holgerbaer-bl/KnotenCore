@@ -1307,12 +1307,12 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
 ///   - UITextInput edit → `ui_text_write(key, val)` persists into UI_TEXT_BUFFERS
 ///
 /// The VM reads these stores via `registry_ui_poll_button` / `registry_ui_read_text`.
-fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {
+fn render_egui_node(ui: &mut egui::Ui, node: &knoten_core_types::ast::Node) {
     match node {
         // ── UIButton ─────────────────────────────────────────────
         // Label is the button text and its event-routing key.
-        crate::ast::Node::UIButton(text_node) => {
-            let label = if let crate::ast::Node::StringLiteral(s) = &**text_node {
+        knoten_core_types::ast::Node::UIButton(text_node) => {
+            let label = if let knoten_core_types::ast::Node::StringLiteral(s) = &**text_node {
                 s.clone()
             } else {
                 "Button".to_string()
@@ -1325,8 +1325,8 @@ fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {
         // ── UITextInput ───────────────────────────────────────────
         // The seed value (StringLiteral) is also used as the buffer key,
         // enabling multiple independent text inputs in one window.
-        crate::ast::Node::UITextInput(seed_node) => {
-            let key = if let crate::ast::Node::StringLiteral(s) = &**seed_node {
+        knoten_core_types::ast::Node::UITextInput(seed_node) => {
+            let key = if let knoten_core_types::ast::Node::StringLiteral(s) = &**seed_node {
                 s.clone()
             } else {
                 // Fall back to the legacy single buffer
@@ -1342,21 +1342,21 @@ fn render_egui_node(ui: &mut egui::Ui, node: &crate::ast::Node) {
         }
 
         // ── UILabel ───────────────────────────────────────────────
-        crate::ast::Node::UILabel(text_node) => {
-            if let crate::ast::Node::StringLiteral(s) = &**text_node {
+        knoten_core_types::ast::Node::UILabel(text_node) => {
+            if let knoten_core_types::ast::Node::StringLiteral(s) = &**text_node {
                 ui.label(s);
             }
         }
 
         // ── UIHBox / UIVBox ───────────────────────────────────────
-        crate::ast::Node::UIHBox(children) => {
+        knoten_core_types::ast::Node::UIHBox(children) => {
             ui.horizontal(|ui| {
                 for child in children {
                     render_egui_node(ui, child);
                 }
             });
         }
-        crate::ast::Node::UIVBox(children) => {
+        knoten_core_types::ast::Node::UIVBox(children) => {
             ui.vertical(|ui| {
                 for child in children {
                     render_egui_node(ui, child);

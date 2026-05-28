@@ -1,5 +1,5 @@
 use crate::executor::{AgentPermissions, ExecutionEngine, RelType};
-use crate::vm::opcode::{OpCode, SimdOp};
+use knoten_core_types::opcode::{OpCode, SimdOp};
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::time::Instant;
@@ -732,8 +732,8 @@ impl VM {
                         v => v.to_string(),
                     };
                     self.stack
-                        .push(RelType::ASTNode(Box::new(crate::ast::Node::UILabel(
-                            Box::new(crate::ast::Node::StringLiteral(text)),
+                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UILabel(
+                            Box::new(knoten_core_types::ast::Node::StringLiteral(text)),
                         ))));
                 }
                 OpCode::UIButton => {
@@ -743,8 +743,8 @@ impl VM {
                         v => v.to_string(),
                     };
                     self.stack
-                        .push(RelType::ASTNode(Box::new(crate::ast::Node::UIButton(
-                            Box::new(crate::ast::Node::StringLiteral(text)),
+                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UIButton(
+                            Box::new(knoten_core_types::ast::Node::StringLiteral(text)),
                         ))));
                 }
                 OpCode::UITextInput => {
@@ -754,8 +754,8 @@ impl VM {
                         v => v.to_string(),
                     };
                     self.stack
-                        .push(RelType::ASTNode(Box::new(crate::ast::Node::UITextInput(
-                            Box::new(crate::ast::Node::StringLiteral(text)),
+                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UITextInput(
+                            Box::new(knoten_core_types::ast::Node::StringLiteral(text)),
                         ))));
                 }
                 OpCode::UIHBox(count) => {
@@ -767,7 +767,7 @@ impl VM {
                     }
                     children.reverse();
                     self.stack
-                        .push(RelType::ASTNode(Box::new(crate::ast::Node::UIHBox(
+                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UIHBox(
                             children,
                         ))));
                 }
@@ -780,7 +780,7 @@ impl VM {
                     }
                     children.reverse();
                     self.stack
-                        .push(RelType::ASTNode(Box::new(crate::ast::Node::UIVBox(
+                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UIVBox(
                             children,
                         ))));
                 }
@@ -1088,7 +1088,7 @@ impl VM {
 mod tests {
     use super::*;
     use crate::executor::RelType;
-    use crate::vm::opcode::OpCode;
+    use knoten_core_types::opcode::OpCode;
 
     #[test]
     fn test_vm_execution_add() {

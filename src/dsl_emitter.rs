@@ -1,4 +1,4 @@
-use crate::ast::Node;
+use knoten_core_types::ast::Node;
 
 pub fn emit_dsl(node: &Node, indent: usize) -> String {
     let pad = " ".repeat(indent * 4);

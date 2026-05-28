@@ -1,4 +1,4 @@
-use crate::ast::Node;
+    use knoten_core_types::ast::Node;
 
 pub fn count_nodes(node: &Node) -> usize {
     let mut count = 1;
@@ -1052,7 +1052,7 @@ fn substitute_identifier(node: &Node, name: &str, value: i64) -> Node {
 // ---------------------------------------------------------
 // TYPE INFERENCE ENGINE (SPRINT 26)
 // ---------------------------------------------------------
-use crate::ast::Type;
+use knoten_core_types::ast::Type;
 use std::collections::HashMap;
 
 pub struct TypeChecker {
@@ -1255,7 +1255,7 @@ mod tests {
     //                                           a fraction of our power."
     // =========================================================================
 
-    use crate::ast::Node;
+use knoten_core_types::ast::Node;
 
     fn lit_i(v: i64) -> Node {
         Node::IntLiteral(v)
