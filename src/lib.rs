@@ -1,3 +1,4 @@
+pub use knoten_core_types::ast;
 pub mod async_bridge;
 pub mod audio;
 pub mod compiler;
@@ -12,7 +13,3 @@ pub mod test_lib;
 pub mod validator;
 pub mod vm;
 pub mod window;
-
-// Sprint 211: Types from shared peer-crate
-pub use knoten_core_types::ast;
-pub use knoten_core_types::opcode;
