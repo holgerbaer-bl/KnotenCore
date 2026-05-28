@@ -1,0 +1,31 @@
+// Sprint 170: The Unbreakable Bridge — Panic Safety Test
+//
+// This script spawns 3D objects, then intentionally triggers a panic
+// via registry_force_panic(). The VM must catch the panic, log it,
+// and abort the script. The WGPU window and render loop must survive.
+//
+// Expected behavior:
+//   1. Cubes appear in the window
+//   2. Script panics, console shows "[KnotenCore Panic] Caught panic..."
+//   3. Window stays open, previously spawned cubes render at 60 FPS
+//
+// WARNING: This test intentionally crashes the script execution.
+
+let win = registry_create_window(1024, 768, "KnotenCore - Panic Safety Test");
+registry_set_camera_for_window(win, 60.0, 0.0, 3.0, 8.0);
+
+print("Spawning 3D objects...");
+
+let tex = 0;
+let cube1 = registry_spawn_cube(win, tex, 1.0, 1.0, 1.0, -1.5, 0.0, 0.0);
+let cube2 = registry_spawn_cube(win, tex, 1.0, 1.0, 1.0, 1.5, 0.0, 0.0);
+let sphere = registry_spawn_sphere(win, tex, 0.7, 16, 16, 0.0, 1.5, 0.0);
+
+print("Objects spawned. Now triggering intentional FFI panic...");
+print("(The window should stay open and keep rendering)");
+
+// This call panics inside Rust — must be caught by catch_unwind in the VM
+registry_force_panic();
+
+// This line should never be reached
+print("ERROR: Script continued after panic — safety layer is BROKEN!");

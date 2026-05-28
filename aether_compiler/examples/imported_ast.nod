@@ -1,0 +1,12 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "imported_var",
+        {
+          "IntLiteral": 42
+        }
+      ]
+    }
+  ]
+}

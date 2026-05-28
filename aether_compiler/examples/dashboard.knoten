@@ -1,0 +1,69 @@
+// Sprint 189: Databound UI Components — Dashboard with Charts & Gauges
+// Run with: run_knc --allow-read --allow-write examples/dashboard.knoten
+import "examples/dashboard_config.nod";
+
+let win = registry_create_window(760, 620, "Sprint 189: Databound Dashboard");
+
+// ── Phase 0: Load cached state from disk ─────────────────────
+print("=== Sprint 189: Databound Dashboard ===");
+print("Attempting to load cache.json...");
+
+let cached_raw = file_read("examples/cache.json");
+let cached = json_parse(cached_raw);
+let has_cache = obj_has_key(cached, "slideshow");
+
+let parsed = json_parse("{}");
+let source_label = "none";
+
+if (has_cache) {
+    print("Cache hit — restoring from disk.");
+    parsed = cached;
+    source_label = "(loaded from cache)";
+} else {
+    print("No cache found — falling back to MOCK_JSON.");
+    parsed = json_parse(MOCK_JSON);
+    source_label = "(loaded from config)";
+}
+
+// ── Phase 1: Extract fields for display ──────────────────────
+let title    = parsed.slideshow.title;
+let author   = parsed.slideshow.author;
+let views    = parsed.slideshow.stats.views;
+let active   = parsed.slideshow.stats.active;
+let version  = parsed.meta.version;
+
+// ── Phase 2: Timestamp the load ──────────────────────────────
+let stamp = time_get_string();
+let epoch = time_utc_timestamp();
+print("  Loaded at: " + stamp);
+
+// ── Phase 3: Persist state for next run ──────────────────────
+let re_serialized = json_stringify(parsed);
+let save_ok = file_write("examples/cache.json", re_serialized);
+print("  Cache saved: ");
+print(save_ok);
+
+// ── Phase 4: Build data for charts (historical-like values) ──
+let cpu_history = [0.12, 0.34, 0.56, 0.23, 0.78, 0.45, 0.67, 0.31, 0.89, 0.15];
+let net_history = [0.05, 0.10, 0.08, 0.22, 0.15, 0.30, 0.25, 0.18, 0.40, 0.12];
+
+let cpu_scaled = math_vector_scale(cpu_history, 100.0);
+let net_scaled = math_vector_scale(net_history, 100.0);
+
+// ── Phase 5: Register chart data with the UI queue ───────────
+ui_bar_chart("CPU History (last 10 ticks %)", cpu_scaled);
+ui_bar_chart("Network Throughput", net_scaled);
+ui_progress_gauge("RAM Usage", 42.5, 0.0, 64.0);
+ui_progress_gauge("Disk Usage", 73.0, 0.0, 100.0);
+
+// ── Phase 6: Render the UI dashboard ─────────────────────────
+UIWindow("dashboard_189", "Sprint 189: Databound Dashboard " + source_label, UIVBox {
+    UILabel("=== Node Metrics ===");
+    UILabel("Title: " + title);
+    UILabel("Author: " + author);
+    UILabel("Views: " + ToString(views));
+    UILabel("Active: " + ToString(active));
+    UILabel("Version: " + version);
+    UILabel("");
+    UILabel("Last load: " + stamp + " (epoch " + ToString(epoch) + ")");
+});

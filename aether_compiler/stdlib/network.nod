@@ -1,0 +1,5 @@
+{
+  "Block": [
+    { "FnDef": ["network_get", ["url"], { "Block": [{ "Return": { "ExternCall": { "module": "net", "function": "network_get", "args": [{ "Identifier": "url" }] } } }] } ] }
+  ]
+}

@@ -19,8 +19,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Install Rust toolchain (stable)
         uses: dtolnay/rust-toolchain@stable

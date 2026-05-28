@@ -1,0 +1,45 @@
+let win = registry_create_window(480, 620, "KnotenCore — Calculator");
+
+print("Calculator UI rendered. All 16 buttons interactive via egui at 60 FPS.");
+print("Close the window to see the VM event loop begin processing.");
+
+let display = "0";
+let count = 0;
+
+while (count < 5) {
+    let b7 = registry_ui_poll_button("7");
+    let bC = registry_ui_poll_button("C");
+    let bE = registry_ui_poll_button("=");
+
+    if (b7) { print("7"); }
+    if (bC) { print("Clear"); }
+    if (bE) {
+        print("Compute: 40 + 2");
+        let result = 40.0 + 2.0;
+        print(result);
+    }
+
+    UIWindow("calc_ui", "Calculator", UIVBox {
+        UILabel(display);
+        UIButton("7");
+        UIButton("8");
+        UIButton("9");
+        UIButton("/");
+        UIButton("4");
+        UIButton("5");
+        UIButton("6");
+        UIButton("*");
+        UIButton("1");
+        UIButton("2");
+        UIButton("3");
+        UIButton("-");
+        UIButton("0");
+        UIButton("C");
+        UIButton("=");
+        UIButton("+");
+    });
+
+    count = count + 1;
+}
+
+print("Demo complete. Window stays open — close it manually.");

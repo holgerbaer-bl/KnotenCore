@@ -1,0 +1,119 @@
+// Sprint 198: KnotenCore Telemetry Dashboard
+// Domain: https://knotencore.de/
+// Run: run_knc --allow-read --allow-write examples/telemetry_dashboard.knoten
+
+let win = registry_create_window(800, 640, "KnotenCore v1.2 – Telemetry Dashboard");
+
+// ═══ SECTION 1: Persistence & Cache Management (Sprint 183) ═════════
+print("=== Telemetry Dashboard v1.2 ===");
+print("  Domain: https://knotencore.de/");
+
+let cache_raw = file_read("examples/telemetry_cache.json");
+let cache_data = json_parse(cache_raw);
+let has_cache = obj_has_key(cache_data, "last_run");
+
+let last_run = "never";
+if (has_cache) {
+    print("  Cache hit — restoring previous session.");
+    last_run = cache_data.last_run;
+} else {
+    print("  No cache — initializing fresh session.");
+    last_run = "never";
+}
+print("  Previous run: " + last_run);
+
+// ═══ SECTION 2: Time Stamping (Sprint 188) ══════════════════════════
+let current_time = time_get_string();
+let epoch = time_utc_timestamp();
+print("  Current: " + current_time + " (epoch " + ToString(epoch) + ")");
+
+// ═══ SECTION 3: Data Acquisition — Mock System Metrics ═════════════
+// Simulates pulling telemetry from https://knotencore.de/api/metrics
+// In production, these would come via network_get() with domain whitelist.
+let cpu_raw = [12.5, 34.2, 56.8, 23.1, 78.4, 45.0, 67.3, 31.9, 89.2, 15.7];
+let net_raw = [5.1,  10.3, 8.7,  22.4, 15.0, 30.6, 25.8, 18.2, 40.1, 12.9];
+let mem_raw = [42.5, 41.8, 43.1, 42.0, 44.2, 41.5, 43.8, 42.3, 44.0, 41.2];
+let dsk_raw = [73.0, 73.1, 73.2, 73.0, 73.3, 73.0, 73.1, 73.2, 73.0, 73.1];
+
+// ═══ SECTION 4: Math Operations (Sprint 187 + Inlining Sprint 194) ═
+// These calls are inlined at compile time — zero FFI overhead.
+print("=== Compute Pipeline ===");
+let cpu_scaled = math_vector_scale(cpu_raw, 1.0);
+let net_scaled = math_vector_scale(net_raw, 1.0);
+
+// Constant expression: 100 - 25 * 2 → folded to 50 at compile time
+let gauge_offset = 100 - 25 * 2;
+print("  Constant folded value (100 - 25*2): " + ToString(gauge_offset));
+
+// ═══ SECTION 5: Bounded Loop — Loop Unrolling (Sprint 196) ════════
+// This loop is unrolled at compile time: while(i < 4){...} → flat Block
+print("=== Loop Optimizer Demo ===");
+let avg_cpu = 0.0;
+let i = 0;
+while (i < 4) {
+    let idx = i * 2;
+    let val = idx + 1;
+    avg_cpu = avg_cpu + val;
+    i = i + 1;
+    if (i > 3) {
+        i = 5;
+    };
+}
+// After unrolling + constant folding: avg_cpu = (1+3+5+7) = 16
+let avg_cpu_final = avg_cpu / 4.0;
+print("  Unrolled loop result (should be 4.0): " + ToString(avg_cpu_final));
+
+// ═══ SECTION 6: Peephole Verification (Sprint 197) ════════════════
+// Redundant store-load chain: these assignments trigger SetLocal/GetLocal
+// The peephole pass eliminates the GetLocal between them.
+let x = 42;
+let y = x;    // Peephole: GetLocal(0) eliminated — value already on stack
+let z = y;    // Same pattern repeated
+print("  Peephole test — x=" + ToString(x) + " y=" + ToString(y) + " z=" + ToString(z));
+
+// ═══ SECTION 7: Progress Gauges (Sprint 189) ═══════════════════════
+// Current values extracted from the latest data point
+let current_cpu = array_get(cpu_scaled, 9);
+let current_mem = array_get(mem_raw, 9);
+let current_dsk = array_get(dsk_raw, 9);
+
+ui_progress_gauge("CPU Load", current_cpu, 0.0, 100.0);
+ui_progress_gauge("RAM Usage", current_mem, 0.0, 64.0);
+ui_progress_gauge("Disk Usage", current_dsk, 0.0, 100.0);
+
+// ═══ SECTION 8: Historical Bar Charts (Sprint 189) ═════════════════
+ui_bar_chart("CPU History (last 10 ticks %)", cpu_scaled);
+ui_bar_chart("Memory History (last 10 ticks GB)", mem_raw);
+
+// ═══ SECTION 9: Matrix Transform (Sprint 187) ═════════════════════
+// Apply a scaling matrix to a 3D vector
+let scale_mat = [
+    2.0, 0.0, 0.0, 0.0,
+    0.0, 2.0, 0.0, 0.0,
+    0.0, 0.0, 2.0, 0.0,
+    0.0, 0.0, 0.0, 1.0
+];
+let point = [10.0, 20.0, 30.0];
+let transformed = math_matrix_transform(scale_mat, point);
+print("  3D point [10,20,30] scaled 2x: ");
+print(transformed);
+
+// ═══ SECTION 10: Persist State (Sprint 183) ════════════════════════
+let cache_json = "{last_run: " + current_time + "}";
+let save_ok = file_write("examples/telemetry_cache.json", cache_json);
+print("  Cache saved: " + ToString(save_ok));
+
+// ═══ SECTION 11: Render UI Window ══════════════════════════════════
+UIWindow("main_dash", "Telemetry Dashboard – " + current_time, UIVBox {
+    UILabel("KnotenCore v1.2 Telemetry Dashboard");
+    UILabel("Domain: https://knotencore.de/");
+    UILabel("");
+    UILabel("Last run: " + last_run);
+    UILabel("Current:  " + current_time);
+    UILabel("Epoch:    " + ToString(epoch));
+    UILabel("");
+    UILabel("=== Metrics ===");
+    UILabel("CPU avg (4-sample): " + ToString(avg_cpu_final) + " %");
+    UILabel("3D Point scaled 2x: " + ToString(transformed));
+});
+

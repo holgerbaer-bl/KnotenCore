@@ -1,0 +1,119 @@
+{
+  "Block": [
+    {
+      "FnDef": [
+        "Math.Clamp",
+        [
+          "val",
+          "min",
+          "max"
+        ],
+        {
+          "Block": [
+            {
+              "If": [
+                {
+                  "Lt": [
+                    {
+                      "Identifier": "val"
+                    },
+                    {
+                      "Identifier": "min"
+                    }
+                  ]
+                },
+                {
+                  "Return": {
+                    "Identifier": "min"
+                  }
+                },
+                null
+              ]
+            },
+            {
+              "If": [
+                {
+                  "Lt": [
+                    {
+                      "Identifier": "max"
+                    },
+                    {
+                      "Identifier": "val"
+                    }
+                  ]
+                },
+                {
+                  "Return": {
+                    "Identifier": "max"
+                  }
+                },
+                null
+              ]
+            },
+            {
+              "Return": {
+                "Identifier": "val"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "Math.Lerp",
+        [
+          "a",
+          "b",
+          "t"
+        ],
+        {
+          "Return": {
+            "Add": [
+              {
+                "Identifier": "a"
+              },
+              {
+                "Mul": [
+                  {
+                    "Sub": [
+                      {
+                        "Identifier": "b"
+                      },
+                      {
+                        "Identifier": "a"
+                      }
+                    ]
+                  },
+                  {
+                    "Identifier": "t"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "FnDef": [
+        "Math.DegToRad",
+        [
+          "deg"
+        ],
+        {
+          "Return": {
+            "Mul": [
+              {
+                "Identifier": "deg"
+              },
+              {
+                "FloatLiteral": 0.01745329251
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

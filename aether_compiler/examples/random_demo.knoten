@@ -1,0 +1,25 @@
+// Sprint 168: The Chaos Protocol (Randomness)
+//
+// This script demonstrates math_random(min, max) by spawning 10 cubes
+// at random X and Z coordinates within the range [-5.0, 5.0].
+// Uses Int(0) for untextured cubes as specified.
+
+
+let win = registry_create_window(800, 600, "KnotenCore - Chaos Protocol");
+registry_set_camera_for_window(win, 60.0, 0.0, 4.0, 10.0);
+
+print("Spawning 10 cubes at random positions...");
+
+let i = 0;
+while (i < 10) {
+    let x = math_random(-5.0, 5.0);
+    let z = math_random(-5.0, 5.0);
+    registry_spawn_cube(win, 0, 1.0, 1.0, 1.0, x, 0.0, z);
+    print("Cube at:");
+    print(x);
+    print(z);
+    i = i + 1;
+}
+
+print("All 10 cubes spawned. Window closes after 5 seconds.");
+sleep(5000);

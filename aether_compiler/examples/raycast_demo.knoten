@@ -1,0 +1,66 @@
+// Sprint 164: The Tangible World (Physics & Raycasting)
+//
+// This script proves the Retained-Mode AABB collision and 3D raycasting capabilities.
+// When the user clicks on the 3D canvas, a ray is fired using the autonomous window's
+// camera state. If it hits the cube, it triggers a bullet which moves towards the cube
+// until `registry_check_collision` detects an overlap.
+
+let win = registry_create_window(800, 600, "KnotenCore - Raycast & Physics Demo");
+
+// Position camera slightly elevated
+registry_set_camera_for_window(win, 60.0, 0.0, 1.0, 5.0);
+
+// Spawn target cube at origin
+let cube_id = registry_spawn_cube(win, 0, 1.5, 1.5, 1.5, 0.0, 0.0, 0.0);
+
+// Spawn bullet (hidden initially)
+let bullet_id = registry_spawn_sphere(win, 0, 0.3, 16, 16, 10.0, 10.0, 10.0);
+
+print("KnotenCore Physics Engine Ready.");
+print("Spawned Target Cube ID:");
+print(cube_id);
+
+UIWindow("ui", "Physics Test", UIVBox {
+    UILabel("Click directly on the 3D Cube!");
+    UILabel("Watch the console for raycast hits and collision events.");
+});
+
+let running = true;
+let bullet_moving = false;
+let bullet_x = -4.0;
+
+while (running) {
+    // 1. Raycast Check (Screen-to-World)
+    let clicked_id = registry_get_clicked_entity(win);
+    
+    if (clicked_id != -1) {
+        print("RAYCAST HIT! Entity ID:");
+        print(clicked_id);
+        
+        if (clicked_id == cube_id) {
+            if (bullet_moving == false) {
+                print("Target locked! Firing bullet...");
+                bullet_moving = true;
+                bullet_x = -4.0;
+                registry_update_entity_transform(win, bullet_id, bullet_x, 0.0, 0.0);
+            }
+        }
+    }
+    
+    // 2. Physics Simulation
+    if (bullet_moving) {
+        bullet_x = bullet_x + 0.1;
+        registry_update_entity_transform(win, bullet_id, bullet_x, 0.0, 0.0);
+        
+        // 3. Collision Check
+        let collision = registry_check_collision(cube_id, bullet_id);
+        if (collision) {
+            print("COLLISION DETECTED! Bullet hit the cube.");
+            bullet_moving = false;
+            // Hide bullet away after impact
+            registry_update_entity_transform(win, bullet_id, 10.0, 10.0, 10.0);
+        }
+    }
+
+    sleep(16);
+}
