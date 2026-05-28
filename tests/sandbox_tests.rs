@@ -462,9 +462,7 @@ fn test_asset_streaming_fallback_applied() {
     let handles: Vec<_> = (0..3)
         .map(|_| {
             let ctr = Arc::clone(&counter);
-            thread::spawn(move || {
-                ctr.fetch_add(1, Ordering::Relaxed)
-            })
+            thread::spawn(move || ctr.fetch_add(1, Ordering::Relaxed))
         })
         .collect();
 
