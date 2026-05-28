@@ -731,10 +731,11 @@ impl VM {
                         RelType::Str(s) => s,
                         v => v.to_string(),
                     };
-                    self.stack
-                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UILabel(
-                            Box::new(knoten_core_types::ast::Node::StringLiteral(text)),
-                        ))));
+                    self.stack.push(RelType::ASTNode(Box::new(
+                        knoten_core_types::ast::Node::UILabel(Box::new(
+                            knoten_core_types::ast::Node::StringLiteral(text),
+                        )),
+                    )));
                 }
                 OpCode::UIButton => {
                     let text_val = self.stack.pop().unwrap_or(RelType::Void);
@@ -742,10 +743,11 @@ impl VM {
                         RelType::Str(s) => s,
                         v => v.to_string(),
                     };
-                    self.stack
-                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UIButton(
-                            Box::new(knoten_core_types::ast::Node::StringLiteral(text)),
-                        ))));
+                    self.stack.push(RelType::ASTNode(Box::new(
+                        knoten_core_types::ast::Node::UIButton(Box::new(
+                            knoten_core_types::ast::Node::StringLiteral(text),
+                        )),
+                    )));
                 }
                 OpCode::UITextInput => {
                     let text_val = self.stack.pop().unwrap_or(RelType::Void);
@@ -753,10 +755,11 @@ impl VM {
                         RelType::Str(s) => s,
                         v => v.to_string(),
                     };
-                    self.stack
-                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UITextInput(
-                            Box::new(knoten_core_types::ast::Node::StringLiteral(text)),
-                        ))));
+                    self.stack.push(RelType::ASTNode(Box::new(
+                        knoten_core_types::ast::Node::UITextInput(Box::new(
+                            knoten_core_types::ast::Node::StringLiteral(text),
+                        )),
+                    )));
                 }
                 OpCode::UIHBox(count) => {
                     let mut children = Vec::with_capacity(*count);
@@ -766,10 +769,9 @@ impl VM {
                         }
                     }
                     children.reverse();
-                    self.stack
-                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UIHBox(
-                            children,
-                        ))));
+                    self.stack.push(RelType::ASTNode(Box::new(
+                        knoten_core_types::ast::Node::UIHBox(children),
+                    )));
                 }
                 OpCode::UIVBox(count) => {
                     let mut children = Vec::with_capacity(*count);
@@ -779,10 +781,9 @@ impl VM {
                         }
                     }
                     children.reverse();
-                    self.stack
-                        .push(RelType::ASTNode(Box::new(knoten_core_types::ast::Node::UIVBox(
-                            children,
-                        ))));
+                    self.stack.push(RelType::ASTNode(Box::new(
+                        knoten_core_types::ast::Node::UIVBox(children),
+                    )));
                 }
                 OpCode::UIWindow(_id_idx, count) => {
                     let mut children = Vec::with_capacity(*count);

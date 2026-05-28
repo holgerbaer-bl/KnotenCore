@@ -1,4 +1,4 @@
-    use knoten_core_types::ast::Node;
+use knoten_core_types::ast::Node;
 
 pub fn count_nodes(node: &Node) -> usize {
     let mut count = 1;
@@ -1255,7 +1255,7 @@ mod tests {
     //                                           a fraction of our power."
     // =========================================================================
 
-use knoten_core_types::ast::Node;
+    use knoten_core_types::ast::Node;
 
     fn lit_i(v: i64) -> Node {
         Node::IntLiteral(v)

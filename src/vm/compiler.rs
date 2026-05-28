@@ -1,5 +1,5 @@
-use knoten_core_types::ast::Node;
 use crate::executor::RelType;
+use knoten_core_types::ast::Node;
 use knoten_core_types::opcode::{OpCode, SimdOp};
 
 #[derive(Default)]

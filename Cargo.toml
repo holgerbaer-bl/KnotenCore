@@ -30,7 +30,6 @@ dashmap = "6.1.0"
 regex = "1.10"
 chrono = "0.4"
 knoten_core_types = { path = "knoten_core_types" }
-aether_compiler = { path = "aether_compiler" }
 
 [workspace]
 members = ["knoten_core_types"]

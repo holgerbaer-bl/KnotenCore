@@ -1,6 +1,6 @@
-use knoten_core_types::ast::Node;
 use crate::natives::NativeModule;
 use crate::natives::bridge::{BridgeModule, CoreBridge};
+use knoten_core_types::ast::Node;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};

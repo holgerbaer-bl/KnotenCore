@@ -1,5 +1,5 @@
-use knoten_core_types::ast::Node;
 use crate::executor::{ExecResult, ExecutionEngine, RelType, StackFrame};
+use knoten_core_types::ast::Node;
 use std::collections::HashMap;
 
 impl ExecutionEngine {

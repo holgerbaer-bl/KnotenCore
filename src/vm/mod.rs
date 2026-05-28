@@ -1,8 +1,9 @@
 pub mod compiler;
 pub mod machine;
-pub mod opcode;
 pub mod storage;
 
 pub use compiler::Compiler;
 pub use machine::VM;
-pub use opcode::OpCode;
+
+// Sprint 211: OpCode from shared crate
+pub use knoten_core_types::opcode;
