@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 212-B: Final Submodule Coupling & Redundant Compiler Purge (2026-05-28)
+Sprint 212-B: Final Submodule Fusion. Deleted all 30 duplicated source files from `src/`, replaced with a re-export facade over `aether_compiler`. Both crates now use identical `knoten_core_types` for `Node`/`OpCode` — zero type mismatches, zero bridge conversion.
+- **Radikaler Purge**: Deleted 30 source files from main crate's `src/` (all duplicates of `aether_compiler/src/`): `async_bridge.rs`, `audio.rs`, `compiler/`, `dsl_emitter.rs`, `evaluator.rs`, `executor.rs`, `math.rs`, `natives/`, `optimizer.rs`, `parser.rs`, `test_lib.rs`, `validator.rs`, `vm/`, `window.rs`. Main crate `src/` now contains only `lib.rs`, `main.rs`, and `bin/`.
+- **Re-Export Facade**: `src/lib.rs` rewritten as `pub use aether_compiler::{...}` re-export facade. `knoten_core::X` resolves directly to `aether_compiler::X` — no indirection, no type conversion.
+- **Submodule als Library**: `aether_compiler` added as `{ path = "aether_compiler" }` dependency in main Cargo.toml. Workspace includes `aether_compiler` for test coverage. `autobins = false` prevents binary conflicts.
+- **Shared Types Everywhere**: Both crates deleted local `ast.rs`/`vm/opcode.rs` — `Node`, `OpCode`, and `SimdOp` sourced exclusively from `knoten_core_types`. `aether_compiler/src/lib.rs` does `pub use knoten_core_types::ast;`.
+- **Clean Submodule**: Deleted duplicate `aether_compiler/tests/` directory (tests reference `knoten_core::` which resolves through facade in main crate context).
+- **Drei-Crate-Konstrukt**: `knoten_core` (facade) → `aether_compiler` (engine) → `knoten_core_types` (shared types). Circular-dependency-free, crate-level separation of concerns.
+- **CI**: 147/147 tests (71 lib + 55 integration + 21 sandbox), 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 208: Asynchronous Asset Streaming & Background WGPU Queue Worker (2026-05-25)
 Sprint 208: Async Asset Streaming. Offloaded texture I/O and image decoding to background threads, preventing frame-drop spikes during VM execution.
 - **Non-Blocking Texture Load**: `registry_load_texture` now generates the texture ID atomically via `TEXTURE_ID_COUNTER.fetch_add` and returns immediately. The heavy I/O work (`image::open`, `to_rgba8`) is spawned in a `std::thread::spawn` background thread.

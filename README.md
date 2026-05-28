@@ -1,6 +1,6 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v1.2.0--alpha-orange)](https://github.com/holgerbaer-bl/KnotenCore/releases/tag/v1.2.0-alpha)
+[![Version](https://img.shields.io/badge/version-v1.3.0--alpha-orange)](https://github.com/holgerbaer-bl/KnotenCore/releases/tag/v1.3.0-alpha)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/badge/release-prerelease-yellow)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 

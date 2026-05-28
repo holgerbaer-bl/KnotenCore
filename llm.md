@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v1.2.0-alpha Official Release
+# KnotenCore — AI Agent Reference (Routing Document) - v1.3.0-alpha Official Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -31,8 +31,8 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 | [`docs/LANGUAGE_REFERENCE/native_functions.json`](docs/LANGUAGE_REFERENCE/native_functions.json) | **Native Function Registry** — every FFI function by module, with parameter types, return types, required permissions, and live AST examples. AI agents MUST only call functions listed here. |
 | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | **Anti-Pattern Reference** — 10 explicit DO/DON'T patterns for AI code generation. Read before emitting any `.nod` code. |
 | [`docs/LANGUAGE_REFERENCE/error_catalog.json`](docs/LANGUAGE_REFERENCE/error_catalog.json) | **Error Catalog** — registry of execution fault codes and self-healing hints for AI agents. |
-| [`docs/KNOTEN_SPEC.md`](docs/KNOTEN_SPEC.md) | **KNOTEN_SPEC.md** — Human-readable language reference, derived from `src/ast.rs`. If spec and source diverge, `src/ast.rs` wins. |
-| [`src/ast.rs`](src/ast.rs) | **Rust source of truth** — `pub enum Node` is the canonical definition. If schema and source diverge, source wins. |
+| [`docs/KNOTEN_SPEC.md`](docs/KNOTEN_SPEC.md) | **KNOTEN_SPEC.md** — Human-readable language reference, derived from `knoten_core_types/src/ast.rs`. If spec and source diverge, `knoten_core_types/src/ast.rs` wins. |
+| [`knoten_core_types/src/ast.rs`](knoten_core_types/src/ast.rs) | **Rust source of truth** — `pub enum Node` is the canonical definition in the shared types crate. If schema and source diverge, source wins. |
 
 ---
 
@@ -84,12 +84,12 @@ To add a new native node, update **all four** of these files — no exceptions:
 
 | # | File | What to change |
 |---|------|----------------|
-| 1 | `src/ast.rs` | Add variant to `pub enum Node` |
-| 2 | `src/natives/registry.rs` | Implement native Rust function |
-| 3 | `src/executor.rs` | Add match arm to `evaluate()` |
-| 4 | `src/compiler/codegen.rs` | Add match arm to `generate()` |
+| 1 | `knoten_core_types/src/ast.rs` | Add variant to `pub enum Node` |
+| 2 | `aether_compiler/src/natives/registry.rs` | Implement native Rust function |
+| 3 | `aether_compiler/src/executor.rs` | Add match arm to `evaluate()` |
+| 4 | `aether_compiler/src/compiler/codegen.rs` | Add match arm to `generate()` |
 
-After adding a node, also update `validator.rs`, `optimizer.rs`, and `docs/LANGUAGE_REFERENCE/node_types.json`.
+After adding a node, also update `aether_compiler/src/validator.rs`, `aether_compiler/src/optimizer.rs`, and `docs/LANGUAGE_REFERENCE/node_types.json`.
 
 ---
 
