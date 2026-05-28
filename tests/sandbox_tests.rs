@@ -462,12 +462,7 @@ fn test_asset_streaming_fallback_applied() {
     let handles: Vec<_> = (0..3)
         .map(|_| {
             let ctr = Arc::clone(&counter);
-            thread::spawn(move || {
-                let id = ctr.fetch_add(1, Ordering::Relaxed);
-                // Simulate: path validation fails → returns 0
-                // In real usage, registry_load_texture would return an ID atomically
-                id
-            })
+            thread::spawn(move || ctr.fetch_add(1, Ordering::Relaxed))
         })
         .collect();
 
