@@ -3,32 +3,6 @@ name = "knoten_core"
 version = "1.1.0"
 edition = "2024"
 
-
-
-[[bin]]
-name = "run_knc"
-path = "src/bin/run_knc.rs"
-
-[[bin]]
-name = "bench_knc"
-path = "src/bin/bench_knc.rs"
-
-[[bin]]
-name = "knoten_build"
-path = "src/bin/knoten_build.rs"
-
-[[bin]]
-name = "rust_ingest"
-path = "src/bin/rust_ingest.rs"
-
-[[bin]]
-name = "knoten_upgrade"
-path = "src/bin/knoten_upgrade.rs"
-
-[[bin]]
-name = "knoten_lsp"
-path = "src/bin/knoten_lsp.rs"
-
 [dependencies]
 dunce = "1.0"
 bytemuck = { version = "1.25.0", features = ["derive"] }
