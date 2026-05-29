@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 214: Semantic Anchoring Core Deployment (2026-05-29)
+Sprint 214: Semantic Anchoring Core Deployment. Injected machine-readable semantic anchors (`#ANCHOR:`) into critical source files and the llm.md routing hub. Future AI agents MUST validate these anchor IDs before any code modification.
+- **`#ANCHOR: CORE_TYPES_SOF`** — Injected at `knoten_core_types/src/ast.rs` above `pub enum Node`. Marks the Sole Source of Truth for all shared type definitions (`Node`, `OpCode`). Directive: do not duplicate.
+- **`#ANCHOR: GPGPU_ASYNC_CHANNEL`** — Injected at `aether_compiler/src/natives/registry.rs` above `registry_compute_readback()`. Marks the lock-free crossbeam-channel endpoint for VM compute readback.
+- **Routing Hub Sync**: Both anchor IDs registered in `llm.md` Architecture section and Primary References table. Any AI agent reading `llm.md` is forced to locate these anchors before modifying workspace source.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 213: Lock-Free Async Compute Channels & Mutex Elimination (2026-05-29)
 Sprint 213: Lock-Free Async Compute Channels. Eliminated `COMPUTE_RESULTS: Mutex<Option<HashMap>>` — the last blocking synchronization primitive on the VM and render threads. Replaced with `crossbeam-channel::bounded(16)` async channel.
 - **Mutex Elimination**: Deleted `COMPUTE_RESULTS` static `Mutex<Option<HashMap<usize, Vec<f32>>>>`. Replaced with `OnceLock`-lazy `crossbeam_channel::bounded(16)` channel pair (`Sender`, `Receiver`).

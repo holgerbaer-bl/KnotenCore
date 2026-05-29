@@ -1,3 +1,4 @@
+// #ANCHOR: CORE_TYPES_SOF — Sole Source of Truth for Node and OpCode definitions. Do not duplicate.
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

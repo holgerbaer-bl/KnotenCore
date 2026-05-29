@@ -836,6 +836,7 @@ pub fn registry_dispatch_compute(
 }
 
 // Sprint 213: Lock-free non-blocking readback via crossbeam channel
+// #ANCHOR: GPGPU_ASYNC_CHANNEL — Lock-free crossbeam-channel try_recv endpoint for VM compute readback.
 pub fn registry_compute_readback(shader_id: i64) -> Vec<crate::executor::RelType> {
     let (_, receiver) = ensure_compute_channel();
 

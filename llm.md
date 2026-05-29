@@ -32,7 +32,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | **Anti-Pattern Reference** — 10 explicit DO/DON'T patterns for AI code generation. Read before emitting any `.nod` code. |
 | [`docs/LANGUAGE_REFERENCE/error_catalog.json`](docs/LANGUAGE_REFERENCE/error_catalog.json) | **Error Catalog** — registry of execution fault codes and self-healing hints for AI agents. |
 | [`docs/KNOTEN_SPEC.md`](docs/KNOTEN_SPEC.md) | **KNOTEN_SPEC.md** — Human-readable language reference, derived from `knoten_core_types/src/ast.rs`. If spec and source diverge, `knoten_core_types/src/ast.rs` wins. |
-| [`knoten_core_types/src/ast.rs`](knoten_core_types/src/ast.rs) | **Rust source of truth** — `pub enum Node` is the canonical definition in the shared types crate. If schema and source diverge, source wins. |
+| [`knoten_core_types/src/ast.rs`](knoten_core_types/src/ast.rs) | **Rust source of truth** — `pub enum Node` is the canonical definition in the shared types crate. **Anchor: `#ANCHOR:CORE_TYPES_SOF`**. If schema and source diverge, source wins. |
 
 ---
 
@@ -55,7 +55,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Pure computation** (`Add`, `Sub`, `Mul`, `Div`, `While`, comparison ops) → **AOT path** — compiles to a flat opcode stream, executed by the Stack-VM with no allocations in the hot path.
 - **Side-effects & UI** (`ExternCall`, window ops, WGPU render, audio) → **JIT path** — evaluated by the Executor with full permission sandboxing.
 - **GPGPU Compute** (`LoadComputeShader`, `DispatchCompute`) → **Native WGPU integration** for massive parallel data processing.
-- **GPGPU Compute Readback** (Sprint 213) → Non-blocking crossbeam channel between render thread (producer) and VM thread (consumer). `try_recv()` returns immediately — no frame budget impact.
+- **GPGPU Compute Readback** (Sprint 213) → Non-blocking crossbeam channel between render thread (producer) and VM thread (consumer). `try_recv()` returns immediately — no frame budget impact. **Anchor: `#ANCHOR:GPGPU_ASYNC_CHANNEL`** in `aether_compiler/src/natives/registry.rs`.
 - **Retained-Mode Scene Graph** (Sprint 159) → Scripts spawn entities (`registry_spawn_cube`) and update transforms asynchronously; WGPU renders the persistent `SceneGraph` autonomously.
 - **Retained-Mode 2D UI** (Sprint 162) → Scripts set a `UIButton`/`UITextInput`/`UILabel`/`UIVBox`/`UIHBox` tree once via `UpdateUI`; egui renders it at 60 FPS. Events route back via `registry_ui_poll_button(label)` (Bool) and `registry_ui_read_text(key)` (String).
 - **UI→3D Value Bridging** (Sprint 163) → `registry_parse_float(String) -> Float` safely converts `UITextInput` strings to floats for use as 3D coordinates. Returns `0.0` on invalid input.
