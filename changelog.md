@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 213: Lock-Free Async Compute Channels & Mutex Elimination (2026-05-29)
+Sprint 213: Lock-Free Async Compute Channels. Eliminated `COMPUTE_RESULTS: Mutex<Option<HashMap>>` — the last blocking synchronization primitive on the VM and render threads. Replaced with `crossbeam-channel::bounded(16)` async channel.
+- **Mutex Elimination**: Deleted `COMPUTE_RESULTS` static `Mutex<Option<HashMap<usize, Vec<f32>>>>`. Replaced with `OnceLock`-lazy `crossbeam_channel::bounded(16)` channel pair (`Sender`, `Receiver`).
+- **Lock-Free Readback**: `registry_compute_readback` now uses `try_recv()` — guaranteed O(1) non-blocking return. Returns immediately with available data or empty `Vec`. No more `std::thread::sleep` polling loops blocking the VM thread.
+- **Fire-and-Forget Render Thread**: window.rs GPU staging buffer readback now uses `compute_sender().send(data)` — non-blocking, fire-and-forget atomic send. Render thread never waits on VM thread.
+- **New Dependency**: Added `crossbeam-channel = "0.5"` to both workspace Cargo.toml files.
+- **Type Alias**: `type ComputeChannel = (Sender<Vec<f32>>, Receiver<Vec<f32>>)` for clippy type-complexity compliance.
+- **New Test**: `test_compute_readback_lock_free_concurrency` — spawns 8 concurrent threads calling `registry_compute_readback`, verifies no thread blocks >100ms, all return valid types, total wall time <200ms. Sandbox test count: 21→22.
+- **CI**: 148/148 tests (71 lib + 55 integration + 22 sandbox), 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 212-B: Final Submodule Coupling & Redundant Compiler Purge (2026-05-28)
 Sprint 212-B: Final Submodule Fusion. Deleted all 30 duplicated source files from `src/`, replaced with a re-export facade over `aether_compiler`. Both crates now use identical `knoten_core_types` for `Node`/`OpCode` — zero type mismatches, zero bridge conversion.
 - **Radikaler Purge**: Deleted 30 source files from main crate's `src/` (all duplicates of `aether_compiler/src/`): `async_bridge.rs`, `audio.rs`, `compiler/`, `dsl_emitter.rs`, `evaluator.rs`, `executor.rs`, `math.rs`, `natives/`, `optimizer.rs`, `parser.rs`, `test_lib.rs`, `validator.rs`, `vm/`, `window.rs`. Main crate `src/` now contains only `lib.rs`, `main.rs`, and `bin/`.

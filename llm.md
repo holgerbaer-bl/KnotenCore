@@ -55,6 +55,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Pure computation** (`Add`, `Sub`, `Mul`, `Div`, `While`, comparison ops) → **AOT path** — compiles to a flat opcode stream, executed by the Stack-VM with no allocations in the hot path.
 - **Side-effects & UI** (`ExternCall`, window ops, WGPU render, audio) → **JIT path** — evaluated by the Executor with full permission sandboxing.
 - **GPGPU Compute** (`LoadComputeShader`, `DispatchCompute`) → **Native WGPU integration** for massive parallel data processing.
+- **GPGPU Compute Readback** (Sprint 213) → Non-blocking crossbeam channel between render thread (producer) and VM thread (consumer). `try_recv()` returns immediately — no frame budget impact.
 - **Retained-Mode Scene Graph** (Sprint 159) → Scripts spawn entities (`registry_spawn_cube`) and update transforms asynchronously; WGPU renders the persistent `SceneGraph` autonomously.
 - **Retained-Mode 2D UI** (Sprint 162) → Scripts set a `UIButton`/`UITextInput`/`UILabel`/`UIVBox`/`UIHBox` tree once via `UpdateUI`; egui renders it at 60 FPS. Events route back via `registry_ui_poll_button(label)` (Bool) and `registry_ui_read_text(key)` (String).
 - **UI→3D Value Bridging** (Sprint 163) → `registry_parse_float(String) -> Float` safely converts `UITextInput` strings to floats for use as 3D coordinates. Returns `0.0` on invalid input.

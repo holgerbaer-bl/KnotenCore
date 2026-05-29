@@ -634,11 +634,7 @@ impl KnotenApp {
                         .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
                         .collect();
 
-                    let mut guard = crate::natives::registry::COMPUTE_RESULTS
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner());
-                    let map = guard.get_or_insert_with(HashMap::new);
-                    map.insert(shader_id, floats);
+                    let _ = crate::natives::registry::compute_sender().send(floats);
                 }
             }
             RenderCommand::AddMesh {

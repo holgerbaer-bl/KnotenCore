@@ -4,6 +4,7 @@
 // domain matching fix from Sprint 193.
 
 use knoten_core::executor::{AgentPermissions, ExecutionEngine};
+use knoten_core::natives::registry::registry_compute_readback;
 use std::path::Path;
 
 // ── Domain Whitelist Tests ───────────────────────────────────────────
@@ -523,4 +524,50 @@ fn test_render_loop_bandwidth_cache_applied() {
     assert!(scene.get(&1).unwrap().is_dirty, "Entity 1 should be dirty");
     assert!(!scene.get(&0).unwrap().is_dirty, "Entity 0 should be clean");
     assert!(!scene.get(&2).unwrap().is_dirty, "Entity 2 should be clean");
+}
+
+// ── Sprint 213: Lock-Free Compute Readback Concurrency ──────────────
+
+#[test]
+fn test_compute_readback_lock_free_concurrency() {
+    let thread_count = 8;
+
+    let handles: Vec<_> = (0..thread_count)
+        .map(|_| {
+            std::thread::spawn(move || {
+                let thread_start = std::time::Instant::now();
+                let result = registry_compute_readback(0);
+                let elapsed = thread_start.elapsed();
+                (result, elapsed)
+            })
+        })
+        .collect();
+
+    let global_start = std::time::Instant::now();
+    let mut total_thread_time_ms = 0u128;
+    for handle in handles {
+        let (result, elapsed) = handle.join().unwrap();
+        let ms = elapsed.as_millis();
+        total_thread_time_ms += ms;
+        assert!(ms < 100, "Thread blocked for {}ms — expected <100ms", ms);
+        assert!(
+            result.is_empty()
+                || result
+                    .iter()
+                    .all(|r| matches!(r, knoten_core::executor::RelType::Float(_))),
+            "Unexpected result type from registry_compute_readback"
+        );
+    }
+
+    let total_elapsed = global_start.elapsed().as_millis();
+    assert!(
+        total_elapsed < 200,
+        "Total elapsed {}ms — expected <200ms for lock-free concurrency",
+        total_elapsed
+    );
+    assert!(
+        total_thread_time_ms < 200,
+        "Cumulative thread time {}ms — expected <200ms",
+        total_thread_time_ms
+    );
 }
