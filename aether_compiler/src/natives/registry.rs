@@ -851,14 +851,17 @@ pub fn registry_compute_readback(shader_id: i64) -> Vec<crate::executor::RelType
     // Fire readback command to the render thread (async, no wait)
     send_render_command(RenderCommand::ReadComputeResult { shader_id: sid });
 
-    // Spin-poll the per-shader channel — non-blocking, short bounded wait
-    let channels = COMPUTE_CHANNELS.get().unwrap();
-    let guard = channels.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some((_, rx)) = guard.get(&sid) {
+    // Clone receiver under lock, then release before spin-polling
+    let rx = {
+        let channels = COMPUTE_CHANNELS.get().unwrap();
+        let guard = channels.lock().unwrap_or_else(|e| e.into_inner());
+        guard.get(&sid).map(|(_, rx)| rx.clone())
+    };
+
+    if let Some(rx) = rx {
         for _ in 0..1000 {
             match rx.try_recv() {
                 Ok(floats) => {
-                    drop(guard);
                     return floats
                         .into_iter()
                         .map(|f| crate::executor::RelType::Float(f as f64))

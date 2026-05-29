@@ -635,7 +635,7 @@ impl KnotenApp {
                         .collect();
 
                     let sender = crate::natives::registry::compute_sender_for(shader_id);
-                    let _ = sender.send(floats);
+                    let _ = sender.try_send(floats);
                 }
             }
             RenderCommand::AddMesh {

@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 216: GPGPU Channel Audit v2 — try_send & Mutex-Free Spin-Poll (2026-05-29)
+Sprint 216: Audit Remediation v2. Fixed two blocking/contention defects identified by architectural audit (Report v2.0).
+- **Issue D — Render Thread Blockage**: Replaced `sender.send(floats)` with `sender.try_send(floats)` in `window.rs:637`. `send()` blocks when the bounded(1) channel is full, freezing the Winit/egui main event loop if the VM hasn't consumed previous results. `try_send()` is non-blocking fire-and-forget — overflow frames are silently discarded, render thread never waits.
+- **Issue E — Mutex Contention in Spin Loop**: Cloned `Receiver` under `COMPUTE_CHANNELS` mutex guard, then dropped guard before entering the 1000-iteration `try_recv()` spin-poll. Previously the mutex was held for the entire poll duration, serializing the render thread (which needs the same mutex to call `compute_sender_for`). Now the VM and render threads operate truly in parallel.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 215: GPGPU Async Compute Channel Audit Fixes (2026-05-29)
 Sprint 215: Audit Remediation. Fixed three critical defects in Sprint 213's lock-free async compute channel implementation discovered by architectural audit (Report v1.0).
 - **Issue A — Self-Sabotaging Drain Loop**: Removed `while receiver.try_recv().is_ok() {}` at entry of `registry_compute_readback`. The drain discarded results computed by the render thread between VM readback calls. Fix: no drain — results persist until consumed by their shader's dedicated receiver.
