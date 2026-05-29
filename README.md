@@ -74,7 +74,7 @@ JSON-AST (.nod)  ->  Parser  ->  AST (Node enum inside knoten_core_types)
 | **`knoten_core`** | **Fassade** — Duenne Haupt-Crate; fungiert als Re-Export-Fassade nach aussen zur reibungslosen Workspace-Steuerung. |
 | **`aether_compiler`** | **Engine Core** — Beheimatet den autonomen JIT-Graph-Executor, den AOT-Bytecode-Compiler sowie die Stack-VM zur allocations-freien ALU-Befehlsabarbeitung. |
 | **`knoten_core_types`** | **Sole Source of Truth** — Beheimatet exklusiv die reinen Datenzertifikate (`Node`, `OpCode`, `SimdOp`) frei von Cross-Crate-Logikkopplungen. |
-| `src/audio.rs` | **Audio Engine** — Thread-sichere Audio-Pipeline via `rodio`; entkoppelt vom Render-Takt. |
+| `src/audio.rs` | **Audio Engine (Muted Mode)** — FFI-Infrastruktur via `rodio` angelegt, aktuell deaktiviert; entkoppelt vom Render-Takt. |
 | `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` Server fuer Echtzeit-Linter-Validierung und Hover-Diagnostik direkt im Editor. |
 
 ---
@@ -96,10 +96,10 @@ Die Synchronisation zwischen der Stack-VM und dem WGPU-Render-Triebwerk operiert
 - **Garantiert ununterbrochenes Rendern:** Der zeitkritische WGPU-Thread verwendet ein strikt nicht-blockierendes `try_send()`. Kanallast oder Verzoegerungen auf der VM-Seite werden geraeuschlos verworfen — der Winit-Eventloop friert niemals ein.
 - **Contention-Freies Polling:** Das Auslesen via `registry_compute_readback` klont den Receiver unter einem extrem kurzlebigen Lock-Block. Der Mutex-Guard wird *vor* dem Eintritt in den 1000er `std::hint::spin_loop()` abgeworfen. VM und Render-Thread agieren maximal entkoppelt und parallel.
 
-### 🎧 Native Bare-Metal Audio Engine
-KnotenCore verfuegt ueber eine vollstaendig integrierte, thread-sichere asynchrone Audio-Pipeline direkt verknuepft mit dem Runtime-Kern:
-- **Zero-Latency Playback:** Fire-and-forget Audioeffekte (`.wav`, `.ogg`) triggern instantan aus Bytecode-Instruktionen via `AudioManager`.
-- **Sicherheits-Sandbox:** Alle Audio-Invocations verlangen implizit nach `--allow-read`-Berechtigungen und passieren die unnachgiebige Pfadvalidierung.
+### 🎧 Native Audio Engine (Muted Mode / Schlafend)
+Die grundlegende FFI-Infrastruktur fuer eine thread-sichere asynchrone Audio-Pipeline via `rodio` ist im Kernel angelegt, verbleibt jedoch aktuell im **Muted Mode** (deaktiviert):
+- **Architektonisches Fundament:** Die FFI-Schnittstellen (`PlayNote`, `StopNote`) sind im AST und in der Bridge verankert, um die Typenstabilitaet des Compilers zu garantieren.
+- **Aktueller Status:** Es sind keine aktiven Synthesizer oder Sample-Saetze geladen; die Engine operiert in den aktuellen Showcases (z. B. Telemetry Dashboard) vollstaendig geraeuschlos, um CPU-Zyklen exklusiv fuer die GPGPU-Kanaele zu reservieren.
 
 ### 🧮 Math Standard Library & Determinism
 Um komplexe orbitale Mechaniken nativ im VM-Loop zu berechnen, stellt die Engine deterministische Bindungen an Rusts mathematische Kernbibliothek zur Verfuegung:

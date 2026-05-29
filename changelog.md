@@ -2,6 +2,9 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 218: Audio Core Status Realism Check (2026-05-29)
+Sprint 218: Realism alignment pass for documentation. Flagged the audio pipeline explicitly as "Muted Mode" in the main README.md to prevent structural hallucinations by future AI agents, keeping the focus entirely on the silent, high-performance GPGPU data tracks.
+
 ## [v1.3.0-alpha] - Sprint 216: GPGPU Channel Audit v2 — try_send & Mutex-Free Spin-Poll (2026-05-29)
 Sprint 216: Audit Remediation v2. Fixed two blocking/contention defects identified by architectural audit (Report v2.0).
 - **Issue D — Render Thread Blockage**: Replaced `sender.send(floats)` with `sender.try_send(floats)` in `window.rs:637`. `send()` blocks when the bounded(1) channel is full, freezing the Winit/egui main event loop if the VM hasn't consumed previous results. `try_send()` is non-blocking fire-and-forget — overflow frames are silently discarded, render thread never waits.
