@@ -33,6 +33,13 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 | **Anti-Pattern Guide** | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | 10 explicit DO/DON'T patterns for AI agents covering wrong node names, bare scalars, hallucinated functions, and ExternCall misuse. |
 | **Error Catalog** | [`docs/LANGUAGE_REFERENCE/error_catalog.json`](docs/LANGUAGE_REFERENCE/error_catalog.json) | Registry of execution fault codes and self-healing hints for AI agents. |
 | **Self-Healing Validator** | `--output-format json` | CLI flag hardening AST evaluation blocks dynamically intercepting syntax faults, emitting strict JSON structs mapping recovery context loops back to generative agents. |
+
+## 🤖 AI-Readiness & Architectural Immunitaet (Sprint 214)
+KnotenCore verfuegt ueber ein vollstaendig integriertes, maschinenlesbares Orientierungssystem fuer autonome KI-Agenten, um strukturellen Drift und Fehlkompilationen bei automatisierten Refactorings im Drei-Crate-Workspace im Keim zu ersticken.
+* **Semantic Anchoring (`#ANCHOR:`)**: Kritische Kernkomponenten und Schnittstellen sind im Quellcode mit permanenten, unverrueckbaren IDs versehen.
+* **Synchronisierter Routing-Hub**: Die `llm.md` spiegelt diese Ankerpunkte (`CORE_TYPES_SOF`, `GPGPU_ASYNC_CHANNEL`) eins zu eins wider, wodurch LLMs gezwungen werden, GPS-genaue Code-Koordinaten vor jeder Modifikation zu verifizieren.
+
+---
 | **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references above and documenting all engine constraints. |
 
 > **For AI Agents:** Read `native_functions.json` and `99_antipatterns.nod` before generating any `.nod` code. Always validate output against `node_types.json`.
@@ -139,6 +146,12 @@ KnotenCore's rendering subsystem is a **Physical Representation Layer** — not 
 - **Camera UBO**: Real `perspective_rh × look_at_rh` view-projection matrices written per-frame.
 - **Resize-Safe**: Surface and depth buffers are correctly re-created on window resize.
 - **GPGPU Compute Pipeline**: Natively integrated `LoadComputeShader` and `DispatchCompute` nodes allow agents to perform massive parallel computations directly via WGPU.
+
+### ⚡ Lock-Free GPGPU Compute Readback (Sprint 213)
+Die Synchronisation zwischen der Stack-VM (CPU) und dem WGPU-Render-Triebwerk (GPU) operiert vollstaendig entkoppelt und ohne blockierende Lock-Barrieren.
+- **Lock-Free Channels**: Der veraltete globale `COMPUTE_RESULTS`-Mutex wurde vollstaendig eliminiert und durch eine asynchrone, kapazitaetsbegrenzte Kanal-Architektur (`crossbeam-channel::bounded(16)`) ersetzt.
+- **O(1) Nicht-Blockierend**: Die VM-Abfrage via `registry_compute_readback` nutzt ein sofortiges `.try_recv()`. Ist die GPU noch mit massiven Partikel- oder Physik-Auswertungen beschaeftigt, kehrt der VM-Loop ohne Latenz um — Null Impact auf das kritische Frame-Budget.
+- **Fire-and-Forget Rendering**: Der zeitkritische WGPU-Render-Thread schiesst Ergebnisse atomar ab und verharrt ohne jegliche Lock-Contention in seinem konstanten 60Hz VSync-Rhythmus.
 
 ### 🎧 Native Bare-Metal Audio Engine
 KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline directly linked into the AOT-Virtual Machine and JIT executors:
