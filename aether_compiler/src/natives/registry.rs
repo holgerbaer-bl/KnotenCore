@@ -200,16 +200,23 @@ pub struct WindowProxy {
 
 pub static TEXTURE_ID_COUNTER: AtomicUsize = AtomicUsize::new(1); // 0 is reserved for default
 
-// Sprint 213: Lock-free async compute channel replacing COMPUTE_RESULTS Mutex
+// Sprint 213/215: Per-shader lock-free async compute channels
 type ComputeChannel = (Sender<Vec<f32>>, Receiver<Vec<f32>>);
-static COMPUTE_CHANNEL: OnceLock<ComputeChannel> = OnceLock::new();
+static COMPUTE_CHANNELS: OnceLock<Mutex<HashMap<usize, ComputeChannel>>> = OnceLock::new();
 
-fn ensure_compute_channel() -> &'static ComputeChannel {
-    COMPUTE_CHANNEL.get_or_init(|| bounded::<Vec<f32>>(16))
+fn ensure_channel_for(shader_id: usize) {
+    let channels = COMPUTE_CHANNELS.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = channels.lock().unwrap_or_else(|e| e.into_inner());
+    guard
+        .entry(shader_id)
+        .or_insert_with(|| bounded::<Vec<f32>>(1));
 }
 
-pub fn compute_sender() -> &'static Sender<Vec<f32>> {
-    &ensure_compute_channel().0
+pub fn compute_sender_for(shader_id: usize) -> Sender<Vec<f32>> {
+    ensure_channel_for(shader_id);
+    let channels = COMPUTE_CHANNELS.get().unwrap();
+    let guard = channels.lock().unwrap_or_else(|e| e.into_inner());
+    guard.get(&shader_id).unwrap().0.clone()
 }
 
 unsafe impl Send for WindowProxy {}
@@ -835,34 +842,36 @@ pub fn registry_dispatch_compute(
     });
 }
 
-// Sprint 213: Lock-free non-blocking readback via crossbeam channel
+// Sprint 215: Fixed readback — per-shader channel, no drain, spin-poll for async results
 // #ANCHOR: GPGPU_ASYNC_CHANNEL — Lock-free crossbeam-channel try_recv endpoint for VM compute readback.
 pub fn registry_compute_readback(shader_id: i64) -> Vec<crate::executor::RelType> {
-    let (_, receiver) = ensure_compute_channel();
-
-    // Drain stale results from the channel
-    while receiver.try_recv().is_ok() {}
+    let sid = shader_id as usize;
+    ensure_channel_for(sid);
 
     // Fire readback command to the render thread (async, no wait)
-    send_render_command(RenderCommand::ReadComputeResult {
-        shader_id: shader_id as usize,
-    });
+    send_render_command(RenderCommand::ReadComputeResult { shader_id: sid });
 
-    // Non-blocking try_recv — returns immediately, O(1)
-    match receiver.try_recv() {
-        Ok(floats) => floats
-            .into_iter()
-            .map(|f| crate::executor::RelType::Float(f as f64))
-            .collect(),
-        Err(crossbeam_channel::TryRecvError::Empty) => vec![],
-        Err(crossbeam_channel::TryRecvError::Disconnected) => {
-            eprintln!(
-                "[KnotenCore Compute] Channel disconnected for shader {}",
-                shader_id
-            );
-            vec![]
+    // Spin-poll the per-shader channel — non-blocking, short bounded wait
+    let channels = COMPUTE_CHANNELS.get().unwrap();
+    let guard = channels.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((_, rx)) = guard.get(&sid) {
+        for _ in 0..1000 {
+            match rx.try_recv() {
+                Ok(floats) => {
+                    drop(guard);
+                    return floats
+                        .into_iter()
+                        .map(|f| crate::executor::RelType::Float(f as f64))
+                        .collect();
+                }
+                Err(crossbeam_channel::TryRecvError::Empty) => {
+                    std::hint::spin_loop();
+                }
+                Err(crossbeam_channel::TryRecvError::Disconnected) => break,
+            }
         }
     }
+    vec![]
 }
 
 pub fn registry_is_mouse_down() -> bool {

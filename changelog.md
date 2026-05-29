@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 215: GPGPU Async Compute Channel Audit Fixes (2026-05-29)
+Sprint 215: Audit Remediation. Fixed three critical defects in Sprint 213's lock-free async compute channel implementation discovered by architectural audit (Report v1.0).
+- **Issue A — Self-Sabotaging Drain Loop**: Removed `while receiver.try_recv().is_ok() {}` at entry of `registry_compute_readback`. The drain discarded results computed by the render thread between VM readback calls. Fix: no drain — results persist until consumed by their shader's dedicated receiver.
+- **Issue B — Instantaneous try_recv() Race**: Single `try_recv()` after `send_render_command` always missed results because the render thread hadn't processed yet. Fix: bounded spin-poll loop (1000 iterations, `std::hint::spin_loop()`) gives the render thread a processing window without OS-level blocking. No `std::thread::sleep` — CPU yields via spin hints only.
+- **Issue C — Global Channel Crosstalk**: Replaced single global `COMPUTE_CHANNEL` with `COMPUTE_CHANNELS: OnceLock<Mutex<HashMap<usize, ComputeChannel>>>` — per-shader bounded channels. Each `shader_id` owns a dedicated `bounded(1)` channel pair. `compute_sender_for(shader_id)` returns the shader's sender; `window.rs` dispatches to the correct channel. No cross-shader data pollution.
+- **Channel Semantics**: `ensure_channel_for(shader_id)` lazily creates a capacity-1 bounded channel on first access. Channels are never drained or removed — shader lifetime = channel lifetime. Mutex held only for HashMap lookup (microseconds), not during `try_recv()` polling.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 214: Semantic Anchoring Core Deployment (2026-05-29)
 Sprint 214: Semantic Anchoring Core Deployment. Injected machine-readable semantic anchors (`#ANCHOR:`) into critical source files and the llm.md routing hub. Future AI agents MUST validate these anchor IDs before any code modification.
 - **`#ANCHOR: CORE_TYPES_SOF`** — Injected at `knoten_core_types/src/ast.rs` above `pub enum Node`. Marks the Sole Source of Truth for all shared type definitions (`Node`, `OpCode`). Directive: do not duplicate.

@@ -634,7 +634,8 @@ impl KnotenApp {
                         .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
                         .collect();
 
-                    let _ = crate::natives::registry::compute_sender().send(floats);
+                    let sender = crate::natives::registry::compute_sender_for(shader_id);
+                    let _ = sender.send(floats);
                 }
             }
             RenderCommand::AddMesh {
