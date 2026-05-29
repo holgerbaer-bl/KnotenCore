@@ -9,21 +9,16 @@
 1. **Not** a relentless underground German hardcore techno subgenre. 
 2. A blazing-fast, thread-safe, and deterministic **AI-Native Execution Runtime** — agents feed it structured JSON logic, the AOT compiler turns it into flat bytecode, and the Stack-VM executes it at bare-metal speed. No browser. No GC. No surprises.
 
-*(Please leave your glowsticks at the door before compiling).*
-
 **The Deterministic AI-Native Execution Runtime.**
 
 ## What is KnotenCore?
-**KnotenCore** is a **Deterministic AI-Native Execution Runtime** built entirely in Rust. External AI agents describe programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized flat bytecode stream and executes them on a Register Stack-VM — achieving deterministic, GC-free, bare-metal performance without any intermediate browser or script-engine layer. WGPU-based rendering functions as the **Physical Representation Layer**, allowing agents to express 3D scenes, audio, and UI as pure data — not imperative draw calls.
-
-### Why "KnotenCore"?
-**Knoten** is the German word for **Node**. The runtime is architecturally a highly-efficient graph of Abstract Syntax Tree (AST) *nodes* — the fundamental unit of computation that AI agents author and the engine deterministically evaluates. **Core** represents the blazingly fast, bare-metal Rust execution environment that processes these nodes via AOT compilation into a flat opcode stream.
+**KnotenCore** is a **Deterministic AI-Native Execution Runtime** built entirely in Rust. External AI agents describe programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized flat bytecode stream and executes them on a Register Stack-VM — achieving deterministic, GC-free, bare-metal performance without any intermediate browser or script-engine layer. WGPU-based rendering functions as the **Physical Representation Layer**, allowing agents to express 3D scenes, audio, and UI as pure data via an autonomous, asynchronous Retained-Mode pipeline.
 
 ---
 
-## 🤖 AI-Readiness Foundation (Sprints 121–125)
+## 🤖 AI-Readiness & Architectural Immunity
 
-KnotenCore is purpose-built for autonomous AI agents. Every node and native function is formally specified and machine-validated:
+KnotenCore is purpose-built for autonomous AI agents. Every node and native function is formally specified, machine-validated, and anchored against structural drift:
 
 | Artifact | Path | Purpose |
 |----------|------|---------|
@@ -32,715 +27,126 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 | **Function Registry** | [`docs/LANGUAGE_REFERENCE/native_functions.json`](docs/LANGUAGE_REFERENCE/native_functions.json) | Machine-readable registry of every native FFI function (30+), with parameter types, return types, required permissions, and live AST call examples. |
 | **Anti-Pattern Guide** | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | 10 explicit DO/DON'T patterns for AI agents covering wrong node names, bare scalars, hallucinated functions, and ExternCall misuse. |
 | **Error Catalog** | [`docs/LANGUAGE_REFERENCE/error_catalog.json`](docs/LANGUAGE_REFERENCE/error_catalog.json) | Registry of execution fault codes and self-healing hints for AI agents. |
-| **Self-Healing Validator** | `--output-format json` | CLI flag hardening AST evaluation blocks dynamically intercepting syntax faults, emitting strict JSON structs mapping recovery context loops back to generative agents. |
-
-## 🤖 AI-Readiness & Architectural Immunitaet (Sprint 214)
-KnotenCore verfuegt ueber ein vollstaendig integriertes, maschinenlesbares Orientierungssystem fuer autonome KI-Agenten, um strukturellen Drift und Fehlkompilationen bei automatisierten Refactorings im Drei-Crate-Workspace im Keim zu ersticken.
-* **Semantic Anchoring (`#ANCHOR:`)**: Kritische Kernkomponenten und Schnittstellen sind im Quellcode mit permanenten, unverrueckbaren IDs versehen.
-* **Synchronisierter Routing-Hub**: Die `llm.md` spiegelt diese Ankerpunkte (`CORE_TYPES_SOF`, `GPGPU_ASYNC_CHANNEL`) eins zu eins wider, wodurch LLMs gezwungen werden, GPS-genaue Code-Koordinaten vor jeder Modifikation zu verifizieren.
-
----
+| **Semantic Anchoring** | `#ANCHOR:` | Standardisierte, maschinenlesbare IDs im Quellcode (`CORE_TYPES_SOF`, `GPGPU_ASYNC_CHANNEL`) koordinieren KI-Refactorings synchron ueber den `llm.md` Routing-Hub. |
 | **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references above and documenting all engine constraints. |
 
-> **For AI Agents:** Read `native_functions.json` and `99_antipatterns.nod` before generating any `.nod` code. Always validate output against `node_types.json`.
+---
+
+## 🎯 AI-Readiness Benchmark — AG Baseline: 20/20 (100%)
+
+KnotenCore is the **first DSL project with a public, reproducible AI-Readiness Score** — measuring how reliably external LLMs generate correct `.nod` programs without human correction. The AG agent used **only `llm.md` + `node_types.json` + `native_functions.json`** as context (no Rust source).
 
 ---
 
-## 🎯 AI-Readiness Benchmark (Sprint 126/127) — AG Baseline: 20/20
+## ⏱️ Performance & Optimization Benchmarks
 
-KnotenCore is the **first DSL project with a public, reproducible AI-Readiness Score** —
-measuring how reliably external LLMs generate correct `.nod` programs without human correction.
-
-| Score | Threshold |
-|-------|-----------|
-| **AG (Antigravity)** | **100% — 20/20 ✅**  Benchmark Leader |
-| < 60% | Not AI-Ready |
-| 60–79% | Basic AI-Ready |
-| 80–89% | Productive AI-Ready |
-| 90%+ | Benchmark Leader ← Target Reached |
-
-The AG agent used **only `llm.md` + `node_types.json` + `native_functions.json`** as context
-(no Rust source). See [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md) for the full
-per-task breakdown and self-healing analysis.
-
-> **Test your model:** Clone → prompt with the 3 docs → run `benchmark/validator.sh`
-> → submit your score via PR to `benchmark/results/`.
-
----
-
-## ⏱️ Performance Benchmarks (Sprint 128)
-
-KnotenCore features a dual JIT/AOT engine architecture. Following our milestone achieving 100% VM execution capabilities, we successfully validated the Bare-Metal performance of the stack machine runtime.
-
-On a computationally demanding 1,000,000 algorithmic loop constraint using the Leibniz pi estimation natively encoded heavily with Float primitives (`Mul`, `Add`, `Div`, `While`, `Assign`), tests generated via `bench_knc` resulted in:
+KnotenCore features a dual JIT/AOT engine architecture. On a computationally demanding 1,000,000 algorithmic loop constraint using the Leibniz pi estimation heavily encoded with Float primitives (`Mul`, `Add`, `Div`, `While`, `Assign`), tests generated via `bench_knc` resulted in:
 
 - **JIT Evaluator:** ~1914 ms
-- **AOT Stack VM:** ~1580 ms
+- **AOT Stack VM:** ~1580 ms (Speedup factor: **1.21x** natively faster out-of-the-box).
 
-**Speedup factor:** **1.21x** natively faster out-of-the-box using the Register VM, significantly reducing deep recursive AST frame lookup overhead.
-
----
-
-## 🔬 Boolean Algebra & Comparison Operators (Sprint 125)
-
-A complete set of native logical and relational operators is now available in the JSON-AST. These compile to dedicated AOT Bytecode (`LessEqual`, `GreaterEqual`, `NotEqual`, `And`, `Or`, `Not`) for maximum performance.
-
-| Node | Operator | Example JSON-AST |
-|------|----------|-----------------|
-| `Lte` | `<=` | `{"Lte": [{"Identifier": "x"}, {"IntLiteral": 10}]}` |
-| `Gte` | `>=` | `{"Gte": [{"Identifier": "score"}, {"IntLiteral": 100}]}` |
-| `NotEq` | `!=` | `{"NotEq": [{"Identifier": "state"}, {"StringLiteral": "idle"}]}` |
-| `And` | `&&` | `{"And": [{"BoolLiteral": true}, {"BoolLiteral": false}]}` |
-| `Or` | `\|\|` | `{"Or": [{"BoolLiteral": false}, {"BoolLiteral": true}]}` |
-| `Not` | `!` | `{"Not": {"BoolLiteral": true}}` |
+### ⚡ AOT Compiler Optimization Engine
+* **AST Function Inlining (Sprint 194):** Trivial native FFI math and string calls are resolved and folded directly at compile time.
+* **Loop Unrolling & Static Bound Analysis (Sprint 196):** Bounded while-loops ($N \le 8$) are expanded into flat blocks at compile time. Static infinite loops without exit paths are rejected early.
+* **Peephole Optimization & Slot Reuse (Sprint 197):** Instruction post-pass eliminates redundant Store-Load chains. Register slot reuse minimizes stack frame sizes.
+* **SIMD Auto-Vectorization (Sprint 200):** High-speed optimizer pass collapses sequential float constants into single instruction streams execution-driven by `glam::Vec4` in a single CPU tick.
 
 ---
 
-## Runtime Architecture
+## Runtime Architecture (Three-Crate Workspace)
 
-KnotenCore is a **hybrid JIT/AOT execution runtime**. The agent authors a JSON-AST program; the engine selects the optimal execution path automatically:
+KnotenCore operates as a strictly separated, circular-dependency-free multi-crate ecosystem:
 
 ```
-JSON-AST (.nod)  →  Parser  →  AST (Node enum)
-                                  │
-                    ┌─────────────┴─────────────────┐
-                    │                               │
-             JIT Executor                   AOT VM Compiler
-          (side-effects, UI)            (pure math, loops)
-                    │                               │
-             egui / WGPU                  Flat Opcodes
-        (Physical Repr. Layer)          Stack-VM (ALU)
+JSON-AST (.nod)  ->  Parser  ->  AST (Node enum inside knoten_core_types)
+                                    |
+              +---------------------+---------------------+
+              |                                           |
+        JIT Executor                              AOT VM Compiler
+   (Inside aether_compiler)                   (Inside aether_compiler)
+              |                                           |
+    egui / WGPU Render Layer                      Flat Opcodes
+   (Physical Repr. Layer)                     Stack-VM Core (ALU)
 ```
 
-| Module | Role |
+| Crate / Module | Role |
 |---|---|
-| `src/executor.rs` | **Coordinator & State-Holder** — JIT path; routes nodes, holds permissions & world state |
-| `src/vm/compiler.rs` | **AOT Compiler** — Transforms pure-computation AST subtrees into a flat opcode stream |
-| `src/vm/machine.rs` | **Stack-VM / ALU** — Executes flat bytecode at bare-metal speed; no GC, no allocations in the hot path |
-| `src/audio.rs` | **Audio Engine** — Thread-safe bare-metal sound pipeline via `rodio`; decoupled from the render loop |
-| `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` server exposing real-time `.nod` validation and OpCode-awareness to editors & agents |
-| `src/window.rs` | **Physical Representation Layer** — winit event-loop + WGPU rendering; receives `RenderCommand` messages from the executor |
-| `src/async_bridge.rs` | **Nervous System** — Non-blocking `Fetch` and `Extract` via background worker threads |
+| **`knoten_core`** | **Fassade** — Duenne Haupt-Crate; fungiert als Re-Export-Fassade nach aussen zur reibungslosen Workspace-Steuerung. |
+| **`aether_compiler`** | **Engine Core** — Beheimatet den autonomen JIT-Graph-Executor, den AOT-Bytecode-Compiler sowie die Stack-VM zur allocations-freien ALU-Befehlsabarbeitung. |
+| **`knoten_core_types`** | **Sole Source of Truth** — Beheimatet exklusiv die reinen Datenzertifikate (`Node`, `OpCode`, `SimdOp`) frei von Cross-Crate-Logikkopplungen. |
+| `src/audio.rs` | **Audio Engine** — Thread-sichere Audio-Pipeline via `rodio`; entkoppelt vom Render-Takt. |
+| `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` Server fuer Echtzeit-Linter-Validierung und Hover-Diagnostik direkt im Editor. |
 
 ---
 
-## Key Features
+## Key Features & Showcases
 
-### 🔒 Thread-Safe & Sandboxed
-KnotenCore is built for AI-driven execution with strict, audited security:
-- **True Zero Warnings**: The engine complies with mathematical strictness — `cargo clippy --lib` yields precisely 0 warnings, ensuring architectural purity and complete VM stack safety.
-- **Deny-by-Default** policy for all I/O. All permissions must be explicitly granted via CLI flags.
-- **`--allow-read`**: Enables FS file reads (`file_read`) via the `fs` module. Paths are validated against the working directory to prevent path-traversal attacks.
-- **`--allow-write`**: Enables FS file writes (`file_write`) via the `fs` module. Write targets are normalized and boundary-checked.
-- **`--allow-network`**: Enables `Node::Fetch` and all outbound HTTP calls.
-- **`ExternCall Protection`**: FFI bridge calls pass through the same sandbox rule-set as standard nodes — there is no bypass.
-- **`Structured Faults`**: Unauthorized access returns `ExecResult::Fault` with specific permission-denial messages, enabling AI self-healing.
+### 🔒 Thread-Safe & Sandboxed Safety
+- **Deny-by-Default Execution:** Saemtliche I/O-Operationen werden blockiert, sofern sie nicht explizit via CLI-Flags freigegeben wurden (`--allow-read`, `--allow-write`, `--allow-net`).
+- **The Watchdog (Sprint 171):** Ein 50ms Hard-Timeout bricht Amok laufende Endlosschleifen der Stack-VM ressourcenschonend ab.
+- **The FFI Shield (Sprint 170/173):** Alle FFI-Grenzen sind via `std::panic::catch_unwind` und Null-Pointer-Validierungen gegen unkontrollierte Engine-Abstuerze gehaertet.
 
-### 🖥️ WGPU Physical Representation Layer
-KnotenCore's rendering subsystem is a **Physical Representation Layer** — not the primary product, but the means by which agent-authored JSON logic manifests as real pixels. Agents describe *what* exists in world-space; the runtime renders it via WGPU targeting Vulkan, DirectX 12, and Metal natively:
-- **Retained-Mode Scene Graph**: Scripts spawn persistent entities into a central registry (`SceneGraph`), and the WGPU event loop renders the complete scene state autonomously at 60 FPS, eliminating high-frequency immediate-mode draw call flooding. Entities can be destroyed at any time via `registry_destroy_entity(win, id)`, which immediately removes them from the scene graph and physics world.
-- **Blinn-Phong Shading**: Production-quality per-pixel lighting pipeline.
-- **Native 3D Primitives**: High-performance `Sphere`, `Cube`, and `Cylinder` with geometry caching — vertices and indices are computed once per unique configuration and reused from VRAM.
-- **`Mat4Mul`**: 4×4 matrix multiplication for hierarchical 3D transformations.
-- **Z-Buffered Depth Ordering**: `TextureFormat::Depth32Float` with `CompareFunction::Less`.
-- **Camera UBO**: Real `perspective_rh × look_at_rh` view-projection matrices written per-frame.
-- **Resize-Safe**: Surface and depth buffers are correctly re-created on window resize.
-- **GPGPU Compute Pipeline**: Natively integrated `LoadComputeShader` and `DispatchCompute` nodes allow agents to perform massive parallel computations directly via WGPU.
+### 🖥️ WGPU Retained-Mode Scene Graph
+- **Persistent Geometry:** Scripts spawnen Entitaeten (`registry_spawn_cube`) einmalig; der WGPU-Loop zeichnet den Szenengraphen autonom mit 60 FPS (0% CPU Idle via `ControlFlow::Wait`).
+- **Dynamic Blinn-Phong Illumination:** Shader-Unterstuetzung fuer Ambient-Pass plus bis zu 4 parallele Punktlichter mit physikalisch plausibler quadratischer Abschwaechung.
 
-### ⚡ Lock-Free GPGPU Compute Readback (Sprint 213)
-Die Synchronisation zwischen der Stack-VM (CPU) und dem WGPU-Render-Triebwerk (GPU) operiert vollstaendig entkoppelt und ohne blockierende Lock-Barrieren.
-- **Lock-Free Channels**: Der veraltete globale `COMPUTE_RESULTS`-Mutex wurde vollstaendig eliminiert und durch eine asynchrone, kapazitaetsbegrenzte Kanal-Architektur (`crossbeam-channel::bounded(16)`) ersetzt.
-- **O(1) Nicht-Blockierend**: Die VM-Abfrage via `registry_compute_readback` nutzt ein sofortiges `.try_recv()`. Ist die GPU noch mit massiven Partikel- oder Physik-Auswertungen beschaeftigt, kehrt der VM-Loop ohne Latenz um — Null Impact auf das kritische Frame-Budget.
-- **Fire-and-Forget Rendering**: Der zeitkritische WGPU-Render-Thread schiesst Ergebnisse atomar ab und verharrt ohne jegliche Lock-Contention in seinem konstanten 60Hz VSync-Rhythmus.
+### ⚡ Audited, Mutex-Free GPGPU Streaming (Sprints 213-216)
+Die Synchronisation zwischen der Stack-VM und dem WGPU-Render-Triebwerk operiert vollstaendig parallelisiert, isoliert und ohne blockierende Engpaesse:
+- **Isolierte Shader-Kanaele:** `COMPUTE_CHANNELS` verwaltet pro `shader_id` ein dediziertes, atomares `crossbeam_channel::bounded(1)`. Datenlecks oder Crosstalk zwischen parallelen Shadern sind unmoeglich.
+- **Garantiert ununterbrochenes Rendern:** Der zeitkritische WGPU-Thread verwendet ein strikt nicht-blockierendes `try_send()`. Kanallast oder Verzoegerungen auf der VM-Seite werden geraeuschlos verworfen — der Winit-Eventloop friert niemals ein.
+- **Contention-Freies Polling:** Das Auslesen via `registry_compute_readback` klont den Receiver unter einem extrem kurzlebigen Lock-Block. Der Mutex-Guard wird *vor* dem Eintritt in den 1000er `std::hint::spin_loop()` abgeworfen. VM und Render-Thread agieren maximal entkoppelt und parallel.
 
 ### 🎧 Native Bare-Metal Audio Engine
-KnotenCore features a fully integrated, thread-safe asynchronous audio pipeline directly linked into the AOT-Virtual Machine and JIT executors:
-- **Zero-Latency Playback**: Fire-and-forget sound effects (`.wav`, `.ogg`) trigger instantaneously from bytecode instructions.
-- **Infinite Looping Sinks**: Decodes active background BGM loops alongside parallel positional sound channels naturally.
-- **Strictly Sandboxed FFI**: All `registry_play_sound` and `registry_loop_music` invocations implicitly demand `--allow-read` permissions and cross the `validate_fs_path` security border natively preventing path manipulation.
+KnotenCore verfuegt ueber eine vollstaendig integrierte, thread-sichere asynchrone Audio-Pipeline direkt verknuepft mit dem Runtime-Kern:
+- **Zero-Latency Playback:** Fire-and-forget Audioeffekte (`.wav`, `.ogg`) triggern instantan aus Bytecode-Instruktionen via `AudioManager`.
+- **Sicherheits-Sandbox:** Alle Audio-Invocations verlangen implizit nach `--allow-read`-Berechtigungen und passieren die unnachgiebige Pfadvalidierung.
 
 ### 🧮 Math Standard Library & Determinism
-To power real-time 3D orbital mechanics and complex game logic natively inside the VM, the engine is equipped with deterministic bindings to Rust's core mathematical library:
-- **Available Functions**: `math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`, `math_random`.
-- **Type Safety**: The FFI bridge enforces strict `Float` type signatures, emitting fatal `ExecResult::Fault` exceptions if non-float scalars are passed, ensuring complete deterministic stability in tight loops.
-
-### 💡 Dynamic Lighting (Blinn-Phong)
-KnotenCore scenes are no longer flat-lit. The WGPU shader pipeline implements real-time Blinn-Phong illumination:
-- **Ambient + Diffuse + Specular**: A global ambient pass plus up to 4 dynamic point lights with Lambertian diffuse and half-vector specular highlights.
-- **Inverse-Square Attenuation**: Physically plausible light falloff based on distance.
-- **FFI Control**: `registry_spawn_light(win, x, y, z, intensity)` creates a white point light; `registry_spawn_light_rgb(...)` creates a colored one. `registry_update_light_position(win, id, x, y, z)` animates it in real time.
-- **Camera-Aware Specular**: The camera world-space position is uploaded to the UBO each frame, ensuring correct view-dependent specular reflections.
+Um komplexe orbitale Mechaniken nativ im VM-Loop zu berechnen, stellt die Engine deterministische Bindungen an Rusts mathematische Kernbibliothek zur Verfuegung:
+- **Verfuegbare Funktionen:** `math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`, `math_random`.
+- **Typ-Garantie:** Die FFI-Schnittstelle erzwingt strikte `Float`-Signaturen. Parameter-Mischungen loesen sofort eine strukturierte `Fault`-Meldung aus.
 
 ### 🛡️ Resource Cleanup & Memory Safety (Sprint 169)
-KnotenCore ensures long-term memory stability through deterministic resource lifecycle management:
-- **Entity Destruction**: `registry_destroy_entity(win, id)` removes an entity from the scene graph and physics world instantly. The entity ceases to be rendered on the next frame.
-- **VRAM Cleanup**: When entities are destroyed, shared geometry (`CachedMesh`) and texture (`BindGroup`) resources remain cached for other entities. Per-window resources are freed when the window is closed via `CloseWindow`.
-- **ARC Handle Management**: All native resources (windows, textures, counters) use atomic reference counting via `NativeHandle`. When a handle's refcount reaches zero, the underlying resource is released from the global registry automatically.
-- **Stress-Test Proven**: The `examples/memory_stress.knoten` script continuously spawns and destroys entities in a loop. Under system monitoring tools, RAM and VRAM remain stable indefinitely.
+- **Sofortige Entitaets-Zerstoerung:** `registry_destroy_entity(win, id)` entfernt Objekte sofort aus dem Szenengraphen und der Physik-Welt.
+- **Stabiler Lebenszyklus:** Shared Geometry (`CachedMesh`) und Texturen verbleiben im Cache fuer andere Entitaeten. Das RAM- und VRAM-Profil verhaelt sich unter unendlichen Spawn/Destroy-Zyklen absolut flach und leckagefrei.
 
-### 🔌 LSP Support — Sprint 137/140
-KnotenCore provides real-time AI-DX via a native **Language Server** (`knoten_lsp`) and a first-party **VS Code Extension**:
-- **OpCode-Aware Validation**: Every `.nod` JSON document is scanned for unknown node keys. Hallucinated nodes are flagged with `ERR_UNKNOWN_NODE` diagnostics.
-- **Hover Documentation**: Hovering over `registry_*` or `Call` function names displays full Markdown documentation, including parameters, return types, and descriptions — sourced directly from `native_functions.json`.
-- **Intelligent Completion**: Real-time suggestions for all native FFI functions and OpCodes, complete with summaries and module info.
-- **VS Code Integration**: The extension in `tools/vscode-knotencore/` automatically launches the LSP client with workspace-aware documentation paths.
-- **Tracing**: Full server lifecycle visibility via the *Output → knoten-lsp* channel.
-- **Roadmap**: `.nod` schema validation and deep AST analysis.
+### 🔌 LSP Support — Echtzeit AI-DX
+KnotenCore liefert eine vollwertige Erweiterung in `tools/vscode-knotencore/`:
+* **Syntax Highlighting:** TextMate-Grammatiken fuer `.knoten` (DSL) und `.nod` (JSON-AST).
+* **Code Snippets & LSP:** Direkte Anbindung an den tower-lsp-Server fuer Echtzeit-Fehlermeldungen (`ERR_UNKNOWN_NODE`) und interaktive Funktions-Dokumentation direkt im Editor.
 
-### ⚡ JIT & AOT Execution
-KnotenCore dynamically routes code to the most performant executor path:
+---
 
-```mermaid
-graph TD
-    A[Neural DSL Source Code] -->|Parser| B(Abstract Syntax Tree)
-    B --> C{Execution Router}
-    
-    C -->|Math / Pure Logic| D[VM Compiler]
-    D -->|Opcodes| E((Register VM))
-    E --> F[Execution Result]
-    
-    C -->|UI / Side Effects| G[Graph Executor]
-    G --> H[egui / WGPU System]
-    H --> F
-    
-    B -.->|JSON Diagnostic Log| I[AI Agent Self-Healing Loop]
-```
+### 📊 Application Showcase: The Ultimate Telemetry Dashboard
+Ein umfassender Showcase (`examples/telemetry_dashboard.knoten`), der saemtliche Optimierungs- und Datenschichten des Oekosystems vereint:
 
-#### Core Standard Library (StdLib) & AOT Linking — Sprint 110 / 111
-KnotenCore serves as a strictly typed **General-Purpose Language** powered by seamless Ahead-Of-Time Module Linking. Scripts dynamically import other `.nod` and `.knoten` artifacts into their global execution environments using the `import "core/module.nod";` keyword.
-
-**Example 1: StdLib Event Polling:**
-// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
 ```javascript
-import "core/system.nod";
-import "core/math.nod";
-
-while (true) {
-    if (is_pressed("W")) {
-        // Native idiomatic system wrapper
-    }
-}
-```
-
-**Example 2: Data Processing (Strings & FS):**
 // Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
-```javascript
-import "core/fs.nod";
-import "core/string.nod";
-import "core/array.nod";
-
-let content = read_text("data.csv");
-let rows = split(content, "\n");
-print("Processed Rows: ");
-print(length(rows));
-```
-
-**Example 3: Zero-Trust Networking (APIs) & Native JSON Parsing:**
-// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
-```javascript
 import "core/net.nod";
-import "core/string.nod";
+import "core/fs.nod";
 import "core/json.nod";
 
-// Securely fetch JSON payloads with --allow-net
-let response = fetch("https://api.github.com/repos/holgerbaer-bl/KnotenCore");
+// Sicheres Abfragen der Container-Metriken mit --allow-net
+let response = fetch("https://knotencore.de/api/telemetry");
+let payload = json_parse(response);
 
-// Parse natively into iterable Engine Maps via FFI
-let data = parse(response);
+// 3-Level tiefer, null-sicherer Objektzugriff dank Compiler-Inlining
+let cpu_usage = payload.system.metrics.cpu;
+let ram_usage = payload.system.metrics.ram;
 
-print("API Repository Name:");
-print(data.name);
-```
+// Schreiben in das egui-Render-Triebwerk ueber datengebundene UI-Komponenten
+ui_init_window(800, 400, "KnotenCore Live Telemetry Monitor");
 
-**Example 4: Immediate-Mode Native GUI (egui over WGPU):**
-// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
-```javascript
-// Native WGPU engine bindings
-import "core/system.nod";
-import "core/time.nod";
-
-// Bootstrap the Immediate-Mode egui Context
-ui_init_window(800, 600, "KnotenCore Minimal UI App");
-
-let active = true;
-while (active) {
-    if (ui_button("Click Me!")) {
-        print("Button clicked natively over WGPU!");
-        active = false;
-    }
-    
-    // CRITICAL: Flush the Draw Queue and yield to the Video Sync 
-    ui_present();
-
-    // CPU Throttling: Enforce ~60 FPS frame pacing
-    sleep(16);
-}
-```
-
-**Example 5: Interactive Form — UI Layouts & State Binding (Sprint 120):**
-// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
-```javascript
-import "stdlib/ui.nod";
-import "core/system.nod";
-import "core/time.nod";
-
-ui_init_window(600, 220, "KnotenCore Form Demo");
-
-let text = "Enter your query here...";
-let running = true;
-while (running) {
-    // Nested UI Layouts binding natively to egui elements
-    UIWindow("Form", "Login") {
-        UIHBox() {
-            text = UITextInput(text);
-            if (UIButton("Submit") != false) {
-                print("Submitted!");
-                print(text);
-                running = false;
-            }
-        };
-        UILabel(text);
-        
-        if (elapsed_ms % 1000 >= 500) {
-            UILabel("Blinking text: Please enter data...");
-        }
+while (true) {
+    UIWindow("Dashboard", "System Status") {
+        ui_bar_chart("CPU History (Last 10 Runs)", cpu_usage);
+        ui_progress_gauge("RAM Saturation", ram_usage, 0.0, 100.0);
     };
-
+    
     ui_present();
-    sleep(16);
+    sleep(16); // CPU-Drosselung auf konstante ~60 FPS
 }
 ```
-
-The core architecture natively protects against Circular Dependencies and evaluates the imported Abstract Syntax Trees directly into the primary contiguous bytecode stream before a single native machine pulse executes. The compiler inherently resolves `"core/..."` directives globally to natively expose the unified Standard Library anywhere.
-
-High-level UI declarations remain in the AST (JIT). Intensive mathematical expressions bypass the tree evaluator and compile directly into flat **Opcodes** for a Register VM. The AOT pipeline leverages **LLVM Constant Folding** — pure computation loops that evaluate to a constant at compile time are entirely eliminated in the release binary.
-
-### 🧠 Automatic Memory Management (ARC)
-KnotenCore uses a **Managed Handle Topology**. Native resources (Windows, Textures, Counters) are wrapped in `NativeHandle` structs that implement Rust's `Drop` trait. When a handle variable goes out of scope in the DSL, the engine automatically decrements its reference count and releases the resource from the registry — no garbage-collector pauses, no leaks.
-
-### 🛡️ Robust, Self-Healing Error Reporting
-All runtime failures produce a structured `ExecResult::Fault` containing:
-- **`msg`**: Human-readable description of what went wrong.
-- **`node`**: The exact AST node or native function where the fault originated (e.g., `"Node::MathDiv"`, `"Native::IO::ReadFile"`).
-
-This enables AI agents to pinpoint failures instantly and self-correct without manual intervention.
-
-### 🌐 Unified Physics & Interactivity (AABB)
-- **`AddWorldAABB`**: Scripts register arbitrary physical barriers as collision volumes.
-- **FPS Camera Integration**: Camera movement automatically respects all registered world-AABBs.
-- **3D Raycasting (Screen-to-World)**: Agents can convert a 2D mouse click into a 3D ray (`registry_get_mouse_ray`) mathematically unprojecting coordinate positions through inverse matrices.
-- **Geometric Ray-Intersection**: Built-in support to perform instantaneous point-and-click collision resolutions across the native world volume via `registry_raycast_aabb`.
-- **Performance**: Optimized for hundreds of active collision volumes per frame dynamically scaling AABB tests natively.
-
----
-
-## The Neural DSL
-
-KnotenCore uses an ultra-dense Neural Syntax (`.knoten`) — a closure-based DSL designed for maximum structural compression and token efficiency. Both `.knoten` (JavaScript logic) and `.nod` (JSON definitions) natively support syntax highlighting across GitHub out of the box via Linguist.
-
-```javascript
-// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
-// An elegant snippet in Neural DSL
-win = UIWindow("main_nav", "Control Panel") -> {
-    grid(2, "layout_grid") -> {
-        btn1 = UIButton("Initialize System");
-        btn2 = UIButton("Launch Diagnostics");
-        
-        if (btn1) -> {
-            FSWrite("sys.log", "System initialized.");
-        }
-    }
-}
-```
-
----
-
-## 🛠️ Tooling & Editor Support (Sprint 132)
-
-KnotenCore ships with a first-party **VS Code Language Extension** in `tools/vscode-knotencore/` — providing immediate local development support:
-
-| Feature | Details |
-|---------|--------|
-| **Syntax Highlighting (`.knoten`)** | Full TextMate grammar covering all AST control flow nodes, `registry_*` FFI calls, UI nodes (`UIWindow`, `UIHBox`, ...), operators, hex literals, module namespaces |
-| **Syntax Highlighting (`.nod`)** | Highlights KnotenCore opcode keys (`If`, `While`, `ExternCall`, `UIButton`, etc.) within JSON-AST files |
-| **Code Snippets** | `kc-window`, `kc-raycast`, `kc-uiwindow`, `kc-fn`, `kc-import`, `kc-while`, `kc-if`, `kc-aabb`, `kc-drawrect` |
-| **Bracket Matching** | Auto-close and auto-match for `{}`, `[]`, `()`, `""` |
-| **LSP Integration** | ✅ `knoten_lsp` client active in VS Code — provides real-time OpCode validation & JSON diagnostics |
-
-**Quick install:** Copy `tools/vscode-knotencore/` to `~/.vscode/extensions/knotencore-0.1.0` and restart VS Code.
-See [`tools/vscode-knotencore/README.md`](tools/vscode-knotencore/README.md) for full installation and packaging instructions.
-
----
-
-## Open Source Contribution
-KnotenCore is actively transitioning into the Open Source community. If you want to refine a General-Purpose AOT VM Engine, you are highly encouraged to contribute!
-
-**Getting Started:**
-1. Check out our [CONTRIBUTING.md](CONTRIBUTING.md) guide to learn how to clone, strictly compile, and run the sandbox test suite natively.
-2. Grab a specifically formulated isolation task from our curated **"Good First Issues"** natively tracking the `core/` Standard Library layer.
-
-We embrace both compiler enthusiasts expanding the AOT instruction set and casual developers looking to write idiomatic `.nod` wrappers evaluating natively under the Rust FFI framework.
-
-## Supported Platforms
-
-| Platform | Architecture |
-|---|---|
-| Windows | `x86_64` |
-| macOS | `x86_64`, `aarch64` |
-| Linux | `x86_64` |
-
----
-
-## Build from Source
-
-```bash
-cargo build --release
-```
-
----
-
-## Testing & Validation
-
-To verify the engine's **Error Tracing** and **Security Sandbox**, run the intentional fault test:
-
-```bash
-cargo run --bin run_knc -- tests/intentional_crash.knoten
-```
-
-**Expected Output:**
-```text
-Result: Fault: Div by zero (at Node::MathDiv)
-```
-
-This confirms that the engine correctly identifies the failing AST node and reports it without a system-level panic.
-
----
-
-## Lock-Free Input Architecture — Sprint 109
-KnotenCore features a **Zero-Allocation Lock-Free Input System** designed for high-performance agentic environments. 
-Instead of heap-allocating strings or locking mutexes on hardware interrupts, Winit keystrokes are perfectly mapped via `AtomicBool` indices. 
-This $O(1)$ zero-allocation lock-free static array enables scripts to repeatedly poll hardware states (`registry_is_key_pressed("W")`) without triggering memory fragmentation or thread contention.
-
----
-
-## Interactive Game Loop — Sprint 108
-KnotenCore now supports real-time hardware input processing directly via FFI:
-
-```js
-// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
-// examples/interactive_loop.nod — real-time WASD entity control
-let win = registry_create_window("KnotenCore", 800, 600);
-let tex = registry_texture_load("assets/textures/uv_checker.png");
-let player = { x: 0.0, y: 0.0, speed: 0.1 };
-
-let i = 0;
-while (i < 1000) {
-    if (registry_is_key_pressed("W")) { player.y = player.y + player.speed; }
-    if (registry_is_key_pressed("S")) { player.y = player.y - player.speed; }
-    if (registry_is_key_pressed("A")) { player.x = player.x - player.speed; }
-    if (registry_is_key_pressed("D")) { player.x = player.x + player.speed; }
-
-    registry_draw_cube(win, tex, player.x, player.y, 0.0, 1.0, 1.0, 1.0);
-    // Sprint 105 — Legacy API
-    registry_window_render_frame(win);
-    i = i + 1;
-}
-```
-
----
-
-## Visual Game Loop — Sprint 105
-KnotenCore can now script real-time visuals entirely from `.nod` bytecode:
-
-```js
-// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
-// examples/game_loop.nod — scripted entity animation via Stack-Machine FFI
-let win = registry_create_window(800, 600, "Sprint 105 - Visual Game Loop");
-let player = { x: 0.0, y: 0.0, speed: 0.05 };
-let is_open = true;
-
-while (is_open) {
-    is_open = registry_window_update(win);   // OS event pump
-    registry_fill_color(win, 20, 25, 30);   // Clear to dark navy
-    if (player.x > 10.0) {
-        player.x = 0.0 - 10.0;             // Wrap left edge
-    } else {
-        player.x = player.x + player.speed; // Advance position
-    }
-    registry_draw_entity(win, player.x, player.y); // Render via WGPU
-}
-
-registry_window_close(win);
-```
-
-This compiles to ~45 flat `OpCode` instructions — no GC, no heap allocation in the hot path.
-
----
-
-## Why it Exists — Agent First
-
-The current app development ecosystem is burdened with human-centric boilerplate, fragmented tooling, and bloated artifact pipelines. KnotenCore eliminates this overhead entirely. By providing a **deterministic, token-efficient runtime expressly designed for AI agents**, it shifts the paradigm from "AI writing React code for humans" to "AI writing Neural DSL code for a bare-metal Agent VM." It allows agents to read clear diagnostic JSON logs, self-heal instantly upon failure, and ship highly-optimized, natively compiled graphical applications at ~7 MB.
-
----
-
-## 🛡️ Panic Safety — The Unbreakable Bridge (Sprint 170)
-
-Starting with Sprint 170, every FFI boundary call is wrapped in `std::panic::catch_unwind`.
-When a native Rust function panics (e.g., a WGPU resource error or deliberate debug panic):
-
-1. The panic is **caught** at the VM bridge boundary in `machine.rs`.
-2. A diagnostic message is logged via `eprintln!("[KnotenCore Panic] ...")`.
-3. The running script is **aborted** with an `Err("VM Panic in FFI call ...")`.
-4. The **host application never crashes**. The WGPU render loop continues at 60 FPS, all previously spawned 3D objects remain visible, and the OS window stays responsive.
-
-This ensures that even during development or edge-case GPU failures, the .exe remains standing.
-
----
-
-## ⏱️ Watchdog — CPU Freeze Protection (Sprint 171)
-
-Starting with Sprint 171, the Stack-VM features a built-in **execution timeout** that prevents infinite loops and CPU-freezing scripts:
-
-- **50ms Hard Limit**: The VM records its start time with `std::time::Instant`.
-- **Low-Overhead Check**: Every 100 executed instructions, the elapsed time is measured. This avoids per-opcode overhead while still catching infinite loops quickly.
-- **Safe Kill**: When the timeout is hit, the VM logs `[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze.` and returns an `Err(...)`, halting only the script — never the engine.
-- **WGPU Survives**: The render loop continues at 60 FPS; all previously spawned 3D objects remain visible. Tested via `examples/watchdog_test.knoten`.
-
----
-
-## 🔧 CI Pipeline — Vanguard Quality Gates (Sprint 172)
-
-Every push and pull request to `main` is guarded by an automated CI pipeline (`.github/workflows/ci.yml`):
-
-| Gate | Command | Policy |
-|---|---|---|
-| **Tests** | `cargo test --workspace` | All 14 unit + 55 integration tests must pass |
-| **Format** | `cargo fmt --check` | Zero formatting violations |
-| **Clippy** | `cargo clippy --workspace -- -D warnings` | Warnings treated as hard errors |
-
-The CLI runner (`src/bin/run_knc.rs`) is fully panic-proofed — all `unwrap()`/`expect()` calls replaced with graceful `match`/`unwrap_or_else` + `eprintln!` + `std::process::exit(1)`.
-
----
-
-## 🛡️ FFI Shield — Pointer Validation & UB Prevention (Sprint 173)
-
-Every FFI boundary call is now guarded by a formal safety layer (`src/natives/ffi_safety.rs`):
-
-- **Null-Pointer Equivalence**: All handle IDs (`i64`) are validated as `>= 0` at the FFI boundary; negative handles are logged via `eprintln!` and rejected as `ExecResult::Fault`.
-- **String Safety**: All file-path and resource-path arguments are validated for empty strings and embedded null bytes (`\0`) before any disk I/O.
-- **Use-After-Free Prevention**: `registry_destroy_entity` explicitly detects double-call on the same entity ID, logs a warning, and proceeds idempotently — no panic, no UB.
-- **Pure Safe Rust**: The entire FFI boundary uses zero `unsafe` dereferences. The safety module codifies the validation pattern so any future C-ABI bridge inherits the guards.
-
----
-
-## ⚡ Event Loop Efficiency — 0% CPU Idle (Sprint 174)
-
-Starting with Sprint 174, the WGPU event loop uses `ControlFlow::Wait` instead of `ControlFlow::Poll`:
-
-| Metric | Before (Sprint 160) | After (Sprint 174) |
-|--------|---------------------|---------------------|
-| Idle CPU | **100%** (tight poll) | **~0%** (thread sleeps) |
-| Frame pacing | WGPU FIFO only | WGPU FIFO + OS-level event wait |
-| Frame trigger | `about_to_wait` blanket redraw | `request_redraw()` at end of each frame |
-
-The VM watchdog check was also optimized — `Instant::elapsed()` is now sampled every **1000 instructions** instead of every 100, reducing syscall overhead on fast code paths while preserving the 50ms timeout guarantee.
-
----
-
-## 🛡️ Error Routing — Zero Unwrap Guarantee (Sprint 175)
-
-The entire core crate is now hardened against panics from Rust-level failures:
-
-- **WGPU Initialization**: Surface creation, adapter discovery, and device creation failures in `window.rs` and `registry.rs` are handled gracefully via `eprintln!` + early return instead of `expect()`. No GPU → no window, but the process stays alive.
-- **WGPU Runtime**: Out-of-memory surface errors in the render loop skip the frame instead of calling `panic!()`.
-- **Mutex PoisonError**: All `Mutex::lock().unwrap()` calls use `unwrap_or_else(|e| e.into_inner())` — PoisonError is always recovered.
-- **Compiler**: `locals.last_mut().unwrap()` calls replaced with safe `if let Some(...)` pattern matching.
-
----
-
-## 📚 Stdlib Expansion — String & Array Ops (Sprint 177)
-
-New FFI-callable functions in the `string` and `fs` modules:
-
-| Function | Returns | Description |
-|---|---|---|
-| `string_len(s)` | `Int` | Unicode character count |
-| `string_concat(a, b)` | `String` | Concatenation |
-| `string_split(s, delim)` | `Array` | Split by delimiter |
-| `string_to_upper(s)` | `String` | Uppercase conversion |
-| `array_push(arr, val)` | `Array` | Append element (returns new array) |
-| `array_pop(arr)` | `Array` | Remove last element (returns new array) |
-| `array_len(arr)` | `Int` | Element count |
-
-All functions follow the immutable bridge pattern with strict `ExecResult::Fault` on type mismatch.
-
----
-
-## 🧮 GUI Showcase — Interactive Calculator (Sprint 178)
-
-A complete four-function calculator application in the `.knoten` DSL (`examples/calculator.knoten`):
-
-```
-┌──────────────────────────────────┐
-│  [        12+34            ]     │ ← Dynamic UILabel
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
-│  │  7   │ │  8   │ │  9   │ │  /   │
-│  ├──────┤ ├──────┤ ├──────┤ ├──────┤
-│  │  4   │ │  5   │ │  6   │ │  *   │
-│  ├──────┤ ├──────┤ ├──────┤ ├──────┤
-│  │  1   │ │  2   │ │  3   │ │  -   │
-│  ├──────┤ ├──────┤ ├──────┤ ├──────┤
-│  │  0   │ │  C   │ │  =   │ │  +   │
-│  └──────┘ └──────┘ └──────┘ └──────┘
-└──────────────────────────────────┘
-```
-
-- Demonstrates the **Virtual DOM Reconciler**: the entire UI tree is rebuilt and resent via `UIWindow` each frame.
-- Validates the **event bus** under rapid clicks via `registry_ui_poll_button`.
-- Uses **Sprint 177** string operations (`string_concat`) for digit input.
-- Math evaluation via `registry_parse_float` + built-in arithmetic.
-- Run with: `cargo run -- examples/calculator.knoten`
-
----
-
-## 🔒 The Security Hotfix (Sprint 179)
-
-KnotenCore has been hardened with critical security patches addressing findings from the v1.1.0 security audit:
-
-- **Sandbox Security Check**: Added strict FFI safety string validation (`validate_string`) and permissions check (`allow_fs_read`) to the texture loading pipeline (`registry_load_texture` in `bridge.rs`). Attempts to load a texture file without permissions will trigger a structured FFI fault.
-- **Release Profile Hardening**: Modified the release compilation profile in `Cargo.toml` from `panic = "abort"` to `panic = "unwind"`. This ensures the FFI panic boundary shield (`catch_unwind`) remains fully operational in optimized release builds.
-- **Debug Function Isolation**: Hidden the testing function `registry_force_panic` behind the `#[cfg(debug_assertions)]` macro in both `bridge.rs` and `registry.rs` to guarantee debug-only utilities are never compiled into production binaries.
-- **Runtime Panic Eradication**: Removed the last hard `panic!` call in the virtual machine test module (`machine.rs:1211`), replacing it with standard `Result`-based error routing (`Err`).
-
----
-
-## 🛠️ The Parser Patch & DX Improvement (Sprint 180)
-
-Sprint 180 focuses on parser robustness, error resilience, and modular developer experience (DX):
-
-- **Robust Lexer Comments**: Updated the lexer to properly consume all characters in line comments (`//`) up to the next newline (`\n`), preventing colons inside comments (e.g., `// Test:`) from triggering unexpected token errors.
-- **Semicolon Trap Fix**: Handled trailing semicolons after block expressions inside statement/block lists (e.g., `UIVBox { UILabel("a"); };`) in both the root parser and the submodule parser.
-- **Direct AST Imports**: Differentiated between `.nod` (JSON-AST) and `.knoten` (DSL text) imports in the compiler and validator, directly deserializing `.nod` files using `serde_json` and avoiding redundant DSL parsing.
-- **Panic Protection on Validation**: Added parser panic protection via `catch_unwind` to the AST validator when checking imported text scripts.
-
----
-
-## 🛠️ The Telemetry Dashboard & HTTP Bridge (Sprint 181)
-
-Sprint 181 opens KnotenCore to the network by implementing outbound HTTP communication via the FFI bridge and showcasing it in a modular dashboard application:
-
-- **HTTP GET FFI support**: Added the `network_get(url)` function under the `net` module in both the root FFI bridge and the compiler submodule's bridge, leveraging the existing `ureq` HTTP client.
-- **Network Sandboxing**: Restricts outbound connections via the `--allow-network` (or `--allow-net`) agent runtime permission. Attempts to make network requests without this permission result in a structured `ExecResult::Fault`.
-- **Modular Telemetry Dashboard**: Created `examples/dashboard.knoten` displaying live container metrics, styled with vertical boxes, buttons, and dynamic text labels. It loads configuration constants and mock data from `examples/dashboard_config.nod` to demonstrate the deserialization patch from Sprint 180.
-- **Standard Library Network Mapping**: Exposes FFI calls in `stdlib/network.nod`.
-
----
-
-## 📊 Data Processing & JSON Mastery (Sprint 182)
-
-Full JSON processing pipeline with resilient parsing and deep object navigation:
-
-| Function | Description |
-|---|---|
-| `json_parse(s)` → `Object\|Array\|Void` | Parse JSON string; returns `Void` on invalid input (never crashes) |
-| `json_stringify(v)` → `String` | Serialize any value to JSON string |
-
-**Deep Object Access** via dot notation (`obj.key.subkey`) compiles to `PropertyGet` chains with automatic null-safe fallback — missing keys return `Void` instead of panicking.
-
-Example from `examples/dashboard.knoten`:
-```
-let payload = json_parse(http_response);
-let cpu  = payload.system.cpu.usage;     // 3-level deep access
-let auth = payload.meta.auth_token;      // Void if key missing
-```
-
----
-
-## 💾 Persistence & File I/O (Sprint 183)
-
-Native file I/O with strict sandbox permissions. The VM can persist and restore state across restarts:
-
-| Function | Description | Permission |
-|---|---|---|
-| `file_read(path)` → `String` | Read entire file into a string | `--allow-read` |
-| `file_write(path, content)` → `Bool` | Write string to file (create/overwrite) | `--allow-write` |
-
-**Security architecture:** Both functions enforce `ffi_safety::validate_string` on paths (rejects empty strings and null bytes) and check `AgentPermissions` (`allow_fs_read` / `allow_fs_write`). Without the matching CLI flag, the call returns a clean `ExecResult::Fault` — the script aborts safely, never escaping the sandbox.
-
-Example from `examples/dashboard.knoten`:
-```
-let cached_raw = file_read("cache.json");
-let cached = json_parse(cached_raw);
-let has_cache = obj_has_key(cached, "slideshow");
-
-if (has_cache) {
-    render(cached);
-} else {
-    let fresh = json_parse(MOCK_JSON);
-    let payload = json_stringify(fresh);
-    file_write("cache.json", payload);
-    render(fresh);
-}
-```
-
----
-
-## 🔧 Registry Refactoring (Sprint 184)
-
-The monolithic `registry.rs` (1641 lines) has been split into focused, single-concern modules:
-
-| Module | Responsibility |
-|---|---|
-| `geometry.rs` | `RegistryVertex`, `CachedMesh`, mesh generators (`generate_cube`, `generate_uv_sphere`, `generate_cylinder`) |
-| `physics.rs` | `PHYSICS_WORLD`, `EntityPhysics`, collision detection, raycast mouse picking |
-| `scene.rs` | `SceneEntity`, `SceneLight`, `RegistryWindowState`, spawn/camera/light lifecycle |
-| `registry.rs` | Handle lifecycle, window proxies, input, textures, audio, file I/O, GPU compute |
-
-**Removals:**
-- Dead Voxel code purged: `VoxelWorldState`, `SendVoxelWorld`, `NativeHandle::VoxelWorld`, and 3 stub functions.
-- Voxel FFI bindings removed from `bridge.rs`.
-
-**Sandbox hardening:** `registry_load_texture` now validates paths via `validate_fs_path` before touching disk. All file I/O exclusively routes through the `fs` module (`file_read` / `file_write`).
-
----
-
-### 🔧 FFI Consolidation & Architectural Purge (Sprint 185)
-- **API-Bereinigung**: Redundante FFI-Schnittstellen (`registry_read_file`, `registry_write_file`) und die Legacy-Testfunktion `registry_get_ultimate_answer` wurden restlos eliminiert.
-- **Einheitlicher I/O**: Jeglicher Dateizugriff erfolgt nun ausnahmslos über das gesicherte `fs`-Modul (`file_read` / `file_write`).
-- **Zustandskapselung**: Der globale Geometrie-Cache (`SENT_MESHES`) wurde vollständig aus dem Kernel entfernt und autark in das `scene`-Modul gekapselt.
-- **Grammatik-Synchronisation**: Veraltete Voxel-Syntaxregeln wurden aus der EBNF-Grammatik entfernt.
-
----
-
-### 🧹 Core Purge & Ecosystem Alignment (Sprint 186)
-- **AST-Bereinigung**: 7 Voxel-Node-Varianten aus dem `Node`-Enum entfernt (`InitCamera`, `DrawVoxelGrid`, `LoadTextureAtlas`, `InitVoxelMap`, `SetVoxel`, `EnableInteraction`, `EnablePhysics`).
-- **Executor-Entschlackung**: Voxel-Zustandsfelder und Match-Arms aus Executor, Validator, Evaluator und Optimizer entfernt — insgesamt ~102 Zeilen toter Code.
-- **Schema-Synchronisation**: Voxel-Node-Definitionen aus `node_types.json`, `aether_schema.json`, `KNOTEN_SPEC.md` und `knoten_ai_context_v124.md` gelöscht.
-- **Ecosystem-Alignment**: 3 Benchmark-Dateien auf `file_write` migriert, Voxel-Beispiele gelöscht, temporäre Skripte entfernt, VSCode-Syntax-Highlighter bereinigt.
-
----
-
-### ⚡ WGPU Compute Pipeline (Sprint 187)
-- **GPGPU Storage Buffers**: `dispatch_compute` now serializes input `RelType` arrays into `wgpu::Buffer` (STORAGE + COPY_DST), creates bind groups, and binds them to the compute pipeline — enabling GPU-accelerated data processing directly from KnotenCore scripts.
-- **Pipeline Caching**: Shaders are compiled once and cached in `compute_pipelines`. Subsequent dispatches with the same shader ID skip WGSL recompilation.
-- **math_vector_scale(array, factor)**: Multiply every element in a numeric array by a scalar factor.
-- **math_matrix_transform(matrix, vector)**: Apply a 4×4 transformation matrix to a 3D/4D vector using `glam::Mat4`.
-- **WGSL Shader**: `assets/shaders/data_preprocessor.wgsl` demonstrates full storage-buffer roundtrip — normalization and scaling of float arrays on the GPU.
-
----
-
-### 🕐 Sandboxed Time Module (Sprint 188)
-- **chrono Integration**: Formatted wall-clock time via `chrono = "0.4"`. No geolocation or hardware queries — strictly `SystemTime`-based.
-- **`time_get_string()`** → `String`: Returns `YYYY-MM-DD HH:MM:SS` local time.
-- **`time_utc_timestamp()`** → `Int`: Returns UTC epoch seconds (compatible with `cache_line_` patterns).
-
----
-
-### 📊 Databound UI Components (Sprint 189)
-- **`ui_bar_chart(label, data)`**: Native bar chart — accepts a String label and Array of numbers. Bars are painted with value-proportional heights and gradient colors via the egui painter API.
-- **`ui_progress_gauge(label, value, min, max)`**: Animated progress bar via `egui::ProgressBar`. Displays `value / max` as a filled fraction with floating-point overlay text.
-- **Thread-safe buffers**: `BAR_CHART_QUEUE` and `PROGRESS_GAUGE_QUEUE` in `ui.rs` — pushed from FFI, drained and rendered each frame, zero alloc after first frame.
-- **Dashboard**: `examples/dashboard.knoten` shows 2 bar charts + 2 progress gauges with Sprint 188 `time_get_string()` cache stamping.
 
 ---
 
@@ -755,3 +161,7 @@ Open-source contributors and autonomous agents interacting with this framework m
 - Follow the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 Reference `llm.md` for strict machine-readable constraints regarding runtime architecture and OS bindings.
+
+---
+
+**[https://knotencore.de/](https://knotencore.de/) — The Official Engineering & Telemetry Control Hub**
