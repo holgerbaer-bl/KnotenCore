@@ -74,7 +74,7 @@ JSON-AST (.nod)  ->  Parser  ->  AST (Node enum inside knoten_core_types)
 | **`knoten_core`** | **Fassade** — Duenne Haupt-Crate; fungiert als Re-Export-Fassade nach aussen zur reibungslosen Workspace-Steuerung. |
 | **`aether_compiler`** | **Engine Core** — Beheimatet den autonomen JIT-Graph-Executor, den AOT-Bytecode-Compiler sowie die Stack-VM zur allocations-freien ALU-Befehlsabarbeitung. |
 | **`knoten_core_types`** | **Sole Source of Truth** — Beheimatet exklusiv die reinen Datenzertifikate (`Node`, `OpCode`, `SimdOp`) frei von Cross-Crate-Logikkopplungen. |
-| `src/audio.rs` | **Audio Engine (Live)** — Sinus-Wellen-Synthese via `rodio`; aktiviert, 440Hz Boot-Tone bei Engine-Start. |
+| `src/audio.rs` | **Audio Engine (Live / Polyphon)** — Mehrkanal-Sinus-Synthese via `rodio`; isolierte Sinks pro Kanal, `PlayNote`/`StopNote` im AOT-Pfad. |
 | `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` Server fuer Echtzeit-Linter-Validierung und Hover-Diagnostik direkt im Editor. |
 
 ---
@@ -96,11 +96,12 @@ Die Synchronisation zwischen der Stack-VM und dem WGPU-Render-Triebwerk operiert
 - **Garantiert ununterbrochenes Rendern:** Der zeitkritische WGPU-Thread verwendet ein strikt nicht-blockierendes `try_send()`. Kanallast oder Verzoegerungen auf der VM-Seite werden geraeuschlos verworfen — der Winit-Eventloop friert niemals ein.
 - **Contention-Freies Polling:** Das Auslesen via `registry_compute_readback` klont den Receiver unter einem extrem kurzlebigen Lock-Block. Der Mutex-Guard wird *vor* dem Eintritt in den 1000er `std::hint::spin_loop()` abgeworfen. VM und Render-Thread agieren maximal entkoppelt und parallel.
 
-### 🎧 Native Audio Engine (Aktiviert / Live)
-Die Audio-Pipeline ist vollstaendig aktiviert und generiert synthetische Sinus-Wellen direkt ueber `rodio` ohne externe Datei-Assets:
-- **Boot-Tone:** 440 Hz Sinus-Welle (150ms) wird bei Engine-Start via `registry_play_boot_tone()` ueber das Telemetry Dashboard abgespielt.
-- **Hardware-Initialisierung:** `init_audio_state()` meldet beim ersten Aufruf automatisch die nativen Audio-Kanaele an.
-- **Zero-Latency:** Fire-and-forget Audioeffekte triggern instantan aus Bytecode-Instruktionen via `AudioManager`.
+### 🎧 Native Audio Engine (Aktiviert / Live / Polyphon)
+Die Audio-Pipeline ist vollstaendig aktiviert mit polyphoner Mehrkanal-Synthese und isolierten Sinks pro Kanal:
+- **Polyphone Kanaele:** `PlayNote(channel, freq, duration)` im `.knoten` DSL — parallele Sinus-Oszillatoren ueber `synth_sinks: HashMap<usize, Sink>` im Audio-Thread, unabhaengig voneinander steuerbar.
+- **StopTone:** `StopNote(channel)` stoppt gezielt den Sink eines bestimmten Kanals, ohne andere Kanaele zu beeinflussen.
+- **Boot-Tone:** 440 Hz Sinus-Welle (150ms) auf Kanal 0 bei Engine-Start via `registry_play_boot_tone()`.
+- **Open Codecs:** Native Wiedergabe von OGG, WAV, FLAC, MP3 ueber Symphonia — alle Sandbox-geprueft.
 
 ### 🧮 Math Standard Library & Determinism
 Um komplexe orbitale Mechaniken nativ im VM-Loop zu berechnen, stellt die Engine deterministische Bindungen an Rusts mathematische Kernbibliothek zur Verfuegung:

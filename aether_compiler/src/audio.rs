@@ -10,9 +10,13 @@ pub enum AudioCommand {
     LoopMusic(String),
     SetVolume(f32),
     PlayTone {
+        channel: usize,
         freq: f32,
         duration_ms: u64,
         volume: f32,
+    },
+    StopTone {
+        channel: usize,
     },
 }
 
@@ -36,6 +40,7 @@ impl AudioManager {
                 };
 
                 let mut sinks: HashMap<String, Sink> = HashMap::new();
+                let mut synth_sinks: HashMap<usize, Sink> = HashMap::new();
                 let mut global_volume = 1.0f32;
 
                 while let Ok(cmd) = rx.recv() {
@@ -65,8 +70,12 @@ impl AudioManager {
                             for sink in sinks.values() {
                                 sink.set_volume(global_volume);
                             }
+                            for sink in synth_sinks.values() {
+                                sink.set_volume(global_volume);
+                            }
                         }
                         AudioCommand::PlayTone {
+                            channel,
                             freq,
                             duration_ms,
                             volume,
@@ -81,8 +90,18 @@ impl AudioManager {
                                 .collect();
                             let source = rodio::buffer::SamplesBuffer::new(1, sample_rate, samples);
                             if let Ok(sink) = rodio::Sink::try_new(&stream_handle) {
+                                // Stop and replace any existing sink on this channel
+                                if let Some(old) = synth_sinks.remove(&channel) {
+                                    old.stop();
+                                }
+                                sink.set_volume(global_volume);
                                 sink.append(source);
-                                sink.detach();
+                                synth_sinks.insert(channel, sink);
+                            }
+                        }
+                        AudioCommand::StopTone { channel } => {
+                            if let Some(sink) = synth_sinks.remove(&channel) {
+                                sink.stop();
                             }
                         }
                     }
@@ -107,11 +126,16 @@ impl AudioManager {
         let _ = self.tx.send(AudioCommand::SetVolume(volume));
     }
 
-    pub fn play_tone(&mut self, freq: f32, duration_ms: u64, volume: f32) {
+    pub fn play_tone(&mut self, channel: usize, freq: f32, duration_ms: u64, volume: f32) {
         let _ = self.tx.send(AudioCommand::PlayTone {
+            channel,
             freq,
             duration_ms,
             volume,
         });
+    }
+
+    pub fn stop_tone(&mut self, channel: usize) {
+        let _ = self.tx.send(AudioCommand::StopTone { channel });
     }
 }

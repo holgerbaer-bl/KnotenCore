@@ -1070,10 +1070,17 @@ impl VM {
                         .stack
                         .pop()
                         .ok_or_else(|| "Stack underflow in PlayNote (frequency)".to_string())?;
-                    let _channel = self
+                    let channel = self
                         .stack
                         .pop()
                         .ok_or_else(|| "Stack underflow in PlayNote (channel)".to_string())?;
+                    let channel_idx = match channel {
+                        RelType::Int(i) => i as usize,
+                        v => {
+                            eprintln!("[VM Synth] PlayNote: Expected Int channel, got {:?}", v);
+                            0
+                        }
+                    };
                     let freq_val = match freq {
                         RelType::Float(f) => f as f32,
                         RelType::Int(i) => i as f32,
@@ -1096,15 +1103,26 @@ impl VM {
                     if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
                         && let Some(ref mut mgr) = *guard
                     {
-                        mgr.play_tone(freq_val, dur_val, 0.3);
+                        mgr.play_tone(channel_idx, freq_val, dur_val, 0.3);
                     }
                     self.stack.push(RelType::Void);
                 }
                 OpCode::OpStopNote => {
-                    let _channel = self
+                    let channel = self
                         .stack
                         .pop()
                         .ok_or_else(|| "Stack underflow in StopNote (channel)".to_string())?;
+                    let channel_idx = if let RelType::Int(i) = channel {
+                        i as usize
+                    } else {
+                        0
+                    };
+                    crate::natives::registry::init_audio_state();
+                    if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
+                        && let Some(ref mut mgr) = *guard
+                    {
+                        mgr.stop_tone(channel_idx);
+                    }
                     self.stack.push(RelType::Void);
                 }
                 OpCode::Return => {

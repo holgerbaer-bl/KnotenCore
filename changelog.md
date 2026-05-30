@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 223: Polyphonic Audio Synth Channel Routing & Multi-Sink Isolation (2026-05-29)
+Sprint 223: Polyphonic Synth Channels. Upgraded the audio engine to support independent per-channel sink management with explicit stop semantics.
+- **Channel-Aware PlayTone**: Added `channel: usize` field to `AudioCommand::PlayTone`. The audio thread maintains `synth_sinks: HashMap<usize, Sink>` — each channel owns an isolated Sink. Re-playing on an occupied channel stops and replaces the old sink before starting the new one.
+- **StopTone Command**: New `AudioCommand::StopTone { channel }` removes and stops the sink for the specified channel, instantly silencing it without affecting other channels.
+- **AudioManager API**: `play_tone(channel, freq, duration_ms, volume)` and `stop_tone(channel)` replace old signature-less variants. Both are async fire-and-forget via `mpsc::channel`.
+- **VM Activation**: `OpPlayNote` handler extracts channel (Int) from stack, converted to `usize` index. `OpStopNote` handler extracts channel and calls `mgr.stop_tone(channel_idx)`. Both handlers lazy-init `AUDIO_STATE` via `init_audio_state()`.
+- **Global Volume Propagation**: `SetVolume` command now propagates to both `sinks` and `synth_sinks` HashMaps — all audio sources share the same master volume.
+- **README Update**: Audio section promoted from "Live" to "Live / Polyphon". Architecture table entry updated.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 222: Neural DSL Synth Compilation & Procedural Note Mapping (2026-05-29)
 Sprint 222: Neural DSL Synth. Extended the AOT compiler and Stack-VM with native `PlayNote`/`StopNote` opcodes, enabling procedural tone generation directly from `.knoten` DSL without file assets.
 - **Opcodes Added**: `OpPlayNote` and `OpStopNote` in `knoten_core_types/src/opcode.rs`. `OpPlayNote` pops channel, frequency, and duration from the VM stack and fires `AudioManager::play_tone()` asynchronously. `OpStopNote` pops channel (placeholder for future polyphonic channel management).
