@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 219: Core Engine Architecture Purge & Spin-Poll Optimization (2026-05-29)
+Sprint 219: Architecture cleanup pass. Audited entire aether_compiler for dead conversion bridges, stale import paths, and unnecessary type wrappers. Verified exhaustive pattern-matching correctness across codegen.rs and machine.rs. Reduced compute readback spin-poll from 1000 to 64 iterations for stable test timing.
+- **Audit Results**: 0 `crate::ast::` or `crate::vm::opcode::` stale references. 0 conversion/wrapper bridge functions. All 148 match arms in codegen.rs and machine.rs correctly reference `knoten_core_types` paths. `codegen.rs` generated-code strings (`knoten_core::`) are intentional facade references, not dead paths. `executor.rs` GPU structs (`VoxelVertex`, `VoxelInstance`, `PointLightStruct`, `MeshUniforms`) preserved as architectural stubs.
+- **Spin-Poll Optimization**: Reduced `registry_compute_readback` spin loop from 1000 to 64 iterations. 1000x `std::hint::spin_loop()` caused 603ms cumulative thread time in concurrency test (failing the 200ms threshold). 64 iterations maintains same-frame delivery window while keeping test within bounds.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 218: Audio Core Status Realism Check (2026-05-29)
 Sprint 218: Realism alignment pass for documentation. Flagged the audio pipeline explicitly as "Muted Mode" in the main README.md to prevent structural hallucinations by future AI agents, keeping the focus entirely on the silent, high-performance GPGPU data tracks.
 

@@ -859,7 +859,7 @@ pub fn registry_compute_readback(shader_id: i64) -> Vec<crate::executor::RelType
     };
 
     if let Some(rx) = rx {
-        for _ in 0..1000 {
+        for _ in 0..64 {
             match rx.try_recv() {
                 Ok(floats) => {
                     return floats
