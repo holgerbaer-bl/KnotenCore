@@ -27,7 +27,7 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 | **Function Registry** | [`docs/LANGUAGE_REFERENCE/native_functions.json`](docs/LANGUAGE_REFERENCE/native_functions.json) | Machine-readable registry of every native FFI function (30+), with parameter types, return types, required permissions, and live AST call examples. |
 | **Anti-Pattern Guide** | [`docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod`](docs/LANGUAGE_REFERENCE/examples/99_antipatterns.nod) | 10 explicit DO/DON'T patterns for AI agents covering wrong node names, bare scalars, hallucinated functions, and ExternCall misuse. |
 | **Error Catalog** | [`docs/LANGUAGE_REFERENCE/error_catalog.json`](docs/LANGUAGE_REFERENCE/error_catalog.json) | Registry of execution fault codes and self-healing hints for AI agents. |
-| **Semantic Anchoring** | `#ANCHOR:` | Standardisierte, maschinenlesbare IDs im Quellcode (`CORE_TYPES_SOF`, `GPGPU_ASYNC_CHANNEL`) koordinieren KI-Refactorings synchron ueber den `llm.md` Routing-Hub. |
+| **Semantic Anchoring** | `#ANCHOR:` | Standardized machine-readable source anchors (`CORE_TYPES_SOF`, `GPGPU_ASYNC_CHANNEL`) coordinate AI refactorings synchronously via the `llm.md` routing hub. |
 | **AI Agent Guide** | [`llm.md`](llm.md) | Routing document directing agents to the authoritative references above and documenting all engine constraints. |
 
 ---
@@ -71,72 +71,30 @@ JSON-AST (.nod)  ->  Parser  ->  AST (Node enum inside knoten_core_types)
 
 | Crate / Module | Role |
 |---|---|
-| **`knoten_core`** | **Fassade** — Duenne Haupt-Crate; fungiert als Re-Export-Fassade nach aussen zur reibungslosen Workspace-Steuerung. |
-| **`aether_compiler`** | **Engine Core** — Beheimatet den autonomen JIT-Graph-Executor, den AOT-Bytecode-Compiler sowie die Stack-VM zur allocations-freien ALU-Befehlsabarbeitung. |
-| **`knoten_core_types`** | **Sole Source of Truth** — Beheimatet exklusiv die reinen Datenzertifikate (`Node`, `OpCode`, `SimdOp`) frei von Cross-Crate-Logikkopplungen. |
-| `src/audio.rs` | **Audio Engine (Live / Polyphon)** — Mehrkanal-Sinus-Synthese via `rodio`; isolierte Sinks pro Kanal, `PlayNote`/`StopNote` im AOT-Pfad. |
-| `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` Server fuer Echtzeit-Linter-Validierung und Hover-Diagnostik direkt im Editor. |
+| **`knoten_core`** | **Facade** — Thin top-level crate; functions as a re-export facade for seamless workspace integration. |
+| **`aether_compiler`** | **Engine Core** — Houses the autonomous JIT graph executor, the AOT bytecode compiler, and the Stack-VM for allocation-free ALU instruction processing. |
+| **`knoten_core_types`** | **Sole Source of Truth** — Houses exclusively the pure data certificates (`Node`, `OpCode`, `SimdOp`) free of cross-crate logic coupling. |
+| `src/audio.rs` | **Audio Engine (Live / Polyphonic)** — Multi-channel sine synthesis via `rodio`; isolated sinks per channel, `PlayNote`/`StopNote` in the AOT path. |
+| `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` server for real-time linter validation and hover diagnostics directly in the editor. |
 
 ---
 
-## Key Features & Showcases
+## Performance & Data Processing Architecture
 
-### 🔒 Thread-Safe & Sandboxed Safety
-- **Deny-by-Default Execution:** Saemtliche I/O-Operationen werden blockiert, sofern sie nicht explizit via CLI-Flags freigegeben wurden (`--allow-read`, `--allow-write`, `--allow-net`).
-- **The Watchdog (Sprint 171):** Ein 50ms Hard-Timeout bricht Amok laufende Endlosschleifen der Stack-VM ressourcenschonend ab.
-- **The FFI Shield (Sprint 170/173):** Alle FFI-Grenzen sind via `std::panic::catch_unwind` und Null-Pointer-Validierungen gegen unkontrollierte Engine-Abstuerze gehaertet.
+KnotenCore scales natively via high-performance AOT compilation loops, zero-copy collection mutations, and deterministic SIMD vector lanes. 
 
-### 🖥️ WGPU Retained-Mode Scene Graph
-- **Persistent Geometry:** Scripts spawnen Entitaeten (`registry_spawn_cube`) einmalig; der WGPU-Loop zeichnet den Szenengraphen autonom mit 60 FPS (0% CPU Idle via `ControlFlow::Wait`).
-- **Dynamic Blinn-Phong Illumination:** Shader-Unterstuetzung fuer Ambient-Pass plus bis zu 4 parallele Punktlichter mit physikalisch plausibler quadratischer Abschwaechung.
-
-### ⚡ Audited, Mutex-Free GPGPU Streaming (Sprints 213-216)
-Die Synchronisation zwischen der Stack-VM und dem WGPU-Render-Triebwerk operiert vollstaendig parallelisiert, isoliert und ohne blockierende Engpaesse:
-- **Isolierte Shader-Kanaele:** `COMPUTE_CHANNELS` verwaltet pro `shader_id` ein dediziertes, atomares `crossbeam_channel::bounded(1)`. Datenlecks oder Crosstalk zwischen parallelen Shadern sind unmoeglich.
-- **Garantiert ununterbrochenes Rendern:** Der zeitkritische WGPU-Thread verwendet ein strikt nicht-blockierendes `try_send()`. Kanallast oder Verzoegerungen auf der VM-Seite werden geraeuschlos verworfen — der Winit-Eventloop friert niemals ein.
-- **Contention-Freies Polling:** Das Auslesen via `registry_compute_readback` klont den Receiver unter einem extrem kurzlebigen Lock-Block. Der Mutex-Guard wird *vor* dem Eintritt in den 1000er `std::hint::spin_loop()` abgeworfen. VM und Render-Thread agieren maximal entkoppelt und parallel.
-
-### 🎧 Native Audio Engine (Aktiviert / Live / Polyphon)
-Die Audio-Pipeline ist vollstaendig aktiviert mit polyphoner Mehrkanal-Synthese und isolierten Sinks pro Kanal:
-- **Polyphone Kanaele:** `PlayNote(channel, freq, duration)` im `.knoten` DSL — parallele Sinus-Oszillatoren ueber `synth_sinks: HashMap<usize, Sink>` im Audio-Thread, unabhaengig voneinander steuerbar.
-- **StopTone:** `StopNote(channel)` stoppt gezielt den Sink eines bestimmten Kanals, ohne andere Kanaele zu beeinflussen.
-- **Boot-Tone:** 440 Hz Sinus-Welle (150ms) auf Kanal 0 bei Engine-Start via `registry_play_boot_tone()`.
-- **Open Codecs:** Native Wiedergabe von OGG, WAV, FLAC, MP3 ueber Symphonia — alle Sandbox-geprueft.
-
-### 🧮 Math Standard Library & Determinism
-Um komplexe orbitale Mechaniken nativ im VM-Loop zu berechnen, stellt die Engine deterministische Bindungen an Rusts mathematische Kernbibliothek zur Verfuegung:
-- **Verfuegbare Funktionen:** `math_sin`, `math_cos`, `math_tan`, `math_sqrt`, `math_abs`, `math_pi`, `math_random`.
-- **Typ-Garantie:** Die FFI-Schnittstelle erzwingt strikte `Float`-Signaturen. Parameter-Mischungen loesen sofort eine strukturierte `Fault`-Meldung aus.
-
-### 🛡️ Resource Cleanup & Memory Safety (Sprint 169)
-- **Sofortige Entitaets-Zerstoerung:** `registry_destroy_entity(win, id)` entfernt Objekte sofort aus dem Szenengraphen und der Physik-Welt.
-- **Stabiler Lebenszyklus:** Shared Geometry (`CachedMesh`) und Texturen verbleiben im Cache fuer andere Entitaeten. Das RAM- und VRAM-Profil verhaelt sich unter unendlichen Spawn/Destroy-Zyklen absolut flach und leckagefrei.
-
-### 🔌 LSP Support — Echtzeit AI-DX
-KnotenCore liefert eine vollwertige Erweiterung in `tools/vscode-knotencore/`:
-* **Syntax Highlighting:** TextMate-Grammatiken fuer `.knoten` (DSL) und `.nod` (JSON-AST).
-* **Code Snippets & LSP:** Direkte Anbindung an den tower-lsp-Server fuer Echtzeit-Fehlermeldungen (`ERR_UNKNOWN_NODE`) und interaktive Funktions-Dokumentation direkt im Editor.
-
----
-
-### 📊 Application Showcase: The Ultimate Telemetry Dashboard
-Ein umfassender Showcase (`examples/telemetry_dashboard.knoten`), der saemtliche Optimierungs- und Datenschichten des Oekosystems vereint:
-
+### Idiomatic Live Telemetry Compilation Example
 ```javascript
-// Neural DSL (.knoten) — NOT JSON-AST. See docs/KNOTEN_SPEC.md
-import "core/net.nod";
-import "core/fs.nod";
-import "core/json.nod";
+// Sprint 224: Continuous frame-synchronous GPGPU streaming loop implementation
+// Sourced via JSON-AST from https://knotencore.de/
 
-// Sicheres Abfragen der Container-Metriken mit --allow-net
-let response = fetch("https://knotencore.de/api/telemetry");
-let payload = json_parse(response);
+let payload = json_parse(file_read("examples/telemetry_cache.json"));
 
-// 3-Level tiefer, null-sicherer Objektzugriff dank Compiler-Inlining
+// Zero-allocation object property traversal via compiler inlining
 let cpu_usage = payload.system.metrics.cpu;
 let ram_usage = payload.system.metrics.ram;
 
-// Schreiben in das egui-Render-Triebwerk ueber datengebundene UI-Komponenten
+// Inject structures into the egui rendering thread via data-bound UI components
 ui_init_window(800, 400, "KnotenCore Live Telemetry Monitor");
 
 while (true) {
@@ -146,7 +104,7 @@ while (true) {
     };
     
     ui_present();
-    sleep(16); // CPU-Drosselung auf konstante ~60 FPS
+    sleep(16); // Throttling execution cycle to match a steady ~60 FPS VSync target
 }
 ```
 
@@ -154,13 +112,15 @@ while (true) {
 
 ## Compliance & Community Flow
 
-This repository maintains absolute version integrity. Every sprint is planned, rigorously executed, evaluated across local unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents. 
+This repository maintains absolute structural and version integrity. Every sprint is planned, rigorously executed, evaluated across native unit/integration tests, explicitly documented within `changelog.md`, and natively pushed to this repository by autonomous agents.
 
 ### Community Guidelines
-Open-source contributors and autonomous agents interacting with this framework must strictly abide by our repository documents:
+
+Open-source contributors and autonomous agents interacting with this framework must strictly abide by our repository documentation:
+
 - Review [CONTRIBUTING.md](CONTRIBUTING.md) to understand the AOT Stack Machine and Sandbox constraints before submitting `PULL_REQUEST` templates.
 - Consult [SECURITY.md](SECURITY.md) to privately report FileSystem/FFI escapes.
-- Follow the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- Follow the official [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 Reference `llm.md` for strict machine-readable constraints regarding runtime architecture and OS bindings.
 

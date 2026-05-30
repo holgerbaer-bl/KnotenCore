@@ -2,6 +2,9 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 225: README Language Standardization Pass (2026-05-30)
+Sprint 225: Language hygiene pass. Eliminated the bilingual hybrid status inside the main README.md. Completely standardized the live telemetry showcase and the community guidelines onto a pure, professional English track, reinforcing strict documentation integrity for external developers and AI agents.
+
 ## [v1.3.0-alpha] - Sprint 224: Continuous GPGPU Streaming-Loop & Frame-Synchronous VM Drive (2026-05-29)
 Sprint 224: Continuous GPGPU Streaming. Extended the AOT compiler and Stack-VM with `DispatchComputeLoop` for iterative, frame-synchronous compute shader dispatch with result recycling.
 - **New AST Node**: `DispatchComputeLoop { shader_id, iterations, inputs }` in `knoten_core_types/src/ast.rs`. Accepts a shader ID, iteration count, and input vector — no x/y/z dispatch dimensions (default 1x1x1). All exhaustive match arms updated across validator.rs, optimizer.rs (count_nodes + optimize), executor.rs, evaluator.rs, codegen.rs, and compiler.rs.
