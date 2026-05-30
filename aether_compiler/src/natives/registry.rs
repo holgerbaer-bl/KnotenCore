@@ -156,6 +156,28 @@ pub fn registry_play_boot_tone() {
     }
 }
 
+pub fn registry_play_sound(path: &str) -> Result<(), String> {
+    init_audio_state();
+    if let Ok(mut guard) = AUDIO_STATE.lock()
+        && let Some(ref mut mgr) = *guard
+    {
+        mgr.play_sound(path)?;
+        return Ok(());
+    }
+    Err("Audio engine not initialized".into())
+}
+
+pub fn registry_loop_music(path: &str) -> Result<(), String> {
+    init_audio_state();
+    if let Ok(mut guard) = AUDIO_STATE.lock()
+        && let Some(ref mut mgr) = *guard
+    {
+        mgr.loop_music(path)?;
+        return Ok(());
+    }
+    Err("Audio engine not initialized".into())
+}
+
 pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) {
     let mut guard = RENDER_TX.lock().unwrap_or_else(|e| e.into_inner());
     *guard = Some(tx);

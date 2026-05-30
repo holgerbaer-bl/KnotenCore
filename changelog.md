@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 221: Open Codec Audio FFI & Sandbox Hardening (2026-05-29)
+Sprint 221: Audio FFI Integration. Activated native audio asset playback for free codecs (OGG, WAV, FLAC, MP3) with strict sandbox enforcement on the FFI boundary.
+- **Codec Features**: Upgraded `rodio` dependency in both workspace Cargo.toml files from bare `"0.19.0"` to `{ features = ["vorbis", "flac", "wav", "mp3"] }`. All four codecs decoded natively via symphonia — no OS codec dependencies.
+- **registry_play_sound(path)**: New sandboxed FFI function. Validates `permissions.allow_fs_read` before calling `ExecutionEngine::validate_fs_path(&path)` with symlink blocking and directory-escape detection. On success, fires `AudioCommand::PlaySound` to the background audio thread. On failure, returns `ExecResult::Fault` with precise error diagnostics.
+- **registry_loop_music(path)**: Identical sandbox validation pipeline for background music loops. Validates permissions + path, then fires `AudioCommand::LoopMusic` with infinite repeat via `decoder.repeat_infinite()`.
+- **Bridge Registration**: Both functions registered in `bridge.rs` FFI dispatch table under the `"registry"` module. Collapsible-if clippy-compliant match arms.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 220: Audio Engine Activation & Dashboard Boot Tone (2026-05-29)
 Sprint 220: Audio Activation. Ended the Muted Mode era. Wired a hardware-native 440Hz sine wave boot tone into the engine initialization path and the Telemetry Dashboard showcase.
 - **AudioManager Tone Synthesis**: Added `AudioCommand::PlayTone { freq, duration_ms, volume }` to `audio.rs`. Generates raw `f32` sine wave samples programmatically via `rodio::buffer::SamplesBuffer` — no external `.wav`/`.ogg` file assets required. `AudioManager::play_tone()` sends via existing `mpsc::channel` to the dedicated audio thread.

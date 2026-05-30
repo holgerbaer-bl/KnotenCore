@@ -808,6 +808,76 @@ impl BridgeModule for CoreBridge {
                     crate::natives::registry::registry_play_boot_tone();
                     Some(ExecResult::Value(RelType::Void))
                 }
+                "registry_play_sound" => {
+                    if args.len() == 1
+                        && let RelType::Str(path) = &args[0]
+                    {
+                        if !permissions.allow_fs_read {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] Permission denied: --allow-read required for registry_play_sound".into(),
+                                node: "Native::Bridge::registry_play_sound".into(),
+                            });
+                        }
+                        match crate::executor::ExecutionEngine::validate_fs_path(path) {
+                            Ok(canonical) => {
+                                if let Err(e) = crate::natives::registry::registry_play_sound(
+                                    &canonical.to_string_lossy(),
+                                ) {
+                                    return Some(ExecResult::Fault {
+                                        msg: format!("[FFI] Audio error: {}", e),
+                                        node: "Native::Bridge::registry_play_sound".into(),
+                                    });
+                                }
+                                return Some(ExecResult::Value(RelType::Void));
+                            }
+                            Err(e) => {
+                                return Some(ExecResult::Fault {
+                                    msg: format!("[FFI] Path validation: {}", e),
+                                    node: "Native::Bridge::registry_play_sound".into(),
+                                });
+                            }
+                        }
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_play_sound expects 1 String arg".into(),
+                        node: "Native::Bridge::registry_play_sound".into(),
+                    })
+                }
+                "registry_loop_music" => {
+                    if args.len() == 1
+                        && let RelType::Str(path) = &args[0]
+                    {
+                        if !permissions.allow_fs_read {
+                            return Some(ExecResult::Fault {
+                                msg: "[FFI] Permission denied: --allow-read required for registry_loop_music".into(),
+                                node: "Native::Bridge::registry_loop_music".into(),
+                            });
+                        }
+                        match crate::executor::ExecutionEngine::validate_fs_path(path) {
+                            Ok(canonical) => {
+                                if let Err(e) = crate::natives::registry::registry_loop_music(
+                                    &canonical.to_string_lossy(),
+                                ) {
+                                    return Some(ExecResult::Fault {
+                                        msg: format!("[FFI] Audio error: {}", e),
+                                        node: "Native::Bridge::registry_loop_music".into(),
+                                    });
+                                }
+                                return Some(ExecResult::Value(RelType::Void));
+                            }
+                            Err(e) => {
+                                return Some(ExecResult::Fault {
+                                    msg: format!("[FFI] Path validation: {}", e),
+                                    node: "Native::Bridge::registry_loop_music".into(),
+                                });
+                            }
+                        }
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] registry_loop_music expects 1 String arg".into(),
+                        node: "Native::Bridge::registry_loop_music".into(),
+                    })
+                }
                 "registry_window_update" => {
                     if args.len() == 1
                         && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0]
