@@ -9,6 +9,11 @@ pub enum AudioCommand {
     PlaySound(String),
     LoopMusic(String),
     SetVolume(f32),
+    PlayTone {
+        freq: f32,
+        duration_ms: u64,
+        volume: f32,
+    },
 }
 
 pub struct AudioManager {
@@ -61,6 +66,25 @@ impl AudioManager {
                                 sink.set_volume(global_volume);
                             }
                         }
+                        AudioCommand::PlayTone {
+                            freq,
+                            duration_ms,
+                            volume,
+                        } => {
+                            let sample_rate = 44100u32;
+                            let num_samples = (sample_rate as u64 * duration_ms / 1000) as usize;
+                            let samples: Vec<f32> = (0..num_samples)
+                                .map(|i| {
+                                    let t = i as f32 / sample_rate as f32;
+                                    (t * freq * 2.0 * std::f32::consts::PI).sin() * volume
+                                })
+                                .collect();
+                            let source = rodio::buffer::SamplesBuffer::new(1, sample_rate, samples);
+                            if let Ok(sink) = rodio::Sink::try_new(&stream_handle) {
+                                sink.append(source);
+                                sink.detach();
+                            }
+                        }
                     }
                 }
             })
@@ -81,5 +105,13 @@ impl AudioManager {
 
     pub fn set_volume(&mut self, volume: f32) {
         let _ = self.tx.send(AudioCommand::SetVolume(volume));
+    }
+
+    pub fn play_tone(&mut self, freq: f32, duration_ms: u64, volume: f32) {
+        let _ = self.tx.send(AudioCommand::PlayTone {
+            freq,
+            duration_ms,
+            volume,
+        });
     }
 }

@@ -4,6 +4,9 @@
 
 let win = registry_create_window(800, 640, "KnotenCore v1.2 – Telemetry Dashboard");
 
+// Sprint 220: Trigger native bare-metal hardware initialization sound
+registry_play_boot_tone();
+
 // ═══ SECTION 1: Persistence & Cache Management (Sprint 183) ═════════
 print("=== Telemetry Dashboard v1.2 ===");
 print("  Domain: https://knotencore.de/");

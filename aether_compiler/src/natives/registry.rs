@@ -147,6 +147,15 @@ pub fn init_audio_state() {
     }
 }
 
+pub fn registry_play_boot_tone() {
+    init_audio_state();
+    if let Ok(mut guard) = AUDIO_STATE.lock()
+        && let Some(ref mut mgr) = *guard
+    {
+        mgr.play_tone(440.0, 150, 0.3);
+    }
+}
+
 pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) {
     let mut guard = RENDER_TX.lock().unwrap_or_else(|e| e.into_inner());
     *guard = Some(tx);

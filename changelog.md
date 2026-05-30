@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 220: Audio Engine Activation & Dashboard Boot Tone (2026-05-29)
+Sprint 220: Audio Activation. Ended the Muted Mode era. Wired a hardware-native 440Hz sine wave boot tone into the engine initialization path and the Telemetry Dashboard showcase.
+- **AudioManager Tone Synthesis**: Added `AudioCommand::PlayTone { freq, duration_ms, volume }` to `audio.rs`. Generates raw `f32` sine wave samples programmatically via `rodio::buffer::SamplesBuffer` — no external `.wav`/`.ogg` file assets required. `AudioManager::play_tone()` sends via existing `mpsc::channel` to the dedicated audio thread.
+- **registry_play_boot_tone()**: New FFI function in `registry.rs`. Calls `init_audio_state()` (lazy rodio output stream init), then plays 440Hz at 30% volume for 150ms via `AudioManager::play_tone()`. Collapsible-if + let-unit-value clippy-compliant.
+- **Bridge Registration**: `"registry_play_boot_tone"` registered in `bridge.rs` FFI dispatch table with zero-arg match arm returning `RelType::Void`.
+- **Dashboard Integration**: Injected `registry_play_boot_tone()` call into `examples/telemetry_dashboard.knoten` (both parent and aether_compiler copies) directly after window creation — zero impact on GPU frame budget.
+- **README Update**: Audio section promoted from "Muted Mode / Schlafend" to "Aktiviert / Live". Architecture table entry updated to "Audio Engine (Live)".
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 219: Core Engine Architecture Purge & Spin-Poll Optimization (2026-05-29)
 Sprint 219: Architecture cleanup pass. Audited entire aether_compiler for dead conversion bridges, stale import paths, and unnecessary type wrappers. Verified exhaustive pattern-matching correctness across codegen.rs and machine.rs. Reduced compute readback spin-poll from 1000 to 64 iterations for stable test timing.
 - **Audit Results**: 0 `crate::ast::` or `crate::vm::opcode::` stale references. 0 conversion/wrapper bridge functions. All 148 match arms in codegen.rs and machine.rs correctly reference `knoten_core_types` paths. `codegen.rs` generated-code strings (`knoten_core::`) are intentional facade references, not dead paths. `executor.rs` GPU structs (`VoxelVertex`, `VoxelInstance`, `PointLightStruct`, `MeshUniforms`) preserved as architectural stubs.

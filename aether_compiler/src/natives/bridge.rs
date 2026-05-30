@@ -804,6 +804,10 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::registry_create_window".into(),
                     })
                 }
+                "registry_play_boot_tone" => {
+                    crate::natives::registry::registry_play_boot_tone();
+                    Some(ExecResult::Value(RelType::Void))
+                }
                 "registry_window_update" => {
                     if args.len() == 1
                         && let RelType::Handle(crate::executor::NativeHandle(id)) = &args[0]
