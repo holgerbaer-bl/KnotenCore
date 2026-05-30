@@ -355,6 +355,9 @@ impl Codegen {
             Node::DispatchCompute { .. } => {
                 "/* DispatchCompute (AOT delegates to JIT) */".to_string()
             }
+            Node::DispatchComputeLoop { .. } => {
+                "/* DispatchComputeLoop (AOT delegates to JIT) */".to_string()
+            }
             _ => format!("/* Unsupported node in Sprint 190 codegen: {:?} */", node),
         }
     }

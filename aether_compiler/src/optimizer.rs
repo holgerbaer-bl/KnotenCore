@@ -314,6 +314,16 @@ pub fn count_nodes(node: &Node) -> usize {
                 count += count_nodes(n);
             }
         }
+        Node::DispatchComputeLoop {
+            shader_id,
+            iterations,
+            inputs,
+        } => {
+            count += count_nodes(shader_id) + count_nodes(iterations);
+            for n in inputs {
+                count += count_nodes(n);
+            }
+        }
     }
     count
 }
@@ -726,6 +736,15 @@ pub fn optimize(node: Node) -> Node {
             x: Box::new(optimize(*x)),
             y: Box::new(optimize(*y)),
             z: Box::new(optimize(*z)),
+            inputs: inputs.into_iter().map(optimize).collect(),
+        },
+        Node::DispatchComputeLoop {
+            shader_id,
+            iterations,
+            inputs,
+        } => Node::DispatchComputeLoop {
+            shader_id: Box::new(optimize(*shader_id)),
+            iterations: Box::new(optimize(*iterations)),
             inputs: inputs.into_iter().map(optimize).collect(),
         },
     }

@@ -87,4 +87,7 @@ pub enum OpCode {
     // Sprint 222: Neural DSL Synth — procedural audio note generation
     OpPlayNote, // pops frequency (f32) and duration_ms (i64) from stack
     OpStopNote, // pops channel (i64) from stack
+
+    // Sprint 224: Continuous GPGPU compute streaming loop
+    OpDispatchComputeLoop(usize), // arg_count
 }

@@ -195,6 +195,12 @@ pub enum Node {
         z: Box<Node>,
         inputs: Vec<Node>,
     },
+    // Sprint 224: Continuous GPGPU streaming loop
+    DispatchComputeLoop {
+        shader_id: Box<Node>,
+        iterations: Box<Node>,
+        inputs: Vec<Node>,
+    },
 
     // Audio Engine (CPAL FFI)
     InitAudio,

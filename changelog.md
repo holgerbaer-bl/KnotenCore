@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 224: Continuous GPGPU Streaming-Loop & Frame-Synchronous VM Drive (2026-05-29)
+Sprint 224: Continuous GPGPU Streaming. Extended the AOT compiler and Stack-VM with `DispatchComputeLoop` for iterative, frame-synchronous compute shader dispatch with result recycling.
+- **New AST Node**: `DispatchComputeLoop { shader_id, iterations, inputs }` in `knoten_core_types/src/ast.rs`. Accepts a shader ID, iteration count, and input vector — no x/y/z dispatch dimensions (default 1x1x1). All exhaustive match arms updated across validator.rs, optimizer.rs (count_nodes + optimize), executor.rs, evaluator.rs, codegen.rs, and compiler.rs.
+- **New OpCode**: `OpDispatchComputeLoop(usize)` in `knoten_core_types/src/opcode.rs`. Carries the input arg count as payload.
+- **VM Handler**: `machine.rs` handler pops inputs, iteration count, and shader_id from stack. In a bounded loop: sends `DispatchCompute` render command with inputs, then reads back previous GPU results via `registry_compute_readback(shader_id)` — non-blocking `try_recv()` with spin-poll. Results are recycled as inputs for the next iteration. Default dispatch dimensions: 1x1x1 (single workgroup).
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 223: Polyphonic Audio Synth Channel Routing & Multi-Sink Isolation (2026-05-29)
 Sprint 223: Polyphonic Synth Channels. Upgraded the audio engine to support independent per-channel sink management with explicit stop semantics.
 - **Channel-Aware PlayTone**: Added `channel: usize` field to `AudioCommand::PlayTone`. The audio thread maintains `synth_sinks: HashMap<usize, Sink>` — each channel owns an isolated Sink. Re-playing on an occupied channel stops and replaces the old sink before starting the new one.

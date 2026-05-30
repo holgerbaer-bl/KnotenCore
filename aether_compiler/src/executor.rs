@@ -1102,7 +1102,8 @@ impl ExecutionEngine {
             | Node::LoadShader(_)
             | Node::RenderMesh(_, _, _)
             | Node::LoadComputeShader(_)
-            | Node::DispatchCompute { .. } => ExecResult::Value(RelType::Void),
+            | Node::DispatchCompute { .. }
+            | Node::DispatchComputeLoop { .. } => ExecResult::Value(RelType::Void),
             Node::LoadMesh(_) | Node::LoadTexture(_) | Node::RenderAsset(_, _, _, _) => {
                 ExecResult::Value(RelType::Void)
             }

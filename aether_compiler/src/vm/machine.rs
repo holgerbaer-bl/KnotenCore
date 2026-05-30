@@ -856,6 +856,48 @@ impl VM {
                     );
                     self.stack.push(RelType::Void);
                 }
+                OpCode::OpDispatchComputeLoop(arg_count) => {
+                    let mut inputs = Vec::with_capacity(*arg_count);
+                    for _ in 0..*arg_count {
+                        inputs.push(self.stack.pop().unwrap_or(RelType::Void));
+                    }
+                    inputs.reverse();
+
+                    let iterations = match self.stack.pop().unwrap_or(RelType::Void) {
+                        RelType::Int(v) => v as usize,
+                        _ => return Err("DispatchComputeLoop expects integer iterations".into()),
+                    };
+                    let shader_id = match self.stack.pop().unwrap_or(RelType::Void) {
+                        RelType::Int(v) => v as usize,
+                        _ => return Err("DispatchComputeLoop expects integer Shader ID".into()),
+                    };
+
+                    for _ in 0..iterations {
+                        crate::natives::registry::send_render_command(
+                            crate::natives::registry::RenderCommand::DispatchCompute {
+                                shader_id,
+                                x: 1,
+                                y: 1,
+                                z: 1,
+                                inputs: inputs.clone(),
+                            },
+                        );
+                        let result =
+                            crate::natives::registry::registry_compute_readback(shader_id as i64);
+                        if !result.is_empty() {
+                            inputs = result
+                                .into_iter()
+                                .map(|r| match r {
+                                    crate::executor::RelType::Float(f) => {
+                                        crate::executor::RelType::Float(f)
+                                    }
+                                    v => v,
+                                })
+                                .collect();
+                        }
+                    }
+                    self.stack.push(RelType::Void);
+                }
                 // Sprint 200/202: SIMD auto-vectorization — 4-element parallel ops
                 OpCode::SimdExec {
                     op,

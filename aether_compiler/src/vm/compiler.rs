@@ -762,6 +762,26 @@ impl Compiler {
                     .push(OpCode::DispatchCompute(inputs.len()));
                 true
             }
+            Node::DispatchComputeLoop {
+                shader_id,
+                iterations,
+                inputs,
+            } => {
+                if !self.compile_node(shader_id) {
+                    return false;
+                }
+                if !self.compile_node(iterations) {
+                    return false;
+                }
+                for input in inputs {
+                    if !self.compile_node(input) {
+                        return false;
+                    }
+                }
+                self.instructions
+                    .push(OpCode::OpDispatchComputeLoop(inputs.len()));
+                true
+            }
             _ => {
                 eprintln!(
                     "[Compiler Error] Unhandled AST node during transpilation: {:?}",

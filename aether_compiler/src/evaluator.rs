@@ -737,7 +737,8 @@ impl ExecutionEngine {
             | Node::Import(_)
             | Node::AddWorldAABB { .. }
             | Node::LoadComputeShader(_)
-            | Node::DispatchCompute { .. } => self.evaluate_extra(node),
+            | Node::DispatchCompute { .. }
+            | Node::DispatchComputeLoop { .. } => self.evaluate_extra(node),
         }
     }
 

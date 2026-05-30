@@ -461,6 +461,17 @@ impl Validator {
                     self.check_node(n);
                 }
             }
+            Node::DispatchComputeLoop {
+                shader_id,
+                iterations,
+                inputs,
+            } => {
+                self.check_node(shader_id);
+                self.check_node(iterations);
+                for n in inputs {
+                    self.check_node(n);
+                }
+            }
             Node::Modulo(l, r) => {
                 self.check_node(l);
                 self.check_node(r);
