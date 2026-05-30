@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 222: Neural DSL Synth Compilation & Procedural Note Mapping (2026-05-29)
+Sprint 222: Neural DSL Synth. Extended the AOT compiler and Stack-VM with native `PlayNote`/`StopNote` opcodes, enabling procedural tone generation directly from `.knoten` DSL without file assets.
+- **Opcodes Added**: `OpPlayNote` and `OpStopNote` in `knoten_core_types/src/opcode.rs`. `OpPlayNote` pops channel, frequency, and duration from the VM stack and fires `AudioManager::play_tone()` asynchronously. `OpStopNote` pops channel (placeholder for future polyphonic channel management).
+- **Compiler Target**: `compiler.rs` match arms compile `Node::PlayNote(channel, freq, dur)` and `Node::StopNote(channel)` into linear opcode streams. All three sub-expressions compiled recursively — zero alloc overhead in AOT path.
+- **VM Dispatcher**: `machine.rs` handler for `OpPlayNote` validates frequency (Float/Int) and duration (Int) types on stack, converts to native types, calls `init_audio_state()` + `AUDIO_STATE` lookup + `play_tone()`. Collapsible-if clippy-compliant.
+- **DSL Usage**: `PlayNote(440.0, 150);` in `.knoten` scripts now generates a 440Hz sine tone for 150ms through the AOT VM path — no FFI bridge round-trip required.
+- **CI**: 148/148 tests (71 lib + 55 integration + 22 sandbox), 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 221: Open Codec Audio FFI & Sandbox Hardening (2026-05-29)
 Sprint 221: Audio FFI Integration. Activated native audio asset playback for free codecs (OGG, WAV, FLAC, MP3) with strict sandbox enforcement on the FFI boundary.
 - **Codec Features**: Upgraded `rodio` dependency in both workspace Cargo.toml files from bare `"0.19.0"` to `{ features = ["vorbis", "flac", "wav", "mp3"] }`. All four codecs decoded natively via symphonia — no OS codec dependencies.

@@ -83,4 +83,8 @@ pub enum OpCode {
         elements_b: [usize; 4], // constant pool indices for second operand (Add/Sub/Dot)
         scale: usize,           // constant pool index for scale factor (Scale only)
     },
+
+    // Sprint 222: Neural DSL Synth — procedural audio note generation
+    OpPlayNote, // pops frequency (f32) and duration_ms (i64) from stack
+    OpStopNote, // pops channel (i64) from stack
 }

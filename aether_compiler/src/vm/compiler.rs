@@ -611,6 +611,26 @@ impl Compiler {
                 self.instructions.push(OpCode::WriteFile);
                 true
             }
+            Node::PlayNote(channel_expr, freq_expr, dur_expr) => {
+                if !self.compile_node(channel_expr) {
+                    return false;
+                }
+                if !self.compile_node(freq_expr) {
+                    return false;
+                }
+                if !self.compile_node(dur_expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::OpPlayNote);
+                true
+            }
+            Node::StopNote(channel_expr) => {
+                if !self.compile_node(channel_expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::OpStopNote);
+                true
+            }
             Node::ExternCall {
                 module,
                 function,

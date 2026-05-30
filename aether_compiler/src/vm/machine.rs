@@ -1061,6 +1061,52 @@ impl VM {
                         .ok_or_else(|| "Stack underflow in Print".to_string())?;
                     println!("{}", val);
                 }
+                OpCode::OpPlayNote => {
+                    let duration = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in PlayNote (duration)".to_string())?;
+                    let freq = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in PlayNote (frequency)".to_string())?;
+                    let _channel = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in PlayNote (channel)".to_string())?;
+                    let freq_val = match freq {
+                        RelType::Float(f) => f as f32,
+                        RelType::Int(i) => i as f32,
+                        v => {
+                            eprintln!(
+                                "[VM Synth] PlayNote: Expected Float/Int frequency, got {:?}",
+                                v
+                            );
+                            return Ok(RelType::Void);
+                        }
+                    };
+                    let dur_val = match duration {
+                        RelType::Int(i) => i as u64,
+                        v => {
+                            eprintln!("[VM Synth] PlayNote: Expected Int duration, got {:?}", v);
+                            return Ok(RelType::Void);
+                        }
+                    };
+                    crate::natives::registry::init_audio_state();
+                    if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
+                        && let Some(ref mut mgr) = *guard
+                    {
+                        mgr.play_tone(freq_val, dur_val, 0.3);
+                    }
+                    self.stack.push(RelType::Void);
+                }
+                OpCode::OpStopNote => {
+                    let _channel = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in StopNote (channel)".to_string())?;
+                    self.stack.push(RelType::Void);
+                }
                 OpCode::Return => {
                     let ret_val = self
                         .stack
