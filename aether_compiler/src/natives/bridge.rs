@@ -1656,6 +1656,30 @@ impl BridgeModule for CoreBridge {
                         node: "Native::Bridge::math_vector_scale".into(),
                     })
                 }
+                // Sprint 233: SIMD matrix transposition via native handle
+                "math_matrix_transpose" => {
+                    if args.len() == 1
+                        && let RelType::Int(handle) = &args[0]
+                    {
+                        let h = *handle;
+                        if let Some(new_handle) =
+                            crate::natives::registry::registry_transpose_matrix(h)
+                        {
+                            return Some(ExecResult::Value(RelType::Int(new_handle)));
+                        }
+                        return Some(ExecResult::Fault {
+                            msg: format!(
+                                "[FFI] math_matrix_transpose: matrix handle {} not found",
+                                h
+                            ),
+                            node: "Native::Bridge::math_matrix_transpose".into(),
+                        });
+                    }
+                    Some(ExecResult::Fault {
+                        msg: "[FFI] math_matrix_transpose expects (handle: Int)".to_string(),
+                        node: "Native::Bridge::math_matrix_transpose".into(),
+                    })
+                }
                 // Sprint 187: 4×4 matrix-vector transformation using glam
                 "math_matrix_transform" => {
                     if args.len() == 2

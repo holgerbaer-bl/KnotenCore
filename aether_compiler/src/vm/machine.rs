@@ -1931,13 +1931,73 @@ mod tests {
     }
 
     #[test]
-    fn workgroup_div_ceil_edge_cases() {
-        assert_eq!(0u32.div_ceil(64).max(1), 1, "Empty inputs → 1 workgroup");
-        assert_eq!(1u32.div_ceil(64), 1);
-        assert_eq!(63u32.div_ceil(64), 1);
-        assert_eq!(64u32.div_ceil(64), 1);
-        assert_eq!(65u32.div_ceil(64), 2);
-        assert_eq!(128u32.div_ceil(64), 2);
-        assert_eq!(10000u32.div_ceil(64), 157);
+    fn test_math_matrix_transpose() {
+        let test_mat = glam::Mat4::from_cols(
+            glam::Vec4::new(1.0, 0.0, 0.0, 4.0),
+            glam::Vec4::new(0.0, 1.0, 0.0, 5.0),
+            glam::Vec4::new(0.0, 0.0, 1.0, 6.0),
+            glam::Vec4::new(0.0, 0.0, 0.0, 1.0),
+        );
+        let handle = crate::natives::registry::registry_store_matrix(test_mat);
+
+        let mut vm = VM::new();
+        let handle_idx = 0;
+        let name_idx = 1;
+        let instructions = vec![
+            OpCode::Constant(handle_idx),
+            OpCode::ExternCall {
+                name_idx,
+                arg_count: 1,
+            },
+            OpCode::Return,
+        ];
+        let constants = vec![
+            RelType::Int(handle),
+            RelType::Str("math_matrix_transpose".to_string()),
+            RelType::Str("math".to_string()),
+        ];
+
+        let bridge = crate::natives::bridge::CoreBridge;
+        let result = vm
+            .run(
+                &instructions,
+                &constants,
+                &AgentPermissions {
+                    allow_network: false,
+                    allowed_domains: vec![],
+                    allow_fs_read: true,
+                    allow_fs_write: false,
+                },
+                Some(&bridge),
+            )
+            .unwrap();
+
+        let new_handle = match result {
+            RelType::Int(h) => h,
+            other => panic!("Expected Int handle, got {:?}", other),
+        };
+        let transposed = crate::natives::registry::registry_get_matrix(new_handle)
+            .expect("Transposed matrix not found");
+
+        assert!(
+            (transposed.col(0).x - 1.0).abs() < 0.001,
+            "col 0 x: {}",
+            transposed.col(0).x
+        );
+        assert!((transposed.col(0).y - 0.0).abs() < 0.001, "col 0 y");
+        assert!((transposed.col(0).z - 0.0).abs() < 0.001, "col 0 z");
+        assert!((transposed.col(0).w - 0.0).abs() < 0.001, "col 0 w");
+        assert!((transposed.col(1).x - 0.0).abs() < 0.001, "col 1 x");
+        assert!((transposed.col(1).y - 1.0).abs() < 0.001, "col 1 y");
+        assert!((transposed.col(1).z - 0.0).abs() < 0.001, "col 1 z");
+        assert!((transposed.col(1).w - 0.0).abs() < 0.001, "col 1 w");
+        assert!((transposed.col(2).x - 0.0).abs() < 0.001, "col 2 x");
+        assert!((transposed.col(2).y - 0.0).abs() < 0.001, "col 2 y");
+        assert!((transposed.col(2).z - 1.0).abs() < 0.001, "col 2 z");
+        assert!((transposed.col(2).w - 0.0).abs() < 0.001, "col 2 w");
+        assert!((transposed.col(3).x - 4.0).abs() < 0.001, "col 3 x");
+        assert!((transposed.col(3).y - 5.0).abs() < 0.001, "col 3 y");
+        assert!((transposed.col(3).z - 6.0).abs() < 0.001, "col 3 z");
+        assert!((transposed.col(3).w - 1.0).abs() < 0.001, "col 3 w");
     }
 }

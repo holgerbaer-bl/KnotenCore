@@ -4,6 +4,7 @@ use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::OnceLock;
+use std::sync::atomic::AtomicI64;
 
 use crossbeam_channel::{Receiver, Sender, bounded};
 
@@ -258,6 +259,35 @@ pub fn compute_sender_for(shader_id: usize) -> Sender<Vec<f32>> {
     let channels = COMPUTE_CHANNELS.get().unwrap();
     let guard = channels.lock().unwrap_or_else(|e| e.into_inner());
     guard.get(&shader_id).unwrap().0.clone()
+}
+
+// Sprint 233: Native SIMD matrix storage for transpose/transform operations
+static MATRIX_REGISTRY: OnceLock<Mutex<HashMap<i64, glam::Mat4>>> = OnceLock::new();
+static MATRIX_ID_COUNTER: AtomicI64 = AtomicI64::new(1);
+
+pub fn registry_store_matrix(mat: glam::Mat4) -> i64 {
+    let id = MATRIX_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let registry = MATRIX_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()));
+    registry
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(id, mat);
+    id
+}
+
+pub fn registry_get_matrix(handle: i64) -> Option<glam::Mat4> {
+    MATRIX_REGISTRY.get().and_then(|r| {
+        r.lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&handle)
+            .copied()
+    })
+}
+
+pub fn registry_transpose_matrix(handle: i64) -> Option<i64> {
+    let mat = registry_get_matrix(handle)?;
+    let transposed = mat.transpose();
+    Some(registry_store_matrix(transposed))
 }
 
 unsafe impl Send for WindowProxy {}

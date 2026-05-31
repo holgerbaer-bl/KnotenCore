@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 233: Native SIMD Matrix Transposition Engine (2026-05-31)
+Sprint 233: SIMD Matrix Algebra. Deployed a hardware-accelerated 4x4 matrix transposition engine via glam SIMD intrinsics, with a handle-based native FFI interface accessible from both the AOT Stack-VM and JIT evaluator.
+- **Matrix Registry**: `MATRIX_REGISTRY` (`OnceLock<Mutex<HashMap<i64, Mat4>>>`) with `AtomicI64` ID counter. `registry_store_matrix(mat) -> i64`, `registry_get_matrix(handle) -> Option<Mat4>`, and `registry_transpose_matrix(handle) -> Option<i64>` — lock-free handle generation, Mutex-protected storage.
+- **Native FFI**: `math_matrix_transpose(handle: Int) -> Int` registered in the `math` bridge module. Loads the 4x4 matrix by handle, performs `glam::Mat4::transpose()` via hardware SIMD, stores the transposed result, and returns the new handle. Returns `ExecResult::Fault` on missing handle.
+- **VM Routing**: `math_` prefix routes to the `math` bridge module automatically in both `NativeExternCall` (AOT) and `ExternCall` paths. JIT evaluator paths are stubbed (no-op) for FFI nodes.
+- **Unit Test**: `test_math_matrix_transpose` creates an asymmetric 4x4 test matrix (identity with translation column [4,5,6]), transposes via the VM `ExternCall` bridge, and verifies all 16 elements of the transposed matrix match expected column/row swap.
+- **CI**: All tests pass, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 231: Tactical Code Fortification & Dead Code Elimination (2026-05-31)
 Sprint 231: Stabilization pass. Purged dead dependencies, eliminated unused code, and hardened the test suite with ADSR envelope and dynamic workgroup edge-case coverage.
 - **Dependency Sanitization**: Removed unused `hound` crate from both root and aether_compiler Cargo.toml. Moved binary-only deps (`tower-lsp`, `tokio`, `tracing`, `tracing-subscriber`, `dashmap`, `regex`) out of aether_compiler — they are only needed by the root crate's LSP/build binaries and already transitively available via the path dependency.
