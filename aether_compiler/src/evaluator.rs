@@ -784,7 +784,16 @@ impl ExecutionEngine {
                 let x_workgroups = (input_reltypes.len() as u32)
                     .max(1)
                     .div_ceil(workgroup_size);
+                let matrix_handle: i64 = -1;
+                let mat = if matrix_handle >= 0 {
+                    crate::natives::registry::registry_get_matrix(matrix_handle)
+                } else {
+                    None
+                };
                 for _ in 0..iterations_val {
+                    if let Some(ref m) = mat {
+                        crate::vm::machine::apply_matrix_to_inputs(&mut input_reltypes, m);
+                    }
                     crate::natives::registry::send_render_command(
                         crate::natives::registry::RenderCommand::DispatchCompute {
                             shader_id: shader_id_val,

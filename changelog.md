@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 236: GPGPU SIMD Matrix Transformation Injection (2026-05-31)
+Sprint 236: SIMD Matrix Injection. Coupled the native SIMD matrix algebra engine with the continuous GPGPU particle streaming loop, enabling in-place coordinate transform before each GPU dispatch.
+- **Matrix Handle Injection**: `OpDispatchComputeLoop` (AOT) and JIT evaluator now pop an optional matrix handle (`Int`) from the stack before reading inputs. The compiler injects a `Constant(-1)` (no matrix) to maintain backward-compatible stack layout. If the handle resolves to a valid `glam::Mat4` via `registry_get_matrix()`, the matrix is applied.
+- **SIMD In-Place Transform**: New `apply_matrix_to_inputs()` function detects particle stride (6 or 7) via `is_multiple_of()` and iterates through `Vec<RelType>` in-place. Position vectors (elements 0–2) are transformed via `Mat4::transform_point3()`, velocity vectors (elements 3–5) via `Mat4::transform_vector3()` — preserving zero-allocation semantics. Non-conforming inputs are silently skipped.
+- **JIT-AOT Parity**: Both the AOT Stack-VM (`machine.rs`) and the JIT evaluator (`evaluator.rs`) apply the same transformation logic. The JIT path uses a default `-1` handle (no matrix lookup from engine state).
+- **Test**: `test_gpgpu_matrix_particle_transformation` — creates a 90° Z-axis rotation matrix, transforms a 6-element particle `[1,0,0, 0.1,0,0]`, verifies position → `[0,1,0]` and velocity → `[0,0.1,0]`.
+- **Documentation**: README GPGPU section updated with SIMD Matrix Injection bullet. llm.md expanded with matrix handle stack layout and `apply_matrix_to_inputs()` semantics.
+- **Test Suite Growth**: 167 → 168 tests.
+- **CI**: 168/168 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 235: LSP Particle Layout Diagnostics & Documentation Sync (2026-05-31)
 Sprint 235: LSP Diagnostics & Documentation Refresh. Extended the Language Server with structured particle stride validation and comprehensively updated the three-crate documentation for Sprints 231–235.
 - **LSP Particle Diagnostics**: `DispatchComputeLoop` added to `KNOWN_OPCODES`. Validation handler inspects the `inputs` array and enforces stride alignment — length must be a multiple of 6 or 7 (`ERR_PARTICLE_STRIDE` with `DiagnosticSeverity::ERROR`). Diagnostics are mapped to exact editor positions via the new `find_range()` helper, which scans the raw document text for the `"inputs"` field and converts byte offsets to `Position` (line/column).

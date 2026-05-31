@@ -789,6 +789,8 @@ impl Compiler {
                         return false;
                     }
                 }
+                let mh_idx = self.add_constant(RelType::Int(-1));
+                self.instructions.push(OpCode::Constant(mh_idx));
                 self.instructions
                     .push(OpCode::OpDispatchComputeLoop(inputs.len()));
                 true

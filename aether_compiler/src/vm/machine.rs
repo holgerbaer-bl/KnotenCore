@@ -19,6 +19,80 @@ pub struct VM {
     pub base_pointer: usize,
 }
 
+pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
+    let len = inputs.len();
+    let stride = if len >= 6 && len.is_multiple_of(6) {
+        6
+    } else if len >= 7 && len.is_multiple_of(7) {
+        7
+    } else {
+        return;
+    };
+    let mut i = 0;
+    while i + stride <= len {
+        let x = match inputs[i] {
+            RelType::Float(f) => f as f32,
+            RelType::Int(v) => v as f32,
+            _ => {
+                i += stride;
+                continue;
+            }
+        };
+        let y = match inputs[i + 1] {
+            RelType::Float(f) => f as f32,
+            RelType::Int(v) => v as f32,
+            _ => {
+                i += stride;
+                continue;
+            }
+        };
+        let z = match inputs[i + 2] {
+            RelType::Float(f) => f as f32,
+            RelType::Int(v) => v as f32,
+            _ => {
+                i += stride;
+                continue;
+            }
+        };
+        let pos = matrix.transform_point3(glam::Vec3::new(x, y, z));
+        inputs[i] = RelType::Float(pos.x as f64);
+        inputs[i + 1] = RelType::Float(pos.y as f64);
+        inputs[i + 2] = RelType::Float(pos.z as f64);
+
+        if stride >= 6 {
+            let vx = match inputs[i + 3] {
+                RelType::Float(f) => f as f32,
+                RelType::Int(v) => v as f32,
+                _ => {
+                    i += stride;
+                    continue;
+                }
+            };
+            let vy = match inputs[i + 4] {
+                RelType::Float(f) => f as f32,
+                RelType::Int(v) => v as f32,
+                _ => {
+                    i += stride;
+                    continue;
+                }
+            };
+            let vz = match inputs[i + 5] {
+                RelType::Float(f) => f as f32,
+                RelType::Int(v) => v as f32,
+                _ => {
+                    i += stride;
+                    continue;
+                }
+            };
+            let vel = matrix.transform_vector3(glam::Vec3::new(vx, vy, vz));
+            inputs[i + 3] = RelType::Float(vel.x as f64);
+            inputs[i + 4] = RelType::Float(vel.y as f64);
+            inputs[i + 5] = RelType::Float(vel.z as f64);
+        }
+        i += stride;
+    }
+}
+
 impl VM {
     pub fn new() -> Self {
         Self {
@@ -857,6 +931,10 @@ impl VM {
                     self.stack.push(RelType::Void);
                 }
                 OpCode::OpDispatchComputeLoop(arg_count) => {
+                    let matrix_handle = match self.stack.pop().unwrap_or(RelType::Void) {
+                        RelType::Int(v) => v,
+                        _ => -1,
+                    };
                     let mut inputs = Vec::with_capacity(*arg_count);
                     for _ in 0..*arg_count {
                         inputs.push(self.stack.pop().unwrap_or(RelType::Void));
@@ -872,10 +950,19 @@ impl VM {
                         _ => return Err("DispatchComputeLoop expects integer Shader ID".into()),
                     };
 
+                    let mat = if matrix_handle >= 0 {
+                        crate::natives::registry::registry_get_matrix(matrix_handle)
+                    } else {
+                        None
+                    };
+
                     let workgroup_size = 64u32;
                     let x_workgroups = (inputs.len() as u32).max(1).div_ceil(workgroup_size);
 
                     for _ in 0..iterations {
+                        if let Some(ref m) = mat {
+                            apply_matrix_to_inputs(&mut inputs, m);
+                        }
                         crate::natives::registry::send_render_command(
                             crate::natives::registry::RenderCommand::DispatchCompute {
                                 shader_id,
@@ -2075,5 +2162,44 @@ mod tests {
                 _ => false,
             })
         );
+    }
+
+    #[test]
+    fn test_gpgpu_matrix_particle_transformation() {
+        let angle = std::f32::consts::FRAC_PI_2;
+        let rot_z = glam::Mat4::from_rotation_z(angle);
+
+        let mut particle: Vec<RelType> = vec![
+            RelType::Float(1.0),
+            RelType::Float(0.0),
+            RelType::Float(0.0),
+            RelType::Float(0.1),
+            RelType::Float(0.0),
+            RelType::Float(0.0),
+        ];
+
+        apply_matrix_to_inputs(&mut particle, &rot_z);
+
+        let px = match particle[0] {
+            RelType::Float(f) => f,
+            _ => panic!("Expected Float"),
+        };
+        let py = match particle[1] {
+            RelType::Float(f) => f,
+            _ => panic!("Expected Float"),
+        };
+        let vx = match particle[3] {
+            RelType::Float(f) => f,
+            _ => panic!("Expected Float"),
+        };
+        let vy = match particle[4] {
+            RelType::Float(f) => f,
+            _ => panic!("Expected Float"),
+        };
+
+        assert!((px - 0.0).abs() < 0.01, "rotZ90: x=1 -> 0, got {}", px);
+        assert!((py - 1.0).abs() < 0.01, "rotZ90: y=0 -> 1, got {}", py);
+        assert!((vx - 0.0).abs() < 0.01, "vel x rotated to 0");
+        assert!((vy - 0.1).abs() < 0.01, "vel y rotated");
     }
 }

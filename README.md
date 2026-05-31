@@ -96,6 +96,7 @@ KnotenCore features a fully activated, polyphonic multi-waveform synthesizer wit
 - **Lock-Free Readback**: Per-shader `crossbeam_channel::bounded(1)` channels. Render thread uses non-blocking `try_send()`, VM thread uses `try_recv()` with spin-poll after mutex guard drop.
 - **SIMD Matrix Transpose**: `math_matrix_transpose(handle) -> handle` — native FFI with handle-based `MATRIX_REGISTRY` storage, hardware-accelerated via `glam::Mat4::transpose()`.
 - **LSP Particle Diagnostics**: Real-time validation of `DispatchComputeLoop` inputs — enforces stride alignment (multiples of 6 or 7) with `ERR_PARTICLE_STRIDE` error markers mapped to exact editor positions via `find_range()`.
+- **SIMD Matrix Injection (Sprint 236)**: `OpDispatchComputeLoop` now accepts an optional matrix handle. If a valid `glam::Mat4` is bound, the compute loop applies `transform_point3`/`transform_vector3` to particle position/velocity strides in-place before GPU dispatch — zero additional allocations.
 
 ---
 
