@@ -204,8 +204,8 @@ pub enum Node {
 
     // Audio Engine (CPAL FFI)
     InitAudio,
-    PlayNote(Box<Node>, Box<Node>, Box<Node>), // Channel, Frequency, Waveform
-    StopNote(Box<Node>),                       // Channel
+    PlayNote(Box<Node>, Box<Node>, Box<Node>, Box<Node>), // Channel, Frequency, Duration, Waveform
+    StopNote(Box<Node>),                                  // Channel
 
     // Asset Pipeline (Sprint 7)
     LoadMesh(Box<Node>),                                     // Path String
@@ -256,6 +256,14 @@ pub enum Node {
         b_min: Box<Node>,
         b_max: Box<Node>,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Waveform {
+    Sine,
+    Sawtooth,
+    Square,
+    Triangle,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

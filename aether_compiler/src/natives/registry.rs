@@ -152,7 +152,7 @@ pub fn registry_play_boot_tone() {
     if let Ok(mut guard) = AUDIO_STATE.lock()
         && let Some(ref mut mgr) = *guard
     {
-        mgr.play_tone(0, 440.0, 150, 0.3);
+        mgr.play_tone(0, 440.0, 150, 0.3, knoten_core_types::ast::Waveform::Sine);
     }
 }
 

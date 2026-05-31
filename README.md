@@ -74,7 +74,7 @@ JSON-AST (.nod)  ->  Parser  ->  AST (Node enum inside knoten_core_types)
 | **`knoten_core`** | **Facade** — Thin top-level crate; functions as a re-export facade for seamless workspace integration. |
 | **`aether_compiler`** | **Engine Core** — Houses the autonomous JIT graph executor, the AOT bytecode compiler, and the Stack-VM for allocation-free ALU instruction processing. |
 | **`knoten_core_types`** | **Sole Source of Truth** — Houses exclusively the pure data certificates (`Node`, `OpCode`, `SimdOp`) free of cross-crate logic coupling. |
-| `src/audio.rs` | **Audio Engine (Live / Polyphonic)** — Multi-channel sine synthesis via `rodio`; isolated sinks per channel, `PlayNote`/`StopNote` in the AOT path. |
+| `src/audio.rs` | **Audio Engine (Live / Polyphonic Multi-Waveform Synth)** — Multi-channel synthesis via `rodio` with Sine, Sawtooth, Square, and Triangle waveform shaping; isolated sinks per channel, `PlayNote`/`StopNote` in the AOT path. |
 | `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` server for real-time linter validation and hover diagnostics directly in the editor. |
 
 ---

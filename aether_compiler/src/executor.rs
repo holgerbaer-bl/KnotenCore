@@ -1108,7 +1108,7 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Void)
             }
             Node::LoadFont(_) | Node::DrawText(_, _, _, _, _) => ExecResult::Value(RelType::Void),
-            Node::PlayNote(_, _, _) | Node::StopNote(_) | Node::PlayAudioFile(_) => {
+            Node::PlayNote(_, _, _, _) | Node::StopNote(_) | Node::PlayAudioFile(_) => {
                 ExecResult::Value(RelType::Void)
             }
             Node::LoadSample(_, _) | Node::PlaySample(_, _, _) => ExecResult::Value(RelType::Void),

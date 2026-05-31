@@ -611,7 +611,7 @@ impl Compiler {
                 self.instructions.push(OpCode::WriteFile);
                 true
             }
-            Node::PlayNote(channel_expr, freq_expr, dur_expr) => {
+            Node::PlayNote(channel_expr, freq_expr, dur_expr, wave_expr) => {
                 if !self.compile_node(channel_expr) {
                     return false;
                 }
@@ -619,6 +619,9 @@ impl Compiler {
                     return false;
                 }
                 if !self.compile_node(dur_expr) {
+                    return false;
+                }
+                if !self.compile_node(wave_expr) {
                     return false;
                 }
                 self.instructions.push(OpCode::OpPlayNote);

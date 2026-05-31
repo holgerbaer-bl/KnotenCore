@@ -239,13 +239,16 @@ impl Validator {
                 self.check_node(target);
                 self.check_node(idx);
             }
-            Node::RenderMesh(s, v, m)
-            | Node::PlayNote(s, v, m)
-            | Node::PlaySample(s, v, m)
-            | Node::InitWindow(s, v, m) => {
+            Node::RenderMesh(s, v, m) | Node::PlaySample(s, v, m) | Node::InitWindow(s, v, m) => {
                 self.check_node(s);
                 self.check_node(v);
                 self.check_node(m);
+            }
+            Node::PlayNote(c, f, d, w) => {
+                self.check_node(c);
+                self.check_node(f);
+                self.check_node(d);
+                self.check_node(w);
             }
             Node::Time | Node::GlobalTime => {}
             Node::RenderAsset(s, m, t, u) => {

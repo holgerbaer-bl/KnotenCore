@@ -2,6 +2,18 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 226: LSP Audio Diagnostics & Multi-Waveform Synthesizer (2026-05-30)
+Sprint 226: Oscillator Wave Shaper & LSP Diagnostics. Deployed multi-waveform synthesis shaping (Sine, Sawtooth, Square, Triangle) into the audio engine and injected real-time audio AST validation into the Language Server.
+- **Waveform Enum**: Defined `Waveform { Sine, Sawtooth, Square, Triangle }` in `knoten_core_types/src/ast.rs`. Serializable, clippy-clean, shared across all crates.
+- **Multi-Waveform Synth**: Extended `AudioCommand::PlayTone` with `waveform: Waveform`. The audio thread generates raw `f32` samples per waveform shape: sine (sinusoidal), square (threshold on fractional phase), sawtooth (ramp), triangle (absolute fold). Sampling logic extracted to `generate_sample()` helper.
+- **VM Handler**: `OpPlayNote` now pops waveform (Int 0-3) from the stack after duration, converting via match to `Waveform` enum before passing to `AudioManager::play_tone()`. Defaults to Sine on out-of-range values.
+- **Compiler**: `PlayNote(channel, freq, duration, waveform)` compiles 4 sub-expressions — backward-compatible with existing `.knoten` DSL syntax.
+- **Exhaustive Match Arms**: All `PlayNote` patterns updated across optimizer.rs (count_nodes + optimize), validator.rs (check_node), evaluator.rs, and executor.rs for the new 4-argument arity.
+- **LSP Real-Time Diagnostics**: Injected `PlayNote` and `StopNote` into `KNOWN_OPCODES`. Added arity enforcement: `PlayNote` requires exactly 4 arguments (`ERR_AUDIO_ARITY`), `StopNote` requires exactly 1 (`ERR_STOP_AUDIO_ARITY`). Static waveform bounds warning (`ERR_AUDIO_WAVEFORM_BOUNDS`) when IntLiteral outside 0-3 range.
+- **README**: Audio engine promoted to "Live / Polyphonic Multi-Waveform Synth".
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 225: README Language Standardization Pass (2026-05-30)
 Sprint 225: Language hygiene pass. Eliminated the bilingual hybrid status inside the main README.md. Completely standardized the live telemetry showcase and the community guidelines onto a pure, professional English track, reinforcing strict documentation integrity for external developers and AI agents.
 

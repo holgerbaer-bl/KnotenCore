@@ -1,3 +1,4 @@
+use knoten_core_types::ast::Waveform;
 use rodio::{Decoder, OutputStream, Sink, Source};
 use std::collections::HashMap;
 use std::fs::File;
@@ -14,6 +15,7 @@ pub enum AudioCommand {
         freq: f32,
         duration_ms: u64,
         volume: f32,
+        waveform: Waveform,
     },
     StopTone {
         channel: usize,
@@ -79,13 +81,14 @@ impl AudioManager {
                             freq,
                             duration_ms,
                             volume,
+                            waveform,
                         } => {
                             let sample_rate = 44100u32;
                             let num_samples = (sample_rate as u64 * duration_ms / 1000) as usize;
                             let samples: Vec<f32> = (0..num_samples)
                                 .map(|i| {
                                     let t = i as f32 / sample_rate as f32;
-                                    (t * freq * 2.0 * std::f32::consts::PI).sin() * volume
+                                    generate_sample(t, freq, volume, waveform)
                                 })
                                 .collect();
                             let source = rodio::buffer::SamplesBuffer::new(1, sample_rate, samples);
@@ -126,16 +129,42 @@ impl AudioManager {
         let _ = self.tx.send(AudioCommand::SetVolume(volume));
     }
 
-    pub fn play_tone(&mut self, channel: usize, freq: f32, duration_ms: u64, volume: f32) {
+    pub fn play_tone(
+        &mut self,
+        channel: usize,
+        freq: f32,
+        duration_ms: u64,
+        volume: f32,
+        waveform: Waveform,
+    ) {
         let _ = self.tx.send(AudioCommand::PlayTone {
             channel,
             freq,
             duration_ms,
             volume,
+            waveform,
         });
     }
 
     pub fn stop_tone(&mut self, channel: usize) {
         let _ = self.tx.send(AudioCommand::StopTone { channel });
+    }
+}
+
+fn generate_sample(t: f32, freq: f32, volume: f32, waveform: Waveform) -> f32 {
+    match waveform {
+        Waveform::Sine => (t * freq * 2.0 * std::f32::consts::PI).sin() * volume,
+        Waveform::Square => {
+            if (t * freq).fract() < 0.5 {
+                volume
+            } else {
+                -volume
+            }
+        }
+        Waveform::Sawtooth => 2.0 * (t * freq - (t * freq + 0.5).floor()) * volume,
+        Waveform::Triangle => {
+            let frac = t * freq - (t * freq).floor();
+            ((2.0 * frac - 1.0).abs() * 2.0 - 1.0) * volume
+        }
     }
 }

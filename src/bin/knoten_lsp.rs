@@ -82,6 +82,8 @@ const KNOWN_OPCODES: &[&str] = &[
     "UIButton",
     "UIHBox",
     "UIVBox",
+    "PlayNote",
+    "StopNote",
 ];
 
 struct KnotenBackend {
@@ -296,26 +298,56 @@ impl KnotenBackend {
                     );
                 }
             }
-            "Assign" => {
+            "PlayNote" => {
                 if let Some(arr) = value.as_array() {
-                    if arr.len() != 2 {
+                    if arr.len() != 4 {
                         self.push_error(
                             diagnostics,
-                            "ERR_INVALID_ARITY",
-                            "Assign node requires exactly 2 arguments [name:string, value:node]",
+                            "ERR_AUDIO_ARITY",
+                            "PlayNote node requires exactly 4 arguments [channel, frequency, duration, waveform]",
                         );
-                    } else if !arr[0].is_string() {
+                    } else if let Some(wave_obj) = arr.get(3)
+                        && let Some(wave_val) = wave_obj.as_object()
+                        && let Some(wave_num) = wave_val.get("IntLiteral")
+                        && let Some(w) = wave_num.as_i64()
+                        && !(0..=3).contains(&w)
+                    {
+                        diagnostics.push(Diagnostic {
+                            range: Range::new(Position::new(0, 0), Position::new(0, 1)),
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            code: Some(NumberOrString::String(
+                                "ERR_AUDIO_WAVEFORM_BOUNDS".to_string(),
+                            )),
+                            source: Some("knoten-lsp".to_string()),
+                            message: format!(
+                                "Waveform index {} out of range (0=Sine, 1=Sawtooth, 2=Square, 3=Triangle)",
+                                w
+                            ),
+                            ..Default::default()
+                        });
+                    }
+                } else {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        "PlayNote node must be an array",
+                    );
+                }
+            }
+            "StopNote" => {
+                if let Some(arr) = value.as_array() {
+                    if arr.len() != 1 {
                         self.push_error(
                             diagnostics,
-                            "ERR_TYPE_MISMATCH",
-                            "First argument of Assign must be a string (variable name)",
+                            "ERR_STOP_AUDIO_ARITY",
+                            "StopNote node requires exactly 1 argument [channel]",
                         );
                     }
                 } else {
                     self.push_error(
                         diagnostics,
                         "ERR_TYPE_MISMATCH",
-                        "Assign node must be an array",
+                        "StopNote node must be an array",
                     );
                 }
             }

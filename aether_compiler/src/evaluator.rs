@@ -712,7 +712,7 @@ impl ExecutionEngine {
             | Node::RenderMesh(_, _, _)
             | Node::PollEvents(_)
             | Node::InitAudio
-            | Node::PlayNote(_, _, _)
+            | Node::PlayNote(_, _, _, _)
             | Node::StopNote(_)
             | Node::PlayAudioFile(_)
             | Node::LoadMesh(_)

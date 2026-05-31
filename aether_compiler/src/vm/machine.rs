@@ -1104,6 +1104,21 @@ impl VM {
                     println!("{}", val);
                 }
                 OpCode::OpPlayNote => {
+                    let wave_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in PlayNote (waveform)".to_string())?;
+                    let waveform_idx = match wave_val {
+                        RelType::Int(i) => i,
+                        _ => 0,
+                    };
+                    let waveform = match waveform_idx {
+                        0 => knoten_core_types::ast::Waveform::Sine,
+                        1 => knoten_core_types::ast::Waveform::Sawtooth,
+                        2 => knoten_core_types::ast::Waveform::Square,
+                        3 => knoten_core_types::ast::Waveform::Triangle,
+                        _ => knoten_core_types::ast::Waveform::Sine,
+                    };
                     let duration = self
                         .stack
                         .pop()
@@ -1145,7 +1160,7 @@ impl VM {
                     if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
                         && let Some(ref mut mgr) = *guard
                     {
-                        mgr.play_tone(channel_idx, freq_val, dur_val, 0.3);
+                        mgr.play_tone(channel_idx, freq_val, dur_val, 0.3, waveform);
                     }
                     self.stack.push(RelType::Void);
                 }

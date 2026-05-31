@@ -117,11 +117,11 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::FnDef(_, _, body) => {
             count += count_nodes(body);
         }
-        Node::InitWindow(w, h, t)
-        | Node::RenderMesh(w, h, t)
-        | Node::PlayNote(w, h, t)
-        | Node::PlaySample(w, h, t) => {
+        Node::InitWindow(w, h, t) | Node::RenderMesh(w, h, t) | Node::PlaySample(w, h, t) => {
             count += count_nodes(w) + count_nodes(h) + count_nodes(t);
+        }
+        Node::PlayNote(c, f, d, w) => {
+            count += count_nodes(c) + count_nodes(f) + count_nodes(d) + count_nodes(w);
         }
         Node::RenderAsset(a, b, c, d) => {
             count += count_nodes(a) + count_nodes(b) + count_nodes(c) + count_nodes(d);
@@ -530,9 +530,10 @@ pub fn optimize(node: Node) -> Node {
         ),
         Node::PollEvents(body) => Node::PollEvents(Box::new(optimize(*body))),
 
-        Node::PlayNote(c, f, w) => Node::PlayNote(
+        Node::PlayNote(c, f, d, w) => Node::PlayNote(
             Box::new(optimize(*c)),
             Box::new(optimize(*f)),
+            Box::new(optimize(*d)),
             Box::new(optimize(*w)),
         ),
         Node::StopNote(c) => Node::StopNote(Box::new(optimize(*c))),
