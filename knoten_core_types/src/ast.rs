@@ -200,6 +200,7 @@ pub enum Node {
         shader_id: Box<Node>,
         iterations: Box<Node>,
         inputs: Vec<Node>,
+        matrix_handle: Option<Box<Node>>,
     },
 
     // Audio Engine (CPAL FFI)

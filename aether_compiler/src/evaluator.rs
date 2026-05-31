@@ -746,6 +746,7 @@ impl ExecutionEngine {
                 shader_id,
                 iterations,
                 inputs,
+                matrix_handle,
             } => {
                 let shader_id_val = match self.evaluate_inner(shader_id) {
                     ExecResult::Value(RelType::Int(v)) => v as usize,
@@ -780,16 +781,23 @@ impl ExecutionEngine {
                         e => return e,
                     }
                 }
+                let matrix_handle_val = if let Some(mh) = matrix_handle {
+                    match self.evaluate_inner(mh) {
+                        ExecResult::Value(RelType::Int(v)) => v,
+                        _ => -1,
+                    }
+                } else {
+                    -1
+                };
+                let mat = if matrix_handle_val >= 0 {
+                    crate::natives::registry::registry_get_matrix(matrix_handle_val)
+                } else {
+                    None
+                };
                 let workgroup_size = 64u32;
                 let x_workgroups = (input_reltypes.len() as u32)
                     .max(1)
                     .div_ceil(workgroup_size);
-                let matrix_handle: i64 = -1;
-                let mat = if matrix_handle >= 0 {
-                    crate::natives::registry::registry_get_matrix(matrix_handle)
-                } else {
-                    None
-                };
                 for _ in 0..iterations_val {
                     if let Some(ref m) = mat {
                         crate::vm::machine::apply_matrix_to_inputs(&mut input_reltypes, m);

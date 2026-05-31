@@ -318,10 +318,14 @@ pub fn count_nodes(node: &Node) -> usize {
             shader_id,
             iterations,
             inputs,
+            matrix_handle,
         } => {
             count += count_nodes(shader_id) + count_nodes(iterations);
             for n in inputs {
                 count += count_nodes(n);
+            }
+            if let Some(mh) = matrix_handle {
+                count += count_nodes(mh);
             }
         }
     }
@@ -743,10 +747,12 @@ pub fn optimize(node: Node) -> Node {
             shader_id,
             iterations,
             inputs,
+            matrix_handle,
         } => Node::DispatchComputeLoop {
             shader_id: Box::new(optimize(*shader_id)),
             iterations: Box::new(optimize(*iterations)),
             inputs: inputs.into_iter().map(optimize).collect(),
+            matrix_handle: matrix_handle.map(|mh| Box::new(optimize(*mh))),
         },
     }
 }

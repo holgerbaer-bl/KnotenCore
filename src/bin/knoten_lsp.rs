@@ -436,6 +436,27 @@ impl KnotenBackend {
                             });
                         }
                     }
+                    if let Some(mh_val) = obj.get("matrix_handle")
+                        && let Some(mh_obj) = mh_val.as_object()
+                        && let Some(mh_num) = mh_obj.get("IntLiteral")
+                        && let Some(mh_int) = mh_num.as_i64()
+                        && mh_int < -1
+                    {
+                        let range = self.find_range(uri, "matrix_handle");
+                        diagnostics.push(Diagnostic {
+                                range,
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                code: Some(NumberOrString::String(
+                                    "ERR_INVALID_MATRIX_HANDLE".to_string(),
+                                )),
+                                source: Some("knoten-lsp".to_string()),
+                                message: format!(
+                                    "Invalid matrix handle {}: must be -1 (passthrough) or a valid registry ID >= 0",
+                                    mh_int
+                                ),
+                                ..Default::default()
+                            });
+                    }
                 } else {
                     self.push_error(
                         diagnostics,
@@ -925,6 +946,35 @@ mod tests {
         assert!(err.is_some());
 
         let err = validate_particle_stride(&vec![json!(1.0); 13]);
+        assert!(err.is_some());
+    }
+
+    fn validate_matrix_handle(mh: i64) -> Option<String> {
+        if mh < -1 {
+            Some(format!(
+                "Invalid matrix handle {}: must be -1 (passthrough) or a valid registry ID >= 0",
+                mh
+            ))
+        } else {
+            None
+        }
+    }
+
+    #[test]
+    fn valid_matrix_handles_pass() {
+        assert!(validate_matrix_handle(-1).is_none());
+        assert!(validate_matrix_handle(0).is_none());
+        assert!(validate_matrix_handle(5).is_none());
+        assert!(validate_matrix_handle(42).is_none());
+    }
+
+    #[test]
+    fn invalid_matrix_handles_trigger_error() {
+        let err = validate_matrix_handle(-5);
+        assert!(err.is_some());
+        assert!(err.unwrap().contains("Invalid"));
+
+        let err = validate_matrix_handle(-2);
         assert!(err.is_some());
     }
 }

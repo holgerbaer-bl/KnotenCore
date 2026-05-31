@@ -468,11 +468,15 @@ impl Validator {
                 shader_id,
                 iterations,
                 inputs,
+                matrix_handle,
             } => {
                 self.check_node(shader_id);
                 self.check_node(iterations);
                 for n in inputs {
                     self.check_node(n);
+                }
+                if let Some(mh) = matrix_handle {
+                    self.check_node(mh);
                 }
             }
             Node::Modulo(l, r) => {

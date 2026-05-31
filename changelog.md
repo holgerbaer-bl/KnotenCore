@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 237: LSP Matrix Handle Static Validation Engine (2026-05-31)
+Sprint 237: LSP Handle Validation. Extended the Language Server with static matrix handle validation for `DispatchComputeLoop` nodes and added the `matrix_handle` field to the official AST.
+- **AST Extension**: `DispatchComputeLoop` gains `matrix_handle: Option<Box<Node>>` in `knoten_core_types/src/ast.rs`. When `Some`, the compiler evaluates the handle expression at compile time; when `None`, the compiler injects the default `Constant(-1)` passthrough. All exhaustive match arms updated in `validator.rs`, `optimizer.rs` (count_nodes + optimize), `evaluator.rs`, and `compiler.rs`.
+- **JIT Integration**: `evaluate_inner()` evaluates the optional `matrix_handle` sub-expression. If it resolves to a non-negative `Int`, the matrix is fetched from `MATRIX_REGISTRY` and applied via `apply_matrix_to_inputs()` before each dispatch. Retains the `-1` default for `None`.
+- **LSP Static Validation**: `DispatchComputeLoop` inspector now extracts the `matrix_handle` key. If the value is an `IntLiteral < -1`, the LSP emits `ERR_INVALID_MATRIX_HANDLE` with `DiagnosticSeverity::ERROR`, mapped to exact editor position via `find_range()`. Valid values: `-1` (passthrough) or `>= 0` (registry ID).
+- **LSP Tests**: `validate_matrix_handle()` helper with `valid_matrix_handles_pass` (-1, 0, 5, 42) and `invalid_matrix_handles_trigger_error` (-5, -2). Test suite grows 168 → 170 (2 new LSP tests).
+- **Documentation**: `llm.md` expanded with matrix handle stack layout semantics. README LSP section mentions `ERR_INVALID_MATRIX_HANDLE`.
+- **CI**: 170/170 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 236: GPGPU SIMD Matrix Transformation Injection (2026-05-31)
 Sprint 236: SIMD Matrix Injection. Coupled the native SIMD matrix algebra engine with the continuous GPGPU particle streaming loop, enabling in-place coordinate transform before each GPU dispatch.
 - **Matrix Handle Injection**: `OpDispatchComputeLoop` (AOT) and JIT evaluator now pop an optional matrix handle (`Int`) from the stack before reading inputs. The compiler injects a `Constant(-1)` (no matrix) to maintain backward-compatible stack layout. If the handle resolves to a valid `glam::Mat4` via `registry_get_matrix()`, the matrix is applied.

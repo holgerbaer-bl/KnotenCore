@@ -777,6 +777,7 @@ impl Compiler {
                 shader_id,
                 iterations,
                 inputs,
+                matrix_handle,
             } => {
                 if !self.compile_node(shader_id) {
                     return false;
@@ -789,8 +790,14 @@ impl Compiler {
                         return false;
                     }
                 }
-                let mh_idx = self.add_constant(RelType::Int(-1));
-                self.instructions.push(OpCode::Constant(mh_idx));
+                if let Some(mh) = matrix_handle {
+                    if !self.compile_node(mh) {
+                        return false;
+                    }
+                } else {
+                    let mh_idx = self.add_constant(RelType::Int(-1));
+                    self.instructions.push(OpCode::Constant(mh_idx));
+                }
                 self.instructions
                     .push(OpCode::OpDispatchComputeLoop(inputs.len()));
                 true
