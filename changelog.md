@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 230: JIT Interpreter Compute Loop Symmetrisation (2026-05-31)
+Sprint 230: JIT-AOT Symmetrisation Pass. Implemented full JIT evaluation for `DispatchComputeLoop` in the interpreter path, achieving complete dual-path parity with the AOT Stack-VM handler.
+- **JIT Loop Evaluation**: `evaluate_inner()` now handles `DispatchComputeLoop { shader_id, iterations, inputs }` inline — extracted from the `evaluate_extra` delegation chain. Recursively evaluates all three sub-nodes via `self.evaluate_inner()` with structured `ExecResult::Fault` return on type mismatch.
+- **Dynamic Workgroup Alignment (JIT)**: `x_workgroups = max(1, input_count).div_ceil(64)` — identical to Sprint 229's AOT implementation.
+- **Zero-Allocation Recycling (JIT)**: `Registry_compute_readback()` result is destructured: `RelType::Array(elems)` flattened via `extend()`, scalars pushed directly. `clear()` + loop pattern avoids heap churn between iterations.
+- **Executor Stub**: `DispatchComputeLoop` retained as `ExecResult::Value(RelType::Void)` in `executor.rs` for legacy fallback paths — but the evaluator now handles it natively before reaching the executor.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 229: Continuous Shader Vector Streaming & Dynamic Dimension Alignment (2026-05-31)
 Sprint 229: GPGPU Streaming Overhaul. Replaced the static single-workgroup dispatch in `DispatchComputeLoop` with dynamic workgroup-count computation and structured vector recycling.
 - **Dynamic Workgroup Alignment**: `x_workgroups` computed as `max(1, input_count).div_ceil(64)` — dispatch scales linearly with input size instead of always issuing `x:1, y:1, z:1`. Workgroup size of 64 matches standard WGSL defaults.

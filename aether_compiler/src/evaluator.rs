@@ -737,8 +737,73 @@ impl ExecutionEngine {
             | Node::Import(_)
             | Node::AddWorldAABB { .. }
             | Node::LoadComputeShader(_)
-            | Node::DispatchCompute { .. }
-            | Node::DispatchComputeLoop { .. } => self.evaluate_extra(node),
+            | Node::DispatchCompute { .. } => self.evaluate_extra(node),
+            Node::DispatchComputeLoop {
+                shader_id,
+                iterations,
+                inputs,
+            } => {
+                let shader_id_val = match self.evaluate_inner(shader_id) {
+                    ExecResult::Value(RelType::Int(v)) => v as usize,
+                    ExecResult::Value(v) => {
+                        return ExecResult::Fault {
+                            msg: format!(
+                                "DispatchComputeLoop JIT: Expected Int shader_id, got {:?}",
+                                v
+                            ),
+                            node: "DispatchComputeLoop".into(),
+                        };
+                    }
+                    e => return e,
+                };
+                let iterations_val = match self.evaluate_inner(iterations) {
+                    ExecResult::Value(RelType::Int(v)) => v as usize,
+                    ExecResult::Value(v) => {
+                        return ExecResult::Fault {
+                            msg: format!(
+                                "DispatchComputeLoop JIT: Expected Int iterations, got {:?}",
+                                v
+                            ),
+                            node: "DispatchComputeLoop".into(),
+                        };
+                    }
+                    e => return e,
+                };
+                let mut input_reltypes: Vec<RelType> = Vec::with_capacity(inputs.len());
+                for input_node in inputs {
+                    match self.evaluate_inner(input_node) {
+                        ExecResult::Value(v) => input_reltypes.push(v),
+                        e => return e,
+                    }
+                }
+                let workgroup_size = 64u32;
+                let x_workgroups = (input_reltypes.len() as u32)
+                    .max(1)
+                    .div_ceil(workgroup_size);
+                for _ in 0..iterations_val {
+                    crate::natives::registry::send_render_command(
+                        crate::natives::registry::RenderCommand::DispatchCompute {
+                            shader_id: shader_id_val,
+                            x: x_workgroups,
+                            y: 1,
+                            z: 1,
+                            inputs: input_reltypes.clone(),
+                        },
+                    );
+                    let result =
+                        crate::natives::registry::registry_compute_readback(shader_id_val as i64);
+                    if !result.is_empty() {
+                        input_reltypes.clear();
+                        for item in result {
+                            match item {
+                                RelType::Array(elems) => input_reltypes.extend(elems),
+                                other => input_reltypes.push(other),
+                            }
+                        }
+                    }
+                }
+                ExecResult::Value(RelType::Void)
+            }
         }
     }
 
