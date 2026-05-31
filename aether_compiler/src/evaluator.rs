@@ -797,12 +797,17 @@ impl ExecutionEngine {
                     let result =
                         crate::natives::registry::registry_compute_readback(shader_id_val as i64);
                     if !result.is_empty() {
-                        input_reltypes.clear();
-                        for item in result {
-                            match item {
-                                RelType::Array(elems) => input_reltypes.extend(elems),
-                                other => input_reltypes.push(other),
+                        let has_nested = result.iter().any(|r| matches!(r, RelType::Array(_)));
+                        if has_nested {
+                            input_reltypes.clear();
+                            for item in result {
+                                match item {
+                                    RelType::Array(elems) => input_reltypes.extend(elems),
+                                    other => input_reltypes.push(other),
+                                }
                             }
+                        } else {
+                            input_reltypes = result;
                         }
                     }
                 }

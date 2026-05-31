@@ -888,14 +888,21 @@ impl VM {
                         let result =
                             crate::natives::registry::registry_compute_readback(shader_id as i64);
                         if !result.is_empty() {
-                            inputs.clear();
-                            for item in result {
-                                match item {
-                                    crate::executor::RelType::Array(elems) => {
-                                        inputs.extend(elems);
+                            let has_nested = result
+                                .iter()
+                                .any(|r| matches!(r, crate::executor::RelType::Array(_)));
+                            if has_nested {
+                                inputs.clear();
+                                for item in result {
+                                    match item {
+                                        crate::executor::RelType::Array(elems) => {
+                                            inputs.extend(elems);
+                                        }
+                                        other => inputs.push(other),
                                     }
-                                    other => inputs.push(other),
                                 }
+                            } else {
+                                inputs = result;
                             }
                         }
                     }
@@ -1999,5 +2006,74 @@ mod tests {
         assert!((transposed.col(3).y - 5.0).abs() < 0.001, "col 3 y");
         assert!((transposed.col(3).z - 6.0).abs() < 0.001, "col 3 z");
         assert!((transposed.col(3).w - 1.0).abs() < 0.001, "col 3 w");
+    }
+
+    #[test]
+    fn test_particle_streaming_flat_recycle() {
+        let stride: usize = 7;
+        let particle_data: Vec<RelType> = vec![
+            RelType::Float(1.0),
+            RelType::Float(2.0),
+            RelType::Float(3.0),
+            RelType::Float(0.1),
+            RelType::Float(0.2),
+            RelType::Float(0.3),
+            RelType::Float(0.0),
+        ];
+        assert_eq!(particle_data.len() % stride, 0);
+
+        let result: Vec<RelType> = vec![
+            RelType::Float(1.1),
+            RelType::Float(2.1),
+            RelType::Float(3.1),
+            RelType::Float(0.2),
+            RelType::Float(0.3),
+            RelType::Float(0.4),
+            RelType::Float(0.01),
+        ];
+        let has_nested = result.iter().any(|r| matches!(r, RelType::Array(_)));
+        assert!(!has_nested);
+
+        let inputs = result;
+        assert_eq!(inputs.len(), stride);
+        assert!(
+            (match &inputs[0] {
+                RelType::Float(f) => (*f - 1.1).abs() < 0.001,
+                _ => false,
+            })
+        );
+    }
+
+    #[test]
+    fn test_particle_streaming_nested_flatten() {
+        let result: Vec<RelType> = vec![
+            RelType::Array(vec![
+                RelType::Float(1.1),
+                RelType::Float(2.1),
+                RelType::Float(3.1),
+            ]),
+            RelType::Array(vec![
+                RelType::Float(0.2),
+                RelType::Float(0.3),
+                RelType::Float(0.4),
+            ]),
+        ];
+        let has_nested = result.iter().any(|r| matches!(r, RelType::Array(_)));
+        assert!(has_nested);
+
+        let mut inputs: Vec<RelType> = Vec::new();
+        for item in result {
+            match item {
+                RelType::Array(elems) => inputs.extend(elems),
+                other => inputs.push(other),
+            }
+        }
+        assert_eq!(inputs.len(), 6);
+        assert!(
+            (match &inputs[0] {
+                RelType::Float(f) => (*f - 1.1).abs() < 0.001,
+                _ => false,
+            })
+        );
     }
 }

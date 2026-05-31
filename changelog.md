@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 234: Structured Particle Vector Streaming & GPGPU Buffer Alignment (2026-05-31)
+Sprint 234: Structured Particle Pipeline. Hardened the GPGPU compute loop with zero-allocation result recycling and structured vector flattening for particle system data.
+- **Zero-Allocation Recycling**: `OpDispatchComputeLoop` handler in both AOT (machine.rs) and JIT (evaluator.rs) now checks whether readback results contain nested `RelType::Array` items. Flat results (scalar floats) are swapped directly via assignment (`inputs = result`, no `clear()`/`extend()`). Only when nested arrays are present does the handler perform the flattening loop. This eliminates heap allocation churn for common flat-data GPU outputs.
+- **Layout Recognition**: Both handlers validate particle stride alignment — flat-float results are checked for clean divisibility by expected stride (e.g., 7-element position/velocity/age vectors). Nested arrays are flattened with element-count assertions.
+- **Tests**: `test_particle_streaming_flat_recycle` (7-particle stride validation, zero-alloc swap) and `test_particle_streaming_nested_flatten` (2-array cluster → 6-element flat vector). Test suite grows 164 → 165.
+- **CI**: 165/165 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 233: Native SIMD Matrix Transposition Engine (2026-05-31)
 Sprint 233: SIMD Matrix Algebra. Deployed a hardware-accelerated 4x4 matrix transposition engine via glam SIMD intrinsics, with a handle-based native FFI interface accessible from both the AOT Stack-VM and JIT evaluator.
 - **Matrix Registry**: `MATRIX_REGISTRY` (`OnceLock<Mutex<HashMap<i64, Mat4>>>`) with `AtomicI64` ID counter. `registry_store_matrix(mat) -> i64`, `registry_get_matrix(handle) -> Option<Mat4>`, and `registry_transpose_matrix(handle) -> Option<i64>` — lock-free handle generation, Mutex-protected storage.
