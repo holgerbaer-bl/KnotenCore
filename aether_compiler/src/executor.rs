@@ -243,6 +243,7 @@ pub struct ExecutionEngine {
     // ── Physics AABBs ────────────────────────────────────────────────
     pub world_aabbs: Vec<crate::math::AABB>,
     pub camera_aabb_offset: crate::math::AABB,
+    pub jit_accumulated_cpu: std::time::Duration,
 }
 
 // SAFETY: ExecutionEngine is moved to a background thread and stays there.
@@ -484,6 +485,7 @@ impl ExecutionEngine {
             weapon_sway: (0.0, 0.0),
             world_aabbs: Vec::new(),
             camera_aabb_offset: crate::math::AABB::new([-0.3, -1.6, -0.3], [0.3, 0.2, 0.3]),
+            jit_accumulated_cpu: std::time::Duration::ZERO,
         };
         let (tx, rx) = std::sync::mpsc::channel();
         engine.action_tx = Some(tx);

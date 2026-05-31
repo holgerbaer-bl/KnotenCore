@@ -505,9 +505,12 @@ impl ExecutionEngine {
                 },
             },
             Node::While(cond, body) => {
-                let jit_start = std::time::Instant::now();
+                self.jit_accumulated_cpu = std::time::Duration::ZERO;
+                let mut jit_start = std::time::Instant::now();
                 let mut jit_iters: u64 = 0;
                 while let ExecResult::Value(RelType::Bool(true)) = self.evaluate_inner(cond) {
+                    self.jit_accumulated_cpu += jit_start.elapsed();
+                    jit_start = std::time::Instant::now();
                     match self.evaluate_inner(body) {
                         ExecResult::Value(v) => self.release_handles(&v),
                         ExecResult::ReturnBlockInfo(v) => return ExecResult::ReturnBlockInfo(v),
@@ -515,7 +518,8 @@ impl ExecutionEngine {
                     }
                     jit_iters += 1;
                     if jit_iters.is_multiple_of(1000)
-                        && jit_start.elapsed() >= std::time::Duration::from_millis(50)
+                        && self.jit_accumulated_cpu + jit_start.elapsed()
+                            >= std::time::Duration::from_millis(50)
                     {
                         eprintln!(
                             "[KnotenCore Watchdog] JIT execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."

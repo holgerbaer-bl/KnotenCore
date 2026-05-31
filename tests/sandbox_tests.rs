@@ -294,6 +294,30 @@ fn test_jit_infinite_loop_timeout() {
     );
 }
 
+/// JIT FFI bypass: a while(true) loop with FFI calls must NOT bypass the accumulated-cpu watchdog.
+#[test]
+fn test_jit_ffi_bypass_blocked() {
+    let ast = Node::While(
+        Box::new(Node::BoolLiteral(true)),
+        Box::new(Node::Block(vec![Node::ExternCall {
+            module: "time".to_string(),
+            function: "time_utc_timestamp".to_string(),
+            args: vec![],
+        }])),
+    );
+    let mut engine = knoten_core::executor::ExecutionEngine::new();
+    let result = engine.evaluate(&ast);
+    match result {
+        knoten_core::executor::ExecResult::Fault { ref msg, .. } => {
+            assert!(
+                msg.contains("Watchdog") || msg.contains("timeout"),
+                "JIT watchdog must catch FFI-reset bypass: {msg}"
+            );
+        }
+        _ => panic!("Expected Fault from watchdog, got non-Fault result"),
+    }
+}
+
 // ── Sprint 195: Domain Whitelist Test with knotencore.de ────────────
 
 /// Verify that knotencore.de matches as an allowed domain
