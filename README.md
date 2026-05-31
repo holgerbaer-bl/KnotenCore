@@ -76,7 +76,26 @@ JSON-AST (.nod)  ->  Parser  ->  AST (Node enum inside knoten_core_types)
 | **`knoten_core_types`** | **Sole Source of Truth** — Houses exclusively the pure data certificates (`Node`, `OpCode`, `SimdOp`) free of cross-crate logic coupling. |
 | `src/audio.rs` | **Audio Engine (Live / Polyphonic Multi-Waveform Synth)** — Multi-channel synthesis via `rodio` with Sine, Sawtooth, Square, and Triangle waveform shaping plus ADSR envelope modulation; isolated sinks per channel, `PlayNote`/`StopNote` in the AOT path. |
 | `src/vm/machine.rs` | **GPGPU Streaming** — Continuous Shader Vector Streaming with dynamic workgroup alignment; structured Array flattening for particle position/velocity recycling between iterations. |
-| `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` server for real-time linter validation and hover diagnostics directly in the editor. |
+| `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` server for real-time linter validation, hover diagnostics, and structured particle stride enforcement directly in the editor. |
+
+---
+
+## Audio Engine (Sprints 220–227)
+
+KnotenCore features a fully activated, polyphonic multi-waveform synthesizer with ADSR envelope shaping:
+
+- **Async AudioThread**: Dedicated background thread with `rodio` output stream, decoupled via `mpsc::channel`. Playback commands are fire-and-forget — zero frame budget impact.
+- **Multi-Waveform Synthesis**: `Waveform { Sine, Sawtooth, Square, Triangle }` — raw `f32` sample generation per oscillator shape via `generate_sample()`. Compiles from `.knoten` DSL via `PlayNote(channel, freq, duration, waveform)` → `OpPlayNote` in the AOT path.
+- **ADSR Envelope Modulation**: Linear-phase Attack-Decay-Sustain-Release shaping via `adsr_amplitude()`. All phases use `.max(1)` guards to prevent division by zero. Compiler injects sensible defaults (5ms/20ms/0.7/100ms) — no DSL breakage.
+- **Polyphonic Channels**: Per-channel `synth_sinks: HashMap<usize, Sink>` with stop/replace semantics via `StopNote(channel)`.
+- **Edge-Case Guarantees**: 0 Hz frequency, negative ADSR times, and zero-duration envelopes produce no panics — bounded to `[0.0, 1.0]` amplitude range.
+
+## GPGPU Compute & Native Math (Sprints 229–234)
+
+- **Continuous Shader Vector Streaming**: `DispatchComputeLoop` dispatches compute shaders with dynamic workgroup alignment (`x = max(1, n).div_ceil(64)`). Results are recycled with zero-allocation swap for flat data, structured `RelType::Array` flattening for particle position/velocity vectors.
+- **Lock-Free Readback**: Per-shader `crossbeam_channel::bounded(1)` channels. Render thread uses non-blocking `try_send()`, VM thread uses `try_recv()` with spin-poll after mutex guard drop.
+- **SIMD Matrix Transpose**: `math_matrix_transpose(handle) -> handle` — native FFI with handle-based `MATRIX_REGISTRY` storage, hardware-accelerated via `glam::Mat4::transpose()`.
+- **LSP Particle Diagnostics**: Real-time validation of `DispatchComputeLoop` inputs — enforces stride alignment (multiples of 6 or 7) with `ERR_PARTICLE_STRIDE` error markers mapped to exact editor positions via `find_range()`.
 
 ---
 

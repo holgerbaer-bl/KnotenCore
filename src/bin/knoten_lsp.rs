@@ -84,6 +84,7 @@ const KNOWN_OPCODES: &[&str] = &[
     "UIVBox",
     "PlayNote",
     "StopNote",
+    "DispatchComputeLoop",
 ];
 
 struct KnotenBackend {
@@ -412,6 +413,37 @@ impl KnotenBackend {
                     );
                 }
             }
+            "DispatchComputeLoop" => {
+                if let Some(obj) = value.as_object() {
+                    if let Some(inputs_val) = obj.get("inputs")
+                        && let Some(inputs_arr) = inputs_val.as_array()
+                    {
+                        let len = inputs_arr.len();
+                        if len > 0 && !len.is_multiple_of(6) && !len.is_multiple_of(7) {
+                            let range = self.find_range(uri, "inputs");
+                            diagnostics.push(Diagnostic {
+                                range,
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                code: Some(NumberOrString::String(
+                                    "ERR_PARTICLE_STRIDE".to_string(),
+                                )),
+                                source: Some("knoten-lsp".to_string()),
+                                message: format!(
+                                    "Particle input length {} is not aligned to stride 6 or 7",
+                                    len
+                                ),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                } else {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        "DispatchComputeLoop node must be an object",
+                    );
+                }
+            }
             _ => {}
         }
     }
@@ -476,6 +508,33 @@ impl KnotenBackend {
                 ..Default::default()
             });
         }
+    }
+
+    fn find_range(&self, uri: &Url, field: &str) -> Range {
+        if let Some(doc) = self.documents.get(uri) {
+            let text = doc.value();
+            let search = format!("\"{field}\"");
+            if let Some(offset) = text.find(&search) {
+                let mut line = 0u32;
+                let mut col = 0u32;
+                for (i, c) in text.char_indices() {
+                    if i >= offset {
+                        break;
+                    }
+                    if c == '\n' {
+                        line += 1;
+                        col = 0;
+                    } else {
+                        col += 1;
+                    }
+                }
+                return Range::new(
+                    Position::new(line, col),
+                    Position::new(line, col + field.len() as u32 + 2),
+                );
+            }
+        }
+        Range::new(Position::new(0, 0), Position::new(0, 1))
     }
 
     fn push_error(&self, diagnostics: &mut Vec<Diagnostic>, code: &str, message: &str) {
@@ -829,4 +888,43 @@ async fn main() {
     let (service, socket) =
         LspService::new(|client| KnotenBackend::with_registry(client, registry));
     Server::new(stdin, stdout, socket).serve(service).await;
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    fn validate_particle_stride(inputs: &[serde_json::Value]) -> Option<String> {
+        let len = inputs.len();
+        if len > 0 && !len.is_multiple_of(6) && !len.is_multiple_of(7) {
+            Some(format!(
+                "Particle input length {} is not aligned to stride 6 or 7",
+                len
+            ))
+        } else {
+            None
+        }
+    }
+
+    #[test]
+    fn valid_strides_pass() {
+        assert!(validate_particle_stride(&vec![json!(1.0); 6]).is_none());
+        assert!(validate_particle_stride(&vec![json!(1.0); 7]).is_none());
+        assert!(validate_particle_stride(&vec![json!(1.0); 12]).is_none());
+        assert!(validate_particle_stride(&vec![json!(1.0); 14]).is_none());
+        assert!(validate_particle_stride(&[]).is_none());
+    }
+
+    #[test]
+    fn invalid_stride_triggers_error() {
+        let err = validate_particle_stride(&vec![json!(1.0); 5]);
+        assert!(err.is_some());
+        assert!(err.unwrap().contains("not aligned"));
+
+        let err = validate_particle_stride(&vec![json!(1.0); 8]);
+        assert!(err.is_some());
+
+        let err = validate_particle_stride(&vec![json!(1.0); 13]);
+        assert!(err.is_some());
+    }
 }

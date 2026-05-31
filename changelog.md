@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 235: LSP Particle Layout Diagnostics & Documentation Sync (2026-05-31)
+Sprint 235: LSP Diagnostics & Documentation Refresh. Extended the Language Server with structured particle stride validation and comprehensively updated the three-crate documentation for Sprints 231–235.
+- **LSP Particle Diagnostics**: `DispatchComputeLoop` added to `KNOWN_OPCODES`. Validation handler inspects the `inputs` array and enforces stride alignment — length must be a multiple of 6 or 7 (`ERR_PARTICLE_STRIDE` with `DiagnosticSeverity::ERROR`). Diagnostics are mapped to exact editor positions via the new `find_range()` helper, which scans the raw document text for the `"inputs"` field and converts byte offsets to `Position` (line/column).
+- **LSP Unit Tests**: Two new tests in the `knoten_lsp` binary: `valid_strides_pass` (0, 6, 7, 12, 14 all pass) and `invalid_stride_triggers_error` (5, 8, 13 trigger stride errors). Isolated `validate_particle_stride()` helper for clean testability.
+- **README Overhaul**: New dedicated sections for "Audio Engine (Sprints 220–227)" covering async AudioThread, multi-waveform synthesis, ADSR envelope modulation, and edge-case guarantees; and "GPGPU Compute & Native Math (Sprints 229–234)" covering continuous shader streaming, lock-free readback, SIMD matrix transpose, and LSP particle diagnostics.
+- **llm.md Expansion**: Three new architecture bullets: ADSR Envelope Modulation (phase math, boundary guarantees), SIMD Matrix Algebra (handle-based registry, glam transpose), and GPGPU Recycling Hotpath (zero-alloc swap, dynamic workgroups, particle stride LSP enforcement).
+- **Test Suite**: 165 → 167 tests (87 lib + 55 integration + 23 sandbox + 2 LSP).
+- **CI**: 167/167 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 234: Structured Particle Vector Streaming & GPGPU Buffer Alignment (2026-05-31)
 Sprint 234: Structured Particle Pipeline. Hardened the GPGPU compute loop with zero-allocation result recycling and structured vector flattening for particle system data.
 - **Zero-Allocation Recycling**: `OpDispatchComputeLoop` handler in both AOT (machine.rs) and JIT (evaluator.rs) now checks whether readback results contain nested `RelType::Array` items. Flat results (scalar floats) are swapped directly via assignment (`inputs = result`, no `clear()`/`extend()`). Only when nested arrays are present does the handler perform the flattening loop. This eliminates heap allocation churn for common flat-data GPU outputs.
