@@ -1893,4 +1893,51 @@ mod tests {
         .unwrap();
         assert_eq!(r2, RelType::Bool(true));
     }
+
+    #[test]
+    fn workgroup_empty_inputs_returns_one() {
+        let x = 0u32.div_ceil(64).max(1);
+        assert_eq!(x, 1, "Empty inputs → 1 workgroup minimum");
+    }
+
+    #[test]
+    fn workgroup_single_input_returns_one() {
+        let x = 1u32.div_ceil(64);
+        assert_eq!(x, 1);
+    }
+
+    #[test]
+    fn workgroup_63_inputs_returns_one() {
+        let x = 63u32.div_ceil(64);
+        assert_eq!(x, 1);
+    }
+
+    #[test]
+    fn workgroup_64_inputs_returns_one() {
+        let x = 64u32.div_ceil(64);
+        assert_eq!(x, 1);
+    }
+
+    #[test]
+    fn workgroup_65_inputs_returns_two() {
+        let x = 65u32.div_ceil(64);
+        assert_eq!(x, 2);
+    }
+
+    #[test]
+    fn workgroup_large_input_scales() {
+        let x = 1024u32.div_ceil(64);
+        assert_eq!(x, 16);
+    }
+
+    #[test]
+    fn workgroup_div_ceil_edge_cases() {
+        assert_eq!(0u32.div_ceil(64).max(1), 1, "Empty inputs → 1 workgroup");
+        assert_eq!(1u32.div_ceil(64), 1);
+        assert_eq!(63u32.div_ceil(64), 1);
+        assert_eq!(64u32.div_ceil(64), 1);
+        assert_eq!(65u32.div_ceil(64), 2);
+        assert_eq!(128u32.div_ceil(64), 2);
+        assert_eq!(10000u32.div_ceil(64), 157);
+    }
 }

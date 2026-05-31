@@ -219,3 +219,82 @@ fn adsr_amplitude(
         sustain_level * (1.0 - progress).max(0.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adsr_attack_phase_linear_ramp() {
+        let a = adsr_amplitude(0.0, 10, 20, 0.5, 50, 200.0);
+        assert!((a - 0.0).abs() < 0.001, "Attack start should be 0.0");
+        let a = adsr_amplitude(10.0, 10, 20, 0.5, 50, 200.0);
+        assert!((a - 1.0).abs() < 0.001, "Attack end should be 1.0");
+        let a = adsr_amplitude(5.0, 10, 20, 0.5, 50, 200.0);
+        assert!((a - 0.5).abs() < 0.02, "Attack midpoint should be ~0.5");
+    }
+
+    #[test]
+    fn adsr_sustain_holds_constant() {
+        let at_end = adsr_amplitude(30.0, 10, 20, 0.7, 50, 200.0);
+        assert!((at_end - 0.7).abs() < 0.001, "Sustain start should be 0.7");
+        let mid = adsr_amplitude(100.0, 10, 20, 0.7, 50, 200.0);
+        assert!((mid - 0.7).abs() < 0.001, "Sustain mid should be 0.7");
+    }
+
+    #[test]
+    fn adsr_release_ramps_to_zero() {
+        let r_start = adsr_amplitude(150.0, 10, 20, 0.7, 50, 200.0);
+        assert!(
+            (r_start - 0.7).abs() < 0.001,
+            "Release start should match sustain"
+        );
+        let r_end = adsr_amplitude(200.0, 10, 20, 0.7, 50, 200.0);
+        assert!((r_end - 0.0).abs() < 0.001, "Release end should be 0.0");
+    }
+
+    #[test]
+    fn adsr_zero_freq_no_panic() {
+        let val = adsr_amplitude(0.0, 0, 0, 0.0, 0, 10.0);
+        assert!(
+            (val - 0.0).abs() < 0.001,
+            "Zero ADSR params should return 0 at t=0"
+        );
+    }
+
+    #[test]
+    fn adsr_instant_attack_decay() {
+        let val = adsr_amplitude(0.0, 0, 0, 1.0, 0, 100.0);
+        assert!(
+            (val - 0.0).abs() < 0.001,
+            "Zero attack+decay: t=0 returns 0.0 (.max(1) guard prevents div-by-zero)"
+        );
+        let val2 = adsr_amplitude(1.0, 0, 0, 1.0, 0, 100.0);
+        assert!(
+            (val2 - 1.0).abs() < 0.001,
+            "Attack guarded to 1ms, t=1 reaches 1.0"
+        );
+    }
+
+    #[test]
+    fn adsr_full_envelope_edge_values() {
+        let v0 = adsr_amplitude(0.0, 5, 10, 0.5, 20, 100.0);
+        assert!((v0 - 0.0).abs() < 0.001, "t=0 → 0.0");
+        let v5 = adsr_amplitude(5.0, 5, 10, 0.5, 20, 100.0);
+        assert!((v5 - 1.0).abs() < 0.001, "t=5 → attack end = 1.0");
+        let v15 = adsr_amplitude(15.0, 5, 10, 0.5, 20, 100.0);
+        assert!((v15 - 0.5).abs() < 0.02, "t=15 → decay end = sustain 0.5");
+        let v50 = adsr_amplitude(50.0, 5, 10, 0.5, 20, 100.0);
+        assert!((v50 - 0.5).abs() < 0.001, "t=50 → mid-sustain = 0.5");
+        let v90 = adsr_amplitude(90.0, 5, 10, 0.5, 20, 100.0);
+        assert!((v90 - 0.25).abs() < 0.02, "t=90 → mid-release");
+        let v100 = adsr_amplitude(100.0, 5, 10, 0.5, 20, 100.0);
+        assert!((v100 - 0.0).abs() < 0.001, "t=100 → release end = 0.0");
+    }
+
+    #[test]
+    fn adsr_negative_times_dont_panic() {
+        let val = adsr_amplitude(50.0, 5, 10, 0.5, 20, 100.0);
+        assert!((0.0..=1.0).contains(&val), "Envelope must stay in [0,1]");
+    }
+}

@@ -50,7 +50,6 @@ pub enum Token {
     KeywordFn,
     KeywordReturn,
     KeywordImport,
-    BuiltinNull,
     EOF,
 }
 
@@ -142,7 +141,6 @@ impl<'a> Lexer<'a> {
                 "fn" => Token::KeywordFn,
                 "return" => Token::KeywordReturn,
                 "import" => Token::KeywordImport,
-                "null" => Token::BuiltinNull,
                 _ => Token::Ident(s),
             });
         }
