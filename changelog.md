@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 229: Continuous Shader Vector Streaming & Dynamic Dimension Alignment (2026-05-31)
+Sprint 229: GPGPU Streaming Overhaul. Replaced the static single-workgroup dispatch in `DispatchComputeLoop` with dynamic workgroup-count computation and structured vector recycling.
+- **Dynamic Workgroup Alignment**: `x_workgroups` computed as `max(1, input_count).div_ceil(64)` — dispatch scales linearly with input size instead of always issuing `x:1, y:1, z:1`. Workgroup size of 64 matches standard WGSL defaults.
+- **Structured Vector Recycling**: Result readback now destructures `RelType::Array` elements. If the shader returns grouped vectors (e.g., particle position/velocity arrays), they are flattened into the input stream for the next iteration via `inputs.extend(elems)`. Scalar results pass through unchanged. The `inputs.clear()` + `extend` pattern replaces the previous `collect()` identity map.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 228: LSP Audio Diagnostics ADSR Expansion (2026-05-31)
 Sprint 228: LSP Diagnostic Expansion. Upgraded `knoten_lsp` to support flexible arity validation for `PlayNote` nodes, allowing both 4-argument and 8-argument ADSR envelope overrides natively in the editor with real-time range and bound checking.
 - **Flexible Arity**: `PlayNote` validation now accepts `len == 4 || len == 8`. Every other count emits `ERR_AUDIO_ARITY` with the diagnostic message listing both valid signatures.

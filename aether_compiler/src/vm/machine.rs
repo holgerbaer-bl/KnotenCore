@@ -872,11 +872,14 @@ impl VM {
                         _ => return Err("DispatchComputeLoop expects integer Shader ID".into()),
                     };
 
+                    let workgroup_size = 64u32;
+                    let x_workgroups = (inputs.len() as u32).max(1).div_ceil(workgroup_size);
+
                     for _ in 0..iterations {
                         crate::natives::registry::send_render_command(
                             crate::natives::registry::RenderCommand::DispatchCompute {
                                 shader_id,
-                                x: 1,
+                                x: x_workgroups,
                                 y: 1,
                                 z: 1,
                                 inputs: inputs.clone(),
@@ -885,15 +888,15 @@ impl VM {
                         let result =
                             crate::natives::registry::registry_compute_readback(shader_id as i64);
                         if !result.is_empty() {
-                            inputs = result
-                                .into_iter()
-                                .map(|r| match r {
-                                    crate::executor::RelType::Float(f) => {
-                                        crate::executor::RelType::Float(f)
+                            inputs.clear();
+                            for item in result {
+                                match item {
+                                    crate::executor::RelType::Array(elems) => {
+                                        inputs.extend(elems);
                                     }
-                                    v => v,
-                                })
-                                .collect();
+                                    other => inputs.push(other),
+                                }
+                            }
                         }
                     }
                     self.stack.push(RelType::Void);
