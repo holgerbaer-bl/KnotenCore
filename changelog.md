@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 228: LSP Audio Diagnostics ADSR Expansion (2026-05-31)
+Sprint 228: LSP Diagnostic Expansion. Upgraded `knoten_lsp` to support flexible arity validation for `PlayNote` nodes, allowing both 4-argument and 8-argument ADSR envelope overrides natively in the editor with real-time range and bound checking.
+- **Flexible Arity**: `PlayNote` validation now accepts `len == 4 || len == 8`. Every other count emits `ERR_AUDIO_ARITY` with the diagnostic message listing both valid signatures.
+- **ADSR Bound Validation**: New `validate_adsr_bounds()` method inspects args 5-8 on 8-arg nodes. Attack, Decay, and Release must be positive (`ERR_AUDIO_ADSR_BOUNDS` warning). Sustain must be in `0.0..=1.0` (`ERR_AUDIO_ADSR_BOUNDS` warning). All bounds checks use collapsed `if let Some(x) && cond` patterns (clippy-clean).
+- **Hover Intel**: When hovering over `PlayNote` in a `.nod` JSON-AST document, the LSP now returns a Markdown card with both signatures: the 4-arg default-envelope form and the 8-arg custom-ADSR override form, plus a description of the OpPlayNote VM compilation target.
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 227: ADSR Envelope Generation & Linear Phase Interpolation (2026-05-30)
 Sprint 227: ADSR Envelope Shaper. Injected time-dynamic Attack-Decay-Sustain-Release amplitude modulation per synth channel, turning digital square-burst notes into organic chiptune-grade tones.
 - **ADSR Parameters**: Extended `AudioCommand::PlayTone` with `attack_ms`, `decay_ms`, `sustain_level`, `release_ms`. The audio thread computes a linear-phase envelope multiplier (0.0-1.0) per sample via `adsr_amplitude()` and multiplies the raw waveform output — no branch misprediction in the hot path.

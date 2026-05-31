@@ -300,31 +300,36 @@ impl KnotenBackend {
             }
             "PlayNote" => {
                 if let Some(arr) = value.as_array() {
-                    if arr.len() != 4 {
+                    if arr.len() != 4 && arr.len() != 8 {
                         self.push_error(
                             diagnostics,
                             "ERR_AUDIO_ARITY",
-                            "PlayNote node requires exactly 4 arguments [channel, frequency, duration, waveform]",
+                            "PlayNote node requires exactly 4 or 8 arguments [channel, frequency, duration, waveform] + optional [attack_ms, decay_ms, sustain_level, release_ms]",
                         );
-                    } else if let Some(wave_obj) = arr.get(3)
-                        && let Some(wave_val) = wave_obj.as_object()
-                        && let Some(wave_num) = wave_val.get("IntLiteral")
-                        && let Some(w) = wave_num.as_i64()
-                        && !(0..=3).contains(&w)
-                    {
-                        diagnostics.push(Diagnostic {
-                            range: Range::new(Position::new(0, 0), Position::new(0, 1)),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            code: Some(NumberOrString::String(
-                                "ERR_AUDIO_WAVEFORM_BOUNDS".to_string(),
-                            )),
-                            source: Some("knoten-lsp".to_string()),
-                            message: format!(
-                                "Waveform index {} out of range (0=Sine, 1=Sawtooth, 2=Square, 3=Triangle)",
-                                w
-                            ),
-                            ..Default::default()
-                        });
+                    } else {
+                        if let Some(wave_obj) = arr.get(3)
+                            && let Some(wave_val) = wave_obj.as_object()
+                            && let Some(wave_num) = wave_val.get("IntLiteral")
+                            && let Some(w) = wave_num.as_i64()
+                            && !(0..=3).contains(&w)
+                        {
+                            diagnostics.push(Diagnostic {
+                                range: Range::new(Position::new(0, 0), Position::new(0, 1)),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                code: Some(NumberOrString::String(
+                                    "ERR_AUDIO_WAVEFORM_BOUNDS".to_string(),
+                                )),
+                                source: Some("knoten-lsp".to_string()),
+                                message: format!(
+                                    "Waveform index {} out of range (0=Sine, 1=Sawtooth, 2=Square, 3=Triangle)",
+                                    w
+                                ),
+                                ..Default::default()
+                            });
+                        }
+                        if arr.len() == 8 {
+                            self.validate_adsr_bounds(arr, diagnostics);
+                        }
                     }
                 } else {
                     self.push_error(
@@ -408,6 +413,68 @@ impl KnotenBackend {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn validate_adsr_bounds(&self, arr: &[serde_json::Value], diagnostics: &mut Vec<Diagnostic>) {
+        let int_at = |i: usize| -> Option<i64> {
+            arr.get(i)
+                .and_then(|v| v.as_object()?.get("IntLiteral")?.as_i64())
+        };
+        let float_at = |i: usize| -> Option<f64> {
+            arr.get(i)
+                .and_then(|v| v.as_object()?.get("FloatLiteral")?.as_f64())
+        };
+        if let Some(a) = int_at(4)
+            && a <= 0
+        {
+            diagnostics.push(Diagnostic {
+                range: Range::new(Position::new(0, 0), Position::new(0, 1)),
+                severity: Some(DiagnosticSeverity::WARNING),
+                code: Some(NumberOrString::String("ERR_AUDIO_ADSR_BOUNDS".to_string())),
+                source: Some("knoten-lsp".to_string()),
+                message: format!("Attack (arg 5) must be a positive time value, got {}", a),
+                ..Default::default()
+            });
+        }
+        if let Some(d) = int_at(5)
+            && d <= 0
+        {
+            diagnostics.push(Diagnostic {
+                range: Range::new(Position::new(0, 0), Position::new(0, 1)),
+                severity: Some(DiagnosticSeverity::WARNING),
+                code: Some(NumberOrString::String("ERR_AUDIO_ADSR_BOUNDS".to_string())),
+                source: Some("knoten-lsp".to_string()),
+                message: format!("Decay (arg 6) must be a positive time value, got {}", d),
+                ..Default::default()
+            });
+        }
+        if let Some(s) = float_at(6)
+            && !(0.0..=1.0).contains(&s)
+        {
+            diagnostics.push(Diagnostic {
+                range: Range::new(Position::new(0, 0), Position::new(0, 1)),
+                severity: Some(DiagnosticSeverity::WARNING),
+                code: Some(NumberOrString::String("ERR_AUDIO_ADSR_BOUNDS".to_string())),
+                source: Some("knoten-lsp".to_string()),
+                message: format!(
+                    "Sustain level (arg 7) must be between 0.0 and 1.0, got {}",
+                    s
+                ),
+                ..Default::default()
+            });
+        }
+        if let Some(r) = int_at(7)
+            && r <= 0
+        {
+            diagnostics.push(Diagnostic {
+                range: Range::new(Position::new(0, 0), Position::new(0, 1)),
+                severity: Some(DiagnosticSeverity::WARNING),
+                code: Some(NumberOrString::String("ERR_AUDIO_ADSR_BOUNDS".to_string())),
+                source: Some("knoten-lsp".to_string()),
+                message: format!("Release (arg 8) must be a positive time value, got {}", r),
+                ..Default::default()
+            });
         }
     }
 
@@ -509,44 +576,62 @@ impl LanguageServer for KnotenBackend {
         let uri = params.text_document_position_params.text_document.uri;
         let position = params.text_document_position_params.position;
 
-        if let Some(func) = self.documents.get(&uri).and_then(|doc_text| {
-            self.get_word_at(&doc_text, position)
-                .and_then(|w| self.registry.get(&w).cloned())
-        }) {
-            let mut markdown = format!(
-                "### `{}`\n\n**Module**: `{}`\n\n{}\n\n",
-                func.name, func.module, func.description
-            );
+        if let Some(doc_text) = self.documents.get(&uri)
+            && let Some(word) = self.get_word_at(&doc_text, position)
+        {
+            if word == "PlayNote" {
+                let markdown = "### `PlayNote`\n\n\
+                     **AST Node** — Procedural Synth Note (AOT path)\n\n\
+                     **Signature 1 (Default envelope):**\n\
+                     - `PlayNote(channel: Int, frequency: Float, duration_ms: Int, waveform: Int)`\n\n\
+                     **Signature 2 (Custom ADSR override):**\n\
+                     - `PlayNote(channel: Int, frequency: Float, duration_ms: Int, waveform: Int, attack_ms: Int, decay_ms: Int, sustain_level: Float, release_ms: Int)`\n\n\
+                     Compiles to `OpPlayNote` in the Stack-VM. Multi-waveform synthesis with ADSR envelope shaping."
+                    .to_string();
+                return Ok(Some(Hover {
+                    contents: HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: markdown,
+                    }),
+                    range: None,
+                }));
+            }
+            if let Some(func) = self.registry.get(&word).cloned() {
+                let mut markdown = format!(
+                    "### `{}`\n\n**Module**: `{}`\n\n{}\n\n",
+                    func.name, func.module, func.description
+                );
 
-            if !func.parameters.is_empty() {
-                markdown.push_str("**Parameters**:\n");
-                for p in &func.parameters {
+                if !func.parameters.is_empty() {
+                    markdown.push_str("**Parameters**:\n");
+                    for p in &func.parameters {
+                        markdown.push_str(&format!(
+                            "- `{}: {}` - {}\n",
+                            p.name,
+                            p.param_type,
+                            p.description.as_deref().unwrap_or("")
+                        ));
+                    }
+                    markdown.push('\n');
+                }
+
+                markdown.push_str(&format!("**Returns**: `{}`\n\n", func.returns));
+
+                if !func.permissions.is_empty() {
                     markdown.push_str(&format!(
-                        "- `{}: {}` - {}\n",
-                        p.name,
-                        p.param_type,
-                        p.description.as_deref().unwrap_or("")
+                        "**Permissions**: `{}`\n\n",
+                        func.permissions.join(", ")
                     ));
                 }
-                markdown.push('\n');
+
+                return Ok(Some(Hover {
+                    contents: HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: markdown,
+                    }),
+                    range: None,
+                }));
             }
-
-            markdown.push_str(&format!("**Returns**: `{}`\n\n", func.returns));
-
-            if !func.permissions.is_empty() {
-                markdown.push_str(&format!(
-                    "**Permissions**: `{}`\n\n",
-                    func.permissions.join(", ")
-                ));
-            }
-
-            return Ok(Some(Hover {
-                contents: HoverContents::Markup(MarkupContent {
-                    kind: MarkupKind::Markdown,
-                    value: markdown,
-                }),
-                range: None,
-            }));
         }
 
         Ok(None)
