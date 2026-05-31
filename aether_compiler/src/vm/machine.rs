@@ -1104,6 +1104,22 @@ impl VM {
                     println!("{}", val);
                 }
                 OpCode::OpPlayNote => {
+                    let release_ms = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in PlayNote (release)".to_string())?;
+                    let sustain_level = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in PlayNote (sustain)".to_string())?;
+                    let decay_ms = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in PlayNote (decay)".to_string())?;
+                    let attack_ms = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in PlayNote (attack)".to_string())?;
                     let wave_val = self
                         .stack
                         .pop()
@@ -1156,11 +1172,38 @@ impl VM {
                             return Ok(RelType::Void);
                         }
                     };
+                    let attack_val = match attack_ms {
+                        RelType::Int(i) => i as u64,
+                        _ => 5,
+                    };
+                    let decay_val = match decay_ms {
+                        RelType::Int(i) => i as u64,
+                        _ => 20,
+                    };
+                    let sustain_val = match sustain_level {
+                        RelType::Float(f) => f as f32,
+                        RelType::Int(i) => i as f32,
+                        _ => 0.7,
+                    };
+                    let release_val = match release_ms {
+                        RelType::Int(i) => i as u64,
+                        _ => 100,
+                    };
                     crate::natives::registry::init_audio_state();
                     if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
                         && let Some(ref mut mgr) = *guard
                     {
-                        mgr.play_tone(channel_idx, freq_val, dur_val, 0.3, waveform);
+                        mgr.play_tone(
+                            channel_idx,
+                            freq_val,
+                            dur_val,
+                            0.3,
+                            waveform,
+                            attack_val,
+                            decay_val,
+                            sustain_val,
+                            release_val,
+                        );
                     }
                     self.stack.push(RelType::Void);
                 }

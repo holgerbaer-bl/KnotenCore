@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 227: ADSR Envelope Generation & Linear Phase Interpolation (2026-05-30)
+Sprint 227: ADSR Envelope Shaper. Injected time-dynamic Attack-Decay-Sustain-Release amplitude modulation per synth channel, turning digital square-burst notes into organic chiptune-grade tones.
+- **ADSR Parameters**: Extended `AudioCommand::PlayTone` with `attack_ms`, `decay_ms`, `sustain_level`, `release_ms`. The audio thread computes a linear-phase envelope multiplier (0.0-1.0) per sample via `adsr_amplitude()` and multiplies the raw waveform output — no branch misprediction in the hot path.
+- **Envelope Math**: Attack: linear 0→1 ramp. Decay: linear 1→sustain_level ramp. Sustain: constant hold until release_start. Release: linear sustain_level→0 ramp. All segments use `max(1)` guard to prevent division by zero.
+- **Compiler Injection**: `PlayNote` still accepts 4 script args (channel, freq, duration, waveform). The compiler injects 4 default ADSR constants (attack=5ms, decay=20ms, sustain=0.7, release=100ms) after the user args — zero `.knoten` DSL breakage.
+- **VM Handler**: `OpPlayNote` now pops 8 values from stack (release, sustain, decay, attack, waveform, duration, freq, channel). All ADSR values accept Int/Float with sensible defaults on type mismatch.
+- **Boot Tone**: `registry_play_boot_tone()` updated with full ADSR params (Sine, 5ms attack, 20ms decay, 0.7 sustain, 100ms release).
+- **CI**: 148/148 tests, 0 clippy warnings, fmt clean. `#[allow(clippy::too_many_arguments)]` on `play_tone`.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 226: LSP Audio Diagnostics & Multi-Waveform Synthesizer (2026-05-30)
 Sprint 226: Oscillator Wave Shaper & LSP Diagnostics. Deployed multi-waveform synthesis shaping (Sine, Sawtooth, Square, Triangle) into the audio engine and injected real-time audio AST validation into the Language Server.
 - **Waveform Enum**: Defined `Waveform { Sine, Sawtooth, Square, Triangle }` in `knoten_core_types/src/ast.rs`. Serializable, clippy-clean, shared across all crates.

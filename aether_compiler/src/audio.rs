@@ -16,6 +16,10 @@ pub enum AudioCommand {
         duration_ms: u64,
         volume: f32,
         waveform: Waveform,
+        attack_ms: u64,
+        decay_ms: u64,
+        sustain_level: f32,
+        release_ms: u64,
     },
     StopTone {
         channel: usize,
@@ -82,13 +86,27 @@ impl AudioManager {
                             duration_ms,
                             volume,
                             waveform,
+                            attack_ms,
+                            decay_ms,
+                            sustain_level,
+                            release_ms,
                         } => {
                             let sample_rate = 44100u32;
                             let num_samples = (sample_rate as u64 * duration_ms / 1000) as usize;
                             let samples: Vec<f32> = (0..num_samples)
                                 .map(|i| {
                                     let t = i as f32 / sample_rate as f32;
-                                    generate_sample(t, freq, volume, waveform)
+                                    let t_ms = i as f32 * 1000.0 / sample_rate as f32;
+                                    let raw = generate_sample(t, freq, volume, waveform);
+                                    let env = adsr_amplitude(
+                                        t_ms,
+                                        attack_ms,
+                                        decay_ms,
+                                        sustain_level,
+                                        release_ms,
+                                        duration_ms as f32,
+                                    );
+                                    raw * env
                                 })
                                 .collect();
                             let source = rodio::buffer::SamplesBuffer::new(1, sample_rate, samples);
@@ -129,6 +147,7 @@ impl AudioManager {
         let _ = self.tx.send(AudioCommand::SetVolume(volume));
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn play_tone(
         &mut self,
         channel: usize,
@@ -136,6 +155,10 @@ impl AudioManager {
         duration_ms: u64,
         volume: f32,
         waveform: Waveform,
+        attack_ms: u64,
+        decay_ms: u64,
+        sustain_level: f32,
+        release_ms: u64,
     ) {
         let _ = self.tx.send(AudioCommand::PlayTone {
             channel,
@@ -143,6 +166,10 @@ impl AudioManager {
             duration_ms,
             volume,
             waveform,
+            attack_ms,
+            decay_ms,
+            sustain_level,
+            release_ms,
         });
     }
 
@@ -166,5 +193,29 @@ fn generate_sample(t: f32, freq: f32, volume: f32, waveform: Waveform) -> f32 {
             let frac = t * freq - (t * freq).floor();
             ((2.0 * frac - 1.0).abs() * 2.0 - 1.0) * volume
         }
+    }
+}
+
+fn adsr_amplitude(
+    t_ms: f32,
+    attack_ms: u64,
+    decay_ms: u64,
+    sustain_level: f32,
+    release_ms: u64,
+    total_ms: f32,
+) -> f32 {
+    let attack_end = attack_ms as f32;
+    let decay_end = attack_end + decay_ms as f32;
+    let release_start = total_ms - release_ms as f32;
+    if t_ms <= attack_end {
+        t_ms / attack_end.max(1.0)
+    } else if t_ms <= decay_end {
+        let progress = (t_ms - attack_end) / decay_ms.max(1) as f32;
+        1.0 - progress * (1.0 - sustain_level)
+    } else if t_ms <= release_start {
+        sustain_level
+    } else {
+        let progress = (t_ms - release_start) / release_ms.max(1) as f32;
+        sustain_level * (1.0 - progress).max(0.0)
     }
 }

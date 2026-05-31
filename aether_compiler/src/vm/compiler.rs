@@ -624,6 +624,14 @@ impl Compiler {
                 if !self.compile_node(wave_expr) {
                     return false;
                 }
+                let a_idx = self.add_constant(RelType::Int(5));
+                self.instructions.push(OpCode::Constant(a_idx));
+                let d_idx = self.add_constant(RelType::Int(20));
+                self.instructions.push(OpCode::Constant(d_idx));
+                let s_idx = self.add_constant(RelType::Float(0.7));
+                self.instructions.push(OpCode::Constant(s_idx));
+                let r_idx = self.add_constant(RelType::Int(100));
+                self.instructions.push(OpCode::Constant(r_idx));
                 self.instructions.push(OpCode::OpPlayNote);
                 true
             }
