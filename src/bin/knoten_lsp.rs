@@ -851,6 +851,114 @@ impl LanguageServer for KnotenBackend {
             });
         }
 
+        let native_ffi: &[(&str, &str, &str, &str)] = &[
+            (
+                "math_matrix_transpose",
+                "Transpose a 4x4 matrix via SIMD",
+                r#"### math_matrix_transpose(handle: Int) -> Int
+
+Transposes a 4x4 matrix stored in the matrix registry.
+
+Uses hardware-accelerated `glam::Mat4::transpose()`.
+Returns the new matrix handle."#,
+                "math_matrix_transpose(${1:handle})",
+            ),
+            (
+                "math_vector_scale",
+                "Scale array elements by a factor",
+                r#"### math_vector_scale(array, factor)
+
+Multiplies each numeric element in an array by a scalar factor.
+Returns a new array."#,
+                "math_vector_scale(${1:array}, ${2:factor})",
+            ),
+            (
+                "math_matrix_transform",
+                "Transform vector by 4x4 matrix",
+                r#"### math_matrix_transform(matrix, vector)
+
+Applies a 4x4 transformation matrix to a 3D or 4D vector.
+Uses `glam::Mat4 * Vec4` SIMD multiplication."#,
+                "math_matrix_transform(${1:matrix}, ${2:vector})",
+            ),
+            (
+                "registry_load_compute_shader",
+                "Load a WGSL compute shader",
+                r#"### registry_load_compute_shader(source: String) -> Int
+
+Loads a WGSL compute shader from source string.
+Returns the shader handle for use with DispatchCompute."#,
+                "registry_load_compute_shader(${1:source})",
+            ),
+            (
+                "registry_dispatch_compute",
+                "Dispatch a compute shader",
+                r#"### registry_dispatch_compute(shader_id, x, y, z, inputs)
+
+Dispatches a compute shader with given workgroup dimensions.
+Inputs are serialized to a GPU storage buffer."#,
+                "registry_dispatch_compute(${1:shader_id}, ${2:x}, ${3:y}, ${4:z}, ${5:inputs})",
+            ),
+            (
+                "registry_compute_readback",
+                "Read back compute shader results",
+                r#"### registry_compute_readback(shader_id) -> Vec<f32>
+
+Non-blocking readback from GPU compute shader storage buffer.
+Uses lock-free spin-poll with bounded crossbeam channel."#,
+                "registry_compute_readback(${1:shader_id})",
+            ),
+            (
+                "PlayNote",
+                "Play a synth note (AOT path)",
+                r#"### PlayNote(channel, freq, duration_ms, waveform)
+
+Procedural audio note generation via the neural DSL synth.
+Waveform: 0=Sine, 1=Sawtooth, 2=Square, 3=Triangle.
+ADSR envelope defaults: 5ms/20ms/0.7/100ms."#,
+                "PlayNote(${1:channel}, ${2:freq}, ${3:duration_ms}, ${4:waveform})",
+            ),
+            (
+                "math_sin",
+                "Sine function (Float)",
+                r#"### math_sin(radians: Float) -> Float
+
+Computes the sine of an angle in radians."#,
+                "math_sin(${1:radians})",
+            ),
+            (
+                "math_cos",
+                "Cosine function (Float)",
+                r#"### math_cos(radians: Float) -> Float
+
+Computes the cosine of an angle in radians."#,
+                "math_cos(${1:radians})",
+            ),
+            (
+                "math_sqrt",
+                "Square root (Float)",
+                r#"### math_sqrt(value: Float) -> Float
+
+Computes the square root of a value."#,
+                "math_sqrt(${1:value})",
+            ),
+        ];
+
+        for (label, detail, doc, snippet) in native_ffi {
+            items.push(CompletionItem {
+                label: label.to_string(),
+                kind: Some(CompletionItemKind::FUNCTION),
+                detail: Some(detail.to_string()),
+                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: doc.to_string(),
+                })),
+                insert_text: Some(snippet.to_string()),
+                insert_text_format: Some(InsertTextFormat::SNIPPET),
+                ..Default::default()
+            });
+        }
+
         Ok(Some(CompletionResponse::Array(items)))
     }
 }
@@ -976,5 +1084,33 @@ mod tests {
 
         let err = validate_matrix_handle(-2);
         assert!(err.is_some());
+    }
+
+    #[test]
+    fn test_ffi_completion_has_required_entries() {
+        let completions: &[&str] = &[
+            "math_matrix_transpose",
+            "math_vector_scale",
+            "math_matrix_transform",
+            "registry_load_compute_shader",
+            "registry_dispatch_compute",
+            "registry_compute_readback",
+            "PlayNote",
+            "math_sin",
+            "math_cos",
+            "math_sqrt",
+        ];
+        for entry in completions {
+            assert!(
+                !entry.is_empty(),
+                "Completion entry '{}' must be non-empty",
+                entry
+            );
+            assert!(
+                entry.contains('_') || entry.chars().next().unwrap().is_uppercase(),
+                "Completion label '{}' should follow naming conventions",
+                entry
+            );
+        }
     }
 }

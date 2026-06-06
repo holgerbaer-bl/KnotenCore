@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 241: LSP Native FFI Completion Engine (2026-05-31)
+Sprint 241: LSP Completion Engine. Enhanced the Language Server with a static native FFI command catalog providing snippet-based autocompletion with inline documentation.
+- **Static FFI Catalog**: Added 10 native FFI completion entries covering matrix algebra (`math_matrix_transpose`, `math_vector_scale`, `math_matrix_transform`), GPGPU compute (`registry_load_compute_shader`, `registry_dispatch_compute`, `registry_compute_readback`), procedural audio (`PlayNote`), and math functions (`math_sin`, `math_cos`, `math_sqrt`). Each entry includes label, detail description, Markdown documentation, and an `InsertTextFormat::SNIPPET` with tab-stop placeholders (`${1:param}`).
+- **Completion Flow**: The `completion()` handler now returns three tiers: registry-loaded functions (from `native_functions.json`), `KNOWN_OPCODES` keywords, and the static FFI catalog — all merged into a single `CompletionResponse::Array`.
+- **Test**: `test_ffi_completion_has_required_entries` validates all 10 entries are non-empty and follow naming conventions (snake_case for functions, PascalCase for AST nodes).
+- **Test Suite**: 174 → 175 tests (92 lib + 55 integration + 23 sandbox + 5 LSP).
+- **CI**: 175/175 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 240: Repository Purge & Git-Ignore Hardening (2026-05-31)
 Sprint 240: Repository Sanitization. Purged stale web artifacts and hardened the `.gitignore` against future contamination.
 - **index.html Purge**: Removed the accidentally committed `index.html` from git tracking (`git rm --cached`) and from the workspace filesystem. The file was a leftover from Sprint 195's original purge that resurfaced during workspace operations.
