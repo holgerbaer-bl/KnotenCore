@@ -17,6 +17,7 @@ pub struct VM {
     pub frames: Vec<CallFrame>,
     pub ip: usize,
     pub base_pointer: usize,
+    pub is_inspectable: bool,
 }
 
 pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
@@ -120,6 +121,27 @@ pub fn split_inputs_to_bindings(inputs: &[RelType]) -> Option<Vec<Vec<RelType>>>
     Some(vec![positions, velocities])
 }
 
+static VM_INSPECTION_STATE: std::sync::Mutex<Option<(usize, usize)>> = std::sync::Mutex::new(None);
+
+fn update_inspection_state(ip: usize, stack_depth: usize) {
+    if let Ok(mut guard) = VM_INSPECTION_STATE.lock() {
+        *guard = Some((ip, stack_depth));
+    }
+}
+
+fn push_vm_crash_marker(ip: usize, stack_depth: usize, msg: &str) {
+    let marker = format!("VM_CRASH_IP:{ip}:STACK:{stack_depth}:MSG:{msg}");
+    crate::natives::registry::registry_push_timing_marker(marker);
+}
+
+pub fn get_vm_inspection_snapshot() -> Option<(usize, usize)> {
+    if let Ok(guard) = VM_INSPECTION_STATE.lock() {
+        *guard
+    } else {
+        None
+    }
+}
+
 impl VM {
     pub fn new() -> Self {
         Self {
@@ -128,6 +150,7 @@ impl VM {
             frames: Vec::with_capacity(64),
             ip: 0,
             base_pointer: 0,
+            is_inspectable: false,
         }
     }
 
@@ -151,6 +174,9 @@ impl VM {
         while self.ip < instructions.len() {
             let op = &instructions[self.ip];
             self.ip += 1;
+            if self.is_inspectable {
+                update_inspection_state(self.ip, self.stack.len());
+            }
 
             instr_count += 1;
             if instr_count.is_multiple_of(1000)
@@ -159,6 +185,7 @@ impl VM {
                 eprintln!(
                     "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
                 );
+                push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
                 return Err("Watchdog: Execution timeout exceeded (50ms)".into());
             }
 
@@ -2388,5 +2415,35 @@ mod tests {
         assert!(markers[1].contains(":STEPS:1"));
         let drained = crate::natives::registry::registry_drain_timing_markers();
         assert!(drained.is_empty(), "Drain should empty the marker buffer");
+    }
+
+    #[test]
+    fn test_vm_runtime_inspection_snapshots() {
+        let mut vm = VM::new();
+        vm.is_inspectable = true;
+        let instructions = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::Return,
+        ];
+        let constants = vec![RelType::Int(10), RelType::Int(5)];
+        let _ = vm.run(
+            &instructions,
+            &constants,
+            &AgentPermissions {
+                allow_network: false,
+                allowed_domains: vec![],
+                allow_fs_read: false,
+                allow_fs_write: false,
+            },
+            None,
+        );
+
+        let snapshot = get_vm_inspection_snapshot();
+        assert!(snapshot.is_some(), "Inspection snapshot must be available");
+        let (ip, depth) = snapshot.unwrap();
+        assert!(ip > 0, "IP should be past initial instructions");
+        assert!(depth > 0, "Stack should have values");
     }
 }

@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 247: VM Inspection Engine & Runtime Bytecode Tracer (2026-05-31)
+Sprint 247: VM Inspection Engine. Deployed interactive runtime inspection infrastructure with state snapshots, FFI-accessible debug probes, and crash diagnostics.
+- **VM Inspection State**: Added `pub is_inspectable: bool` to the `VM` struct. When enabled, the run loop updates a global `VM_INSPECTION_STATE: Mutex<Option<(usize, usize)>>` with the current `ip` and `stack.len()` after each instruction fetch.
+- **Snapshot FFI**: `registry_vm_get_ip() -> Int` and `registry_vm_get_stack_depth() -> Int` registered in the `registry` bridge module. Both read from `get_vm_inspection_snapshot()` and return `-1` when inspection is disabled or no snapshot exists.
+- **Crash Diagnostics**: New `push_vm_crash_marker()` helper formats `VM_CRASH_IP:{ip}:STACK:{depth}:MSG:{msg}` and pushes it into the `PROFILER_MARKERS` registry. Integrated into the watchdog timeout path — on 50ms timeout, the marker is pushed before the error propagates.
+- **Bridge Registration**: Both `registry_vm_get_ip` and `registry_vm_get_stack_depth` added to the FFI bridge dispatch table under the `registry` module. Zero-arg, always return `Int`.
+- **Test**: `test_vm_runtime_inspection_snapshots` activates `is_inspectable`, runs a short opcode chain (`Constant + Constant + Add + Return`), and verifies the inspection snapshot delivers valid `ip > 0` and `depth > 0`.
+- **Test Suite**: 181 → 182 tests (97 lib + 55 integration + 23 sandbox + 7 LSP).
+- **CI**: 182/182 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 246: Strict Static Type Checking & Array Bounds Frontend Validation (2026-05-31)
 Sprint 246: Frontend Type Checker. Hardened the AST validator with strict static type checking for array index operations and variable assignment type inference.
 - **Array Index Checking**: `ArrayGet` and `ArraySet` handlers now validate the index node via `is_integral_node()` — recursively checking `IntLiteral`, `Add`/`Sub`/`Mul`/`Neg` composition chains. Non-integral indices (e.g., `FloatLiteral`, `StringLiteral`, `Identifier`) produce a validation error. Recursion depth matches the compiler's AST tree structure.

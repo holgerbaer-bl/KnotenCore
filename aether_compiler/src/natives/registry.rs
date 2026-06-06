@@ -357,6 +357,19 @@ pub fn registry_drain_timing_markers() -> Vec<String> {
     std::mem::take(&mut *guard)
 }
 
+// Sprint 247: VM inspection FFI — expose runtime state
+pub fn registry_vm_get_ip() -> i64 {
+    crate::vm::machine::get_vm_inspection_snapshot()
+        .map(|(ip, _)| ip as i64)
+        .unwrap_or(-1)
+}
+
+pub fn registry_vm_get_stack_depth() -> i64 {
+    crate::vm::machine::get_vm_inspection_snapshot()
+        .map(|(_, depth)| depth as i64)
+        .unwrap_or(-1)
+}
+
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
 

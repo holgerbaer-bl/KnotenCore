@@ -834,6 +834,12 @@ impl BridgeModule for CoreBridge {
                         })
                     }
                 }
+                "registry_vm_get_ip" => Some(ExecResult::Value(RelType::Int(
+                    crate::natives::registry::registry_vm_get_ip(),
+                ))),
+                "registry_vm_get_stack_depth" => Some(ExecResult::Value(RelType::Int(
+                    crate::natives::registry::registry_vm_get_stack_depth(),
+                ))),
                 "registry_play_sound" => {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]
