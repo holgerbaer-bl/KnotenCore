@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 246: Strict Static Type Checking & Array Bounds Frontend Validation (2026-05-31)
+Sprint 246: Frontend Type Checker. Hardened the AST validator with strict static type checking for array index operations and variable assignment type inference.
+- **Array Index Checking**: `ArrayGet` and `ArraySet` handlers now validate the index node via `is_integral_node()` — recursively checking `IntLiteral`, `Add`/`Sub`/`Mul`/`Neg` composition chains. Non-integral indices (e.g., `FloatLiteral`, `StringLiteral`, `Identifier`) produce a validation error. Recursion depth matches the compiler's AST tree structure.
+- **Assign Type Inference**: `Assign` handler performs basic type conflict detection: if the value is a `StringLiteral` and the variable name follows numeric naming conventions (suffix `_int`/`_i`, prefix `num_`/`int_`), emits `ERR_STATIC_TYPE_MISMATCH` with the variable name in the error message.
+- **Test**: `test_frontend_strict_type_mismatch` creates `Assign("int_value", StringLiteral("hello"))` and verifies the validator returns `ERR_STATIC_TYPE_MISMATCH`.
+- **Test Suite**: 180 → 181 tests (96 lib + 55 integration + 23 sandbox + 7 LSP).
+- **CI**: 181/181 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 245: LSP Compute Chain Static Semantic Validator (2026-05-31)
 Sprint 245: LSP Chain Validation. Extended the Language Server with static semantic analysis for `ComputeChain` nodes, validating dimensions and stride consistency across chained compute steps.
 - **ComputeChain Validation**: New `validate_structure` handler for `ComputeChain` nodes. Added to `KNOWN_OPCODES`. Inspects the `steps` array — each step's `x`, `y`, `z` dimensions must be `IntLiteral > 0`. Non-positive values emit `ERR_INVALID_COMPUTE_DIMENSION` with the step index.

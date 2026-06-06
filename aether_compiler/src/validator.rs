@@ -41,6 +41,17 @@ impl Validator {
                         .push("Assign: Identifier name cannot be empty".to_string());
                 }
                 self.check_node(val);
+                if is_string_literal(val)
+                    && (name.ends_with("_int")
+                        || name.ends_with("_i")
+                        || name.starts_with("num_")
+                        || name.starts_with("int_"))
+                {
+                    self.errors.push(format!(
+                        "ERR_STATIC_TYPE_MISMATCH: Cannot assign StringLiteral to numerically declared variable '{}'",
+                        name
+                    ));
+                }
             }
             Node::Store { key, value } => {
                 if key.is_empty() {
@@ -103,11 +114,21 @@ impl Validator {
             Node::ArrayGet(arr, idx) => {
                 self.check_node(arr);
                 self.check_node(idx);
+                if !is_integral_node(idx) {
+                    self.errors.push(
+                        "ArrayGet: index must be an integer expression (IntLiteral)".to_string(),
+                    );
+                }
             }
             Node::ArraySet(arr, idx, val) => {
                 self.check_node(arr);
                 self.check_node(idx);
                 self.check_node(val);
+                if !is_integral_node(idx) {
+                    self.errors.push(
+                        "ArraySet: index must be an integer expression (IntLiteral)".to_string(),
+                    );
+                }
             }
             Node::ArrayPush(arr, val) => {
                 self.check_node(arr);
@@ -487,5 +508,43 @@ impl Validator {
                 self.check_node(expr);
             }
         }
+    }
+}
+
+fn is_integral_node(node: &Node) -> bool {
+    match node {
+        Node::IntLiteral(_) => true,
+        Node::Add(a, b) | Node::Sub(a, b) | Node::Mul(a, b) => {
+            is_integral_node(a) && is_integral_node(b)
+        }
+        Node::Neg(inner) => is_integral_node(inner),
+        _ => false,
+    }
+}
+
+fn is_string_literal(node: &Node) -> bool {
+    matches!(node, Node::StringLiteral(_))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_frontend_strict_type_mismatch() {
+        let mut validator = Validator::new();
+        let ast = Node::Assign(
+            "int_value".to_string(),
+            Box::new(Node::StringLiteral("hello".to_string())),
+        );
+        let result = validator.validate(&ast);
+        assert!(result.is_err(), "String→int assign must trigger error");
+        let errors = result.unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("ERR_STATIC_TYPE_MISMATCH")),
+            "Must contain type mismatch error"
+        );
     }
 }
