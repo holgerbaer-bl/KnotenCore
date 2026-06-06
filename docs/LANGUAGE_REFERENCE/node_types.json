@@ -1161,6 +1161,59 @@
       "description": "Perform a single raycasting query at screen centre (unit node).",
       "type": "string",
       "enum": ["RaycastSimple"]
+    },
+    {
+      "description": "User-defined struct declaration with named typed fields.",
+      "type": "object",
+      "required": ["StructDef"],
+      "properties": {
+        "StructDef": {
+          "type": "object",
+          "required": ["name", "fields"],
+          "properties": {
+            "name": { "type": "string" },
+            "fields": { "type": "array", "items": { "type": "array", "prefixItems": [{ "type": "string" }, { "type": "string", "enum": ["Int","Float","Bool","String"] }] } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Instantiate a user-defined struct by name with typed field values.",
+      "type": "object",
+      "required": ["StructCreate"],
+      "properties": {
+        "StructCreate": {
+          "type": "object",
+          "required": ["struct_name", "values"],
+          "properties": {
+            "struct_name": { "type": "string" },
+            "values": { "type": "array", "items": { "$ref": "#" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Multi-pane split layout with horizontal or vertical direction and ratio factor.",
+      "type": "object",
+      "required": ["UISplitPanel"],
+      "properties": {
+        "UISplitPanel": {
+          "type": "object",
+          "required": ["direction", "factor", "left_body", "right_body"],
+          "properties": {
+            "direction": { "type": "string", "enum": ["Horizontal", "Vertical"] },
+            "factor": { "$ref": "#" },
+            "left_body": { "$ref": "#" },
+            "right_body": { "$ref": "#" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

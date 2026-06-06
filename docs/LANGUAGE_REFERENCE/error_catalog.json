@@ -1,5 +1,5 @@
 {
-  "catalog_version": "v1.0.0",
+  "catalog_version": "v1.3.0",
   "description": "Fehlerkatalog für strukturierte Self-Healing-Loops durch KI-Agenten.",
   "errors": [
     {
@@ -37,6 +37,60 @@
       "category": "Runtime",
       "message_pattern": "Failed to parse JSON string in {}",
       "agent_hint": "The provided string cannot be parsed as valid JSON. Check string escaping and format."
+    },
+    {
+      "code": "ERR_STRUCT_LAYOUT_MISMATCH",
+      "category": "Syntax",
+      "message_pattern": "Struct layout mismatch: field '{}' expects type {:?} at position {}",
+      "agent_hint": "The struct instance field types or arity do not match the StructDef declaration. Verify field count and types match exactly."
+    },
+    {
+      "code": "ERR_STATIC_TYPE_MISMATCH",
+      "category": "Syntax",
+      "message_pattern": "Static type mismatch in assignment to variable '{}'",
+      "agent_hint": "You assigned a value whose type conflicts with the variable's inferred type. Check the variable naming convention or explicit type annotations."
+    },
+    {
+      "code": "ERR_INVALID_LAYOUT_FACTOR",
+      "category": "Syntax",
+      "message_pattern": "UISplitPanel factor {} is outside the valid range (0.0..=1.0)",
+      "agent_hint": "The split panel ratio must be a FloatLiteral between 0.0 and 1.0 inclusive. Use 0.3 for a 30/70 split."
+    },
+    {
+      "code": "ERR_PARTICLE_STRIDE",
+      "category": "Syntax",
+      "message_pattern": "Particle input length {} is not aligned to stride 6 or 7",
+      "agent_hint": "Particle data in DispatchComputeLoop inputs must have length divisible by 6 (pos+vel) or 7 (pos+vel+age)."
+    },
+    {
+      "code": "ERR_INVALID_COMPUTE_DIMENSION",
+      "category": "Syntax",
+      "message_pattern": "ComputeChain step {} has invalid dimensions (x,y,z must be > 0)",
+      "agent_hint": "All x, y, z workgroup dimensions must be positive IntLiteral values. Check the step's dimension fields."
+    },
+    {
+      "code": "ERR_CHAIN_STRIDE_MISMATCH",
+      "category": "Syntax",
+      "message_pattern": "Chain stride mismatch between steps: {} vs {} inputs",
+      "agent_hint": "Consecutive ComputeChain steps must have input arrays with consistent lengths aligned to strides 6 or 7."
+    },
+    {
+      "code": "ERR_AUDIO_WAVEFORM_BOUNDS",
+      "category": "Syntax",
+      "message_pattern": "Waveform index {} out of range (0=Sine, 1=Sawtooth, 2=Square, 3=Triangle)",
+      "agent_hint": "The PlayNote waveform argument must be an IntLiteral between 0 and 3 inclusive."
+    },
+    {
+      "code": "ERR_AUDIO_ADSR_BOUNDS",
+      "category": "Syntax",
+      "message_pattern": "ADSR parameter out of bounds: attack/decay/release must be positive, sustain in [0.0, 1.0]",
+      "agent_hint": "Check that attack_ms, decay_ms, and release_ms are positive IntLiteral values, and sustain_level is a FloatLiteral between 0.0 and 1.0."
+    },
+    {
+      "code": "ERR_INVALID_MATRIX_HANDLE",
+      "category": "Runtime",
+      "message_pattern": "Invalid matrix handle {}: must be -1 (passthrough) or a valid registry ID >= 0",
+      "agent_hint": "The matrix_handle field must be an IntLiteral >= -1. Use -1 to skip matrix transformation."
     }
   ]
 }

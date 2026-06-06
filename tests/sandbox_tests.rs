@@ -595,3 +595,58 @@ fn test_compute_readback_lock_free_concurrency() {
         total_thread_time_ms
     );
 }
+
+/// Sprint 252: Verifies all JSON schema files exist, parse correctly, and
+/// contain mandatory v1.3.0 entries.
+#[test]
+fn test_v13_release_context_integrity() {
+    let paths = &[
+        "docs/LANGUAGE_REFERENCE/node_types.json",
+        "docs/LANGUAGE_REFERENCE/error_catalog.json",
+        "docs/LANGUAGE_REFERENCE/native_functions.json",
+    ];
+    for path in paths {
+        assert!(
+            std::path::Path::new(path).exists(),
+            "Schema file missing: {path}"
+        );
+        let content =
+            std::fs::read_to_string(path).unwrap_or_else(|_| panic!("Cannot read {path}"));
+        let parsed: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|e| panic!("Cannot parse {path}: {e}"));
+        assert!(parsed.is_object(), "{path} must be a JSON object");
+    }
+
+    let node_types: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string("docs/LANGUAGE_REFERENCE/node_types.json").unwrap(),
+    )
+    .unwrap();
+    let one_of = node_types["oneOf"]
+        .as_array()
+        .expect("oneOf must be an array");
+    assert!(
+        one_of
+            .iter()
+            .any(|n| n["properties"].get("StructDef").is_some()),
+        "StructDef missing"
+    );
+    assert!(
+        one_of
+            .iter()
+            .any(|n| n["properties"].get("UISplitPanel").is_some()),
+        "UISplitPanel missing"
+    );
+
+    let errors: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string("docs/LANGUAGE_REFERENCE/error_catalog.json").unwrap(),
+    )
+    .unwrap();
+    let error_entries = errors["errors"]
+        .as_array()
+        .expect("errors must be an array");
+    assert!(
+        error_entries.len() >= 10,
+        "Expected >= 10 error codes, got {}",
+        error_entries.len()
+    );
+}

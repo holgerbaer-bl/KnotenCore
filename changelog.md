@@ -2,6 +2,43 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0] — Minor Release: GPGPU Multi-Pass, Audio ADSR, Struct Types, LSP Diagnostics, WASM Prep (2026-06-01)
+**The GPGPU & Audio Stabilization Milestone.** Sprints 226-252: Multi-waveform ADSR audio engine, continuous GPGPU compute streaming with multi-pass chaining, SIMD matrix algebra, user-defined struct types, VM inspection engine, LSP diagnostics, stereo panning, and WASM/WebGPU platform preparation.
+
+### Audio Engine
+- **Multi-Waveform Synth** (226): `Waveform { Sine, Sawtooth, Square, Triangle }` — procedural `.knoten` DSL synth via `PlayNote`/`StopNote` opcodes
+- **ADSR Envelope** (227): Linear-phase Attack-Decay-Sustain-Release per channel; compiler-injected defaults
+- **Stereo Panning** (244): Interleaved 2-channel samples; `registry_play_tone_panned` FFI
+
+### GPGPU Compute
+- **Continuous Streaming** (229): Dynamic workgroup alignment with structured Array flattening
+- **Multi-Buffer Bindings** (238): Multiple storage buffers; zero-copy VRAM pipeline
+- **Multi-Pass Chaining** (242): Sequential compute in single encoder via `ComputeChain`
+- **SIMD Matrix** (233+249): `math_matrix_transpose` handle registry; `SimdOp::Transform`
+
+### Compiler & Tooling
+- **LSP Diagnostics** (226-245): Arity/ADSR/stride/matrix/compute-chain validation with position mapping
+- **LSP Completion** (241): 10-entry FFI catalog with snippet support
+- **Loop Unrolling** (249): Bound 8→16 iterations
+- **Static Type Checking** (246): Array index + Assign type inference
+- **User-Defined Types** (248): `StructDef`/`StructCreate` with `ERR_STRUCT_LAYOUT_MISMATCH`
+- **VM Inspection** (247): Runtime IP/stack probes with crash markers
+
+### Platform
+- **WASM/WebGPU** (250): `cfg(target_arch = "wasm32")` dual surface pipeline
+- **Profiler** (243): `PROFILER_MARKERS` with chain execution timing
+- **Schema Sync** (252): `node_types.json`, `error_catalog.json`, `native_functions.json` updated
+
+**187/187 tests**, 0 clippy, fmt clean. `https://knotencore.de/`
+
+## [v1.3.0-alpha] - Sprint 252: Runtime Stabilization & AI-Readiness Context Calibration (2026-06-01)
+Sprint 252: Release Calibration. Updated all machine-readable schemas and added release integrity test.
+- **Schemas Updated**: `node_types.json` (+StructDef/StructCreate/UISplitPanel), `error_catalog.json` (+8 error codes), `native_functions.json` (+3 FFI entries).
+- **Integrity Test**: `test_v13_release_context_integrity` validates schema file existence, parsing, and mandatory v1.3.0 entries.
+- **Test Suite**: 186→187 tests.
+- **CI**: 187/187 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: `https://knotencore.de/`
+
 ## [v1.3.0-alpha] - Sprint 251: Multi-Pane UI Split Layout DSL Engine (2026-05-31)
 Sprint 251: Multi-Pane Split Layout. Deployed procedural split-panel UI layouts in the AST and egui render pipeline with static factor validation.
 - **AST Node**: `UISplitPanel { direction: String, factor: Box<Node>, left_body: Box<Node>, right_body: Box<Node> }` added to `knoten_core_types/src/ast.rs`. Direction is `"Horizontal"` (side-by-side) or `"Vertical"` (top-bottom). Factor is a Float node defining the split ratio (0.0–1.0).

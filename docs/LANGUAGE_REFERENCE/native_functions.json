@@ -1,5 +1,5 @@
 {
-  "registry_version": "v1.1.0",
+  "registry_version": "v1.3.0",
   "_comment": "Machine-readable registry of every native FFI function exposed by KnotenCore. All functions are invoked via ExternCall { module, function, args } or the equivalent stdlib wrapper. AI agents MUST only call functions listed here — hallucinated names will return ExecResult::Fault at runtime.",
   "modules": {
     "registry": "WGPU window management, textures, 3D rendering, input, timers, physics",
@@ -1301,6 +1301,66 @@
           "function": "json_stringify",
           "args": [
             { "Identifier": "myObject" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "registry_vm_get_ip",
+      "module": "registry",
+      "description": "Returns the current VM instruction pointer. Requires is_inspectable=true on the VM instance. Returns -1 if inspection is disabled.",
+      "parameters": [],
+      "returns": "Int",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_vm_get_ip",
+          "args": []
+        }
+      }
+    },
+    {
+      "name": "registry_vm_get_stack_depth",
+      "module": "registry",
+      "description": "Returns the current VM operand stack depth. Requires is_inspectable=true on the VM instance. Returns -1 if inspection is disabled.",
+      "parameters": [],
+      "returns": "Int",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_vm_get_stack_depth",
+          "args": []
+        }
+      }
+    },
+    {
+      "name": "registry_play_tone_panned",
+      "module": "registry",
+      "description": "Plays a synthesised tone with stereo panning on a specified channel. Uses multi-waveform synthesis with ADSR envelope.",
+      "parameters": [
+        { "name": "channel", "type": "Int", "required": true, "description": "Audio channel index (0-N). Replaying on occupied channel stops the old tone." },
+        { "name": "frequency", "type": "Float", "required": true, "description": "Tone frequency in Hz" },
+        { "name": "duration_ms", "type": "Int", "required": true, "description": "Note duration in milliseconds" },
+        { "name": "waveform", "type": "Int", "required": true, "description": "Oscillator type: 0=Sine, 1=Sawtooth, 2=Square, 3=Triangle" },
+        { "name": "pan", "type": "Float", "required": true, "description": "Stereo pan -1.0 (full left) to 1.0 (full right), 0.0 = center" }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": [],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_play_tone_panned",
+          "args": [
+            { "IntLiteral": 0 },
+            { "FloatLiteral": 440.0 },
+            { "IntLiteral": 500 },
+            { "IntLiteral": 0 },
+            { "FloatLiteral": -0.5 }
           ]
         }
       }
