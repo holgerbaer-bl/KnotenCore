@@ -6,6 +6,7 @@ use std::path::Path;
 pub struct Validator {
     pub errors: Vec<String>,
     import_stack: HashSet<String>,
+    struct_registry: std::collections::HashMap<String, Vec<(String, knoten_core_types::ast::Type)>>,
 }
 
 impl Default for Validator {
@@ -19,6 +20,7 @@ impl Validator {
         Self {
             errors: Vec::new(),
             import_stack: HashSet::new(),
+            struct_registry: std::collections::HashMap::new(),
         }
     }
 
@@ -507,6 +509,55 @@ impl Validator {
             Node::Neg(expr) => {
                 self.check_node(expr);
             }
+            Node::StructDef { name, fields } => {
+                if name.is_empty() {
+                    self.errors
+                        .push("StructDef: struct name cannot be empty".to_string());
+                }
+                if fields.is_empty() {
+                    self.errors
+                        .push(format!("StructDef: struct '{}' has no fields", name));
+                }
+                self.struct_registry.insert(name.clone(), fields.clone());
+                for (field_name, _) in fields {
+                    if field_name.is_empty() {
+                        self.errors
+                            .push(format!("StructDef '{}': field name cannot be empty", name));
+                    }
+                }
+            }
+            Node::StructCreate {
+                struct_name,
+                values,
+            } => {
+                let fields = self.struct_registry.get(struct_name).cloned();
+                if let Some(fields) = fields {
+                    if values.len() != fields.len() {
+                        self.errors.push(format!(
+                            "ERR_STRUCT_LAYOUT_MISMATCH: struct '{}' expects {} fields, got {}",
+                            struct_name,
+                            fields.len(),
+                            values.len()
+                        ));
+                    } else {
+                        for (i, (field_name, expected_type)) in fields.iter().enumerate() {
+                            let actual = &values[i];
+                            self.check_node(actual);
+                            if !type_matches_node(expected_type, actual) {
+                                self.errors.push(format!(
+                                    "ERR_STRUCT_LAYOUT_MISMATCH: struct '{}' field '{}' expects {:?}, got incompatible value",
+                                    struct_name, field_name, expected_type
+                                ));
+                            }
+                        }
+                    }
+                } else {
+                    self.errors.push(format!(
+                        "StructCreate: unknown struct type '{}'",
+                        struct_name
+                    ));
+                }
+            }
         }
     }
 }
@@ -524,6 +575,18 @@ fn is_integral_node(node: &Node) -> bool {
 
 fn is_string_literal(node: &Node) -> bool {
     matches!(node, Node::StringLiteral(_))
+}
+
+fn type_matches_node(expected: &knoten_core_types::ast::Type, node: &Node) -> bool {
+    match expected {
+        knoten_core_types::ast::Type::Int => matches!(node, Node::IntLiteral(_)),
+        knoten_core_types::ast::Type::Float => {
+            matches!(node, Node::FloatLiteral(_) | Node::IntLiteral(_))
+        }
+        knoten_core_types::ast::Type::Bool => matches!(node, Node::BoolLiteral(_)),
+        knoten_core_types::ast::Type::String => matches!(node, Node::StringLiteral(_)),
+        _ => true,
+    }
 }
 
 #[cfg(test)]
@@ -545,6 +608,56 @@ mod tests {
                 .iter()
                 .any(|e| e.contains("ERR_STATIC_TYPE_MISMATCH")),
             "Must contain type mismatch error"
+        );
+    }
+
+    #[test]
+    fn test_frontend_struct_layout_validation() {
+        use knoten_core_types::ast::Type;
+        let mut validator = Validator::new();
+        let particle = Node::StructDef {
+            name: "Particle".to_string(),
+            fields: vec![
+                ("id".to_string(), Type::Int),
+                ("pos".to_string(), Type::Float),
+            ],
+        };
+        validator.validate(&particle).unwrap();
+
+        let create_ok = Node::StructCreate {
+            struct_name: "Particle".to_string(),
+            values: vec![Node::IntLiteral(1), Node::FloatLiteral(2.0)],
+        };
+        assert!(validator.validate(&create_ok).is_ok());
+
+        let create_bad_type = Node::StructCreate {
+            struct_name: "Particle".to_string(),
+            values: vec![
+                Node::StringLiteral("x".to_string()),
+                Node::FloatLiteral(2.0),
+            ],
+        };
+        let result = validator.validate(&create_bad_type);
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("ERR_STRUCT_LAYOUT_MISMATCH")),
+            "String→Int field must trigger layout mismatch"
+        );
+
+        let create_bad_arity = Node::StructCreate {
+            struct_name: "Particle".to_string(),
+            values: vec![Node::IntLiteral(1)],
+        };
+        let result = validator.validate(&create_bad_arity);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("ERR_STRUCT_LAYOUT_MISMATCH"))
         );
     }
 }

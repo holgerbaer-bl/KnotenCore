@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 248: User-Defined Types & Strict Layout Offset Checking (2026-05-31)
+Sprint 248: Struct Type System. Deployed user-defined type definitions with strict field-level arity and type validation in the compiler frontend.
+- **AST Extension**: Added `Node::StructDef { name: String, fields: Vec<(String, Type)> }` and `Node::StructCreate { struct_name: String, values: Vec<Node> }` to the canonical `knoten_core_types/src/ast.rs` enum. Both use the existing `Type` enum for field type declarations (Int, Float, Bool, String).
+- **Struct Registry**: `Validator` gains `struct_registry: HashMap<String, Vec<(String, Type)>>`. On `StructDef`, the layout is registered. On `StructCreate`, the registry is consulted — arity is checked (`fields.len() == values.len()`) and each field value is validated via `type_matches_node()` against the declared type. Int → Float promotion is allowed; all other mismatches emit `ERR_STRUCT_LAYOUT_MISMATCH`.
+- **Type Matching**: `type_matches_node(expected, node)` handles `Int` → `IntLiteral`, `Float` → `FloatLiteral | IntLiteral`, `Bool` → `BoolLiteral`, `String` → `StringLiteral`. All other types (`Any`, `Void`, etc.) pass through.
+- **Exhaustive Match Arms**: Updated `optimizer.rs` (count_nodes + optimize), `evaluator.rs`, and `executor.rs` with pass-through handlers for both new node variants.
+- **Test**: `test_frontend_struct_layout_validation` defines `struct Particle { id: Int, pos: Float }`, tests valid creation (`Int+Float` pass), invalid type (`String` → `Int` triggers `ERR_STRUCT_LAYOUT_MISMATCH`), and invalid arity (1 value instead of 2).
+- **Test Suite**: 182 → 183 tests (98 lib + 55 integration + 23 sandbox + 7 LSP).
+- **CI**: 183/183 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 247: VM Inspection Engine & Runtime Bytecode Tracer (2026-05-31)
 Sprint 247: VM Inspection Engine. Deployed interactive runtime inspection infrastructure with state snapshots, FFI-accessible debug probes, and crash diagnostics.
 - **VM Inspection State**: Added `pub is_inspectable: bool` to the `VM` struct. When enabled, the run loop updates a global `VM_INSPECTION_STATE: Mutex<Option<(usize, usize)>>` with the current `ip` and `stack.len()` after each instruction fetch.

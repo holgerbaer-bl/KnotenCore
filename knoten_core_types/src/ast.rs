@@ -257,6 +257,16 @@ pub enum Node {
         b_min: Box<Node>,
         b_max: Box<Node>,
     },
+
+    // Sprint 248: User-defined types
+    StructDef {
+        name: String,
+        fields: Vec<(String, Type)>,
+    },
+    StructCreate {
+        struct_name: String,
+        values: Vec<Node>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

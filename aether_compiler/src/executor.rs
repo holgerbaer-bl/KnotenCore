@@ -1114,6 +1114,7 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Void)
             }
             Node::LoadSample(_, _) | Node::PlaySample(_, _, _) => ExecResult::Value(RelType::Void),
+            Node::StructDef { .. } | Node::StructCreate { .. } => ExecResult::Value(RelType::Void),
             _ => ExecResult::Fault {
                 msg: format!("Unsupported node in executor: {:?}", node),
                 node: "Executor".into(),

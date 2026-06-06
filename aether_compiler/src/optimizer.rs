@@ -299,6 +299,12 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::AddWorldAABB { min, max } => {
             count += count_nodes(min) + count_nodes(max);
         }
+        Node::StructDef { .. } => {}
+        Node::StructCreate { values, .. } => {
+            for v in values {
+                count += count_nodes(v);
+            }
+        }
         Node::LoadComputeShader(val) => {
             count += count_nodes(val);
         }
@@ -726,6 +732,14 @@ pub fn optimize(node: Node) -> Node {
         Node::AddWorldAABB { min, max } => Node::AddWorldAABB {
             min: Box::new(optimize(*min)),
             max: Box::new(optimize(*max)),
+        },
+        Node::StructDef { .. } => node,
+        Node::StructCreate {
+            struct_name,
+            values,
+        } => Node::StructCreate {
+            struct_name,
+            values: values.into_iter().map(optimize).collect(),
         },
         Node::LoadComputeShader(val) => Node::LoadComputeShader(Box::new(optimize(*val))),
         Node::Modulo(l, r) => Node::Modulo(Box::new(optimize(*l)), Box::new(optimize(*r))),
