@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.1-alpha] - Sprint 253: GitHub Release Automation & Artifact Deployment (2026-06-01)
+Sprint 253: Release Automation. Deployed a multi-platform build and release pipeline triggered by v* tags, producing optimized binaries for Linux x64, macOS ARM, and Windows x64.
+- **Release Workflow**: `.github/workflows/release.yml` rewritten with `on.push.tags: ["v*"]` trigger + `workflow_dispatch`. Multi-platform matrix build: Ubuntu x64, Windows x64, macOS Apple Silicon (aarch64). Builds `run_knc`, `knoten_lsp`, and `knoten_upgrade` with release profile (`opt-level=z`, `lto=fat`, `strip=true`).
+- **Artifact Packaging**: Linux binaries as `.tar.gz`, Windows/macOS as `.zip`. Uploaded as GitHub Actions artifacts per target. Release job collects all artifacts and creates a GitHub Release via `softprops/action-gh-release@v2` with changelog-extracted release notes and auto pre-release detection for alpha/beta tags.
+- **Test**: `test_github_release_workflow_trigger` validates YAML syntax, tag filter (`v*`), release action, binary targets (`run_knc`, `knoten_lsp`), and macOS ARM target.
+- **Test Suite**: 187 → 188 tests (101 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 188/188 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0] — Minor Release: GPGPU Multi-Pass, Audio ADSR, Struct Types, LSP Diagnostics, WASM Prep (2026-06-01)
 **The GPGPU & Audio Stabilization Milestone.** Sprints 226-252: Multi-waveform ADSR audio engine, continuous GPGPU compute streaming with multi-pass chaining, SIMD matrix algebra, user-defined struct types, VM inspection engine, LSP diagnostics, stereo panning, and WASM/WebGPU platform preparation.
 

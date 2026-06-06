@@ -650,3 +650,40 @@ fn test_v13_release_context_integrity() {
         error_entries.len()
     );
 }
+
+/// Sprint 253: Validates the GitHub release workflow YAML is syntactically
+/// correct and contains the required tag filter for v* tags.
+#[test]
+fn test_github_release_workflow_trigger() {
+    let yaml_path = ".github/workflows/release.yml";
+    assert!(
+        std::path::Path::new(yaml_path).exists(),
+        "Release workflow missing: {yaml_path}"
+    );
+    let content =
+        std::fs::read_to_string(yaml_path).unwrap_or_else(|_| panic!("Cannot read {yaml_path}"));
+    assert!(
+        content.contains("tags:"),
+        "Workflow must contain tag trigger"
+    );
+    assert!(
+        content.contains("v*"),
+        "Tag filter must match v* version tags"
+    );
+    assert!(
+        content.contains("softprops/action-gh-release@v2"),
+        "Workflow must use GitHub release action"
+    );
+    assert!(
+        content.contains("run_knc"),
+        "Workflow must build run_knc binary"
+    );
+    assert!(
+        content.contains("knoten_lsp"),
+        "Workflow must build knoten_lsp binary"
+    );
+    assert!(
+        content.contains("aarch64-apple-darwin"),
+        "Must target macOS Apple Silicon"
+    );
+}

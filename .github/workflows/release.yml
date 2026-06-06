@@ -2,34 +2,40 @@ name: Cross-Platform Release Build
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: knoten_core-linux
-            asset_name: knoten_core-linux-amd64
+            target: x86_64-unknown-linux-gnu
+            suffix: ""
+            archive: tar.gz
           - os: windows-latest
-            artifact_name: knoten_core-windows.exe
-            asset_name: knoten_core-windows-amd64.exe
+            target: x86_64-pc-windows-msvc
+            suffix: ".exe"
+            archive: zip
           - os: macos-latest
-            artifact_name: knoten_core-macos
-            asset_name: knoten_core-macos-amd64
+            target: aarch64-apple-darwin
+            suffix: ""
+            archive: zip
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
 
     - name: Install Linux Dependencies
       if: runner.os == 'Linux'
@@ -37,20 +43,79 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libasound2-dev pkg-config libudev-dev libwayland-dev
 
-    - name: Build run_knc Release
-      run: cargo build --release --bin run_knc
+    - name: Build run_knc (Release)
+      run: cargo build --release --bin run_knc --target ${{ matrix.target }}
 
-    - name: Build knoten_upgrade Release
-      run: cargo build --release --bin knoten_upgrade
+    - name: Build knoten_lsp (Release)
+      run: cargo build --release --bin knoten_lsp --target ${{ matrix.target }}
 
-    - name: Upload Artifact (run_knc)
+    - name: Build knoten_upgrade (Release)
+      run: cargo build --release --bin knoten_upgrade --target ${{ matrix.target }}
+
+    - name: Package run_knc (Linux tar.gz)
+      if: runner.os == 'Linux'
+      run: tar -czf run_knc-linux-amd64.tar.gz -C target/${{ matrix.target }}/release run_knc
+
+    - name: Package knoten_lsp (Linux tar.gz)
+      if: runner.os == 'Linux'
+      run: tar -czf knoten_lsp-linux-amd64.tar.gz -C target/${{ matrix.target }}/release knoten_lsp
+
+    - name: Package run_knc (Windows zip)
+      if: runner.os == 'Windows'
+      run: Compress-Archive -Path "target\${{ matrix.target }}\release\run_knc.exe" -DestinationPath "run_knc-windows-amd64.zip"
+
+    - name: Package knoten_lsp (Windows zip)
+      if: runner.os == 'Windows'
+      run: Compress-Archive -Path "target\${{ matrix.target }}\release\knoten_lsp.exe" -DestinationPath "knoten_lsp-windows-amd64.zip"
+
+    - name: Package run_knc (macOS zip)
+      if: runner.os == 'macOS'
+      run: zip -j run_knc-macos-arm64.zip target/${{ matrix.target }}/release/run_knc
+
+    - name: Package knoten_lsp (macOS zip)
+      if: runner.os == 'macOS'
+      run: zip -j knoten_lsp-macos-arm64.zip target/${{ matrix.target }}/release/knoten_lsp
+
+    - name: Upload run_knc Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.asset_name }}
-        path: target/release/run_knc${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+        name: run_knc-${{ matrix.target }}
+        path: run_knc-*.${{ matrix.archive }}
 
-    - name: Upload Artifact (knoten_upgrade)
+    - name: Upload knoten_lsp Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: knoten_upgrade-${{ matrix.asset_name }}
-        path: target/release/knoten_upgrade${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+        name: knoten_lsp-${{ matrix.target }}
+        path: knoten_lsp-*.${{ matrix.archive }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Generate Release Notes
+      run: |
+        awk '/^## \[v.*\]/{if(found) exit; found=1} found{print}' changelog.md > release_notes.md
+        head -c 50000 release_notes.md > release_notes.md.tmp
+        mv release_notes.md.tmp release_notes.md
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: ${{ github.ref_name }}
+        body_path: release_notes.md
+        files: artifacts/**/*
+        draft: false
+        prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
