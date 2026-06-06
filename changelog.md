@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.4.0-alpha] - Sprint 255: Self-Healing Error Registry (2026-06-01)
+Sprint 255: Self-Healing Registry. Deployed an automatic failure tracking and module reset system with threshold-based healing triggers.
+- **Failure Tracker**: `FAILURE_TRACKER: OnceLock<Mutex<HashMap<String, usize>>>` counts per-module errors via `registry_track_failure(module)`. Lazy-initialized, thread-safe.
+- **Healing Trigger**: After 5 identical module failures, `registry_reset_module(module)` is called automatically. For `"registry"` and `"audio"` modules, this reinitializes the audio output stream via `init_audio_state()`. Counter resets to 0 after reset.
+- **Log Output**: Each healing event emits `[SelfHealing]` diagnostics via `eprintln!` with the module name and failure count at trigger time.
+- **Test**: `test_self_healing_module_reset` exercises 4+1=5 failures, verifies count reaches 4 then resets to 0 at threshold, and drains the tracker.
+- **Test Suite**: 189 → 190 tests (103 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 190/190 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.4.0-alpha] - Sprint 254: Dynamic Struct Fields & Runtime Offset Mutation (2026-06-01)
 Sprint 254: Dynamic Struct Fields. Deployed runtime struct field mutation via new `StructFieldSet` AST node with full executor and type inference integration.
 - **AST Node**: `StructFieldSet { obj: Box<Node>, field: String, value: Box<Node> }` in `knoten_core_types/src/ast.rs`. Allows runtime addition/modification of fields on existing object or dictionary instances.

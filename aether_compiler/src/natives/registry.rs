@@ -357,6 +357,63 @@ pub fn registry_drain_timing_markers() -> Vec<String> {
     std::mem::take(&mut *guard)
 }
 
+// Sprint 255: Self-healing failure tracker
+static FAILURE_TRACKER: OnceLock<Mutex<HashMap<String, usize>>> = OnceLock::new();
+
+fn get_failure_tracker() -> &'static Mutex<HashMap<String, usize>> {
+    FAILURE_TRACKER.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub fn registry_track_failure(module: &str) {
+    let mut guard = get_failure_tracker()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let count = guard.entry(module.to_string()).or_insert(0);
+    *count += 1;
+    if *count >= 5 {
+        eprintln!(
+            "[SelfHealing] Module '{}' reached {} failures — triggering reset",
+            module, *count
+        );
+        registry_reset_module(module);
+        *count = 0;
+    }
+}
+
+pub fn registry_reset_module(module_name: &str) {
+    match module_name {
+        "audio" | "registry" => {
+            init_audio_state();
+            eprintln!(
+                "[SelfHealing] Audio state reinitialized for module '{}'",
+                module_name
+            );
+        }
+        _ => {
+            eprintln!(
+                "[SelfHealing] Reset requested for unknown module '{}' — no action",
+                module_name
+            );
+        }
+    }
+}
+
+pub fn registry_get_failure_count(module: &str) -> usize {
+    get_failure_tracker()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(module)
+        .copied()
+        .unwrap_or(0)
+}
+
+pub fn registry_drain_failure_tracker() {
+    get_failure_tracker()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clear();
+}
+
 // Sprint 247: VM inspection FFI — expose runtime state
 pub fn registry_vm_get_ip() -> i64 {
     crate::vm::machine::get_vm_inspection_snapshot()
@@ -1148,4 +1205,28 @@ pub fn registry_load_texture(path: &str) -> i64 {
     });
 
     id
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_self_healing_module_reset() {
+        registry_drain_failure_tracker();
+
+        for _ in 0..4 {
+            registry_track_failure("registry");
+        }
+        assert_eq!(registry_get_failure_count("registry"), 4);
+
+        registry_track_failure("registry");
+        assert_eq!(
+            registry_get_failure_count("registry"),
+            0,
+            "Counter must reset after threshold (5 failures)"
+        );
+
+        registry_drain_failure_tracker();
+    }
 }
