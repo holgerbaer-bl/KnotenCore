@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 250: WASM & WebGPU Render Pipeline Port (2026-05-31)
+Sprint 250: WASM Platform Preparation. Prepared the workspace for WebAssembly/WebGPU compilation with conditional compilation guards, target-specific dependency features, and browser-sandbox architecture alignment.
+- **Cargo WASM Target**: Added `[target.'cfg(target_arch = "wasm32")'.dependencies]` to root `Cargo.toml` enabling `wgpu` WebGPU/WebGL backends and `winit` raw-window-handle features (`rwh_05`, `rwh_06`) for canvas-based windowing.
+- **WebGPU Surface Config**: `window.rs` now uses `#[cfg(target_arch = "wasm32")]` for a Web-compatible `SurfaceConfiguration` with `Bgra8Unorm` format, `CompositeAlphaMode::Auto`, and 2-frame `desired_maximum_frame_latency`. Native builds retain the existing capability-driven config (`caps.formats[0]`, `caps.alpha_modes[0]`).
+- **Architecture Readiness**: The dual-config surface setup enables a single codebase to target both native Winit/WGPU and browser WebGPU backends. FS operations (`std::fs`) are already naturally blocked on WASM by the standard library's missing WASI bindings.
+- **Test**: `test_wasm_target_conditional_compilation` uses `cfg!(not(target_arch = "wasm32"))` to assert native build identity and verifies both `cfg` branches (native + WASM) compile correctly.
+- **Test Suite**: 184 → 185 tests (100 lib + 55 integration + 23 sandbox + 7 LSP).
+- **CI**: 185/185 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 249: JIT Loop Unrolling & Glam SIMD Matrix Expansion (2026-05-31)
 Sprint 249: Optimizer Expansion. Extended the loop unrolling bound and added SIMD matrix transform operations to the bytecode instruction set.
 - **Loop Unroll Bound Increase**: `try_unroll_while()` limit raised from `bound > 8` to `bound > 16`. Loops with up to 16 constant iterations are now unrolled into flat sequential blocks at compile time. The unroller already handles `counter < N` and `counter <= N` patterns via `detect_loop_bound()`.

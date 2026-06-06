@@ -93,6 +93,18 @@ impl KnotenApp {
                 let queue = Arc::new(queue);
 
                 let caps = surface.get_capabilities(&adapter);
+                #[cfg(target_arch = "wasm32")]
+                let config = wgpu::SurfaceConfiguration {
+                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                    format: wgpu::TextureFormat::Bgra8Unorm,
+                    width,
+                    height,
+                    present_mode: wgpu::PresentMode::Fifo,
+                    alpha_mode: wgpu::CompositeAlphaMode::Auto,
+                    view_formats: vec![],
+                    desired_maximum_frame_latency: 2,
+                };
+                #[cfg(not(target_arch = "wasm32"))]
                 let config = wgpu::SurfaceConfiguration {
                     usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                     format: caps.formats[0],

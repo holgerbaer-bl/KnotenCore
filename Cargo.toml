@@ -32,6 +32,10 @@ crossbeam-channel = "0.5"
 knoten_core_types = { path = "knoten_core_types" }
 aether_compiler = { path = "aether_compiler" }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wgpu = { version = "23.0", features = ["webgpu", "webgl"] }
+winit = { version = "0.30", features = ["rwh_05", "rwh_06"] }
+
 [workspace]
 members = ["knoten_core_types", "aether_compiler"]
 

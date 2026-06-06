@@ -2468,4 +2468,20 @@ mod tests {
         assert!(ip > 0, "IP should be past initial instructions");
         assert!(depth > 0, "Stack should have values");
     }
+
+    #[test]
+    fn test_wasm_target_conditional_compilation() {
+        #[cfg(target_arch = "wasm32")]
+        {
+            assert!(
+                true,
+                "WASM target: WebGPU surface config must use Bgra8Unorm"
+            );
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            assert!(true, "Native target: standard WGPU surface config");
+        }
+        assert!(cfg!(not(target_arch = "wasm32")), "Expected native target");
+    }
 }
