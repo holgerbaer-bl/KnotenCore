@@ -2370,4 +2370,23 @@ mod tests {
         assert_eq!(chain[0].x, 4);
         assert_eq!(chain[1].x, 4);
     }
+
+    #[test]
+    fn test_compiler_profiler_timing_injection() {
+        crate::natives::registry::registry_drain_timing_markers();
+        crate::natives::registry::registry_push_timing_marker(
+            "COMPUTE_CHAIN_EXEC_US:1234:STEPS:2".to_string(),
+        );
+        crate::natives::registry::registry_push_timing_marker(
+            "COMPUTE_CHAIN_EXEC_US:5678:STEPS:1".to_string(),
+        );
+        let markers = crate::natives::registry::registry_drain_timing_markers();
+        assert_eq!(markers.len(), 2);
+        assert!(markers[0].starts_with("COMPUTE_CHAIN_EXEC_US"));
+        assert!(markers[0].contains(":STEPS:2"));
+        assert!(markers[1].starts_with("COMPUTE_CHAIN_EXEC_US"));
+        assert!(markers[1].contains(":STEPS:1"));
+        let drained = crate::natives::registry::registry_drain_timing_markers();
+        assert!(drained.is_empty(), "Drain should empty the marker buffer");
+    }
 }

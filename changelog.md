@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 243: Profiling Hardware Infrastructure & Timing-Markers (2026-05-31)
+Sprint 243: Profiler Hardening. Deployed precise hardware timing instrumentation into the GPGPU compute chain execution pipeline with a thread-safe marker registry.
+- **Profiler Registry**: New `PROFILER_MARKERS: Mutex<Vec<String>>` static in `registry.rs` with `registry_push_timing_marker()` and `registry_drain_timing_markers()` — thread-safe append and atomic drain-semantics for cross-module profiling.
+- **ComputeChain Timing**: `window.rs` `ComputeChain` handler now records `Instant::now()` at entry and computes `elapsed.as_micros()` after `queue.submit()`. Pushes a formatted marker `COMPUTE_CHAIN_EXEC_US:{us}:STEPS:{count}`. For chain durations exceeding 5000us, a `[Profiler]` diagnostic is emitted via `eprintln!`.
+- **Compiler Timing Markers**: Existing `timing_markers: Vec<String>` on the `Compiler` struct remains active for SIMD vectorization profiling. The new `PROFILER_MARKERS` registry provides a shared channel between the WGPU window handler and the VM.
+- **Test**: `test_compiler_profiler_timing_injection` — pushes two synthetic markers, drains them, validates format (`COMPUTE_CHAIN_EXEC_US:` prefix + `:STEPS:N` suffix), and verifies drain empties the buffer.
+- **Test Suite**: 176 → 177 tests (94 lib + 55 integration + 23 sandbox + 5 LSP).
+- **CI**: 177/177 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 242: GPGPU Multi-Pass Compute Pipeline Execution (2026-05-31)
 Sprint 242: Multi-Pass Compute Chaining. Extended the WGPU infrastructure with sequential compute pass chaining within a single command encoder, enabling pipeline-level shader composition.
 - **RenderCommand::ComputeChain**: New variant carrying a `Vec<ComputeChainStep>`. Each step specifies `shader_id`, `x/y/z` workgroup dimensions, `inputs`, and optional `bindings`. All steps execute within a single `wgpu::CommandEncoder` — WGPU handles storage buffer barriers automatically between passes.

@@ -306,6 +306,20 @@ pub fn registry_transpose_matrix(handle: i64) -> Option<i64> {
     Some(registry_store_matrix(transposed))
 }
 
+// Sprint 243: Profiler timing markers for GPGPU chain execution
+static PROFILER_MARKERS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+pub fn registry_push_timing_marker(marker: String) {
+    if let Ok(mut guard) = PROFILER_MARKERS.lock() {
+        guard.push(marker);
+    }
+}
+
+pub fn registry_drain_timing_markers() -> Vec<String> {
+    let mut guard = PROFILER_MARKERS.lock().unwrap_or_else(|e| e.into_inner());
+    std::mem::take(&mut *guard)
+}
+
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
 

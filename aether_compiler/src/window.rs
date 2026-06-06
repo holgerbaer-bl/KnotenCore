@@ -742,6 +742,8 @@ impl KnotenApp {
                 shader_id: _,
                 steps,
             } => {
+                let chain_start = std::time::Instant::now();
+                let step_count = steps.len();
                 if let Some(state) = self.windows.values().next() {
                     let mut encoder =
                         state
@@ -849,6 +851,15 @@ impl KnotenApp {
                         }
                     }
                     state.queue.submit(std::iter::once(encoder.finish()));
+                    let elapsed_us = chain_start.elapsed().as_micros();
+                    let marker = format!("COMPUTE_CHAIN_EXEC_US:{elapsed_us}:STEPS:{step_count}");
+                    crate::natives::registry::registry_push_timing_marker(marker);
+                    if elapsed_us > 5000 {
+                        eprintln!(
+                            "[Profiler] ComputeChain {} steps: {} us",
+                            step_count, elapsed_us
+                        );
+                    }
                 } else {
                     eprintln!("ComputeChain failed: No WGPU window/device available.");
                 }
