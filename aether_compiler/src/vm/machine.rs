@@ -2311,4 +2311,29 @@ mod tests {
         assert!(particle_src.contains("vs_main"));
         assert!(particle_src.contains("fs_main"));
     }
+
+    #[test]
+    fn test_workspace_cleanliness() {
+        let forbidden = [".html", ".js", ".css"];
+        let dirs = [
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")),
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
+        ];
+        for dir in &dirs {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                        let ext_dot = format!(".{}", ext);
+                        assert!(
+                            !forbidden.contains(&ext_dot.as_str()),
+                            "Forbidden file {} found in {}",
+                            path.display(),
+                            dir.display()
+                        );
+                    }
+                }
+            }
+        }
+    }
 }

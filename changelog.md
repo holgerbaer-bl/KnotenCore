@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 240: Repository Purge & Git-Ignore Hardening (2026-05-31)
+Sprint 240: Repository Sanitization. Purged stale web artifacts and hardened the `.gitignore` against future contamination.
+- **index.html Purge**: Removed the accidentally committed `index.html` from git tracking (`git rm --cached`) and from the workspace filesystem. The file was a leftover from Sprint 195's original purge that resurfaced during workspace operations.
+- **Gitignore Hardening**: Added `*.html`, `*.js`, `*.css` to `.gitignore` under a new "Web artifacts" section. These patterns prevent generated reports, tool outputs, or build artifacts from ever landing on `main`.
+- **Workspace Cleanliness Test**: New `test_workspace_cleanliness` in machine.rs scans the crate root and `src/` directory for forbidden extensions (`.html`, `.js`, `.css`) and asserts none are present. Fast directory traversal via `std::fs::read_dir` with `.extension()` check.
+- **Test Suite**: 173 → 174 tests (92 lib + 55 integration + 23 sandbox + 4 LSP).
+- **CI**: 174/174 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 239: WGSL Shader Multi-Binding Integration & Render Pipeline Execution (2026-05-31)
 Sprint 239: WGSL Pipeline Completion. Integrated the multi-storage-buffer compute output into the render pipeline, enabling direct GPU-side compute-to-vertex data flow with zero CPU round-trip.
 - **WGSL Compute Shader**: `data_preprocessor.wgsl` now declares `@binding(0) positions: array<vec3<f32>>` and `@binding(1) velocities: array<vec3<f32>>` — matching the Sprint 238 split layout. Euler integration step: `positions += velocities * 0.016` (60Hz frame delta).

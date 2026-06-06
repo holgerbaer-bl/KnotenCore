@@ -14,6 +14,11 @@ output.rs
 dummy_*.txt
 *_output.txt
 
+# Web artifacts — never commit generated HTML/JS/CSS
+*.html
+*.js
+*.css
+
 # Node / VS Code Extension
 node_modules/
 package-lock.json
