@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.4.0-alpha] - Sprint 254: Dynamic Struct Fields & Runtime Offset Mutation (2026-06-01)
+Sprint 254: Dynamic Struct Fields. Deployed runtime struct field mutation via new `StructFieldSet` AST node with full executor and type inference integration.
+- **AST Node**: `StructFieldSet { obj: Box<Node>, field: String, value: Box<Node> }` in `knoten_core_types/src/ast.rs`. Allows runtime addition/modification of fields on existing object or dictionary instances.
+- **Runtime Execution**: `executor.rs` handles `StructFieldSet` by evaluating `obj` (expects `RelType::Object` or `RelType::Dict`), evaluating `value`, and inserting the field into the object's `HashMap`. Returns the modified object. Fault on incompatible target types.
+- **Exhaustive Match Arms**: Updated `optimizer.rs` (count_nodes + optimize), `evaluator.rs`, `validator.rs`, and `executor.rs` for the new 3-field node.
+- **Test**: `test_runtime_dynamic_struct_extension` creates a struct, adds a field via `StructFieldSet`, and asserts a `Value` (not `Fault`) result.
+- **Test Suite**: 188 → 189 tests (102 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 189/189 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.1-alpha] - Sprint 253: GitHub Release Automation & Artifact Deployment (2026-06-01)
 Sprint 253: Release Automation. Deployed a multi-platform build and release pipeline triggered by v* tags, producing optimized binaries for Linux x64, macOS ARM, and Windows x64.
 - **Release Workflow**: `.github/workflows/release.yml` rewritten with `on.push.tags: ["v*"]` trigger + `workflow_dispatch`. Multi-platform matrix build: Ubuntu x64, Windows x64, macOS Apple Silicon (aarch64). Builds `run_knc`, `knoten_lsp`, and `knoten_upgrade` with release profile (`opt-level=z`, `lto=fat`, `strip=true`).

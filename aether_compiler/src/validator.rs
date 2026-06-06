@@ -576,6 +576,10 @@ impl Validator {
                     ));
                 }
             }
+            Node::StructFieldSet { obj, value, .. } => {
+                self.check_node(obj);
+                self.check_node(value);
+            }
         }
     }
 }

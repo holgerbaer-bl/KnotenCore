@@ -2480,4 +2480,19 @@ mod tests {
         }
         assert!(cfg!(not(target_arch = "wasm32")), "Expected native target");
     }
+
+    #[test]
+    fn test_runtime_dynamic_struct_extension() {
+        use std::collections::HashMap;
+        let obj = RelType::Object(HashMap::new());
+        let mut map = match obj {
+            RelType::Object(m) => m,
+            _ => panic!(),
+        };
+        map.insert("velocity_z".to_string(), RelType::Float(0.5));
+        assert!((match map.get("velocity_z") {
+            Some(RelType::Float(f)) => (*f - 0.5).abs() < 0.001,
+            _ => false,
+        }));
+    }
 }

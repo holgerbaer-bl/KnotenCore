@@ -1123,6 +1123,33 @@ impl ExecutionEngine {
             }
             Node::LoadSample(_, _) | Node::PlaySample(_, _, _) => ExecResult::Value(RelType::Void),
             Node::StructDef { .. } | Node::StructCreate { .. } => ExecResult::Value(RelType::Void),
+            Node::StructFieldSet { obj, field, value } => match self.evaluate(obj) {
+                ExecResult::Value(RelType::Object(mut map)) => match self.evaluate(value) {
+                    ExecResult::Value(v) => {
+                        map.insert(field.clone(), v);
+                        ExecResult::Value(RelType::Object(map))
+                    }
+                    e => e,
+                },
+                ExecResult::Value(RelType::Dict(arc)) => match self.evaluate(value) {
+                    ExecResult::Value(v) => {
+                        arc.lock()
+                            .unwrap_or_else(|e| e.into_inner())
+                            .insert(field.clone(), v);
+                        ExecResult::Value(RelType::Dict(arc))
+                    }
+                    e => e,
+                },
+                ExecResult::Value(v) => ExecResult::Fault {
+                    msg: format!(
+                        "StructFieldSet: expected Object or Dict target, got {:?}",
+                        v
+                    ),
+                    node: "StructFieldSet".into(),
+                },
+                e @ ExecResult::Fault { .. } => e,
+                _ => ExecResult::Value(RelType::Void),
+            },
             _ => ExecResult::Fault {
                 msg: format!("Unsupported node in executor: {:?}", node),
                 node: "Executor".into(),

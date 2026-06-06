@@ -313,6 +313,9 @@ pub fn count_nodes(node: &Node) -> usize {
                 count += count_nodes(v);
             }
         }
+        Node::StructFieldSet { obj, value, .. } => {
+            count += count_nodes(obj) + count_nodes(value);
+        }
         Node::LoadComputeShader(val) => {
             count += count_nodes(val);
         }
@@ -759,6 +762,11 @@ pub fn optimize(node: Node) -> Node {
         } => Node::StructCreate {
             struct_name,
             values: values.into_iter().map(optimize).collect(),
+        },
+        Node::StructFieldSet { obj, field, value } => Node::StructFieldSet {
+            obj: Box::new(optimize(*obj)),
+            field,
+            value: Box::new(optimize(*value)),
         },
         Node::LoadComputeShader(val) => Node::LoadComputeShader(Box::new(optimize(*val))),
         Node::Modulo(l, r) => Node::Modulo(Box::new(optimize(*l)), Box::new(optimize(*r))),

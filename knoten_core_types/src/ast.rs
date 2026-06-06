@@ -275,6 +275,11 @@ pub enum Node {
         struct_name: String,
         values: Vec<Node>,
     },
+    StructFieldSet {
+        obj: Box<Node>,
+        field: String,
+        value: Box<Node>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

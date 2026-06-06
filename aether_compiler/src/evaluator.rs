@@ -744,6 +744,7 @@ impl ExecutionEngine {
             | Node::LoadComputeShader(_)
             | Node::StructDef { .. }
             | Node::StructCreate { .. }
+            | Node::StructFieldSet { .. }
             | Node::DispatchCompute { .. } => self.evaluate_extra(node),
             Node::DispatchComputeLoop {
                 shader_id,
