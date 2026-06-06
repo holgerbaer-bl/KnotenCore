@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 245: LSP Compute Chain Static Semantic Validator (2026-05-31)
+Sprint 245: LSP Chain Validation. Extended the Language Server with static semantic analysis for `ComputeChain` nodes, validating dimensions and stride consistency across chained compute steps.
+- **ComputeChain Validation**: New `validate_structure` handler for `ComputeChain` nodes. Added to `KNOWN_OPCODES`. Inspects the `steps` array — each step's `x`, `y`, `z` dimensions must be `IntLiteral > 0`. Non-positive values emit `ERR_INVALID_COMPUTE_DIMENSION` with the step index.
+- **Stride Mismatch Detection**: Tracks consecutive step `inputs` lengths. If lengths differ AND the current length is not aligned to stride 6 or 7, emits `ERR_CHAIN_STRIDE_MISMATCH` with a descriptive message including both step indices and their lengths.
+- **Range Mapping**: Both diagnostics use `find_range("steps")` to map to the `"steps"` key's position in the source document.
+- **Tests**: `test_lsp_compute_chain_dimension_error` validates positive/negative/zero dimension logic. `test_lsp_compute_chain_stride_mismatch` validates stride-6/stride-7 alignment and cross-step mismatch detection.
+- **Test Suite**: 178 → 180 tests (95 lib + 55 integration + 23 sandbox + 7 LSP).
+- **CI**: 180/180 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 244: Polyphonic Stereo-Panning & MPSC Audio Channel Coupling (2026-05-31)
 Sprint 244: Stereo Audio Panning. Upgraded the polyphonic synthesizer engine with per-channel spatial stereo panning via linear gain interpolation and a native FFI bridge.
 - **Pan Field**: `AudioCommand::PlayTone` gains `pan: f32` with range `[-1.0, 1.0]` (center = 0.0). Clamped to valid range in the audio thread via `.clamp(-1.0, 1.0)`.

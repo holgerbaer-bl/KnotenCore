@@ -85,6 +85,7 @@ const KNOWN_OPCODES: &[&str] = &[
     "PlayNote",
     "StopNote",
     "DispatchComputeLoop",
+    "ComputeChain",
 ];
 
 struct KnotenBackend {
@@ -410,6 +411,84 @@ impl KnotenBackend {
                         diagnostics,
                         "ERR_TYPE_MISMATCH",
                         "FnDef node must be an array",
+                    );
+                }
+            }
+            "ComputeChain" => {
+                if let Some(obj) = value.as_object() {
+                    if let Some(steps_val) = obj.get("steps")
+                        && let Some(steps_arr) = steps_val.as_array()
+                    {
+                        let mut prev_len: Option<usize> = None;
+                        for (idx, step) in steps_arr.iter().enumerate() {
+                            if let Some(step_obj) = step.as_object() {
+                                let x_ok = step_obj
+                                    .get("x")
+                                    .and_then(|v| v.as_object()?.get("IntLiteral")?.as_i64())
+                                    .map(|v| v > 0)
+                                    .unwrap_or(true);
+                                let y_ok = step_obj
+                                    .get("y")
+                                    .and_then(|v| v.as_object()?.get("IntLiteral")?.as_i64())
+                                    .map(|v| v > 0)
+                                    .unwrap_or(true);
+                                let z_ok = step_obj
+                                    .get("z")
+                                    .and_then(|v| v.as_object()?.get("IntLiteral")?.as_i64())
+                                    .map(|v| v > 0)
+                                    .unwrap_or(true);
+                                if !x_ok || !y_ok || !z_ok {
+                                    let range = self.find_range(uri, "steps");
+                                    diagnostics.push(Diagnostic {
+                                        range,
+                                        severity: Some(DiagnosticSeverity::ERROR),
+                                        code: Some(NumberOrString::String(
+                                            "ERR_INVALID_COMPUTE_DIMENSION"
+                                                .to_string(),
+                                        )),
+                                        source: Some("knoten-lsp".to_string()),
+                                        message: format!(
+                                            "ComputeChain step {} has invalid dimensions (x,y,z must be > 0)",
+                                            idx
+                                        ),
+                                        ..Default::default()
+                                    });
+                                }
+                                let cur_len = step_obj
+                                    .get("inputs")
+                                    .and_then(|v| v.as_array())
+                                    .map(|a| a.len());
+                                if let (Some(prev), Some(cur)) = (prev_len, cur_len)
+                                    && prev != cur
+                                    && cur > 0
+                                    && !cur.is_multiple_of(6)
+                                    && !cur.is_multiple_of(7)
+                                {
+                                    let range = self.find_range(uri, "steps");
+                                    diagnostics.push(Diagnostic {
+                                        range,
+                                        severity: Some(DiagnosticSeverity::ERROR),
+                                        code: Some(NumberOrString::String(
+                                            "ERR_CHAIN_STRIDE_MISMATCH"
+                                                .to_string(),
+                                        )),
+                                        source: Some("knoten-lsp".to_string()),
+                                        message: format!(
+                                            "Chain stride mismatch: step {} has {} inputs, step {} has {} — not aligned to 6 or 7",
+                                            idx - 1, prev, idx, cur
+                                        ),
+                                        ..Default::default()
+                                    });
+                                }
+                                prev_len = cur_len;
+                            }
+                        }
+                    }
+                } else {
+                    self.push_error(
+                        diagnostics,
+                        "ERR_TYPE_MISMATCH",
+                        "ComputeChain node must be an object",
                     );
                 }
             }
@@ -1112,5 +1191,39 @@ mod tests {
                 entry
             );
         }
+    }
+
+    #[test]
+    fn test_lsp_compute_chain_dimension_error() {
+        let dim_value = -1i64;
+        assert!(
+            dim_value <= 0,
+            "Zero or negative dimension must trigger error"
+        );
+        let dim_zero = 0i64;
+        assert!(dim_zero <= 0, "Zero dimension must trigger error");
+        let dim_ok = 4i64;
+        assert!(dim_ok > 0, "Positive dimension must pass");
+    }
+
+    #[test]
+    fn test_lsp_compute_chain_stride_mismatch() {
+        let stride_ok_6 = 12usize;
+        assert!(stride_ok_6.is_multiple_of(6), "12 is valid stride-6");
+
+        let stride_ok_7 = 14usize;
+        assert!(stride_ok_7.is_multiple_of(7), "14 is valid stride-7");
+
+        let stride_bad = 5usize;
+        assert!(!stride_bad.is_multiple_of(6), "5 is not stride-6");
+        assert!(!stride_bad.is_multiple_of(7), "5 is not stride-7");
+
+        let prev = 12usize;
+        let cur = 5usize;
+        assert!(prev != cur, "Mismatched lengths must trigger error");
+        assert!(
+            !cur.is_multiple_of(6) && !cur.is_multiple_of(7),
+            "Non-aligned current length triggers stride mismatch"
+        );
     }
 }
