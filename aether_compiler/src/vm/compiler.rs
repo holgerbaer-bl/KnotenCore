@@ -891,6 +891,7 @@ impl Compiler {
                         elements_a: [*a, *b, *c, *d],
                         elements_b: [*a, *b, *c, *d],
                         scale: *s,
+                        matrix_handle: -1,
                     };
                     // Remove the 4 trailing slots
                     self.instructions.remove(i + 4);

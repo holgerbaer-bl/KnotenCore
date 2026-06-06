@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 249: JIT Loop Unrolling & Glam SIMD Matrix Expansion (2026-05-31)
+Sprint 249: Optimizer Expansion. Extended the loop unrolling bound and added SIMD matrix transform operations to the bytecode instruction set.
+- **Loop Unroll Bound Increase**: `try_unroll_while()` limit raised from `bound > 8` to `bound > 16`. Loops with up to 16 constant iterations are now unrolled into flat sequential blocks at compile time. The unroller already handles `counter < N` and `counter <= N` patterns via `detect_loop_bound()`.
+- **SimdOp::Transform**: New SIMD operation variant in `knoten_core_types/src/opcode.rs`. Accepts a `matrix_handle: i64` field on `SimdExec`. The VM handler loads a `glam::Mat4` from the matrix registry (Sprint 233) via `registry_get_matrix(*matrix_handle)`, applies `mat * vec4` on a 4-element vector, and pushes the transformed result. Falls through to identity (pass-through) when the handle is not found.
+- **Test**: `test_optimizer_loop_unrolling` verifies a 10-step loop is unrolled to 11 Block nodes (10 body iterations + 1 final counter assignment), validating the increased bound.
+- **Test Suite**: 183 → 184 tests (99 lib + 55 integration + 23 sandbox + 7 LSP).
+- **CI**: 184/184 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 248: User-Defined Types & Strict Layout Offset Checking (2026-05-31)
 Sprint 248: Struct Type System. Deployed user-defined type definitions with strict field-level arity and type validation in the compiler frontend.
 - **AST Extension**: Added `Node::StructDef { name: String, fields: Vec<(String, Type)> }` and `Node::StructCreate { struct_name: String, values: Vec<Node> }` to the canonical `knoten_core_types/src/ast.rs` enum. Both use the existing `Type` enum for field type declarations (Int, Float, Bool, String).

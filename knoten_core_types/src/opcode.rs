@@ -1,10 +1,11 @@
 // Sprint 202: SIMD operation types for auto-vectorization
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimdOp {
-    Scale,    // elements * factor
-    Add,      // elements_a + elements_b
-    Subtract, // elements_a - elements_b
-    Dot,      // elements_a · elements_b → scalar
+    Scale,     // elements * factor
+    Add,       // elements_a + elements_b
+    Subtract,  // elements_a - elements_b
+    Dot,       // elements_a · elements_b → scalar
+    Transform, // Sprint 249: transform via registered matrix handle
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -82,6 +83,7 @@ pub enum OpCode {
         elements_a: [usize; 4], // constant pool indices for the 4 float elements (first operand)
         elements_b: [usize; 4], // constant pool indices for second operand (Add/Sub/Dot)
         scale: usize,           // constant pool index for scale factor (Scale only)
+        matrix_handle: i64,     // Sprint 249: matrix registry handle (Transform)
     },
 
     // Sprint 222: Neural DSL Synth — procedural audio note generation

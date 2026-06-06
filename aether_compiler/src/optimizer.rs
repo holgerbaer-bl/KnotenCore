@@ -965,7 +965,7 @@ fn has_loop_exit(node: &Node) -> bool {
 fn try_unroll_while(cond: &Node, body: &Node) -> Option<Vec<Node>> {
     // Detect condition: counter < bound
     let (counter_name, bound, _inclusive) = detect_loop_bound(cond)?;
-    if bound > 8 {
+    if bound > 16 {
         return None; // Only unroll small loops
     }
 
@@ -1720,5 +1720,24 @@ mod tests {
         );
         let result = optimize(while_node);
         assert!(matches!(result, Node::Block(..)), "Should unroll to Block");
+    }
+
+    #[test]
+    fn test_optimizer_loop_unrolling() {
+        let while_10 = Node::While(
+            Box::new(Node::Lt(
+                Box::new(Node::Identifier("i".into())),
+                Box::new(Node::IntLiteral(10)),
+            )),
+            Box::new(Node::Block(vec![Node::Assign(
+                "x".into(),
+                Box::new(Node::Identifier("i".into())),
+            )])),
+        );
+        let result = optimize(while_10);
+        assert!(
+            matches!(result, Node::Block(ref nodes) if nodes.len() == 11),
+            "10-step loop should unroll to 11 nodes (10 body + 1 final assign)"
+        );
     }
 }

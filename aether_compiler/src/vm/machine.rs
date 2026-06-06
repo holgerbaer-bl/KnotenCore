@@ -1062,6 +1062,7 @@ impl VM {
                     elements_a,
                     elements_b,
                     scale,
+                    matrix_handle,
                 } => {
                     let to_f32 = |idx: &usize| -> Result<f32, String> {
                         match constants.get(*idx) {
@@ -1116,6 +1117,27 @@ impl VM {
                             let b = load_vec4(elements_b)?;
                             let dot = a.dot(b);
                             self.stack.push(RelType::Float(dot as f64));
+                        }
+                        SimdOp::Transform => {
+                            let v = load_vec4(elements_a)?;
+                            if let Some(mat) =
+                                crate::natives::registry::registry_get_matrix(*matrix_handle)
+                            {
+                                let result = mat * v;
+                                self.stack.push(RelType::Array(vec![
+                                    RelType::Float(result.x as f64),
+                                    RelType::Float(result.y as f64),
+                                    RelType::Float(result.z as f64),
+                                    RelType::Float(result.w as f64),
+                                ]));
+                            } else {
+                                self.stack.push(RelType::Array(vec![
+                                    RelType::Float(v.x as f64),
+                                    RelType::Float(v.y as f64),
+                                    RelType::Float(v.z as f64),
+                                    RelType::Float(v.w as f64),
+                                ]));
+                            }
                         }
                     }
                 }
