@@ -20,6 +20,7 @@ pub enum AudioCommand {
         decay_ms: u64,
         sustain_level: f32,
         release_ms: u64,
+        pan: f32,
     },
     StopTone {
         channel: usize,
@@ -90,11 +91,15 @@ impl AudioManager {
                             decay_ms,
                             sustain_level,
                             release_ms,
+                            pan,
                         } => {
                             let sample_rate = 44100u32;
                             let num_samples = (sample_rate as u64 * duration_ms / 1000) as usize;
+                            let pan_clamped = pan.clamp(-1.0, 1.0);
+                            let left_gain = (1.0 - pan_clamped).clamp(0.0, 1.0);
+                            let right_gain = (1.0 + pan_clamped).clamp(0.0, 1.0);
                             let samples: Vec<f32> = (0..num_samples)
-                                .map(|i| {
+                                .flat_map(|i| {
                                     let t = i as f32 / sample_rate as f32;
                                     let t_ms = i as f32 * 1000.0 / sample_rate as f32;
                                     let raw = generate_sample(t, freq, volume, waveform);
@@ -106,12 +111,12 @@ impl AudioManager {
                                         release_ms,
                                         duration_ms as f32,
                                     );
-                                    raw * env
+                                    let mono = raw * env;
+                                    [mono * left_gain, mono * right_gain]
                                 })
                                 .collect();
-                            let source = rodio::buffer::SamplesBuffer::new(1, sample_rate, samples);
+                            let source = rodio::buffer::SamplesBuffer::new(2, sample_rate, samples);
                             if let Ok(sink) = rodio::Sink::try_new(&stream_handle) {
-                                // Stop and replace any existing sink on this channel
                                 if let Some(old) = synth_sinks.remove(&channel) {
                                     old.stop();
                                 }
@@ -170,6 +175,35 @@ impl AudioManager {
             decay_ms,
             sustain_level,
             release_ms,
+            pan: 0.0,
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn play_tone_panned(
+        &mut self,
+        channel: usize,
+        freq: f32,
+        duration_ms: u64,
+        volume: f32,
+        waveform: Waveform,
+        attack_ms: u64,
+        decay_ms: u64,
+        sustain_level: f32,
+        release_ms: u64,
+        pan: f32,
+    ) {
+        let _ = self.tx.send(AudioCommand::PlayTone {
+            channel,
+            freq,
+            duration_ms,
+            volume,
+            waveform,
+            attack_ms,
+            decay_ms,
+            sustain_level,
+            release_ms,
+            pan,
         });
     }
 
@@ -296,5 +330,50 @@ mod tests {
     fn adsr_negative_times_dont_panic() {
         let val = adsr_amplitude(50.0, 5, 10, 0.5, 20, 100.0);
         assert!((0.0..=1.0).contains(&val), "Envelope must stay in [0,1]");
+    }
+
+    #[test]
+    fn test_audio_stereo_panning_bounds() {
+        let pan_hard_left = (-1.0f32).clamp(-1.0, 1.0);
+        assert!((pan_hard_left + 1.0).abs() < 0.001);
+
+        let pan_hard_right = (1.0f32).clamp(-1.0, 1.0);
+        assert!((pan_hard_right - 1.0).abs() < 0.001);
+
+        let pan_center = (0.0f32).clamp(-1.0, 1.0);
+        assert!((pan_center - 0.0).abs() < 0.001);
+
+        let pan_half_left = (-0.5f32).clamp(-1.0, 1.0);
+        assert!((pan_half_left + 0.5).abs() < 0.001);
+
+        let left_gain = (1.0 - (-1.0f32)).clamp(0.0, 1.0);
+        assert!((left_gain - 1.0).abs() < 0.001, "Full left = left gain 1.0");
+        let right_gain = (1.0 + (-1.0f32)).clamp(0.0, 1.0);
+        assert!(
+            (right_gain - 0.0).abs() < 0.001,
+            "Full left = right gain 0.0"
+        );
+
+        let left_gain = (1.0 - 1.0f32).clamp(0.0, 1.0);
+        assert!(
+            (left_gain - 0.0).abs() < 0.001,
+            "Full right = left gain 0.0"
+        );
+        let right_gain = (1.0 + 1.0f32).clamp(0.0, 1.0);
+        assert!(
+            (right_gain - 1.0).abs() < 0.001,
+            "Full right = right gain 1.0"
+        );
+
+        let clamped = (-1.5f32).clamp(-1.0, 1.0);
+        assert!(
+            (clamped + 1.0).abs() < 0.001,
+            "Out of range low clamped to -1"
+        );
+        let clamped = (2.0f32).clamp(-1.0, 1.0);
+        assert!(
+            (clamped - 1.0).abs() < 0.001,
+            "Out of range high clamped to 1"
+        );
     }
 }

@@ -183,6 +183,43 @@ pub fn registry_play_boot_tone() {
     }
 }
 
+pub fn registry_play_tone_panned(
+    channel: i64,
+    freq: f64,
+    duration_ms: i64,
+    waveform_idx: i64,
+    pan: f64,
+) -> Result<(), String> {
+    if !(-1.0..=1.0).contains(&pan) {
+        return Err(format!("Pan value {} out of range [-1.0, 1.0]", pan));
+    }
+    init_audio_state();
+    let waveform = match waveform_idx {
+        0 => knoten_core_types::ast::Waveform::Sine,
+        1 => knoten_core_types::ast::Waveform::Sawtooth,
+        2 => knoten_core_types::ast::Waveform::Square,
+        3 => knoten_core_types::ast::Waveform::Triangle,
+        _ => knoten_core_types::ast::Waveform::Sine,
+    };
+    if let Ok(mut guard) = AUDIO_STATE.lock()
+        && let Some(ref mut mgr) = *guard
+    {
+        mgr.play_tone_panned(
+            channel as usize,
+            freq as f32,
+            duration_ms as u64,
+            0.3,
+            waveform,
+            5,
+            20,
+            0.7,
+            100,
+            pan as f32,
+        );
+    }
+    Ok(())
+}
+
 pub fn registry_play_sound(path: &str) -> Result<(), String> {
     init_audio_state();
     if let Ok(mut guard) = AUDIO_STATE.lock()

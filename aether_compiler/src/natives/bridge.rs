@@ -808,6 +808,32 @@ impl BridgeModule for CoreBridge {
                     crate::natives::registry::registry_play_boot_tone();
                     Some(ExecResult::Value(RelType::Void))
                 }
+                "registry_play_tone_panned" => {
+                    if args.len() == 5
+                        && let RelType::Int(channel) = &args[0]
+                        && let RelType::Float(freq) = &args[1]
+                        && let RelType::Int(dur) = &args[2]
+                        && let RelType::Int(wave) = &args[3]
+                        && let RelType::Float(pan) = &args[4]
+                    {
+                        match crate::natives::registry::registry_play_tone_panned(
+                            *channel, *freq, *dur, *wave, *pan,
+                        ) {
+                            Ok(()) => Some(ExecResult::Value(RelType::Void)),
+                            Err(e) => Some(ExecResult::Fault {
+                                msg: format!("[FFI] Audio pan error: {}", e),
+                                node: "Native::Bridge::registry_play_tone_panned".into(),
+                            }),
+                        }
+                    } else {
+                        Some(ExecResult::Fault {
+                            msg: "[FFI] registry_play_tone_panned expects (channel:Int, freq:Float, duration:Int, waveform:Int, pan:Float)"
+                                .to_string(),
+                            node: "Native::Bridge::registry_play_tone_panned"
+                                .into(),
+                        })
+                    }
+                }
                 "registry_play_sound" => {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]

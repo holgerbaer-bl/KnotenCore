@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 244: Polyphonic Stereo-Panning & MPSC Audio Channel Coupling (2026-05-31)
+Sprint 244: Stereo Audio Panning. Upgraded the polyphonic synthesizer engine with per-channel spatial stereo panning via linear gain interpolation and a native FFI bridge.
+- **Pan Field**: `AudioCommand::PlayTone` gains `pan: f32` with range `[-1.0, 1.0]` (center = 0.0). Clamped to valid range in the audio thread via `.clamp(-1.0, 1.0)`.
+- **Stereo Sample Generation**: Audio thread now produces interleaved 2-channel `Vec<f32>` samples. Left gain = `(1.0 - pan).clamp(0.0, 1.0)`, right gain = `(1.0 + pan).clamp(0.0, 1.0)`. Each mono sample is multiplied by both gains, producing `[L, R, L, R, ...]` layout. `SamplesBuffer::new(2, ...)` for stereo output.
+- **`play_tone_panned()`**: New method on `AudioManager` accepting all 10 params including `pan`. Original `play_tone()` defaults pan to `0.0` (center) for backward compatibility.
+- **VM FFI Bridge**: `registry_play_tone_panned(channel:Int, freq:Float, duration:Int, waveform:Int, pan:Float)` registered in the `registry` module. Validates pan range via `!(-1.0..=1.0).contains(&pan)` → `ExecResult::Fault`. Falls through to `play_tone_panned()` after lazy `init_audio_state()`.
+- **Test**: `test_audio_stereo_panning_bounds` validates pan clamping at extremes (-1.0, 1.0, 0.0, -0.5), left/right gain computation (hard left → L=1.0 R=0.0, hard right → L=0.0 R=1.0), and out-of-range clamping (-1.5, 2.0).
+- **Test Suite**: 177 → 178 tests (95 lib + 55 integration + 23 sandbox + 5 LSP).
+- **CI**: 178/178 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 243: Profiling Hardware Infrastructure & Timing-Markers (2026-05-31)
 Sprint 243: Profiler Hardening. Deployed precise hardware timing instrumentation into the GPGPU compute chain execution pipeline with a thread-safe marker registry.
 - **Profiler Registry**: New `PROFILER_MARKERS: Mutex<Vec<String>>` static in `registry.rs` with `registry_push_timing_marker()` and `registry_drain_timing_markers()` — thread-safe append and atomic drain-semantics for cross-module profiling.
