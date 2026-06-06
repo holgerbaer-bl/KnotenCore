@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 242: GPGPU Multi-Pass Compute Pipeline Execution (2026-05-31)
+Sprint 242: Multi-Pass Compute Chaining. Extended the WGPU infrastructure with sequential compute pass chaining within a single command encoder, enabling pipeline-level shader composition.
+- **RenderCommand::ComputeChain**: New variant carrying a `Vec<ComputeChainStep>`. Each step specifies `shader_id`, `x/y/z` workgroup dimensions, `inputs`, and optional `bindings`. All steps execute within a single `wgpu::CommandEncoder` — WGPU handles storage buffer barriers automatically between passes.
+- **Window Handler**: `ComputeChain` handler iterates through steps within one encoder. For each step: pipelines are looked up, storage buffers created (single or multi-binding), bind groups assembled, and `begin_compute_pass` + `dispatch_workgroups` executed. Buffer readback results stored per `shader_id`. Entire chain submitted once at the end.
+- **Data Structure**: New `ComputeChainStep` struct in `registry.rs` — cloneable, carries the same fields as `DispatchCompute` for per-step configuration. Enables structured multi-pass particle pipelines (e.g., pass 1: physics integration, pass 2: collision, pass 3: rendering readback).
+- **Test**: `test_gpgpu_multi_pass_chaining` constructs a 2-step chain with distinct shader IDs and input sets, validates chain length, IDs, and workgroup dimensions.
+- **Test Suite**: 175 → 176 tests (93 lib + 55 integration + 23 sandbox + 5 LSP).
+- **CI**: 176/176 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 241: LSP Native FFI Completion Engine (2026-05-31)
 Sprint 241: LSP Completion Engine. Enhanced the Language Server with a static native FFI command catalog providing snippet-based autocompletion with inline documentation.
 - **Static FFI Catalog**: Added 10 native FFI completion entries covering matrix algebra (`math_matrix_transpose`, `math_vector_scale`, `math_matrix_transform`), GPGPU compute (`registry_load_compute_shader`, `registry_dispatch_compute`, `registry_compute_readback`), procedural audio (`PlayNote`), and math functions (`math_sin`, `math_cos`, `math_sqrt`). Each entry includes label, detail description, Markdown documentation, and an `InsertTextFormat::SNIPPET` with tab-stop placeholders (`${1:param}`).

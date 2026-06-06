@@ -121,6 +121,11 @@ pub enum RenderCommand {
         inputs: Vec<crate::executor::RelType>,
         bindings: Option<Vec<Vec<crate::executor::RelType>>>,
     },
+    // Sprint 242: Multi-pass compute chain — sequential shader passes in one encoder
+    ComputeChain {
+        shader_id: usize,
+        steps: Vec<ComputeChainStep>,
+    },
     // Sprint 204: Read back compute shader results from GPU to VM
     ReadComputeResult {
         shader_id: usize,
@@ -130,6 +135,16 @@ pub enum RenderCommand {
         entity_id: usize,
     },
     ExitEventLoop,
+}
+
+#[derive(Clone)]
+pub struct ComputeChainStep {
+    pub shader_id: usize,
+    pub x: u32,
+    pub y: u32,
+    pub z: u32,
+    pub inputs: Vec<crate::executor::RelType>,
+    pub bindings: Option<Vec<Vec<crate::executor::RelType>>>,
 }
 
 pub fn exit_event_loop() {

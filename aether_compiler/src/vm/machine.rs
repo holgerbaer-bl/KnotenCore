@@ -2336,4 +2336,38 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_gpgpu_multi_pass_chaining() {
+        let step1 = crate::natives::registry::ComputeChainStep {
+            shader_id: 1,
+            x: 4,
+            y: 1,
+            z: 1,
+            inputs: vec![
+                RelType::Float(1.0),
+                RelType::Float(2.0),
+                RelType::Float(3.0),
+            ],
+            bindings: None,
+        };
+        let step2 = crate::natives::registry::ComputeChainStep {
+            shader_id: 2,
+            x: 4,
+            y: 1,
+            z: 1,
+            inputs: vec![
+                RelType::Float(0.1),
+                RelType::Float(0.2),
+                RelType::Float(0.3),
+            ],
+            bindings: None,
+        };
+        let chain = [step1, step2];
+        assert_eq!(chain.len(), 2);
+        assert_eq!(chain[0].shader_id, 1);
+        assert_eq!(chain[1].shader_id, 2);
+        assert_eq!(chain[0].x, 4);
+        assert_eq!(chain[1].x, 4);
+    }
 }

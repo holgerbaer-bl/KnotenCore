@@ -737,6 +737,122 @@ impl KnotenApp {
                     eprintln!("DispatchCompute failed: No WGPU window/device available.");
                 }
             }
+            // Sprint 242: Multi-pass compute chain — sequential shader passes in one encoder
+            RenderCommand::ComputeChain {
+                shader_id: _,
+                steps,
+            } => {
+                if let Some(state) = self.windows.values().next() {
+                    let mut encoder =
+                        state
+                            .device
+                            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                                label: Some("Compute Chain Encoder"),
+                            });
+                    for step in &steps {
+                        if let Some(pipeline) = self.compute_pipelines.get(&step.shader_id) {
+                            if let Some(ref binding_sets) = step.bindings
+                                && !binding_sets.is_empty()
+                            {
+                                let mut storage_buffers: Vec<wgpu::Buffer> = Vec::new();
+                                for binding_data in binding_sets {
+                                    let (data_bytes, _) = inputs_to_storage_buffer(binding_data);
+                                    let buf = state.device.create_buffer(&wgpu::BufferDescriptor {
+                                        label: Some("Chain Storage Buffer"),
+                                        size: data_bytes.len() as u64,
+                                        usage: wgpu::BufferUsages::STORAGE
+                                            | wgpu::BufferUsages::COPY_DST,
+                                        mapped_at_creation: false,
+                                    });
+                                    state.queue.write_buffer(&buf, 0, &data_bytes);
+                                    storage_buffers.push(buf);
+                                }
+                                let bgl = pipeline.get_bind_group_layout(0);
+                                let entries: Vec<wgpu::BindGroupEntry> = storage_buffers
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i, buf)| wgpu::BindGroupEntry {
+                                        binding: i as u32,
+                                        resource: buf.as_entire_binding(),
+                                    })
+                                    .collect();
+                                let bind_group =
+                                    state.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                                        label: Some("Chain Bind Group"),
+                                        layout: &bgl,
+                                        entries: &entries,
+                                    });
+                                {
+                                    let mut cpass =
+                                        encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                                            label: Some("Chain Compute"),
+                                            timestamp_writes: None,
+                                        });
+                                    cpass.set_pipeline(pipeline);
+                                    cpass.set_bind_group(0, &bind_group, &[]);
+                                    cpass.dispatch_workgroups(step.x, step.y, step.z);
+                                }
+                                if let Some(first) = storage_buffers.into_iter().next() {
+                                    self.compute_buffers.insert(step.shader_id, first);
+                                }
+                            } else {
+                                let (data_bytes, element_count) =
+                                    inputs_to_storage_buffer(&step.inputs);
+                                if element_count > 0 {
+                                    let storage =
+                                        state.device.create_buffer(&wgpu::BufferDescriptor {
+                                            label: Some("Chain Storage Buffer"),
+                                            size: data_bytes.len() as u64,
+                                            usage: wgpu::BufferUsages::STORAGE
+                                                | wgpu::BufferUsages::COPY_DST,
+                                            mapped_at_creation: false,
+                                        });
+                                    state.queue.write_buffer(&storage, 0, &data_bytes);
+                                    let bgl = pipeline.get_bind_group_layout(0);
+                                    let bind_group = state.device.create_bind_group(
+                                        &wgpu::BindGroupDescriptor {
+                                            label: Some("Chain Bind Group"),
+                                            layout: &bgl,
+                                            entries: &[wgpu::BindGroupEntry {
+                                                binding: 0,
+                                                resource: storage.as_entire_binding(),
+                                            }],
+                                        },
+                                    );
+                                    {
+                                        let mut cpass = encoder.begin_compute_pass(
+                                            &wgpu::ComputePassDescriptor {
+                                                label: Some("Chain Compute"),
+                                                timestamp_writes: None,
+                                            },
+                                        );
+                                        cpass.set_pipeline(pipeline);
+                                        cpass.set_bind_group(0, &bind_group, &[]);
+                                        cpass.dispatch_workgroups(step.x, step.y, step.z);
+                                    }
+                                    self.compute_buffers.insert(step.shader_id, storage);
+                                } else {
+                                    {
+                                        let mut cpass = encoder.begin_compute_pass(
+                                            &wgpu::ComputePassDescriptor {
+                                                label: Some("Chain Compute"),
+                                                timestamp_writes: None,
+                                            },
+                                        );
+                                        cpass.set_pipeline(pipeline);
+                                        cpass.dispatch_workgroups(step.x, step.y, step.z);
+                                    }
+                                }
+                            }
+                        } else {
+                            eprintln!("ComputeChain: Shader {} not found", step.shader_id);
+                        }
+                    }
+                    state.queue.submit(std::iter::once(encoder.finish()));
+                } else {
+                    eprintln!("ComputeChain failed: No WGPU window/device available.");
+                }
+            }
             // Sprint 204: Read back compute shader results from GPU to CPU
             RenderCommand::ReadComputeResult { shader_id } => {
                 if let Some(state) = self.windows.values().next()
