@@ -2490,9 +2490,11 @@ mod tests {
             _ => panic!(),
         };
         map.insert("velocity_z".to_string(), RelType::Float(0.5));
-        assert!((match map.get("velocity_z") {
-            Some(RelType::Float(f)) => (*f - 0.5).abs() < 0.001,
-            _ => false,
-        }));
+        assert!(
+            (match map.get("velocity_z") {
+                Some(RelType::Float(f)) => (*f - 0.5).abs() < 0.001,
+                _ => false,
+            })
+        );
     }
 }
