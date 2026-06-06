@@ -809,6 +809,7 @@ impl ExecutionEngine {
                             y: 1,
                             z: 1,
                             inputs: input_reltypes.clone(),
+                            bindings: None,
                         },
                     );
                     let result =

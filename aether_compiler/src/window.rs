@@ -537,41 +537,50 @@ impl KnotenApp {
                 y,
                 z,
                 inputs,
+                bindings,
             } => {
                 if let Some(state) = self.windows.values().next() {
                     if let Some(pipeline) = self.compute_pipelines.get(&shader_id) {
-                        // Sprint 187: Serialize inputs into a storage buffer
-                        let (data_bytes, element_count) = inputs_to_storage_buffer(&inputs);
-
-                        if element_count > 0 {
-                            let storage = state.device.create_buffer(&wgpu::BufferDescriptor {
-                                label: Some("Compute Storage Buffer"),
-                                size: data_bytes.len() as u64,
-                                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-                                mapped_at_creation: false,
-                            });
-                            state.queue.write_buffer(&storage, 0, &data_bytes);
-
+                        if let Some(binding_sets) = bindings
+                            && !binding_sets.is_empty()
+                        {
+                            let mut storage_buffers: Vec<wgpu::Buffer> = Vec::new();
+                            for binding_data in &binding_sets {
+                                let (data_bytes, _) = inputs_to_storage_buffer(binding_data);
+                                let buf = state.device.create_buffer(&wgpu::BufferDescriptor {
+                                    label: Some("Multi-Storage Buffer"),
+                                    size: data_bytes.len() as u64,
+                                    usage: wgpu::BufferUsages::STORAGE
+                                        | wgpu::BufferUsages::COPY_DST,
+                                    mapped_at_creation: false,
+                                });
+                                state.queue.write_buffer(&buf, 0, &data_bytes);
+                                storage_buffers.push(buf);
+                            }
                             let bind_group_layout = pipeline.get_bind_group_layout(0);
+                            let entries: Vec<wgpu::BindGroupEntry> = storage_buffers
+                                .iter()
+                                .enumerate()
+                                .map(|(i, buf)| wgpu::BindGroupEntry {
+                                    binding: i as u32,
+                                    resource: buf.as_entire_binding(),
+                                })
+                                .collect();
                             let bind_group =
                                 state.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                                    label: Some("Compute Bind Group"),
+                                    label: Some("Multi-Storage Bind Group"),
                                     layout: &bind_group_layout,
-                                    entries: &[wgpu::BindGroupEntry {
-                                        binding: 0,
-                                        resource: storage.as_entire_binding(),
-                                    }],
+                                    entries: &entries,
                                 });
-
                             let mut encoder = state.device.create_command_encoder(
                                 &wgpu::CommandEncoderDescriptor {
-                                    label: Some("Compute Encoder"),
+                                    label: Some("Compute Encoder (Multi)"),
                                 },
                             );
                             {
                                 let mut cpass =
                                     encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                                        label: Some("Compute Pass"),
+                                        label: Some("Compute Pass (Multi)"),
                                         timestamp_writes: None,
                                     });
                                 cpass.set_pipeline(pipeline);
@@ -579,25 +588,64 @@ impl KnotenApp {
                                 cpass.dispatch_workgroups(x, y, z);
                             }
                             state.queue.submit(std::iter::once(encoder.finish()));
-                            // Sprint 204: Store buffer for readback
-                            self.compute_buffers.insert(shader_id, storage);
-                        } else {
-                            // No data inputs — dispatch without bind group (backward compat)
-                            let mut encoder = state.device.create_command_encoder(
-                                &wgpu::CommandEncoderDescriptor {
-                                    label: Some("Compute Encoder"),
-                                },
-                            );
-                            {
-                                let mut cpass =
-                                    encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                                        label: Some("Compute Pass"),
-                                        timestamp_writes: None,
-                                    });
-                                cpass.set_pipeline(pipeline);
-                                cpass.dispatch_workgroups(x, y, z);
+                            if let Some(first) = storage_buffers.into_iter().next() {
+                                self.compute_buffers.insert(shader_id, first);
                             }
-                            state.queue.submit(std::iter::once(encoder.finish()));
+                        } else {
+                            let (data_bytes, element_count) = inputs_to_storage_buffer(&inputs);
+                            if element_count > 0 {
+                                let storage = state.device.create_buffer(&wgpu::BufferDescriptor {
+                                    label: Some("Compute Storage Buffer"),
+                                    size: data_bytes.len() as u64,
+                                    usage: wgpu::BufferUsages::STORAGE
+                                        | wgpu::BufferUsages::COPY_DST,
+                                    mapped_at_creation: false,
+                                });
+                                state.queue.write_buffer(&storage, 0, &data_bytes);
+                                let bind_group_layout = pipeline.get_bind_group_layout(0);
+                                let bind_group =
+                                    state.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                                        label: Some("Compute Bind Group"),
+                                        layout: &bind_group_layout,
+                                        entries: &[wgpu::BindGroupEntry {
+                                            binding: 0,
+                                            resource: storage.as_entire_binding(),
+                                        }],
+                                    });
+                                let mut encoder = state.device.create_command_encoder(
+                                    &wgpu::CommandEncoderDescriptor {
+                                        label: Some("Compute Encoder"),
+                                    },
+                                );
+                                {
+                                    let mut cpass =
+                                        encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                                            label: Some("Compute Pass"),
+                                            timestamp_writes: None,
+                                        });
+                                    cpass.set_pipeline(pipeline);
+                                    cpass.set_bind_group(0, &bind_group, &[]);
+                                    cpass.dispatch_workgroups(x, y, z);
+                                }
+                                state.queue.submit(std::iter::once(encoder.finish()));
+                                self.compute_buffers.insert(shader_id, storage);
+                            } else {
+                                let mut encoder = state.device.create_command_encoder(
+                                    &wgpu::CommandEncoderDescriptor {
+                                        label: Some("Compute Encoder"),
+                                    },
+                                );
+                                {
+                                    let mut cpass =
+                                        encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                                            label: Some("Compute Pass"),
+                                            timestamp_writes: None,
+                                        });
+                                    cpass.set_pipeline(pipeline);
+                                    cpass.dispatch_workgroups(x, y, z);
+                                }
+                                state.queue.submit(std::iter::once(encoder.finish()));
+                            }
                         }
                     } else {
                         eprintln!("DispatchCompute failed: Shader {} not found.", shader_id);

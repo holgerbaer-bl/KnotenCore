@@ -119,6 +119,7 @@ pub enum RenderCommand {
         y: u32,
         z: u32,
         inputs: Vec<crate::executor::RelType>,
+        bindings: Option<Vec<Vec<crate::executor::RelType>>>,
     },
     // Sprint 204: Read back compute shader results from GPU to VM
     ReadComputeResult {
@@ -910,6 +911,7 @@ pub fn registry_dispatch_compute(
         y,
         z,
         inputs,
+        bindings: None,
     });
 }
 

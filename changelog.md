@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 238: GPGPU Multi-Storage-Buffer Bindings & Render-Pipeline Coupling (2026-05-31)
+Sprint 238: Multi-Storage-Buffer Bindings. Extended the WGPU compute pipeline with dynamic multi-buffer binding support, enabling zero-copy data handoff between compute and render passes.
+- **Multi-Buffer Bind Group**: `RenderCommand::DispatchCompute` gains optional `bindings: Option<Vec<Vec<RelType>>>` field. When present, each inner `Vec` becomes a separate `STORAGE | COPY_DST` buffer, bound at consecutive bind-group indices (binding 0, 1, ...) within `@group(0)`. The bind group is constructed with enumerated `BindGroupEntry` entries — positions at binding 0, velocities/attributes at binding 1.
+- **Zero-Copy VRAM Pipeline**: Compute shader outputs written to storage buffers remain in VRAM; no CPU-side read-modify-write between compute and render passes. The render pipeline's vertex/fragment shaders can directly reference the same buffers via matching bind group declarations.
+- **Input Partitioning**: New `split_inputs_to_bindings()` helper detects particle stride (6 or 7) and separates position data (elements 0-2 per particle) into binding 0 and velocity data (elements 3-5) into binding 1. Returns `None` for non-stride-aligned data, preserving backward-compatible single-buffer dispatch via `bindings: None`.
+- **OpDispatchComputeLoop Integration**: AOT and JIT handlers now call `split_inputs_to_bindings()` before each dispatch. When stride is detected, `bindings` is populated and `inputs` is sent empty (data goes through bindings instead).
+- **Tests**: `test_gpgpu_multi_storage_binding` (12-element particle array → 2 bindings × 6 elements each, position/velocity verification) and `test_multi_storage_binding_no_split_for_non_stride` (4-element non-stride data → `None`). Test suite grows 170 → 172.
+- **CI**: 172/172 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 237: LSP Matrix Handle Static Validation Engine (2026-05-31)
 Sprint 237: LSP Handle Validation. Extended the Language Server with static matrix handle validation for `DispatchComputeLoop` nodes and added the `matrix_handle` field to the official AST.
 - **AST Extension**: `DispatchComputeLoop` gains `matrix_handle: Option<Box<Node>>` in `knoten_core_types/src/ast.rs`. When `Some`, the compiler evaluates the handle expression at compile time; when `None`, the compiler injects the default `Constant(-1)` passthrough. All exhaustive match arms updated in `validator.rs`, `optimizer.rs` (count_nodes + optimize), `evaluator.rs`, and `compiler.rs`.

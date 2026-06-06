@@ -93,6 +93,33 @@ pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
     }
 }
 
+pub fn split_inputs_to_bindings(inputs: &[RelType]) -> Option<Vec<Vec<RelType>>> {
+    let len = inputs.len();
+    let stride = if len >= 6 && len.is_multiple_of(6) {
+        6
+    } else if len >= 7 && len.is_multiple_of(7) {
+        7
+    } else {
+        return None;
+    };
+    let particle_count = len / stride;
+    let mut positions: Vec<RelType> = Vec::with_capacity(particle_count * 3);
+    let mut velocities: Vec<RelType> = Vec::with_capacity(particle_count * 3);
+    let mut i = 0;
+    while i + stride <= len {
+        positions.push(inputs[i].clone());
+        positions.push(inputs[i + 1].clone());
+        positions.push(inputs[i + 2].clone());
+        if stride >= 6 {
+            velocities.push(inputs[i + 3].clone());
+            velocities.push(inputs[i + 4].clone());
+            velocities.push(inputs[i + 5].clone());
+        }
+        i += stride;
+    }
+    Some(vec![positions, velocities])
+}
+
 impl VM {
     pub fn new() -> Self {
         Self {
@@ -926,6 +953,7 @@ impl VM {
                             y,
                             z,
                             inputs,
+                            bindings: None,
                         },
                     );
                     self.stack.push(RelType::Void);
@@ -963,13 +991,19 @@ impl VM {
                         if let Some(ref m) = mat {
                             apply_matrix_to_inputs(&mut inputs, m);
                         }
+                        let multi_bindings = split_inputs_to_bindings(&inputs);
                         crate::natives::registry::send_render_command(
                             crate::natives::registry::RenderCommand::DispatchCompute {
                                 shader_id,
                                 x: x_workgroups,
                                 y: 1,
                                 z: 1,
-                                inputs: inputs.clone(),
+                                inputs: if multi_bindings.is_some() {
+                                    vec![]
+                                } else {
+                                    inputs.clone()
+                                },
+                                bindings: multi_bindings,
                             },
                         );
                         let result =
@@ -2201,5 +2235,64 @@ mod tests {
         assert!((py - 1.0).abs() < 0.01, "rotZ90: y=0 -> 1, got {}", py);
         assert!((vx - 0.0).abs() < 0.01, "vel x rotated to 0");
         assert!((vy - 0.1).abs() < 0.01, "vel y rotated");
+    }
+
+    #[test]
+    fn test_gpgpu_multi_storage_binding() {
+        let inputs: Vec<RelType> = vec![
+            RelType::Float(1.0),
+            RelType::Float(2.0),
+            RelType::Float(3.0),
+            RelType::Float(0.1),
+            RelType::Float(0.2),
+            RelType::Float(0.3),
+            RelType::Float(4.0),
+            RelType::Float(5.0),
+            RelType::Float(6.0),
+            RelType::Float(0.4),
+            RelType::Float(0.5),
+            RelType::Float(0.6),
+        ];
+
+        let bindings = split_inputs_to_bindings(&inputs);
+        assert!(bindings.is_some());
+        let sets = bindings.unwrap();
+        assert_eq!(sets.len(), 2, "Should split into 2 binding sets");
+
+        let positions = &sets[0];
+        assert_eq!(positions.len(), 6, "2 particles x 3 position coords = 6");
+        assert!(
+            (match &positions[0] {
+                RelType::Float(f) => (*f - 1.0).abs() < 0.001,
+                _ => false,
+            })
+        );
+        assert!(
+            (match &positions[4] {
+                RelType::Float(f) => (*f - 5.0).abs() < 0.001,
+                _ => false,
+            })
+        );
+
+        let velocities = &sets[1];
+        assert_eq!(velocities.len(), 6, "2 particles x 3 velocity coords = 6");
+        assert!(
+            (match &velocities[2] {
+                RelType::Float(f) => (*f - 0.3).abs() < 0.001,
+                _ => false,
+            })
+        );
+    }
+
+    #[test]
+    fn test_multi_storage_binding_no_split_for_non_stride() {
+        let inputs: Vec<RelType> = vec![
+            RelType::Float(1.0),
+            RelType::Float(2.0),
+            RelType::Float(3.0),
+            RelType::Float(4.0),
+        ];
+        let bindings = split_inputs_to_bindings(&inputs);
+        assert!(bindings.is_none(), "4 elements not divisible by 6 or 7");
     }
 }
