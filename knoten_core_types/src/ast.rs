@@ -239,6 +239,14 @@ pub enum Node {
     UIGrid(i64, String, Box<Node>), // Columns, ID, Body
     UIScrollArea(String, Box<Node>), // ID, Body for native scrolling view
 
+    // Sprint 251: Procedural multi-pane split layout
+    UISplitPanel {
+        direction: String,     // "Horizontal" or "Vertical"
+        factor: Box<Node>,     // Float 0.0..=1.0 ratio
+        left_body: Box<Node>,  // Top/Left child
+        right_body: Box<Node>, // Bottom/Right child
+    },
+
     LoadSample(Box<Node>, Box<Node>), // ID (Int), Path (String)
     PlaySample(Box<Node>, Box<Node>, Box<Node>), // ID (Int), Volume (Float), Pitch (Float)
     // Control Flow

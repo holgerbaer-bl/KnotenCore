@@ -141,6 +141,14 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::UIScrollArea(_, b) => {
             count += count_nodes(b);
         }
+        Node::UISplitPanel {
+            factor,
+            left_body,
+            right_body,
+            ..
+        } => {
+            count += count_nodes(factor) + count_nodes(left_body) + count_nodes(right_body);
+        }
         Node::UIHBox(nodes) | Node::UIVBox(nodes) => {
             for n in nodes {
                 count += count_nodes(n);
@@ -583,6 +591,17 @@ pub fn optimize(node: Node) -> Node {
         Node::UIFullscreen(b) => Node::UIFullscreen(Box::new(optimize(*b))),
         Node::UIGrid(cols, id, body) => Node::UIGrid(cols, id, Box::new(optimize(*body))),
         Node::UIScrollArea(id, body) => Node::UIScrollArea(id, Box::new(optimize(*body))),
+        Node::UISplitPanel {
+            direction,
+            factor,
+            left_body,
+            right_body,
+        } => Node::UISplitPanel {
+            direction,
+            factor: Box::new(optimize(*factor)),
+            left_body: Box::new(optimize(*left_body)),
+            right_body: Box::new(optimize(*right_body)),
+        },
         Node::LoadSample(id, p) => {
             Node::LoadSample(Box::new(optimize(*id)), Box::new(optimize(*p)))
         }

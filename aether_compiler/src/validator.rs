@@ -307,6 +307,24 @@ impl Validator {
                     self.check_node(n);
                 }
             }
+            Node::UISplitPanel {
+                factor,
+                left_body,
+                right_body,
+                ..
+            } => {
+                self.check_node(factor);
+                self.check_node(left_body);
+                self.check_node(right_body);
+                if let Node::FloatLiteral(f) = &**factor
+                    && !(0.0..=1.0).contains(f)
+                {
+                    self.errors.push(format!(
+                        "ERR_INVALID_LAYOUT_FACTOR: factor {} out of range (0.0..=1.0)",
+                        f
+                    ));
+                }
+            }
             Node::DrawText(t, x, y, s, c) => {
                 self.check_node(t);
                 self.check_node(x);
@@ -659,5 +677,32 @@ mod tests {
                 .iter()
                 .any(|e| e.contains("ERR_STRUCT_LAYOUT_MISMATCH"))
         );
+    }
+
+    #[test]
+    fn test_frontend_split_panel_bounds() {
+        let mut validator = Validator::new();
+        let invalid = Node::UISplitPanel {
+            direction: "Horizontal".to_string(),
+            factor: Box::new(Node::FloatLiteral(1.5)),
+            left_body: Box::new(Node::Block(vec![])),
+            right_body: Box::new(Node::Block(vec![])),
+        };
+        let result = validator.validate(&invalid);
+        assert!(result.is_err(), "Factor 1.5 must trigger error");
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("ERR_INVALID_LAYOUT_FACTOR"))
+        );
+
+        let valid = Node::UISplitPanel {
+            direction: "Vertical".to_string(),
+            factor: Box::new(Node::FloatLiteral(0.3)),
+            left_body: Box::new(Node::Block(vec![])),
+            right_body: Box::new(Node::Block(vec![])),
+        };
+        assert!(validator.validate(&valid).is_ok());
     }
 }

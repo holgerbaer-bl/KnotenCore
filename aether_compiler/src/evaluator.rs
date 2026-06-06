@@ -736,6 +736,7 @@ impl ExecutionEngine {
             | Node::UIFullscreen(_)
             | Node::UIGrid(_, _, _)
             | Node::UIScrollArea(_, _)
+            | Node::UISplitPanel { .. }
             | Node::LoadSample(_, _)
             | Node::PlaySample(_, _, _)
             | Node::Import(_)

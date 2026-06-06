@@ -1674,6 +1674,39 @@ fn render_egui_node(ui: &mut egui::Ui, node: &knoten_core_types::ast::Node) {
                 }
             });
         }
+        knoten_core_types::ast::Node::UISplitPanel {
+            direction,
+            factor,
+            left_body,
+            right_body,
+        } => {
+            let ratio = match &**factor {
+                knoten_core_types::ast::Node::FloatLiteral(f) => (*f as f32).clamp(0.0, 1.0),
+                knoten_core_types::ast::Node::IntLiteral(i) => (*i as f32 / 100.0).clamp(0.0, 1.0),
+                _ => 0.5,
+            };
+            if direction == "Horizontal" {
+                ui.horizontal(|ui| {
+                    let rect = ui.available_rect_before_wrap();
+                    let left_w = rect.width() * ratio;
+                    ui.allocate_ui(egui::vec2(left_w, rect.height()), |ui| {
+                        render_egui_node(ui, left_body)
+                    });
+                    ui.separator();
+                    ui.allocate_ui(ui.available_size(), |ui| render_egui_node(ui, right_body));
+                });
+            } else {
+                ui.vertical(|ui| {
+                    let rect = ui.available_rect_before_wrap();
+                    let top_h = rect.height() * ratio;
+                    ui.allocate_ui(egui::vec2(rect.width(), top_h), |ui| {
+                        render_egui_node(ui, left_body)
+                    });
+                    ui.separator();
+                    ui.allocate_ui(ui.available_size(), |ui| render_egui_node(ui, right_body));
+                });
+            }
+        }
 
         // Unsupported nodes are silently ignored (no panic).
         _ => {}

@@ -1033,6 +1033,14 @@ impl ExecutionEngine {
             | Node::UIFullscreen(body)
             | Node::UIGrid(_, _, body)
             | Node::UIScrollArea(_, body) => self.evaluate(body),
+            Node::UISplitPanel {
+                left_body,
+                right_body,
+                ..
+            } => {
+                self.evaluate(left_body);
+                self.evaluate(right_body)
+            }
             Node::UIHBox(children) | Node::UIVBox(children) => {
                 for child in children {
                     self.evaluate(child);

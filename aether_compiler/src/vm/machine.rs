@@ -2478,10 +2478,6 @@ mod tests {
                 "WASM target: WebGPU surface config must use Bgra8Unorm"
             );
         }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            assert!(true, "Native target: standard WGPU surface config");
-        }
         assert!(cfg!(not(target_arch = "wasm32")), "Expected native target");
     }
 }

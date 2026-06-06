@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 251: Multi-Pane UI Split Layout DSL Engine (2026-05-31)
+Sprint 251: Multi-Pane Split Layout. Deployed procedural split-panel UI layouts in the AST and egui render pipeline with static factor validation.
+- **AST Node**: `UISplitPanel { direction: String, factor: Box<Node>, left_body: Box<Node>, right_body: Box<Node> }` added to `knoten_core_types/src/ast.rs`. Direction is `"Horizontal"` (side-by-side) or `"Vertical"` (top-bottom). Factor is a Float node defining the split ratio (0.0–1.0).
+- **Egui Renderer**: `render_egui_node` in `window.rs` handles `UISplitPanel` with ratio extraction from `FloatLiteral`/`IntLiteral`/default-0.5. Horizontal: `ui.horizontal()` with `allocate_ui` width allocation. Vertical: `ui.vertical()` with `allocate_ui` height allocation. Separator between panes.
+- **Validator Factor Check**: `check_node` extracts the factor `FloatLiteral` value; values outside `(0.0..=1.0)` emit `ERR_INVALID_LAYOUT_FACTOR`. Collapsed `if let ... && ...` pattern to satisfy clippy.
+- **Exhaustive Match Arms**: Updated `optimizer.rs` (count_nodes + optimize), `evaluator.rs`, `executor.rs`, and `validator.rs` for the new 4-field struct node.
+- **Test**: `test_frontend_split_panel_bounds` validates factor 1.5 triggers `ERR_INVALID_LAYOUT_FACTOR`, factor -0.2 triggers error, and factor 0.3 passes.
+- **Test Suite**: 185 → 186 tests (101 lib + 55 integration + 23 sandbox + 7 LSP).
+- **CI**: 186/186 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 250: WASM & WebGPU Render Pipeline Port (2026-05-31)
 Sprint 250: WASM Platform Preparation. Prepared the workspace for WebAssembly/WebGPU compilation with conditional compilation guards, target-specific dependency features, and browser-sandbox architecture alignment.
 - **Cargo WASM Target**: Added `[target.'cfg(target_arch = "wasm32")'.dependencies]` to root `Cargo.toml` enabling `wgpu` WebGPU/WebGL backends and `winit` raw-window-handle features (`rwh_05`, `rwh_06`) for canvas-based windowing.
