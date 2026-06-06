@@ -60,6 +60,8 @@ pub struct RegistryWindowState {
     pub egui_state: egui_winit::State,
     pub egui_renderer: egui_wgpu::Renderer,
     pub ui_tree: Vec<knoten_core_types::ast::Node>,
+    pub particle_pipeline: Option<wgpu::RenderPipeline>,
+    pub particle_bgl: Option<wgpu::BindGroupLayout>,
 }
 
 pub(crate) static NEXT_ENTITY_ID: AtomicUsize = AtomicUsize::new(1);

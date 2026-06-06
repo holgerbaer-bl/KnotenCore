@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.3.0-alpha] - Sprint 239: WGSL Shader Multi-Binding Integration & Render Pipeline Execution (2026-05-31)
+Sprint 239: WGSL Pipeline Completion. Integrated the multi-storage-buffer compute output into the render pipeline, enabling direct GPU-side compute-to-vertex data flow with zero CPU round-trip.
+- **WGSL Compute Shader**: `data_preprocessor.wgsl` now declares `@binding(0) positions: array<vec3<f32>>` and `@binding(1) velocities: array<vec3<f32>>` — matching the Sprint 238 split layout. Euler integration step: `positions += velocities * 0.016` (60Hz frame delta).
+- **Particle Render Shader**: New `particle_render.wgsl` vertex shader reads positions directly from `@binding(0)` storage buffer (read-only) and uses `@builtin(vertex_index)` to index particle data. No CPU vertex buffer upload required. Fragment shader outputs a single orange color. Camera UBO at `@binding(1)` for view-projection transform.
+- **Pipeline Synchronization**: `KnotenApp` gains `particle_buffer: Option<wgpu::Buffer>` and `particle_count: u32` — populated from the multi-binding dispatch. The render loop in `RedrawRequested` now inserts a particle pass before the 3D pass: creates a bind group with the compute position buffer and camera uniform, sets the particle pipeline, and draws `particle_count * 6` vertices (2 triangles per particle). Uses `LoadOp::Load` for alpha-blended overlay.
+- **State Crate**: `RegistryWindowState` gains `particle_pipeline: Option<wgpu::RenderPipeline>` and `particle_bgl: Option<wgpu::BindGroupLayout>` — created at window initialization alongside the main 3D pipeline.
+- **Shader Test**: `test_shader_multi_binding_compilation` validates both WGSL sources via `include_str!()` — verifies `@binding(0)`, `@binding(1)`, `positions`/`velocities` in compute, and `vs_main`/`fs_main` entry points in render.
+- **Test Suite**: 173/173 tests (91 lib + 55 integration + 23 sandbox + 4 LSP).
+- **CI**: 173/173 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.3.0-alpha] - Sprint 238: GPGPU Multi-Storage-Buffer Bindings & Render-Pipeline Coupling (2026-05-31)
 Sprint 238: Multi-Storage-Buffer Bindings. Extended the WGPU compute pipeline with dynamic multi-buffer binding support, enabling zero-copy data handoff between compute and render passes.
 - **Multi-Buffer Bind Group**: `RenderCommand::DispatchCompute` gains optional `bindings: Option<Vec<Vec<RelType>>>` field. When present, each inner `Vec` becomes a separate `STORAGE | COPY_DST` buffer, bound at consecutive bind-group indices (binding 0, 1, ...) within `@group(0)`. The bind group is constructed with enumerated `BindGroupEntry` entries — positions at binding 0, velocities/attributes at binding 1.

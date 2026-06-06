@@ -1,25 +1,19 @@
-// Sprint 187: Data Preprocessor — GPU-accelerated data normalization shader
-// Reads a float array from a storage buffer, applies preprocessing, writes back.
+// Sprint 238/239: Multi-storage-buffer data preprocessor
+// @group(0) @binding(0): particle positions (vec3<f32>)
+// @group(0) @binding(1): particle velocities (vec3<f32>)
 //
-// Usage: load this shader, then dispatch_compute(shader_handle, workgroups, 1, 1, data_array)
 // Each workgroup processes 64 elements in parallel.
+// Applies Euler integration: position += velocity * delta_time (16ms)
 
-@group(0) @binding(0) var<storage, read_write> data: array<f32>;
+@group(0) @binding(0) var<storage, read_write> positions: array<vec3<f32>>;
+@group(0) @binding(1) var<storage, read_write> velocities: array<vec3<f32>>;
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     let idx = id.x;
-    if (idx >= arrayLength(&data)) {
+    if (idx >= arrayLength(&positions)) {
         return;
     }
-
-    // Read the raw value
-    let raw = data[idx];
-
-    // Apply preprocessing: clamp to [0, 1] range, then scale
-    let clamped = clamp(raw, 0.0, 1.0);
-    let normalized = clamped * 100.0;
-
-    // Write back
-    data[idx] = normalized;
+    let vel = velocities[idx];
+    positions[idx] = positions[idx] + vel * 0.016;
 }

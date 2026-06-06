@@ -2295,4 +2295,20 @@ mod tests {
         let bindings = split_inputs_to_bindings(&inputs);
         assert!(bindings.is_none(), "4 elements not divisible by 6 or 7");
     }
+
+    #[test]
+    fn test_shader_multi_binding_compilation() {
+        let shader_src = include_str!("../../assets/shaders/data_preprocessor.wgsl");
+        assert!(!shader_src.is_empty());
+        assert!(shader_src.contains("@binding(0)"));
+        assert!(shader_src.contains("@binding(1)"));
+        assert!(shader_src.contains("positions"));
+        assert!(shader_src.contains("velocities"));
+
+        let particle_src = include_str!("../../assets/shaders/particle_render.wgsl");
+        assert!(!particle_src.is_empty());
+        assert!(particle_src.contains("@binding(0)"));
+        assert!(particle_src.contains("vs_main"));
+        assert!(particle_src.contains("fs_main"));
+    }
 }

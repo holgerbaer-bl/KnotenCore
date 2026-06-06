@@ -12,6 +12,9 @@ pub struct KnotenApp {
     pub compute_pipelines: HashMap<usize, wgpu::ComputePipeline>,
     // Sprint 204: stored compute buffers for readback
     pub compute_buffers: HashMap<usize, wgpu::Buffer>,
+    // Sprint 239: particle data for compute-to-render coupling
+    pub particle_buffer: Option<wgpu::Buffer>,
+    pub particle_count: u32,
 }
 
 impl Default for KnotenApp {
@@ -27,6 +30,8 @@ impl KnotenApp {
             window_id_map: HashMap::new(),
             compute_pipelines: HashMap::new(),
             compute_buffers: HashMap::new(),
+            particle_buffer: None,
+            particle_count: 0,
         }
     }
 
@@ -302,6 +307,76 @@ impl KnotenApp {
                     cache: None,
                 });
 
+                let particle_bgl =
+                    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                        label: Some("Particle BGL"),
+                        entries: &[
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 0,
+                                visibility: wgpu::ShaderStages::VERTEX,
+                                ty: wgpu::BindingType::Buffer {
+                                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                                    has_dynamic_offset: false,
+                                    min_binding_size: None,
+                                },
+                                count: None,
+                            },
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 1,
+                                visibility: wgpu::ShaderStages::VERTEX,
+                                ty: wgpu::BindingType::Buffer {
+                                    ty: wgpu::BufferBindingType::Uniform,
+                                    has_dynamic_offset: false,
+                                    min_binding_size: None,
+                                },
+                                count: None,
+                            },
+                        ],
+                    });
+
+                let particle_layout =
+                    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                        label: Some("Particle Pipeline Layout"),
+                        bind_group_layouts: &[&particle_bgl],
+                        push_constant_ranges: &[],
+                    });
+
+                let particle_shader_src = include_str!("../assets/shaders/particle_render.wgsl");
+                let particle_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("Particle Shader"),
+                    source: wgpu::ShaderSource::Wgsl(particle_shader_src.into()),
+                });
+
+                let particle_pipeline =
+                    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                        label: Some("Particle Pipeline"),
+                        layout: Some(&particle_layout),
+                        vertex: wgpu::VertexState {
+                            module: &particle_module,
+                            entry_point: Some("vs_main"),
+                            buffers: &[],
+                            compilation_options: Default::default(),
+                        },
+                        fragment: Some(wgpu::FragmentState {
+                            module: &particle_module,
+                            entry_point: Some("fs_main"),
+                            targets: &[Some(wgpu::ColorTargetState {
+                                format: config.format,
+                                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                                write_mask: wgpu::ColorWrites::ALL,
+                            })],
+                            compilation_options: Default::default(),
+                        }),
+                        primitive: wgpu::PrimitiveState {
+                            topology: wgpu::PrimitiveTopology::TriangleList,
+                            ..Default::default()
+                        },
+                        depth_stencil: None,
+                        multisample: wgpu::MultisampleState::default(),
+                        multiview: None,
+                        cache: None,
+                    });
+
                 let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
                     label: Some("Depth Texture"),
                     size: wgpu::Extent3d {
@@ -479,6 +554,8 @@ impl KnotenApp {
                         egui_state,
                         egui_renderer,
                         ui_tree: Vec::new(),
+                        particle_pipeline: Some(particle_pipeline),
+                        particle_bgl: Some(particle_bgl),
                     },
                 );
                 // Sprint 174: Trigger initial frame — subsequent frames are
@@ -589,7 +666,13 @@ impl KnotenApp {
                             }
                             state.queue.submit(std::iter::once(encoder.finish()));
                             if let Some(first) = storage_buffers.into_iter().next() {
-                                self.compute_buffers.insert(shader_id, first);
+                                let count = if let Some(pos_data) = binding_sets.first() {
+                                    pos_data.len() as u32 / 3
+                                } else {
+                                    0
+                                };
+                                self.particle_buffer = Some(first);
+                                self.particle_count = count;
                             }
                         } else {
                             let (data_bytes, element_count) = inputs_to_storage_buffer(&inputs);
@@ -1214,6 +1297,50 @@ impl ApplicationHandler<RenderCommand> for KnotenApp {
 
                 // Drain commands for this frame
                 state.commands.clear();
+
+                // Sprint 239: Particle render pass — reads compute storage buffers directly
+                if self.particle_count > 0
+                    && let Some(ref pos_buffer) = self.particle_buffer
+                    && let Some(ref particle_pipeline) = state.particle_pipeline
+                    && let Some(ref particle_bgl) = state.particle_bgl
+                {
+                    let particle_bind_group =
+                        state.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                            label: Some("Particle Render Bind Group"),
+                            layout: particle_bgl,
+                            entries: &[
+                                wgpu::BindGroupEntry {
+                                    binding: 0,
+                                    resource: pos_buffer.as_entire_binding(),
+                                },
+                                wgpu::BindGroupEntry {
+                                    binding: 1,
+                                    resource: wgpu::BindingResource::Buffer(
+                                        state.camera_buffer.as_entire_buffer_binding(),
+                                    ),
+                                },
+                            ],
+                        });
+                    {
+                        let mut p_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Particle Pass"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: wgpu::StoreOp::Store,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        });
+                        p_pass.set_pipeline(particle_pipeline);
+                        p_pass.set_bind_group(0, &particle_bind_group, &[]);
+                        p_pass.draw(0..(self.particle_count * 6), 0..1);
+                    }
+                }
 
                 {
                     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
