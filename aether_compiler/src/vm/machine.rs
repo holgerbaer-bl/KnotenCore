@@ -102,6 +102,7 @@ pub struct VMIsolate {
     pub constants: Vec<RelType>,
     pub isolate_id: i64,
     pub mailbox: Option<std::sync::mpsc::Receiver<RelType>>,
+    pub local_heap: HashMap<String, RelType>,
 }
 
 impl VMIsolate {
@@ -111,6 +112,7 @@ impl VMIsolate {
             constants,
             isolate_id: -1,
             mailbox: None,
+            local_heap: HashMap::new(),
         }
     }
 
@@ -125,11 +127,15 @@ impl VMIsolate {
             constants,
             isolate_id,
             mailbox: Some(mailbox),
+            local_heap: HashMap::new(),
         }
     }
 
     pub fn run(mut self) -> Result<RelType, String> {
         let mut vm = VM::new();
+        for (k, v) in self.local_heap.drain() {
+            vm.globals.insert(k, v);
+        }
         let perms = AgentPermissions::default();
         if self.instructions.is_empty()
             && let Some(stolen) = try_steal_work(self.isolate_id)
@@ -2843,6 +2849,34 @@ mod tests {
                         let result = isolate.run();
                         assert!(result.is_ok(), "Isolate must succeed");
                     }
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            handle.join().expect("Thread panicked");
+        }
+    }
+
+    #[test]
+    fn test_isolate_local_heap_allocation() {
+        let handles: Vec<_> = (0..2)
+            .map(|id| {
+                std::thread::spawn(move || {
+                    let mut isolate = VMIsolate::new(
+                        vec![OpCode::Constant(0), OpCode::Return],
+                        vec![RelType::Int(0)],
+                    );
+                    isolate.isolate_id = id;
+                    for i in 0..5000i64 {
+                        isolate.local_heap.insert(
+                            format!("arr_{}_{}", id, i),
+                            RelType::Array(vec![RelType::Int(i); 3]),
+                        );
+                    }
+                    assert_eq!(isolate.local_heap.len(), 5000);
+                    let result = isolate.run();
+                    assert!(result.is_ok());
                 })
             })
             .collect();

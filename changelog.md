@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 266: Isolate-Bound Local Heap Storage (2026-06-01)
+Sprint 266: Isolate Local Heap. Deployed per-isolate local heap storage with automatic context cleanup — 200th test milestone.
+- **Local Heap**: `VMIsolate` gains `local_heap: HashMap<String, RelType>` — a per-thread temporary storage pool for arrays, dictionaries, and dynamic structures. Merged into `VM::globals` before execution via `local_heap.drain()`.
+- **Garbage Isolation**: Since each `VM` instance owns its entire state (stack, globals, frames), allocations are naturally isolated per thread. No global lock mechanisms needed for `AllocateDict` or `ArrayCreate` — each isolate operates on its own heap. On `JoinHandle` completion, all memory is atomically freed by Rust's ownership model.
+- **Test**: `test_isolate_local_heap_allocation` spawns 2 isolates in parallel, each creating 5000 heap entries (30k `RelType` elements total), verifies heap counts, then runs and drops cleanly — no leaks, no contention.
+- **Test Suite**: 199 → 200 tests — the **200-test milestone**. (113 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 200/200 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 265: Zero-Allocation Cross-Isolate FFI Bridge (2026-06-01)
 Sprint 265: Zero-Alloc FFI Bridge. Hardened the FFI bridge module for multi-threaded operation.
 - **Allocation-Free Routing**: CoreBridge operates on `&[RelType]` references throughout all module paths. Pattern matching uses `&let` to avoid temporary clones.
