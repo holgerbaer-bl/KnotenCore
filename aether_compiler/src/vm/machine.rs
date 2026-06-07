@@ -2827,4 +2827,28 @@ mod tests {
 
         drain_isolate_snapshots();
     }
+
+    #[test]
+    fn test_cross_isolate_ffi_contention() {
+        let instructions = vec![OpCode::Constant(0), OpCode::Return];
+        let constants = vec![RelType::Float(1.0)];
+
+        let handles: Vec<_> = (0..4)
+            .map(|_| {
+                let instr = instructions.clone();
+                let cnst = constants.clone();
+                std::thread::spawn(move || {
+                    for _ in 0..10_000 {
+                        let isolate = VMIsolate::new(instr.clone(), cnst.clone());
+                        let result = isolate.run();
+                        assert!(result.is_ok(), "Isolate must succeed");
+                    }
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            handle.join().expect("Thread panicked");
+        }
+    }
 }

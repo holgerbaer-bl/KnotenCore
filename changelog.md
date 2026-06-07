@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 265: Zero-Allocation Cross-Isolate FFI Bridge (2026-06-01)
+Sprint 265: Zero-Alloc FFI Bridge. Hardened the FFI bridge module for multi-threaded operation.
+- **Allocation-Free Routing**: CoreBridge operates on `&[RelType]` references throughout all module paths. Pattern matching uses `&let` to avoid temporary clones.
+- **Reentrancy Guarantee**: Math/string/WGPU handlers are stateless pure functions. Multiple VMIsolate threads can execute simultaneous FFI calls without mutex contention.
+- **Contention Test**: `test_cross_isolate_ffi_contention` — 4 threads × 10,000 isolates each, all completing without blocking.
+- **Test Suite**: 198 → 199 tests (112 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 199/199 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 263: Atomic Snapshot Synchronization & Isolate Rollback (2026-06-01)
 Sprint 263: Atomic Snapshot Sync. Deployed cross-thread isolate checkpointing with non-blocking snapshot storage and automatic fault-triggered rollback.
 - **Snapshot Registry**: `ISOLATE_SNAPSHOTS: OnceLock<Mutex<HashMap<i64, VMState>>>` stores per-isolate VM state snapshots. `store_snapshot(id, state)` inserts atomically; `snapshot_isolate(id) -> Option<VMState>` returns a cloned snapshot; `rollback_isolate(id, state)` overwrites the stored snapshot.
