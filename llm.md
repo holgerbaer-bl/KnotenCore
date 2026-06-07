@@ -83,6 +83,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.
 - **Multi-Threaded Isolate Scaling** (v1.5.0) → `VMIsolate { instructions, constants, isolate_id, mailbox }` wraps a complete VM execution context. `spawn_isolate()` creates a `std::thread::spawn` running `VM::run()` with fully isolated operands (stack, globals, frames) — zero cross-thread data races.
 - **Lock-Free Mailbox RPC** (v1.5.0) → `registry_send_message(target_isolate_id: Int, message: Any) -> Bool` routes a `RelType` payload to the target isolate's crossbeam `Sender` via `try_send()`. `MAILBOX_REGISTRY: OnceLock<Mutex<HashMap<i64, Sender<RelType>>>>` maps isolate IDs to bounded(16) channels. Messages are consumed by the target isolate's local `Receiver`. No locking in the RPC hot-path — `try_send`/`try_recv` only.
+- **Deterministic Work-Stealing Scheduler** (v1.5.0) → `push_work_batch(isolate_id: Int, batch: Array)` donates `(OpCode, Vec<RelType>)` tasks to a global `WORK_STEALING_QUEUES` pool. `try_steal_work(thief_id: Int) -> Option<(OpCode, Vec<RelType>)>` iterates all queues except the thief's own and pops the first available task. `VMIsolate::run()` automatically checks for stolen work when its local instruction queue is empty. The instruction pointer (`ip`) and thread-local registers are fully isolated per isolate — agents can safely inject opcode blocks into any queue without risking cross-thread register corruption.
 
 ---
 
