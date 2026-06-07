@@ -142,6 +142,44 @@ pub fn get_vm_inspection_snapshot() -> Option<(usize, usize)> {
     }
 }
 
+// Sprint 256: Hot-path profiling — tracks instruction block execution frequency
+static HOT_PATH_TABLE: std::sync::OnceLock<std::sync::Mutex<HashMap<usize, usize>>> =
+    std::sync::OnceLock::new();
+
+fn get_hot_path_table() -> &'static std::sync::Mutex<HashMap<usize, usize>> {
+    HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+}
+
+fn track_hot_path(ip: usize) {
+    let mut guard = get_hot_path_table()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let count = guard.entry(ip).or_insert(0);
+    *count += 1;
+    if *count == 10_000 {
+        let marker = format!("HOT_PATH_BLOCK:IP:{ip}:HITS:10000");
+        crate::natives::registry::registry_push_timing_marker(marker);
+        eprintln!("[HotPath] IP {} reached 10k hits — marked as hot", ip);
+    }
+}
+
+#[allow(dead_code)]
+fn is_hot_path(ip: usize) -> bool {
+    get_hot_path_table()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(&ip)
+        .copied()
+        .unwrap_or(0)
+        >= 10_000
+}
+
+pub fn drain_hot_path_table() {
+    if let Some(table) = HOT_PATH_TABLE.get() {
+        table.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    }
+}
+
 impl VM {
     pub fn new() -> Self {
         Self {
@@ -179,6 +217,9 @@ impl VM {
             }
 
             instr_count += 1;
+            if instr_count.is_multiple_of(100) {
+                track_hot_path(self.ip);
+            }
             if instr_count.is_multiple_of(1000)
                 && accumulated_cpu + start.elapsed() >= std::time::Duration::from_millis(50)
             {
@@ -2496,5 +2537,20 @@ mod tests {
                 _ => false,
             })
         );
+    }
+
+    #[test]
+    fn test_jit_hot_path_detection() {
+        drain_hot_path_table();
+
+        for i in 0..10_000 {
+            track_hot_path(5);
+            if i == 9_999 {
+                assert!(is_hot_path(5), "IP 5 must be hot after 10k hits");
+            }
+        }
+        assert!(!is_hot_path(1), "IP 1 must NOT be hot (0 hits)");
+
+        drain_hot_path_table();
     }
 }

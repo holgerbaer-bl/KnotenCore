@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.4.0-alpha] - Sprint 256: JIT-Warmup & Hot-Path Profiling (2026-06-01)
+Sprint 256: Hot-Path Profiling. Deployed instruction-level execution frequency tracking with automatic warmup marker emission at threshold crossings.
+- **Hot-Path Table**: `HOT_PATH_TABLE: OnceLock<Mutex<HashMap<usize, usize>>>` tracks per-IP execution frequency. `track_hot_path(ip)` called every 100 instructions in the VM run loop, incrementing the hit counter for the current instruction pointer.
+- **Warmup Trigger**: At exactly 10,000 hits on any IP, a `HOT_PATH_BLOCK:IP:{ip}:HITS:10000` marker is pushed to the profiler registry and a `[HotPath]` diagnostic is emitted. `is_hot_path(ip)` queries whether a block has crossed the threshold.
+- **GPGPU Pre-Warmup**: When a hot block contains GPGPU dispatch instructions, the profiler marker enables downstream systems (render thread, VRAM allocator) to preallocate resources. The IP-to-opcode mapping allows identifying compute-intensive hot spots.
+- **Test**: `test_jit_hot_path_detection` registers 10,000 hits at IP 5, verifies `is_hot_path(5)` returns true, and confirms a cold IP (1) returns false. `drain_hot_path_table()` for cleanup.
+- **Test Suite**: 190 → 191 tests (104 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 191/191 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.4.0-alpha] - Sprint 255: Self-Healing Error Registry (2026-06-01)
 Sprint 255: Self-Healing Registry. Deployed an automatic failure tracking and module reset system with threshold-based healing triggers.
 - **Failure Tracker**: `FAILURE_TRACKER: OnceLock<Mutex<HashMap<String, usize>>>` counts per-module errors via `registry_track_failure(module)`. Lazy-initialized, thread-safe.
