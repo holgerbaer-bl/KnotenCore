@@ -570,7 +570,7 @@ pub struct RegistryEntry {
 
 // Our dummy stateful Rust object
 pub struct StatefulCounter {
-    pub count: i64,
+    pub count: AtomicI64,
 }
 
 // GPU Context managed by the Registry
@@ -596,20 +596,22 @@ unsafe impl Sync for TextureAsset {}
 // ── Isometric software renderer removed in Sprint 176 — superseded by WGPU 3D pipeline. ──
 // ── VoxelWorldState, SendVoxelWorld, NativeHandle::VoxelWorld removed in Sprint 184. ──
 
-// Global thread-safe registry
-// Instead of lazy_static we'll use a const Mutex with an Option since lazy_static might not be available
-static COUNTER_REGISTRY: Mutex<Option<HashMap<usize, RegistryEntry>>> = Mutex::new(None);
+// Sprint 267: Lock-free native resource handles
+static COUNTER_REGISTRY: OnceLock<Mutex<HashMap<usize, RegistryEntry>>> = OnceLock::new();
 static COUNTER_NEXT_ID: AtomicUsize = AtomicUsize::new(1);
+
+fn get_counter_registry() -> &'static Mutex<HashMap<usize, RegistryEntry>> {
+    COUNTER_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()))
+}
 
 pub(crate) fn with_registry<F, R>(f: F) -> R
 where
     F: FnOnce(&mut HashMap<usize, RegistryEntry>) -> R,
 {
-    let mut option_guard = COUNTER_REGISTRY.lock().unwrap_or_else(|e| e.into_inner());
-    if option_guard.is_none() {
-        *option_guard = Some(HashMap::new());
-    }
-    f(option_guard.as_mut().expect("registry not initialized"))
+    let mut guard = get_counter_registry()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    f(&mut guard)
 }
 
 // ── Lifecycle FFI Implementations ─────────────────────────────────
@@ -651,7 +653,9 @@ pub fn registry_release(handle_id: i64) {
 pub fn registry_create_counter() -> i64 {
     let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
-    let counter = StatefulCounter { count: 0 };
+    let counter = StatefulCounter {
+        count: AtomicI64::new(0),
+    };
     with_registry(|registry| {
         registry.insert(
             id,
@@ -671,9 +675,9 @@ pub fn registry_increment(handle_id: i64) {
     }
     let id = handle_id as usize;
     with_registry(|registry| {
-        if let Some(entry) = registry.get_mut(&id) {
-            if let NativeHandle::Counter(counter) = &mut entry.handle {
-                counter.count += 1;
+        if let Some(entry) = registry.get(&id) {
+            if let NativeHandle::Counter(counter) = &entry.handle {
+                counter.count.fetch_add(1, Ordering::Relaxed);
             } else {
                 eprintln!("[KnotenCore Registry] Error: Target handle is not a Counter.");
             }
@@ -694,7 +698,7 @@ pub fn registry_get_value(handle_id: i64) -> i64 {
     with_registry(|registry| {
         if let Some(entry) = registry.get(&id) {
             if let NativeHandle::Counter(counter) = &entry.handle {
-                counter.count
+                counter.count.load(Ordering::Relaxed)
             } else {
                 -1
             }
@@ -1375,5 +1379,31 @@ mod tests {
         );
 
         registry_drain_latency_data();
+    }
+
+    #[test]
+    fn test_lock_free_handle_concurrency() {
+        let handle = registry_create_counter();
+
+        let handles: Vec<_> = (0..4)
+            .map(|_| {
+                let h = handle;
+                std::thread::spawn(move || {
+                    for _ in 0..20_000 {
+                        registry_increment(h);
+                    }
+                })
+            })
+            .collect();
+
+        for h in handles {
+            h.join().expect("Thread panicked");
+        }
+
+        assert_eq!(
+            registry_get_value(handle),
+            80_000,
+            "4 threads × 20,000 increments must equal 80,000"
+        );
     }
 }

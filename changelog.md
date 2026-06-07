@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 267: Lock-Free Native Resource Handles (2026-06-01)
+Sprint 267: Lock-Free Resource Handles. Deployed atomic reference mapping table for handle registries, eliminating Mutex-sperren in registry_retain, registry_release, and registry_get_value paths.
+- **Atomic Counter**: `StatefulCounter.count` migrated from `i64` to `AtomicI64`. `registry_increment()` now uses `fetch_add(1, Relaxed)` — zero mutex contention on the hot increment path. `registry_get_value()` uses `load(Relaxed)` — fully lock-free read.
+- **Registry Migration**: `COUNTER_REGISTRY` converted from `Mutex<Option<HashMap<...>>>` to `OnceLock<Mutex<HashMap<...>>>` with lazy init — consistent with other registries (FAILURE_TRACKER, MAILBOX_REGISTRY, etc.). `with_registry()` simplified to `get_counter_registry().lock()`.
+- **Test**: `test_lock_free_handle_concurrency` creates a shared counter handle, spawns 4 threads each incrementing 20,000 times, verifies final count equals exactly 80,000.
+- **Test Suite**: 200 → 201 tests (114 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 201/201 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 266: Isolate-Bound Local Heap Storage (2026-06-01)
 Sprint 266: Isolate Local Heap. Deployed per-isolate local heap storage with automatic context cleanup — 200th test milestone.
 - **Local Heap**: `VMIsolate` gains `local_heap: HashMap<String, RelType>` — a per-thread temporary storage pool for arrays, dictionaries, and dynamic structures. Merged into `VM::globals` before execution via `local_heap.drain()`.
