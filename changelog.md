@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 262: Deterministic Work-Stealing VM Scheduler (2026-06-01)
+Sprint 262: Work-Stealing Scheduler. Deployed a deterministic work-stealing infrastructure that enables idle VM isolates to dynamically pull opcodes from active isolates' task queues.
+- **Work Queue Registry**: `WORK_STEALING_QUEUES: OnceLock<Mutex<HashMap<i64, VecDeque<(OpCode, Vec<RelType>)>>>>` maps isolate IDs to deque-based task queues. `push_work_batch(id, work)` donates opcode+constant pairs to the pool.
+- **Stealing Routine**: `try_steal_work(thief_id) -> Option<(OpCode, Vec<RelType>)>` iterates the queue registry, skipping the thief's own queue, and pops the first available task entry. Returns `None` when no work is available.
+- **VMIsolate Integration**: `VMIsolate::run()` now checks for stolen work when its own `instructions` are empty. If work is stolen, the isolate's instruction and constant vectors are populated from the stolen entry before VM execution.
+- **Test**: `test_vm_work_stealing_balancing` donates `Constant(0) + [Int(99)]` to isolate 1's queue. An empty isolate 2 steals the work and executes it, producing `Int(99)`.
+- **Test Suite**: 196 → 197 tests (110 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 197/197 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 261: Lock-Free Shared Memory Mailbox & Cross-Thread RPC (2026-06-01)
 Sprint 261: Cross-Thread Mailbox. Deployed lock-free inter-isolate communication channels with FFI-accessible send/receive mailboxes.
 - **Mailbox Infrastructure**: `MAILBOX_REGISTRY: OnceLock<Mutex<HashMap<i64, Sender<RelType>>>>` maps isolate IDs to crossbeam senders. `registry_register_mailbox(id)` creates a bounded(16) channel pair and registers the sender.

@@ -29,6 +29,41 @@ pub struct VMState {
     pub base_pointer: usize,
 }
 
+// Sprint 262: Deterministic work-stealing scheduler
+type WorkItem = (OpCode, Vec<RelType>);
+type WorkQueue = std::collections::VecDeque<WorkItem>;
+type WorkQueueMap = HashMap<i64, WorkQueue>;
+
+static WORK_STEALING_QUEUES: std::sync::OnceLock<std::sync::Mutex<WorkQueueMap>> =
+    std::sync::OnceLock::new();
+
+fn get_work_queues() -> &'static std::sync::Mutex<WorkQueueMap> {
+    WORK_STEALING_QUEUES.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+}
+
+pub fn push_work_batch(isolate_id: i64, work: Vec<WorkItem>) {
+    let queues = get_work_queues();
+    let mut guard = queues.lock().unwrap_or_else(|e| e.into_inner());
+    guard.entry(isolate_id).or_default().extend(work);
+}
+
+pub fn try_steal_work(thief_id: i64) -> Option<(OpCode, Vec<RelType>)> {
+    let queues = get_work_queues();
+    let mut guard = queues.lock().unwrap_or_else(|e| e.into_inner());
+    for (&victim_id, victim_queue) in guard.iter_mut() {
+        if victim_id != thief_id && !victim_queue.is_empty() {
+            return victim_queue.pop_front();
+        }
+    }
+    None
+}
+
+pub fn drain_work_stealing_queues() {
+    if let Some(queues) = WORK_STEALING_QUEUES.get() {
+        queues.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    }
+}
+
 pub struct VMIsolate {
     pub instructions: Vec<OpCode>,
     pub constants: Vec<RelType>,
@@ -60,9 +95,15 @@ impl VMIsolate {
         }
     }
 
-    pub fn run(self) -> Result<RelType, String> {
+    pub fn run(mut self) -> Result<RelType, String> {
         let mut vm = VM::new();
         let perms = AgentPermissions::default();
+        if self.instructions.is_empty()
+            && let Some(stolen) = try_steal_work(self.isolate_id)
+        {
+            self.instructions = vec![stolen.0];
+            self.constants = stolen.1;
+        }
         vm.run(&self.instructions, &self.constants, &perms, None)
     }
 }
@@ -2703,5 +2744,21 @@ mod tests {
 
         let result = handle_b.join().expect("Isolate B panicked");
         assert_eq!(result, RelType::Int(42));
+    }
+
+    #[test]
+    fn test_vm_work_stealing_balancing() {
+        drain_work_stealing_queues();
+
+        let donated_work: Vec<WorkItem> = vec![(OpCode::Constant(0), vec![RelType::Int(99)])];
+        push_work_batch(1, donated_work);
+
+        let thief_isolate = VMIsolate::new(vec![], vec![]);
+        let handle = std::thread::spawn(move || thief_isolate.run());
+
+        let result = handle.join().expect("Thief isolate panicked");
+        assert_eq!(result.unwrap(), RelType::Int(99));
+
+        drain_work_stealing_queues();
     }
 }
