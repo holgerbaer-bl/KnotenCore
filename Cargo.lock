@@ -32,6 +32,7 @@ dependencies = [
  "chrono",
  "cpal",
  "crossbeam-channel",
+ "dashmap 6.2.1",
  "dunce",
  "egui",
  "egui-wgpu",

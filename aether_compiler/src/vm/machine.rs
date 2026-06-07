@@ -4,6 +4,21 @@ use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::time::Instant;
 
+use super::isolate;
+use super::scheduler;
+use super::snapshot;
+
+pub use isolate::VMIsolate;
+pub use isolate::spawn_isolate;
+pub use scheduler::WorkItem;
+pub use scheduler::drain_work_stealing_queues;
+pub use scheduler::push_work_batch;
+pub use scheduler::try_steal_work;
+pub use snapshot::drain_isolate_snapshots;
+pub use snapshot::rollback_isolate;
+pub use snapshot::snapshot_isolate;
+pub use snapshot::store_snapshot;
+
 #[derive(Clone, Debug)]
 pub struct CallFrame {
     pub ip: usize,
@@ -27,147 +42,6 @@ pub struct VMState {
     pub frames: Vec<CallFrame>,
     pub ip: usize,
     pub base_pointer: usize,
-}
-
-// Sprint 262: Deterministic work-stealing scheduler
-type WorkItem = (OpCode, Vec<RelType>);
-type WorkQueue = std::collections::VecDeque<WorkItem>;
-type WorkQueueMap = HashMap<i64, WorkQueue>;
-
-static WORK_STEALING_QUEUES: std::sync::OnceLock<std::sync::Mutex<WorkQueueMap>> =
-    std::sync::OnceLock::new();
-
-fn get_work_queues() -> &'static std::sync::Mutex<WorkQueueMap> {
-    WORK_STEALING_QUEUES.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
-}
-
-pub fn push_work_batch(isolate_id: i64, work: Vec<WorkItem>) {
-    let queues = get_work_queues();
-    let mut guard = queues.lock().unwrap_or_else(|e| e.into_inner());
-    guard.entry(isolate_id).or_default().extend(work);
-}
-
-pub fn try_steal_work(thief_id: i64) -> Option<(OpCode, Vec<RelType>)> {
-    let queues = get_work_queues();
-    let mut guard = queues.lock().unwrap_or_else(|e| e.into_inner());
-    for (&victim_id, victim_queue) in guard.iter_mut() {
-        if victim_id != thief_id && !victim_queue.is_empty() {
-            return victim_queue.pop_front();
-        }
-    }
-    None
-}
-
-pub fn drain_work_stealing_queues() {
-    if let Some(queues) = WORK_STEALING_QUEUES.get() {
-        queues.lock().unwrap_or_else(|e| e.into_inner()).clear();
-    }
-}
-
-// Sprint 263: Atomic isolate snapshot synchronization
-static ISOLATE_SNAPSHOTS: std::sync::OnceLock<std::sync::Mutex<HashMap<i64, VMState>>> =
-    std::sync::OnceLock::new();
-
-fn get_snapshot_registry() -> &'static std::sync::Mutex<HashMap<i64, VMState>> {
-    ISOLATE_SNAPSHOTS.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
-}
-
-pub fn snapshot_isolate(isolate_id: i64) -> Option<VMState> {
-    let registry = get_snapshot_registry();
-    let guard = registry.lock().unwrap_or_else(|e| e.into_inner());
-    guard.get(&isolate_id).cloned()
-}
-
-pub fn store_snapshot(isolate_id: i64, state: VMState) {
-    let registry = get_snapshot_registry();
-    let mut guard = registry.lock().unwrap_or_else(|e| e.into_inner());
-    guard.insert(isolate_id, state);
-}
-
-pub fn rollback_isolate(isolate_id: i64, state: VMState) -> bool {
-    let registry = get_snapshot_registry();
-    let mut guard = registry.lock().unwrap_or_else(|e| e.into_inner());
-    guard.insert(isolate_id, state);
-    true
-}
-
-pub fn drain_isolate_snapshots() {
-    if let Some(reg) = ISOLATE_SNAPSHOTS.get() {
-        reg.lock().unwrap_or_else(|e| e.into_inner()).clear();
-    }
-}
-
-pub struct VMIsolate {
-    pub instructions: Vec<OpCode>,
-    pub constants: Vec<RelType>,
-    pub isolate_id: i64,
-    pub mailbox: Option<std::sync::mpsc::Receiver<RelType>>,
-    pub local_heap: HashMap<String, RelType>,
-}
-
-impl VMIsolate {
-    pub fn new(instructions: Vec<OpCode>, constants: Vec<RelType>) -> Self {
-        Self {
-            instructions,
-            constants,
-            isolate_id: -1,
-            mailbox: None,
-            local_heap: HashMap::new(),
-        }
-    }
-
-    pub fn with_mailbox(
-        instructions: Vec<OpCode>,
-        constants: Vec<RelType>,
-        isolate_id: i64,
-        mailbox: std::sync::mpsc::Receiver<RelType>,
-    ) -> Self {
-        Self {
-            instructions,
-            constants,
-            isolate_id,
-            mailbox: Some(mailbox),
-            local_heap: HashMap::new(),
-        }
-    }
-
-    pub fn run(mut self) -> Result<RelType, String> {
-        let mut vm = VM::new();
-        for (k, v) in self.local_heap.drain() {
-            vm.globals.insert(k, v);
-        }
-        let perms = AgentPermissions::default();
-        if self.instructions.is_empty()
-            && let Some(stolen) = try_steal_work(self.isolate_id)
-        {
-            self.instructions = vec![stolen.0];
-            self.constants = stolen.1;
-        }
-        if self.isolate_id >= 0 {
-            store_snapshot(self.isolate_id, vm.snapshot());
-        }
-        match vm.run(&self.instructions, &self.constants, &perms, None) {
-            Ok(value) => Ok(value),
-            Err(e) => {
-                if self.isolate_id >= 0
-                    && let Some(snapshot) = snapshot_isolate(self.isolate_id)
-                {
-                    vm.rollback(snapshot);
-                }
-                Err(e)
-            }
-        }
-    }
-}
-
-pub fn spawn_isolate(
-    instructions: Vec<OpCode>,
-    constants: Vec<RelType>,
-) -> std::thread::JoinHandle<Result<RelType, String>> {
-    std::thread::spawn(move || {
-        let isolate = VMIsolate::new(instructions, constants);
-        isolate.run()
-    })
 }
 
 pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {

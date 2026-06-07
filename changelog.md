@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 268: Monolith Decomposition & DashMap Resource Grid (2026-06-01)
+Sprint 268: Monolith Decomposition & DashMap Resource Grid. Split monolithic machine.rs into discrete sub-modules inside src/vm/. Re-engineered COUNTER_REGISTRY with DashMap, completely removing with_registry mutex-locking constraints from the FFI execution loop.
+- **File Decomposition**: `machine.rs` (~2900 lines) split into `src/vm/mod.rs` (re-exports), `src/vm/isolate.rs` (VMIsolate, local_heap, run), `src/vm/scheduler.rs` (WORK_STEALING_QUEUES, try_steal_work), `src/vm/snapshot.rs` (ISOLATE_SNAPSHOTS, rollback). Core VM ALU stays in `machine.rs`.
+- **DashMap Registry**: `COUNTER_REGISTRY` converted from `Mutex<HashMap<...>>` to `OnceLock<DashMap<usize, RegistryEntry>>`. `with_registry()` helper completely removed. All registry functions (`registry_create_counter`, `registry_increment`, `registry_get_value`, `registry_retain`, `registry_release`, etc.) now use DashMap's concurrent API directly — zero global Mutex contention.
+- **Dependencies**: `dashmap = "6.1.0"` restored to `aether_compiler/Cargo.toml`.
+- **CI**: 201/201 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 267: Lock-Free Native Resource Handles (2026-06-01)
 Sprint 267: Lock-Free Resource Handles. Deployed atomic reference mapping table for handle registries, eliminating Mutex-sperren in registry_retain, registry_release, and registry_get_value paths.
 - **Atomic Counter**: `StatefulCounter.count` migrated from `i64` to `AtomicI64`. `registry_increment()` now uses `fetch_add(1, Relaxed)` — zero mutex contention on the hot increment path. `registry_get_value()` uses `load(Relaxed)` — fully lock-free read.

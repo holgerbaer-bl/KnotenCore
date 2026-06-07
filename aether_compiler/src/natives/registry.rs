@@ -7,6 +7,7 @@ use std::sync::OnceLock;
 use std::sync::atomic::AtomicI64;
 
 use crossbeam_channel::{Receiver, Sender, bounded};
+use dashmap::DashMap;
 
 use std::collections::HashSet;
 use winit::keyboard::KeyCode;
@@ -596,22 +597,19 @@ unsafe impl Sync for TextureAsset {}
 // ── Isometric software renderer removed in Sprint 176 — superseded by WGPU 3D pipeline. ──
 // ── VoxelWorldState, SendVoxelWorld, NativeHandle::VoxelWorld removed in Sprint 184. ──
 
-// Sprint 267: Lock-free native resource handles
-static COUNTER_REGISTRY: OnceLock<Mutex<HashMap<usize, RegistryEntry>>> = OnceLock::new();
+// Sprint 268: DashMap-concurrent lock-free resource handles
+static COUNTER_REGISTRY: OnceLock<DashMap<usize, RegistryEntry>> = OnceLock::new();
 static COUNTER_NEXT_ID: AtomicUsize = AtomicUsize::new(1);
 
-fn get_counter_registry() -> &'static Mutex<HashMap<usize, RegistryEntry>> {
-    COUNTER_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()))
+fn get_counter_registry() -> &'static DashMap<usize, RegistryEntry> {
+    COUNTER_REGISTRY.get_or_init(DashMap::new)
 }
 
 pub(crate) fn with_registry<F, R>(f: F) -> R
 where
-    F: FnOnce(&mut HashMap<usize, RegistryEntry>) -> R,
+    F: FnOnce(&DashMap<usize, RegistryEntry>) -> R,
 {
-    let mut guard = get_counter_registry()
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
-    f(&mut guard)
+    f(get_counter_registry())
 }
 
 // ── Lifecycle FFI Implementations ─────────────────────────────────
@@ -622,7 +620,7 @@ pub fn registry_retain(handle_id: i64) {
     }
     let id = handle_id as usize;
     with_registry(|registry| {
-        if let Some(entry) = registry.get_mut(&id) {
+        if let Some(mut entry) = registry.get_mut(&id) {
             entry.ref_count += 1;
         }
     });
@@ -635,7 +633,7 @@ pub fn registry_release(handle_id: i64) {
     let id = handle_id as usize;
     let mut remove = false;
     with_registry(|registry| {
-        if let Some(entry) = registry.get_mut(&id) {
+        if let Some(mut entry) = registry.get_mut(&id) {
             if entry.ref_count > 0 {
                 entry.ref_count -= 1;
             }
@@ -724,7 +722,9 @@ pub fn registry_dump() -> i64 {
     let mut count = 0;
     with_registry(|registry| {
         println!("[KnotenCore Registry] --- MEMORY DUMP ---");
-        for (id, entry) in registry.iter() {
+        for item in registry.iter() {
+            let id = *item.key();
+            let entry = item.value();
             let handle_type = match &entry.handle {
                 NativeHandle::Counter(_) => "Counter",
                 NativeHandle::Window(_) => "Window",
@@ -894,7 +894,7 @@ pub fn registry_file_write(handle_id: i64, content: String) {
     }
     let id = handle_id as usize;
     with_registry(|registry| {
-        if let Some(entry) = registry.get_mut(&id) {
+        if let Some(mut entry) = registry.get_mut(&id) {
             if let NativeHandle::File(file) = &mut entry.handle {
                 if let Err(e) = file.write_all(content.as_bytes()) {
                     eprintln!(
@@ -1009,7 +1009,8 @@ pub fn registry_texture_load(path: String) -> i64 {
     let dimensions = img.dimensions();
 
     let (device, queue) = match with_registry(|registry| {
-        for entry in registry.values() {
+        for item in registry.iter() {
+            let entry = item.value();
             if let NativeHandle::GpuContext(ctx) = &entry.handle {
                 return Some((ctx.device.clone(), ctx.queue.clone()));
             }
@@ -1129,7 +1130,8 @@ pub fn registry_texture_load(path: String) -> i64 {
 pub fn registry_get_mouse_delta_x() -> f32 {
     let mut acc = 0.0;
     with_registry(|registry| {
-        for entry in registry.values() {
+        for item in registry.iter() {
+            let entry = item.value();
             if let NativeHandle::Window(proxy) = &entry.handle {
                 let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
                 acc += input.mouse_dx;
@@ -1142,7 +1144,8 @@ pub fn registry_get_mouse_delta_x() -> f32 {
 pub fn registry_get_mouse_delta_y() -> f32 {
     let mut acc = 0.0;
     with_registry(|registry| {
-        for entry in registry.values() {
+        for item in registry.iter() {
+            let entry = item.value();
             if let NativeHandle::Window(proxy) = &entry.handle {
                 let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
                 acc += input.mouse_dy;
@@ -1216,7 +1219,8 @@ pub fn registry_compute_readback(shader_id: i64) -> Vec<crate::executor::RelType
 pub fn registry_is_mouse_down() -> bool {
     let mut pressed = false;
     with_registry(|registry| {
-        for entry in registry.values() {
+        for item in registry.iter() {
+            let entry = item.value();
             if let NativeHandle::Window(proxy) = &entry.handle {
                 let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
                 if input.mouse_left_down {
@@ -1277,7 +1281,8 @@ pub fn registry_get_mouse_ray(window_handle: i64) -> Vec<crate::executor::RelTyp
 pub fn registry_get_last_char() -> i64 {
     let mut last = 0;
     with_registry(|registry| {
-        for entry in registry.values() {
+        for item in registry.iter() {
+            let entry = item.value();
             if let NativeHandle::Window(proxy) = &entry.handle {
                 let input = proxy.input.lock().unwrap_or_else(|e| e.into_inner());
                 if input.last_char != 0 {
