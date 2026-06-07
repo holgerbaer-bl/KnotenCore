@@ -3,6 +3,9 @@ name = "knoten_core"
 version = "1.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 dunce = "1.0"
 bytemuck = { version = "1.25.0", features = ["derive"] }

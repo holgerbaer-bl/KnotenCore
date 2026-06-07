@@ -376,4 +376,22 @@ mod tests {
             "Out of range high clamped to 1"
         );
     }
+
+    proptest::proptest! {
+        #[test]
+        fn fuzz_adsr_envelope_boundaries(
+            attack_ms in 0u64..1000,
+            decay_ms in 0u64..1000,
+            sustain_level in proptest::num::f32::NORMAL,
+            release_ms in 0u64..1000,
+            t_ms in 0.0f32..2000.0,
+            total_ms in 1.0f32..2000.0,
+        ) {
+            let sustain = sustain_level.clamp(0.0, 1.0);
+            let amplitude = adsr_amplitude(t_ms, attack_ms, decay_ms, sustain, release_ms, total_ms);
+            assert!(!amplitude.is_nan(), "ADSR must not produce NaN");
+            assert!(amplitude.is_finite(), "ADSR must not produce Inf");
+            assert!((0.0..=1.0).contains(&amplitude), "Amplitude {amplitude} outside [0,1]");
+        }
+    }
 }

@@ -50,6 +50,7 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Loop Unrolling & Static Bound Analysis (Sprint 196):** Bounded while-loops ($N \le 8$) are expanded into flat blocks at compile time. Static infinite loops without exit paths are rejected early.
 * **Peephole Optimization & Slot Reuse (Sprint 197):** Instruction post-pass eliminates redundant Store-Load chains. Register slot reuse minimizes stack frame sizes.
 * **SIMD Auto-Vectorization (Sprint 200):** High-speed optimizer pass collapses sequential float constants into single instruction streams execution-driven by `glam::Vec4` in a single CPU tick.
+* **Mathematical Resilience Fortress:** Integrated proptest framework into the native testbett, executing deep mathematical property-based fuzzing over the ADSR audio shaper and SIMD Glam matrix transformation FFI layers. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 

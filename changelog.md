@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 269: Property-Based Fuzzing & WASM CI-Pipeline (2026-06-01)
+Sprint 269: Property-Based Testing & WASM CI-Fortress. Integrated proptest for algebraic validation of ADSR shaper and SIMD transform boundaries, actively preventing NaN/Inf propagation faults. Implemented automated wasm-pack build step within the centralized .github/workflows/ci.yml configuration.
+- **Proptest Integration**: `proptest = "1.5"` added as dev-dependency to `aether_compiler/Cargo.toml`.
+- **ADSR Fuzzing**: `fuzz_adsr_envelope_boundaries` generates random attack/decay/release (u64) and sustain (f32 including negatives and extremes), verifies `adsr_amplitude()` output stays in [0.0, 1.0] for all inputs — no NaN, no Inf, no panics.
+- **SIMD Matrix Fuzzing**: `fuzz_simd_matrix_transformations` generates random 4x4 float matrices and input vectors, verifies `apply_matrix_to_inputs()` produces valid RelType outputs for stride-6 and stride-7 inputs.
+- **WASM CI Gate**: `.github/workflows/ci.yml` extended with `wasm-pack build --target web` step. Pipeline fails if WASM compilation breaks.
+- **Test Suite**: 201 → 203 tests (116 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 203/203 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 268: Monolith Decomposition & DashMap Resource Grid (2026-06-01)
 Sprint 268: Monolith Decomposition & DashMap Resource Grid. Split monolithic machine.rs into discrete sub-modules inside src/vm/. Re-engineered COUNTER_REGISTRY with DashMap, completely removing with_registry mutex-locking constraints from the FFI execution loop.
 - **File Decomposition**: `machine.rs` (~2900 lines) split into `src/vm/mod.rs` (re-exports), `src/vm/isolate.rs` (VMIsolate, local_heap, run), `src/vm/scheduler.rs` (WORK_STEALING_QUEUES, try_steal_work), `src/vm/snapshot.rs` (ISOLATE_SNAPSHOTS, rollback). Core VM ALU stays in `machine.rs`.

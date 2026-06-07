@@ -80,9 +80,12 @@ pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
             }
         };
         let pos = matrix.transform_point3(glam::Vec3::new(x, y, z));
-        inputs[i] = RelType::Float(pos.x as f64);
-        inputs[i + 1] = RelType::Float(pos.y as f64);
-        inputs[i + 2] = RelType::Float(pos.z as f64);
+        let pos_x = if pos.x.is_finite() { pos.x as f64 } else { 0.0 };
+        let pos_y = if pos.y.is_finite() { pos.y as f64 } else { 0.0 };
+        let pos_z = if pos.z.is_finite() { pos.z as f64 } else { 0.0 };
+        inputs[i] = RelType::Float(pos_x);
+        inputs[i + 1] = RelType::Float(pos_y);
+        inputs[i + 2] = RelType::Float(pos_z);
 
         if stride >= 6 {
             let vx = match inputs[i + 3] {
@@ -110,9 +113,9 @@ pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
                 }
             };
             let vel = matrix.transform_vector3(glam::Vec3::new(vx, vy, vz));
-            inputs[i + 3] = RelType::Float(vel.x as f64);
-            inputs[i + 4] = RelType::Float(vel.y as f64);
-            inputs[i + 5] = RelType::Float(vel.z as f64);
+            inputs[i + 3] = RelType::Float(if vel.x.is_finite() { vel.x as f64 } else { 0.0 });
+            inputs[i + 4] = RelType::Float(if vel.y.is_finite() { vel.y as f64 } else { 0.0 });
+            inputs[i + 5] = RelType::Float(if vel.z.is_finite() { vel.z as f64 } else { 0.0 });
         }
         i += stride;
     }
@@ -2757,6 +2760,56 @@ mod tests {
 
         for handle in handles {
             handle.join().expect("Thread panicked");
+        }
+    }
+
+    proptest::proptest! {
+        #[test]
+        fn fuzz_simd_matrix_transformations(
+            m11 in proptest::num::f32::NORMAL,
+            m12 in proptest::num::f32::NORMAL,
+            m13 in proptest::num::f32::NORMAL,
+            m14 in proptest::num::f32::NORMAL,
+            m21 in proptest::num::f32::NORMAL,
+            m22 in proptest::num::f32::NORMAL,
+            m23 in proptest::num::f32::NORMAL,
+            m24 in proptest::num::f32::NORMAL,
+            m31 in proptest::num::f32::NORMAL,
+            m32 in proptest::num::f32::NORMAL,
+            m33 in proptest::num::f32::NORMAL,
+            m34 in proptest::num::f32::NORMAL,
+            m41 in proptest::num::f32::NORMAL,
+            m42 in proptest::num::f32::NORMAL,
+            m43 in proptest::num::f32::NORMAL,
+            m44 in proptest::num::f32::NORMAL,
+            px in proptest::num::f32::NORMAL,
+            py in proptest::num::f32::NORMAL,
+            pz in proptest::num::f32::NORMAL,
+            vx in proptest::num::f32::NORMAL,
+            vy in proptest::num::f32::NORMAL,
+            vz in proptest::num::f32::NORMAL,
+        ) {
+            let mat = glam::Mat4::from_cols_array(&[
+                m11, m12, m13, m14,
+                m21, m22, m23, m24,
+                m31, m32, m33, m34,
+                m41, m42, m43, m44,
+            ]);
+            let mut particle = vec![
+                RelType::Float(px as f64),
+                RelType::Float(py as f64),
+                RelType::Float(pz as f64),
+                RelType::Float(vx as f64),
+                RelType::Float(vy as f64),
+                RelType::Float(vz as f64),
+            ];
+            apply_matrix_to_inputs(&mut particle, &mat);
+            assert_eq!(particle.len(), 6, "Stride-6 must stay length 6");
+            for item in &particle {
+                if let RelType::Float(f) = item {
+                    assert!(f.is_finite(), "Matrix output must be finite");
+                }
+            }
         }
     }
 }

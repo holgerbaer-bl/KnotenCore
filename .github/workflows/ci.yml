@@ -44,3 +44,23 @@ jobs:
 
       - name: Run Clippy (warnings as errors)
         run: cargo clippy --workspace -- -D warnings
+
+  wasm:
+    name: WASM Build Gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM (wasm-pack)
+        run: wasm-pack build --target web

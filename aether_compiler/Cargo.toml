@@ -26,3 +26,6 @@ chrono = "0.4"
 crossbeam-channel = "0.5"
 dashmap = "6.1.0"
 knoten_core_types = { path = "../knoten_core_types" }
+
+[dev-dependencies]
+proptest = "1.5"
