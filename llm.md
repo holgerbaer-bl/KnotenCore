@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v1.3.0-alpha Official Release
+# KnotenCore — AI Agent Reference (Routing Document) - v1.5.0-alpha Official Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -81,6 +81,8 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **All OS I/O** → sandboxed; permissions must be granted via CLI flags (`--allow-read`, `--allow-write`, `--allow-net`)
 - **Language Server (LSP)** → `knoten_lsp` binary validates `.nod` JSON documents in real-time. The **VS Code Extension** automatically launches this server, flagging unknown opcodes (`ERR_UNKNOWN_NODE`) and JSON parse errors (`ERR_JSON_PARSE`) directly in the editor before they reach the runtime. Tracing output is visible in the VS Code *Output → knoten-lsp* channel.
 - **GitHub Linguist** → `.nod` targets `JSON` and `.knoten` targets `JavaScript` for correct repository rendering.
+- **Multi-Threaded Isolate Scaling** (v1.5.0) → `VMIsolate { instructions, constants, isolate_id, mailbox }` wraps a complete VM execution context. `spawn_isolate()` creates a `std::thread::spawn` running `VM::run()` with fully isolated operands (stack, globals, frames) — zero cross-thread data races.
+- **Lock-Free Mailbox RPC** (v1.5.0) → `registry_send_message(target_isolate_id: Int, message: Any) -> Bool` routes a `RelType` payload to the target isolate's crossbeam `Sender` via `try_send()`. `MAILBOX_REGISTRY: OnceLock<Mutex<HashMap<i64, Sender<RelType>>>>` maps isolate IDs to bounded(16) channels. Messages are consumed by the target isolate's local `Receiver`. No locking in the RPC hot-path — `try_send`/`try_recv` only.
 
 ---
 

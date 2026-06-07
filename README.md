@@ -1,6 +1,6 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v1.3.0--alpha-orange)](https://github.com/holgerbaer-bl/KnotenCore/releases/tag/v1.3.0-alpha)
+[![Version](https://img.shields.io/badge/version-v1.5.0--alpha-orange)](https://github.com/holgerbaer-bl/KnotenCore/releases/tag/v1.3.0)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/badge/release-prerelease-yellow)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
@@ -77,6 +77,7 @@ JSON-AST (.nod)  ->  Parser  ->  AST (Node enum inside knoten_core_types)
 | `src/audio.rs` | **Audio Engine (Live / Polyphonic Multi-Waveform Synth)** — Multi-channel synthesis via `rodio` with Sine, Sawtooth, Square, and Triangle waveform shaping plus ADSR envelope modulation; isolated sinks per channel, `PlayNote`/`StopNote` in the AOT path. |
 | `src/vm/machine.rs` | **GPGPU Streaming** — Continuous Shader Vector Streaming with dynamic workgroup alignment; structured Array flattening for particle position/velocity recycling between iterations. |
 | `src/bin/knoten_lsp.rs` | **Language Server (LSP)** — `tower-lsp` server for real-time linter validation, hover diagnostics, and structured particle stride enforcement directly in the editor. |
+| `src/vm/machine.rs` | **Multi-Threaded Isolate Scaling (v1.5.0)** — `VMIsolate` spawns VM instances on independent OS threads with fully isolated stacks, globals, and call frames. Lock-free cross-thread RPC via `MAILBOX_REGISTRY` with `registry_send_message`/`try_recv` channels. |
 
 ---
 
