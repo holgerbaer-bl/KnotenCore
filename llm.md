@@ -88,6 +88,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Lock-Free Mailbox RPC** (v1.5.0) → `registry_send_message(target_isolate_id: Int, message: Any) -> Bool` routes a `RelType` payload to the target isolate's crossbeam `Sender` via `try_send()`. `MAILBOX_REGISTRY: OnceLock<Mutex<HashMap<i64, Sender<RelType>>>>` maps isolate IDs to bounded(16) channels.
 - **Deterministic Work-Stealing Scheduler** (v1.5.0) → `push_work_batch(isolate_id: Int, batch: Array)` donates `(OpCode, Vec<RelType>)` tasks to a global `WORK_STEALING_QUEUES` pool. `try_steal_work(thief_id: Int)` pops from victim queues. `VMIsolate::run()` auto-checks for stolen work when local instructions are empty.
 - **Atomic Snapshot Synchronization** (Sprint 263) → `ISOLATE_SNAPSHOTS: OnceLock<Mutex<HashMap<i64, VMState>>>` provides non-blocking per-isolate checkpoint storage. `VMIsolate::run()` auto-stores a snapshot before execution and auto-rolls back on `Err` — Mutex held only for HashMap insert/lookup, never during VM execution.
+- **Zero-Allocation FFI Bridge** (Sprint 265) → All `math`, `string`, and `wgpu` bridge handlers are stateless pure functions operating on borrowed `&[RelType]` references. No temporary `clone()` calls in the hot-path. Multiple `VMIsolate` threads can execute parallel FFI invocations without mutex contention — agents may freely issue high-frequency math calls from any isolate without synchronization overhead.
 
 ---
 
