@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 263: Atomic Snapshot Synchronization & Isolate Rollback (2026-06-01)
+Sprint 263: Atomic Snapshot Sync. Deployed cross-thread isolate checkpointing with non-blocking snapshot storage and automatic fault-triggered rollback.
+- **Snapshot Registry**: `ISOLATE_SNAPSHOTS: OnceLock<Mutex<HashMap<i64, VMState>>>` stores per-isolate VM state snapshots. `store_snapshot(id, state)` inserts atomically; `snapshot_isolate(id) -> Option<VMState>` returns a cloned snapshot; `rollback_isolate(id, state)` overwrites the stored snapshot.
+- **Auto-Fault Rollback**: `VMIsolate::run()` now calls `store_snapshot()` before `VM::run()` when `isolate_id >= 0`. On `Err` return, the snapshot is retrieved and `VM::rollback()` restores the VM to pre-fault state before the error propagates.
+- **Non-Blocking**: Mutex is held only during HashMap insert/lookup (microseconds), never during VM execution. Other isolates' threads run completely unaffected.
+- **Test**: `test_isolated_atomic_checkpointing` runs an isolate with `Int(7)`, verifies snapshot exists after execution, and drains the registry.
+- **Test Suite**: 197 → 198 tests (111 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 198/198 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 262: Deterministic Work-Stealing VM Scheduler (2026-06-01)
 Sprint 262: Work-Stealing Scheduler. Deployed a deterministic work-stealing infrastructure that enables idle VM isolates to dynamically pull opcodes from active isolates' task queues.
 - **Work Queue Registry**: `WORK_STEALING_QUEUES: OnceLock<Mutex<HashMap<i64, VecDeque<(OpCode, Vec<RelType>)>>>>` maps isolate IDs to deque-based task queues. `push_work_batch(id, work)` donates opcode+constant pairs to the pool.
