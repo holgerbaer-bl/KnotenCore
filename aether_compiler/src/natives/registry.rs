@@ -135,6 +135,12 @@ pub enum RenderCommand {
         entity_id: usize,
     },
     ExitEventLoop,
+    // Sprint 257: GPU-accelerated UI hit-testing
+    UiHitTest {
+        panel_aabbs: Vec<crate::executor::RelType>,
+        mouse_x: f32,
+        mouse_y: f32,
+    },
 }
 
 #[derive(Clone)]
@@ -425,6 +431,18 @@ pub fn registry_vm_get_stack_depth() -> i64 {
     crate::vm::machine::get_vm_inspection_snapshot()
         .map(|(_, depth)| depth as i64)
         .unwrap_or(-1)
+}
+
+pub fn registry_ui_hit_test(
+    panel_aabbs: Vec<crate::executor::RelType>,
+    mouse_x: f64,
+    mouse_y: f64,
+) {
+    send_render_command(RenderCommand::UiHitTest {
+        panel_aabbs,
+        mouse_x: mouse_x as f32,
+        mouse_y: mouse_y as f32,
+    });
 }
 
 unsafe impl Send for WindowProxy {}

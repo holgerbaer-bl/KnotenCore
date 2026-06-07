@@ -876,6 +876,88 @@ impl KnotenApp {
                     eprintln!("ComputeChain failed: No WGPU window/device available.");
                 }
             }
+            // Sprint 257: GPU-accelerated UI panel hit-testing
+            RenderCommand::UiHitTest {
+                panel_aabbs,
+                mouse_x,
+                mouse_y,
+            } => {
+                if let Some(state) = self.windows.values().next() {
+                    let shader_src = include_str!("../assets/shaders/ui_hit_test.wgsl");
+                    let shader_module =
+                        state
+                            .device
+                            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                                label: Some("UI Hit-Test Shader"),
+                                source: wgpu::ShaderSource::Wgsl(shader_src.into()),
+                            });
+                    let pipeline =
+                        state
+                            .device
+                            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                                label: Some("UI Hit-Test Pipeline"),
+                                layout: None,
+                                module: &shader_module,
+                                entry_point: Some("main"),
+                                compilation_options: Default::default(),
+                                cache: None,
+                            });
+                    let (data_bytes, _) = inputs_to_storage_buffer(&panel_aabbs);
+                    let panel_buffer = state.device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("UI Panel AABB Buffer"),
+                        size: data_bytes.len() as u64,
+                        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
+                    });
+                    state.queue.write_buffer(&panel_buffer, 0, &data_bytes);
+
+                    let mouse_bytes = [mouse_x, mouse_y].map(|v| v.to_le_bytes());
+                    let mouse_data: Vec<u8> = mouse_bytes.iter().flatten().copied().collect();
+                    let mouse_buffer = state.device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("Mouse Position Buffer"),
+                        size: mouse_data.len() as u64,
+                        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
+                    });
+                    state.queue.write_buffer(&mouse_buffer, 0, &mouse_data);
+
+                    let bind_group_layout = pipeline.get_bind_group_layout(0);
+                    let bind_group = state.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: Some("UI Hit-Test Bind Group"),
+                        layout: &bind_group_layout,
+                        entries: &[
+                            wgpu::BindGroupEntry {
+                                binding: 0,
+                                resource: panel_buffer.as_entire_binding(),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 1,
+                                resource: mouse_buffer.as_entire_binding(),
+                            },
+                        ],
+                    });
+
+                    let mut encoder =
+                        state
+                            .device
+                            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                                label: Some("UI Hit-Test Encoder"),
+                            });
+                    {
+                        let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                            label: Some("UI Hit-Test Pass"),
+                            timestamp_writes: None,
+                        });
+                        cpass.set_pipeline(&pipeline);
+                        cpass.set_bind_group(0, &bind_group, &[]);
+                        cpass.dispatch_workgroups(1, 1, 1);
+                    }
+                    state.queue.submit(std::iter::once(encoder.finish()));
+                    self.compute_buffers.insert(2_000_000, panel_buffer);
+                } else {
+                    eprintln!("UiHitTest failed: No WGPU window/device available.");
+                }
+            }
             // Sprint 204: Read back compute shader results from GPU to CPU
             RenderCommand::ReadComputeResult { shader_id } => {
                 if let Some(state) = self.windows.values().next()

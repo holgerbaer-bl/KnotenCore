@@ -840,6 +840,22 @@ impl BridgeModule for CoreBridge {
                 "registry_vm_get_stack_depth" => Some(ExecResult::Value(RelType::Int(
                     crate::natives::registry::registry_vm_get_stack_depth(),
                 ))),
+                "registry_ui_hit_test" => {
+                    if args.len() == 3
+                        && let RelType::Array(panels) = &args[0]
+                        && let RelType::Float(mx) = &args[1]
+                        && let RelType::Float(my) = &args[2]
+                    {
+                        crate::natives::registry::registry_ui_hit_test(panels.clone(), *mx, *my);
+                        Some(ExecResult::Value(RelType::Void))
+                    } else {
+                        Some(ExecResult::Fault {
+                            msg: "[FFI] registry_ui_hit_test expects (Array, Float, Float)"
+                                .to_string(),
+                            node: "Native::Bridge::registry_ui_hit_test".into(),
+                        })
+                    }
+                }
                 "registry_play_sound" => {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]

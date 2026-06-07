@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.4.0-alpha] - Sprint 257: Raytracing-accelerated UI Hit-Testing (2026-06-01)
+Sprint 257: GPU UI Hit-Testing. Deployed a compute-shader-based UI panel intersection pipeline that offloads bounding-box testing from CPU to GPU.
+- **WGSL Compute Shader**: `ui_hit_test.wgsl` — reads panel AABBs from `@binding(0)` storage buffer and mouse position from `@binding(1)`, iterates over all panels, returns the hit index (or -1) via the first output element.
+- **RenderCommand::UiHitTest**: New variant carrying `panel_aabbs: Vec<RelType>` and `mouse_x/mouse_y: f32`. Handler in `window.rs` creates the hit-test pipeline, uploads panel bounds and mouse position to GPU buffers, dispatches a single workgroup, and stores the result buffer for readback.
+- **Registry Integration**: `registry_ui_hit_test(panels, mx, my)` sends the hit-test command to the render thread. FFI bridge registers `"registry_ui_hit_test"` with 3-arg validation (Array, Float, Float).
+- **Test**: `test_gpu_ui_hit_intersection` validates the WGSL shader source contains `panels`, `mouse_pos`, `hit_index`, and both `@binding` declarations.
+- **Test Suite**: 191 → 192 tests (105 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 192/192 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.4.0-alpha] - Sprint 256: JIT-Warmup & Hot-Path Profiling (2026-06-01)
 Sprint 256: Hot-Path Profiling. Deployed instruction-level execution frequency tracking with automatic warmup marker emission at threshold crossings.
 - **Hot-Path Table**: `HOT_PATH_TABLE: OnceLock<Mutex<HashMap<usize, usize>>>` tracks per-IP execution frequency. `track_hot_path(ip)` called every 100 instructions in the VM run loop, incrementing the hit counter for the current instruction pointer.

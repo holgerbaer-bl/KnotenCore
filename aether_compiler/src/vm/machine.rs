@@ -2553,4 +2553,15 @@ mod tests {
 
         drain_hot_path_table();
     }
+
+    #[test]
+    fn test_gpu_ui_hit_intersection() {
+        let shader_src = include_str!("../../assets/shaders/ui_hit_test.wgsl");
+        assert!(!shader_src.is_empty());
+        assert!(shader_src.contains("panels"));
+        assert!(shader_src.contains("mouse_pos"));
+        assert!(shader_src.contains("hit_index"));
+        assert!(shader_src.contains("@binding(0)"));
+        assert!(shader_src.contains("@binding(1)"));
+    }
 }
