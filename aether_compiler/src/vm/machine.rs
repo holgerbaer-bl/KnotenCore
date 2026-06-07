@@ -20,6 +20,15 @@ pub struct VM {
     pub is_inspectable: bool,
 }
 
+#[derive(Clone)]
+pub struct VMState {
+    pub globals: HashMap<String, RelType>,
+    pub stack: Vec<RelType>,
+    pub frames: Vec<CallFrame>,
+    pub ip: usize,
+    pub base_pointer: usize,
+}
+
 pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
     let len = inputs.len();
     let stride = if len >= 6 && len.is_multiple_of(6) {
@@ -190,6 +199,24 @@ impl VM {
             base_pointer: 0,
             is_inspectable: false,
         }
+    }
+
+    pub fn snapshot(&self) -> VMState {
+        VMState {
+            globals: self.globals.clone(),
+            stack: self.stack.clone(),
+            frames: self.frames.clone(),
+            ip: self.ip,
+            base_pointer: self.base_pointer,
+        }
+    }
+
+    pub fn rollback(&mut self, state: VMState) {
+        self.globals = state.globals;
+        self.stack = state.stack;
+        self.frames = state.frames;
+        self.ip = state.ip;
+        self.base_pointer = state.base_pointer;
     }
 
     #[inline(always)]
@@ -2563,5 +2590,31 @@ mod tests {
         assert!(shader_src.contains("hit_index"));
         assert!(shader_src.contains("@binding(0)"));
         assert!(shader_src.contains("@binding(1)"));
+    }
+
+    #[test]
+    fn test_vm_state_rollback() {
+        let mut vm = VM::new();
+        let instructions = vec![OpCode::Constant(0), OpCode::SetGlobal(1), OpCode::Return];
+        let constants = vec![RelType::Int(42), RelType::Str("x".to_string())];
+        let perms = AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: false,
+            allow_fs_write: false,
+        };
+
+        let snapshot = vm.snapshot();
+
+        let _ = vm.run(&instructions, &constants, &perms, None);
+
+        assert_eq!(vm.globals.get("x"), Some(&RelType::Int(42)));
+
+        vm.rollback(snapshot);
+
+        assert!(
+            !vm.globals.contains_key("x"),
+            "After rollback, 'x' must not exist"
+        );
     }
 }

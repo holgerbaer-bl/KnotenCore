@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.4.0-alpha] - Sprint 259: Snapshot-State-Rollback & Checkpointing (2026-06-01)
+Sprint 259: State Rollback Engine. Deployed deterministic VM state snapshots with automatic checkpoint-based rollback for fault-tolerant execution.
+- **VMState Struct**: `VMState { globals, stack, frames, ip, base_pointer }` — a `Clone`-able deep copy of the entire VM execution context. Captures all mutable state: global variable bindings, operand stack contents, call frame chain, and instruction pointer.
+- **Snapshot/Rollback API**: `VM::snapshot() -> VMState` creates a full copy of the current VM state. `VM::rollback(state: VMState)` overwrites all VM fields (globals, stack, frames, ip, base_pointer) with the saved snapshot, restoring the VM to the exact state at snapshot time.
+- **Test**: `test_vm_state_rollback` sets variable `x=42` via opcodes, takes a snapshot beforehand, verifies `x` is set after execution, then rolls back and verifies `x` no longer exists.
+- **Test Suite**: 193 → 194 tests (107 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 194/194 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.4.0-alpha] - Sprint 258: Agent Feedback Channel & LLM Latency Analysis (2026-06-01)
 Sprint 258: Agent Feedback Channel. Deployed a native latency monitoring pipeline for autonomous agent performance optimization.
 - **Latency Monitor**: `LATENCY_MONITOR: OnceLock<Mutex<HashMap<String, Vec<u128>>>>` stores per-command microsecond measurements. `LATENCY_TIMERS: OnceLock<Mutex<HashMap<String, Instant>>>` tracks in-flight timing sessions.
