@@ -856,6 +856,46 @@ impl BridgeModule for CoreBridge {
                         })
                     }
                 }
+                // Sprint 258: Agent latency monitoring
+                "registry_start_latency_timer" => {
+                    if args.len() == 1
+                        && let RelType::Str(cmd_id) = &args[0]
+                    {
+                        crate::natives::registry::registry_start_latency_timer(cmd_id);
+                        Some(ExecResult::Value(RelType::Void))
+                    } else {
+                        Some(ExecResult::Fault {
+                            msg: "[FFI] registry_start_latency_timer expects (String)".to_string(),
+                            node: "Native::Bridge::start_latency_timer".into(),
+                        })
+                    }
+                }
+                "registry_stop_latency_timer" => {
+                    if args.len() == 1
+                        && let RelType::Str(cmd_id) = &args[0]
+                    {
+                        let elapsed = crate::natives::registry::registry_stop_latency_timer(cmd_id);
+                        Some(ExecResult::Value(RelType::Float(elapsed as f64)))
+                    } else {
+                        Some(ExecResult::Fault {
+                            msg: "[FFI] registry_stop_latency_timer expects (String)".to_string(),
+                            node: "Native::Bridge::stop_latency_timer".into(),
+                        })
+                    }
+                }
+                "registry_get_avg_latency" => {
+                    if args.len() == 1
+                        && let RelType::Str(cmd_id) = &args[0]
+                    {
+                        let avg = crate::natives::registry::registry_get_avg_latency(cmd_id);
+                        Some(ExecResult::Value(RelType::Float(avg)))
+                    } else {
+                        Some(ExecResult::Fault {
+                            msg: "[FFI] registry_get_avg_latency expects (String)".to_string(),
+                            node: "Native::Bridge::get_avg_latency".into(),
+                        })
+                    }
+                }
                 "registry_play_sound" => {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]

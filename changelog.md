@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.4.0-alpha] - Sprint 258: Agent Feedback Channel & LLM Latency Analysis (2026-06-01)
+Sprint 258: Agent Feedback Channel. Deployed a native latency monitoring pipeline for autonomous agent performance optimization.
+- **Latency Monitor**: `LATENCY_MONITOR: OnceLock<Mutex<HashMap<String, Vec<u128>>>>` stores per-command microsecond measurements. `LATENCY_TIMERS: OnceLock<Mutex<HashMap<String, Instant>>>` tracks in-flight timing sessions.
+- **Start/Stop FFI**: `registry_start_latency_timer(id)` records `Instant::now()`. `registry_stop_latency_timer(id)` computes `elapsed.as_micros()`, appends to the monitor, and returns the value.
+- **Agent Report**: `registry_get_avg_latency(id) -> f64` computes the arithmetic mean of all recorded measurements for a given command ID. Returns 0.0 for unknown IDs.
+- **Bridge Registration**: Three new functions in the `registry` module: `registry_start_latency_timer`, `registry_stop_latency_timer`, `registry_get_avg_latency` — all single-String-arg.
+- **Test**: `test_agent_latency_tracking` starts a timer, sleeps 50ms, stops it, validates elapsed ≈ 50000us (±15ms tolerance) and that the average matches.
+- **Test Suite**: 192 → 193 tests (106 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 193/193 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.4.0-alpha] - Sprint 257: Raytracing-accelerated UI Hit-Testing (2026-06-01)
 Sprint 257: GPU UI Hit-Testing. Deployed a compute-shader-based UI panel intersection pipeline that offloads bounding-box testing from CPU to GPU.
 - **WGSL Compute Shader**: `ui_hit_test.wgsl` — reads panel AABBs from `@binding(0)` storage buffer and mouse position from `@binding(1)`, iterates over all panels, returns the hit index (or -1) via the first output element.

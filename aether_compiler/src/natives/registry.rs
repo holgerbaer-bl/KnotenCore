@@ -420,6 +420,70 @@ pub fn registry_drain_failure_tracker() {
         .clear();
 }
 
+// Sprint 258: Agent latency monitoring for LLM feedback loop
+static LATENCY_MONITOR: OnceLock<Mutex<HashMap<String, Vec<u128>>>> = OnceLock::new();
+static LATENCY_TIMERS: OnceLock<Mutex<HashMap<String, std::time::Instant>>> = OnceLock::new();
+
+fn get_latency_monitor() -> &'static Mutex<HashMap<String, Vec<u128>>> {
+    LATENCY_MONITOR.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn get_latency_timers() -> &'static Mutex<HashMap<String, std::time::Instant>> {
+    LATENCY_TIMERS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub fn registry_start_latency_timer(command_id: &str) {
+    let mut timers = get_latency_timers()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    timers.insert(command_id.to_string(), std::time::Instant::now());
+}
+
+pub fn registry_stop_latency_timer(command_id: &str) -> u128 {
+    let mut timers = get_latency_timers()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let elapsed = if let Some(start) = timers.remove(command_id) {
+        start.elapsed().as_micros()
+    } else {
+        0
+    };
+    let mut monitor = get_latency_monitor()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    monitor
+        .entry(command_id.to_string())
+        .or_default()
+        .push(elapsed);
+    elapsed
+}
+
+pub fn registry_get_avg_latency(command_id: &str) -> f64 {
+    let monitor = get_latency_monitor()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if let Some(measurements) = monitor.get(command_id) {
+        if measurements.is_empty() {
+            return 0.0;
+        }
+        let sum: u128 = measurements.iter().sum();
+        (sum as f64) / (measurements.len() as f64)
+    } else {
+        0.0
+    }
+}
+
+pub fn registry_drain_latency_data() {
+    get_latency_monitor()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clear();
+    get_latency_timers()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clear();
+}
+
 // Sprint 247: VM inspection FFI — expose runtime state
 pub fn registry_vm_get_ip() -> i64 {
     crate::vm::machine::get_vm_inspection_snapshot()
@@ -1246,5 +1310,29 @@ mod tests {
         );
 
         registry_drain_failure_tracker();
+    }
+
+    #[test]
+    fn test_agent_latency_tracking() {
+        registry_drain_latency_data();
+
+        registry_start_latency_timer("test_cmd");
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let elapsed = registry_stop_latency_timer("test_cmd");
+
+        assert!(
+            elapsed > 45_000 && elapsed < 60_000,
+            "Elapsed {}us should be ~50ms (50000us)",
+            elapsed
+        );
+
+        let avg = registry_get_avg_latency("test_cmd");
+        assert!(
+            avg > 45000.0 && avg < 60000.0,
+            "Average latency {}us should be ~50ms",
+            avg
+        );
+
+        registry_drain_latency_data();
     }
 }
