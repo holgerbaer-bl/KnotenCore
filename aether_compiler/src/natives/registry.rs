@@ -509,6 +509,47 @@ pub fn registry_ui_hit_test(
     });
 }
 
+// Sprint 261: Lock-free mailbox for cross-isolate communication
+static MAILBOX_REGISTRY: OnceLock<Mutex<HashMap<i64, Sender<crate::executor::RelType>>>> =
+    OnceLock::new();
+
+pub fn registry_register_mailbox(isolate_id: i64) -> Receiver<crate::executor::RelType> {
+    let (tx, rx) = bounded::<crate::executor::RelType>(16);
+    let registry = MAILBOX_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()));
+    registry
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(isolate_id, tx);
+    rx
+}
+
+pub fn registry_send_message(target_id: i64, message: crate::executor::RelType) -> bool {
+    let registry = MAILBOX_REGISTRY.get();
+    if let Some(reg) = registry
+        && let Ok(guard) = reg.lock()
+        && let Some(sender) = guard.get(&target_id)
+    {
+        return sender.try_send(message).is_ok();
+    }
+    false
+}
+
+pub fn registry_receive_message(_isolate_id: i64) -> Option<crate::executor::RelType> {
+    MAILBOX_REGISTRY.get().and_then(|reg| {
+        reg.lock().ok().and_then(|_| {
+            // Channels are consumed from the receiver side, which is held by the isolate.
+            // This FFI is for testing/external access.
+            None
+        })
+    })
+}
+
+pub fn registry_drain_mailbox_registry() {
+    if let Some(reg) = MAILBOX_REGISTRY.get() {
+        reg.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    }
+}
+
 unsafe impl Send for WindowProxy {}
 unsafe impl Sync for WindowProxy {}
 

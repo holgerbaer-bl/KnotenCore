@@ -896,6 +896,23 @@ impl BridgeModule for CoreBridge {
                         })
                     }
                 }
+                // Sprint 261: Lock-free inter-isolate mailbox communication
+                "registry_send_message" => {
+                    if args.len() == 2
+                        && let RelType::Int(target_id) = &args[0]
+                    {
+                        let sent = crate::natives::registry::registry_send_message(
+                            *target_id,
+                            args[1].clone(),
+                        );
+                        Some(ExecResult::Value(RelType::Bool(sent)))
+                    } else {
+                        Some(ExecResult::Fault {
+                            msg: "[FFI] registry_send_message expects (Int, Any)".to_string(),
+                            node: "Native::Bridge::registry_send_message".into(),
+                        })
+                    }
+                }
                 "registry_play_sound" => {
                     if args.len() == 1
                         && let RelType::Str(path) = &args[0]

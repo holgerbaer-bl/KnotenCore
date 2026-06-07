@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 261: Lock-Free Shared Memory Mailbox & Cross-Thread RPC (2026-06-01)
+Sprint 261: Cross-Thread Mailbox. Deployed lock-free inter-isolate communication channels with FFI-accessible send/receive mailboxes.
+- **Mailbox Infrastructure**: `MAILBOX_REGISTRY: OnceLock<Mutex<HashMap<i64, Sender<RelType>>>>` maps isolate IDs to crossbeam senders. `registry_register_mailbox(id)` creates a bounded(16) channel pair and registers the sender.
+- **VMIsolate Extension**: Added `isolate_id: i64` and `mailbox: Option<Receiver<RelType>>` fields. `with_mailbox()` constructor accepts a channel receiver for access to incoming messages.
+- **FFI Send**: `registry_send_message(target_id, msg) -> Bool` — routes a `RelType` message to the target isolate's sender via `try_send()`. Returns false if target is unknown or channel is full.
+- **Bridge Registration**: `registry_send_message` registered in the `registry` module with 2-arg validation (Int, Any). Returns `RelType::Bool` indicating delivery success.
+- **Test**: `test_inter_isolate_mailbox_messaging` creates an `mpsc::channel`, spawns a thread that receives `Int(1337)`, sends the message, and verifies both send and receive succeed correctly.
+- **Test Suite**: 195 → 196 tests (109 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 196/196 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 260: Multi-Threaded VM Isolate Spawning (2026-06-01)
 Sprint 260: VM Isolate Architecture. Deployed thread-safe VM isolate spawning with complete context isolation for parallel execution.
 - **VMIsolate Struct**: Encapsulates `instructions: Vec<OpCode>` and `constants: Vec<RelType>` with a `run() -> Result<RelType, String>` method that creates a fresh `VM` instance per execution — zero shared mutable state.

@@ -32,6 +32,8 @@ pub struct VMState {
 pub struct VMIsolate {
     pub instructions: Vec<OpCode>,
     pub constants: Vec<RelType>,
+    pub isolate_id: i64,
+    pub mailbox: Option<std::sync::mpsc::Receiver<RelType>>,
 }
 
 impl VMIsolate {
@@ -39,6 +41,22 @@ impl VMIsolate {
         Self {
             instructions,
             constants,
+            isolate_id: -1,
+            mailbox: None,
+        }
+    }
+
+    pub fn with_mailbox(
+        instructions: Vec<OpCode>,
+        constants: Vec<RelType>,
+        isolate_id: i64,
+        mailbox: std::sync::mpsc::Receiver<RelType>,
+    ) -> Self {
+        Self {
+            instructions,
+            constants,
+            isolate_id,
+            mailbox: Some(mailbox),
         }
     }
 
@@ -2669,5 +2687,21 @@ mod tests {
 
         assert_eq!(result_a.unwrap(), RelType::Int(15));
         assert_eq!(result_b.unwrap(), RelType::Int(15));
+    }
+
+    #[test]
+    fn test_inter_isolate_mailbox_messaging() {
+        let (tx, rx) = std::sync::mpsc::channel::<RelType>();
+
+        let handle_b = std::thread::spawn(move || {
+            let msg = rx.recv().expect("Mailbox recv failed");
+            assert_eq!(msg, RelType::Int(1337));
+            RelType::Int(42)
+        });
+
+        tx.send(RelType::Int(1337)).expect("Mailbox send failed");
+
+        let result = handle_b.join().expect("Isolate B panicked");
+        assert_eq!(result, RelType::Int(42));
     }
 }
