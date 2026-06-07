@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 260: Multi-Threaded VM Isolate Spawning (2026-06-01)
+Sprint 260: VM Isolate Architecture. Deployed thread-safe VM isolate spawning with complete context isolation for parallel execution.
+- **VMIsolate Struct**: Encapsulates `instructions: Vec<OpCode>` and `constants: Vec<RelType>` with a `run() -> Result<RelType, String>` method that creates a fresh `VM` instance per execution — zero shared mutable state.
+- **spawn_isolate()**: Public function that takes owned instruction and constant vectors, spawns a `std::thread::spawn` with a `VMIsolate`, and returns a `JoinHandle<Result<RelType, String>>`. Each thread owns its entire VM context (stack, globals, frames, inspection state).
+- **Context Isolation**: Since `VM` uses only owned types (`Vec`, `HashMap`, `usize`), each thread operates on an independent memory space. No `Arc`, no `Mutex`, no cross-thread borrowing — guaranteed no data races.
+- **Test**: `test_vm_isolate_threaded_spawning` spawns two isolates computing `10 + 5 = 15` in parallel, verifies both `JoinHandle` results are successful and equal.
+- **Test Suite**: 194 → 195 tests (108 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 195/195 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.4.0-alpha] - Sprint 259: Snapshot-State-Rollback & Checkpointing (2026-06-01)
 Sprint 259: State Rollback Engine. Deployed deterministic VM state snapshots with automatic checkpoint-based rollback for fault-tolerant execution.
 - **VMState Struct**: `VMState { globals, stack, frames, ip, base_pointer }` — a `Clone`-able deep copy of the entire VM execution context. Captures all mutable state: global variable bindings, operand stack contents, call frame chain, and instruction pointer.

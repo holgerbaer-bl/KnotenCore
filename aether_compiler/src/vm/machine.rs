@@ -29,6 +29,36 @@ pub struct VMState {
     pub base_pointer: usize,
 }
 
+pub struct VMIsolate {
+    pub instructions: Vec<OpCode>,
+    pub constants: Vec<RelType>,
+}
+
+impl VMIsolate {
+    pub fn new(instructions: Vec<OpCode>, constants: Vec<RelType>) -> Self {
+        Self {
+            instructions,
+            constants,
+        }
+    }
+
+    pub fn run(self) -> Result<RelType, String> {
+        let mut vm = VM::new();
+        let perms = AgentPermissions::default();
+        vm.run(&self.instructions, &self.constants, &perms, None)
+    }
+}
+
+pub fn spawn_isolate(
+    instructions: Vec<OpCode>,
+    constants: Vec<RelType>,
+) -> std::thread::JoinHandle<Result<RelType, String>> {
+    std::thread::spawn(move || {
+        let isolate = VMIsolate::new(instructions, constants);
+        isolate.run()
+    })
+}
+
 pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
     let len = inputs.len();
     let stride = if len >= 6 && len.is_multiple_of(6) {
@@ -2616,5 +2646,28 @@ mod tests {
             !vm.globals.contains_key("x"),
             "After rollback, 'x' must not exist"
         );
+    }
+
+    #[test]
+    fn test_vm_isolate_threaded_spawning() {
+        let instructions = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::Return,
+        ];
+        let constants = vec![RelType::Int(10), RelType::Int(5)];
+
+        let instructions_clone = instructions.clone();
+        let constants_clone = constants.clone();
+
+        let handle_a = spawn_isolate(instructions, constants);
+        let handle_b = spawn_isolate(instructions_clone, constants_clone);
+
+        let result_a = handle_a.join().expect("Isolate A panicked");
+        let result_b = handle_b.join().expect("Isolate B panicked");
+
+        assert_eq!(result_a.unwrap(), RelType::Int(15));
+        assert_eq!(result_b.unwrap(), RelType::Int(15));
     }
 }
