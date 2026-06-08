@@ -2865,4 +2865,31 @@ mod tests {
         let drained = isolate::telemetry_drain(telemetry_id);
         assert_eq!(drained.len(), 2);
     }
+
+    #[test]
+    fn test_inter_isolate_dma_zero_copy() {
+        let data: Vec<RelType> = (0..10_000).map(RelType::Int).collect();
+        isolate::bus_publish("large_array".to_string(), data);
+
+        let handles: Vec<_> = (0..3)
+            .map(|_| {
+                std::thread::spawn(move || {
+                    let bus = isolate::bus_subscribe("large_array").expect("Must subscribe to bus");
+                    assert_eq!(bus.len(), 10_000);
+                    assert!(
+                        (match &bus[9999] {
+                            RelType::Int(v) => *v == 9999,
+                            _ => false,
+                        })
+                    );
+                })
+            })
+            .collect();
+
+        for h in handles {
+            h.join().expect("DMA thread panicked");
+        }
+
+        isolate::bus_drain();
+    }
 }

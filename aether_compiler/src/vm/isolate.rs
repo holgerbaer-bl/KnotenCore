@@ -58,6 +58,25 @@ pub fn telemetry_drain(isolate_id: i64) -> Vec<String> {
         .unwrap_or_default()
 }
 
+// Sprint 272: Lockless shared-memory virtual buses (inter-isolate DMA)
+static VIRTUAL_BUSES: OnceLock<dashmap::DashMap<String, Arc<Vec<RelType>>>> = OnceLock::new();
+
+fn get_buses() -> &'static dashmap::DashMap<String, Arc<Vec<RelType>>> {
+    VIRTUAL_BUSES.get_or_init(dashmap::DashMap::new)
+}
+
+pub fn bus_publish(name: String, data: Vec<RelType>) {
+    get_buses().insert(name, Arc::new(data));
+}
+
+pub fn bus_subscribe(name: &str) -> Option<Arc<Vec<RelType>>> {
+    get_buses().get(name).map(|r| Arc::clone(&*r))
+}
+
+pub fn bus_drain() {
+    get_buses().clear();
+}
+
 pub struct VMIsolate {
     pub instructions: Vec<OpCode>,
     pub constants: Vec<RelType>,

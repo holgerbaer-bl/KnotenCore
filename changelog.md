@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 272: Lockless Shared-Memory Virtual Buses (2026-06-01)
+Sprint 272: Virtual Bus DMA. Introduced VirtualBus mechanics under src/vm/ isolate mappings. Re-engineered message payload routing to leverage shared atomic data wrappers, bypassing payload cloning across thread boundaries.
+- **VirtualBus Architecture**: `VIRTUAL_BUSES: OnceLock<DashMap<String, Arc<Vec<RelType>>>>`. `bus_publish(name, data)` stores an `Arc<Vec<RelType>>` — zero-copy for subscribers. `bus_subscribe(name) -> Option<Arc<Vec<RelType>>>` returns a cloned `Arc` (reference-count bump only, no data copy).
+- **Zero-Copy Routing**: Multiple isolates can hold `Arc` references to the same `Vec<RelType>`. Clock increments are O(1) reference-count operations; the underlying allocation is shared read-only. DashMap ensures concurrent subscribe without global locks.
+- **Test**: `test_inter_isolate_dma_zero_copy` publishes a 10,000-element array, spawns 3 threads that each subscribe and verify element integrity — all sharing the same underlying allocation.
+- **Test Suite**: 205 → 206 tests (119 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 206/206 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 271: Self-Healing Watchdog & Telemetry Channel (2026-06-01)
 Sprint 271: Agent Telemetry Channel & Self-Healing. Implemented the AgentTelemetryChannel API under src/vm/. Connected the runtime loop watchdog to return structured JSON diagnostics on error while triggering automatic snapshot rollbacks to prevent engine stagnation.
 - **Telemetry Channel**: `AgentTelemetryChannel` — a `DashMap<i64, Vec<String>>`-backed thread-safe registry per isolate ID. `telemetry_push(isolate_id, diagnostic)` appends structured error records.
