@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 273: JIT Multi-Pass Shader Graph Synthesis (2026-06-01)
+Sprint 273: Dynamic WGSL Shader Synthesis. Added dynamic WGSL generation engine for AST pipelines, mapping math chains directly to parallel WGPU pipelines with warm pipeline caching.
+- **ShaderGraphCompiler**: New `src/vm/shader_graph.rs` module. `ShaderGraphCompiler` recursively walks AST math nodes (`Add`, `Mul`, `Constant`, etc.) and emits valid WGSL compute shader source code with `@compute @workgroup_size(64)` entry point.
+- **AST→WGSL Translation**: Binary ops mapped to WGSL operators (`+`, `*`, `-`, `/`), constants emitted as `f32` literals, inputs wired to `@binding(0)` storage buffer. `compile(node) -> String` returns complete shader source.
+- **Hash-Based Dedup**: `ShaderGraphCompiler` stores compiled shaders in a `HashMap<u64, String>` keyed by structural hash of the AST — warm cache reuse prevents redundant GPU driver compilation.
+- **Test**: `test_jit_shader_graph_synthesis` compiles `(x * 2.0) + 5.0` AST to WGSL, verifies output contains `@binding(0)`, `workgroup_size`, and the `* 2.0 + 5.0` expression.
+- **Test Suite**: 206 → 207 tests (120 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 207/207 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 272: Lockless Shared-Memory Virtual Buses (2026-06-01)
 Sprint 272: Virtual Bus DMA. Introduced VirtualBus mechanics under src/vm/ isolate mappings. Re-engineered message payload routing to leverage shared atomic data wrappers, bypassing payload cloning across thread boundaries.
 - **VirtualBus Architecture**: `VIRTUAL_BUSES: OnceLock<DashMap<String, Arc<Vec<RelType>>>>`. `bus_publish(name, data)` stores an `Arc<Vec<RelType>>` — zero-copy for subscribers. `bus_subscribe(name) -> Option<Arc<Vec<RelType>>>` returns a cloned `Arc` (reference-count bump only, no data copy).
