@@ -93,6 +93,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Lock-Free Resource Handles** (Sprint 267) → `COUNTER_REGISTRY` utilizes atomic reference mapping. Isolates resolve native handles concurrently with zero-latency lock mitigation. `StatefulCounter` uses `AtomicI64` for lock-free `fetch_add`/`load` — eliminates mutex contention on `registry_increment` and `registry_get_value` hot-paths.
 - **DashMap Resource Grid & Crate Decomposition** (Sprint 268) → Eliminates monolithic registry mutexes via DashMap integration. `COUNTER_REGISTRY` now uses `OnceLock<DashMap<usize, RegistryEntry>>` — 100% lock-free concurrent access across all registry operations. Crate machine.rs decomposed into isolated modules (`isolate.rs`, `scheduler.rs`, `snapshot.rs`) minimizing architectural merge conflicts.
 - **Property-Based Testing & WASM CI-Fortress** (Sprint 269) → Integrates proptest into the runtime validation matrix to dynamically expose NaN/Inf boundary flaws within ADSR envelopes and SIMD matrix logic. Establishes native wasm-pack validation rules within the automated GitHub Actions pipeline.
+- **Multi-Threaded Hot-Swap Code Reloading** (Sprint 270) → Activates runtime opcode vector manipulation directly targeting individual VMIsolate instances. Leveraging snapshot-recovery states, modified instruction streams are hot-swapped in real-time while adjacent threads sustain peak execution velocity.
 
 ---
 

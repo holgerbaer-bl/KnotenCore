@@ -2812,4 +2812,37 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_vm_isolate_hot_swap_reloading() {
+        let add_instr = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::Return,
+        ];
+        let add_const = vec![RelType::Int(10), RelType::Int(5)];
+        let mul_instr = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Multiply,
+            OpCode::Return,
+        ];
+        let mul_const = vec![RelType::Int(10), RelType::Int(5)];
+
+        let mut isolate = isolate::VMIsolate::new(add_instr, add_const);
+        isolate.isolate_id = 42;
+        assert_eq!(isolate.run().unwrap(), RelType::Int(15));
+
+        assert!(isolate::hot_swap_isolate_code(42, mul_instr, mul_const));
+
+        let mut isolate2 = isolate::VMIsolate::new(vec![], vec![]);
+        isolate2.isolate_id = 42;
+        let result = isolate2.run().unwrap();
+        assert_eq!(
+            result,
+            RelType::Int(50),
+            "After hot-swap, should multiply: 10*5=50"
+        );
+    }
 }

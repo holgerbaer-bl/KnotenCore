@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 270: Multi-Threaded Hot-Swap Code Reloading (2026-06-01)
+Sprint 270: Hot-Swap Code Reloading. Deployed pub fn hot_swap_isolate_code API within the centralized src/vm/ isolate context. Enables live opcode and constant vector mutation on running threads with safe snapshot buffering and zero cross-thread locking contention.
+- **Hot-Swap Registry**: `HOT_SWAP_REGISTRY: OnceLock<Mutex<HashMap<i64, Arc<Mutex<(Vec<OpCode>, Vec<RelType>)>>>>>` stores per-isolate instruction/constant pairs. `hot_swap_isolate_code(id, new_instr, new_const)` snapshots the isolate via `store_snapshot`, then atomically replaces the shared ARC'd vectors under the registry mutex.
+- **Non-Blocking**: The Mutex is held only during the swap operation (microseconds). The isolate's VM execution runs on `Arc::clone()`'d references — other threads continue at 100% velocity.
+- **Test**: `test_vm_isolate_hot_swap_reloading` spawns an isolate with addition instructions, hot-swaps to multiplication, and verifies the isolate picks up the new opcodes.
+- **Test Suite**: 203 → 204 tests (117 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 204/204 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 269: Property-Based Fuzzing & WASM CI-Pipeline (2026-06-01)
 Sprint 269: Property-Based Testing & WASM CI-Fortress. Integrated proptest for algebraic validation of ADSR shaper and SIMD transform boundaries, actively preventing NaN/Inf propagation faults. Implemented automated wasm-pack build step within the centralized .github/workflows/ci.yml configuration.
 - **Proptest Integration**: `proptest = "1.5"` added as dev-dependency to `aether_compiler/Cargo.toml`.
