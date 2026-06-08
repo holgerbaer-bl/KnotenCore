@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 271: Self-Healing Watchdog & Telemetry Channel (2026-06-01)
+Sprint 271: Agent Telemetry Channel & Self-Healing. Implemented the AgentTelemetryChannel API under src/vm/. Connected the runtime loop watchdog to return structured JSON diagnostics on error while triggering automatic snapshot rollbacks to prevent engine stagnation.
+- **Telemetry Channel**: `AgentTelemetryChannel` — a `DashMap<i64, Vec<String>>`-backed thread-safe registry per isolate ID. `telemetry_push(isolate_id, diagnostic)` appends structured error records.
+- **Structured JSON Feedback**: `push_vm_crash_marker` extended to generate `ERR:{code}:IP:{ip}:STACK:{depth}:MSG:{msg}` diagnostics mapped to `error_catalog.json` schema fields. `telemetry_last(isolate_id) -> Option<String>` for agent query.
+- **Automated Rollback**: Watchdog timeout now triggers `telemetry_push` + `rollback_isolate` before the error propagates — isolates recover to pre-fault state autonomously.
+- **Test**: `test_agent_telemetry_self_healing` — spawns isolate with error-inducing opcodes, verifies telemetry captures the crash marker and isolate rolls back to clean state.
+- **Test Suite**: 204 → 205 tests (118 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 205/205 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 270: Multi-Threaded Hot-Swap Code Reloading (2026-06-01)
 Sprint 270: Hot-Swap Code Reloading. Deployed pub fn hot_swap_isolate_code API within the centralized src/vm/ isolate context. Enables live opcode and constant vector mutation on running threads with safe snapshot buffering and zero cross-thread locking contention.
 - **Hot-Swap Registry**: `HOT_SWAP_REGISTRY: OnceLock<Mutex<HashMap<i64, Arc<Mutex<(Vec<OpCode>, Vec<RelType>)>>>>>` stores per-isolate instruction/constant pairs. `hot_swap_isolate_code(id, new_instr, new_const)` snapshots the isolate via `store_snapshot`, then atomically replaces the shared ARC'd vectors under the registry mutex.

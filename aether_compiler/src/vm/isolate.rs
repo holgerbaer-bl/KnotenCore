@@ -31,6 +31,33 @@ pub fn hot_swap_isolate_code(
     }
 }
 
+// Sprint 271: Agent telemetry channel for structured runtime diagnostics
+static AGENT_TELEMETRY: OnceLock<dashmap::DashMap<i64, Vec<String>>> = OnceLock::new();
+
+fn get_telemetry() -> &'static dashmap::DashMap<i64, Vec<String>> {
+    AGENT_TELEMETRY.get_or_init(dashmap::DashMap::new)
+}
+
+pub fn telemetry_push(isolate_id: i64, diagnostic: String) {
+    get_telemetry()
+        .entry(isolate_id)
+        .or_default()
+        .push(diagnostic);
+}
+
+pub fn telemetry_last(isolate_id: i64) -> Option<String> {
+    get_telemetry()
+        .get(&isolate_id)
+        .and_then(|v| v.last().cloned())
+}
+
+pub fn telemetry_drain(isolate_id: i64) -> Vec<String> {
+    get_telemetry()
+        .remove(&isolate_id)
+        .map(|(_, v)| v)
+        .unwrap_or_default()
+}
+
 pub struct VMIsolate {
     pub instructions: Vec<OpCode>,
     pub constants: Vec<RelType>,

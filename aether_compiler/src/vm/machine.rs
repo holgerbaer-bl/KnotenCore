@@ -2845,4 +2845,24 @@ mod tests {
             "After hot-swap, should multiply: 10*5=50"
         );
     }
+
+    #[test]
+    fn test_agent_telemetry_self_healing() {
+        let telemetry_id: i64 = 77;
+        isolate::telemetry_push(
+            telemetry_id,
+            "ERR:WATCHDOG:IP:420:STACK:3:MSG:timeout".to_string(),
+        );
+        isolate::telemetry_push(
+            telemetry_id,
+            "ERR:FFI:IP:421:STACK:1:MSG:permission_denied".to_string(),
+        );
+
+        let last = isolate::telemetry_last(telemetry_id);
+        assert!(last.is_some());
+        assert!(last.unwrap().contains("FFI"));
+
+        let drained = isolate::telemetry_drain(telemetry_id);
+        assert_eq!(drained.len(), 2);
+    }
 }
