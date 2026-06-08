@@ -2694,15 +2694,16 @@ mod tests {
     #[test]
     fn test_isolated_atomic_checkpointing() {
         drain_isolate_snapshots();
+        isolate::drain_hot_swap_registry();
 
         let instructions = vec![OpCode::Constant(0), OpCode::Return];
         let constants = vec![RelType::Int(7)];
         let mut isolate = VMIsolate::new(instructions, constants);
-        isolate.isolate_id = 0;
+        isolate.isolate_id = 99;
         let result = isolate.run();
         assert_eq!(result.unwrap(), RelType::Int(7));
 
-        let restored = snapshot_isolate(0);
+        let restored = snapshot_isolate(99);
         assert!(
             restored.is_some(),
             "Snapshot should exist after isolate run"

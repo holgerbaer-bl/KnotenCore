@@ -31,6 +31,13 @@ pub fn hot_swap_isolate_code(
     }
 }
 
+pub fn drain_hot_swap_registry() {
+    get_hot_swap_registry()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clear();
+}
+
 // Sprint 271: Agent telemetry channel for structured runtime diagnostics
 static AGENT_TELEMETRY: OnceLock<dashmap::DashMap<i64, Vec<String>>> = OnceLock::new();
 
