@@ -8,9 +8,12 @@ use super::isolate;
 use super::scheduler;
 use super::snapshot;
 
+pub use isolate::SpeculativeResult;
 pub use isolate::VMIsolate;
 pub use isolate::spawn_isolate;
+pub use isolate::spawn_shadow_isolate;
 pub use scheduler::WorkItem;
+pub use scheduler::dispatch_speculative_branch;
 pub use scheduler::drain_work_stealing_queues;
 pub use scheduler::push_work_batch;
 pub use scheduler::try_steal_work;
@@ -2892,5 +2895,90 @@ mod tests {
         }
 
         isolate::bus_drain();
+    }
+
+    #[test]
+    fn test_vm_isolate_speculative_branching() {
+        let perms = AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: false,
+            allow_fs_write: false,
+        };
+        let constants = vec![
+            RelType::Str("x".to_string()),
+            RelType::Int(1),
+            RelType::Str("y".to_string()),
+            RelType::Void,
+        ];
+
+        let mut vm = VM::new();
+        vm.globals.insert("x".to_string(), RelType::Int(10));
+
+        let vm_snapshot = vm.snapshot();
+
+        let winner = dispatch_speculative_branch(
+            vm_snapshot,
+            vec![
+                OpCode::GetGlobal(0),
+                OpCode::Constant(1),
+                OpCode::Add,
+                OpCode::SetGlobal(2),
+                OpCode::Constant(3),
+                OpCode::Return,
+            ],
+            vec![
+                OpCode::GetGlobal(0),
+                OpCode::Constant(1),
+                OpCode::Multiply,
+                OpCode::SetGlobal(2),
+                OpCode::Constant(3),
+                OpCode::Return,
+            ],
+            constants.clone(),
+            true,
+        )
+        .expect("Speculative branch must succeed");
+
+        assert_eq!(
+            winner.globals.get("y"),
+            Some(&RelType::Int(11)),
+            "Path A should win: 10 + 1 = 11"
+        );
+
+        let mut vm2 = VM::new();
+        vm2.globals.insert("x".to_string(), RelType::Int(3));
+        let vm2_snapshot = vm2.snapshot();
+
+        let loser_winner = dispatch_speculative_branch(
+            vm2_snapshot,
+            vec![
+                OpCode::GetGlobal(0),
+                OpCode::Constant(1),
+                OpCode::Add,
+                OpCode::SetGlobal(2),
+                OpCode::Constant(3),
+                OpCode::Return,
+            ],
+            vec![
+                OpCode::GetGlobal(0),
+                OpCode::Constant(1),
+                OpCode::Multiply,
+                OpCode::SetGlobal(2),
+                OpCode::Constant(3),
+                OpCode::Return,
+            ],
+            constants.clone(),
+            false,
+        )
+        .expect("Speculative branch must succeed");
+
+        assert_eq!(
+            loser_winner.globals.get("y"),
+            Some(&RelType::Int(3)),
+            "Path B should win: 3 * 1 = 3"
+        );
+
+        let _ = perms;
     }
 }

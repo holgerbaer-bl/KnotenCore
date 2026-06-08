@@ -1,4 +1,4 @@
-use super::machine::VM;
+use super::machine::{VM, VMState};
 use super::scheduler::try_steal_work;
 use super::snapshot::{snapshot_isolate, store_snapshot};
 use crate::executor::{AgentPermissions, RelType};
@@ -184,5 +184,33 @@ pub fn spawn_isolate(
     std::thread::spawn(move || {
         let isolate = VMIsolate::new(instructions, constants);
         isolate.run()
+    })
+}
+
+// Sprint 274: Speculative shadow isolate — runs a code path from a frozen VM snapshot
+pub struct SpeculativeResult {
+    pub state: VMState,
+    pub value: RelType,
+}
+
+pub fn spawn_shadow_isolate(
+    snapshot: VMState,
+    instructions: Vec<OpCode>,
+    constants: Vec<RelType>,
+) -> std::thread::JoinHandle<SpeculativeResult> {
+    std::thread::spawn(move || {
+        let mut vm = VM::new();
+        vm.rollback(snapshot);
+        let perms = AgentPermissions::default();
+        match vm.run(&instructions, &constants, &perms, None) {
+            Ok(value) => SpeculativeResult {
+                state: vm.snapshot(),
+                value,
+            },
+            Err(_) => SpeculativeResult {
+                state: VM::new().snapshot(),
+                value: RelType::Void,
+            },
+        }
     })
 }

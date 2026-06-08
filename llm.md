@@ -97,6 +97,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Agent Telemetry Channel & Self-Healing** (Sprint 271) → Connects the execution watchdog directly to structured JSON feedback pipelines. Captures runtime faults natively and provides diagnostic error catalogs directly to autonomous code agents to trigger real-time code modifications.
 - **Lockless Shared-Memory Virtual Buses** (Sprint 272) → Establishes zero-copy inter-isolate DMA routing. Threads share native data structures concurrently using atomic shared pointers, avoiding serialization bottlenecks under intensive data exchange.
 - **Dynamic WGSL Shader Synthesis** (Sprint 273) → Empowers the runtime to natively compile JSON-AST mathematical expression graphs into optimized WebGPU compute shaders at runtime, bypassing CPU-bound evaluation paths.
+- **Speculative Branch Execution** (Sprint 274) → Evaluates dual control flow paths concurrently using transient speculative shadow isolates. Automatically commits valid execution tracks and prunes alternative paths via low-overhead snapshot rollbacks.
 
 ---
 

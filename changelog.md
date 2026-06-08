@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 274: Speculative Isolate Execution & Branch Rollbacks (2026-06-01)
+Sprint 274: Speculative Isolate Execution & Branch Rollbacks. Implemented speculative shadow isolation inside src/vm/scheduler.rs. Parallelizes conditional branches across concurrent threads, utilizing transient snapshot contexts to roll back unselected execution branches without blocking the master VM pipeline.
+- **Shadow Isolate Spawning**: `spawn_shadow_isolate()` in `src/vm/isolate.rs` creates a lightweight transient isolate from a frozen VM snapshot, running on a dedicated OS thread with its own instruction pointer and register file.
+- **Parallel Branch Evaluation**: `dispatch_speculative_branch()` in `src/vm/scheduler.rs` forks both true/false paths simultaneously, each shadow isolate executing independently until the condition resolves.
+- **Atomic Merge & Discard**: The winning path's final VM state is atomically merged back into the master isolate via `rollback_shadow_result()`; the losing shadow's local heap and register file are immediately dropped.
+- **Test**: `test_vm_isolate_speculative_branching` spawns a conditional `if (x > 5) { y = x + 1 } else { y = x * 2 }` — both paths run in parallel, only the correct result survives, the losing isolate's memory is freed.
+- **Test Suite**: 207 → 208 tests (121 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 208/208 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 273: JIT Multi-Pass Shader Graph Synthesis (2026-06-01)
 Sprint 273: Dynamic WGSL Shader Synthesis. Added dynamic WGSL generation engine for AST pipelines, mapping math chains directly to parallel WGPU pipelines with warm pipeline caching.
 - **ShaderGraphCompiler**: New `src/vm/shader_graph.rs` module. `ShaderGraphCompiler` recursively walks AST math nodes (`Add`, `Mul`, `Constant`, etc.) and emits valid WGSL compute shader source code with `@compute @workgroup_size(64)` entry point.

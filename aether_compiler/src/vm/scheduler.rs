@@ -36,3 +36,32 @@ pub fn drain_work_stealing_queues() {
         queues.lock().unwrap_or_else(|e| e.into_inner()).clear();
     }
 }
+
+// Sprint 274: Speculative branch dispatch — runs both true/false paths in parallel shadow isolates
+use super::machine::VMState;
+
+pub fn dispatch_speculative_branch(
+    snapshot: VMState,
+    path_a_instructions: Vec<OpCode>,
+    path_b_instructions: Vec<OpCode>,
+    constants: Vec<RelType>,
+    take_path_a: bool,
+) -> Option<VMState> {
+    let handle_a = super::isolate::spawn_shadow_isolate(
+        snapshot.clone(),
+        path_a_instructions,
+        constants.clone(),
+    );
+    let handle_b = super::isolate::spawn_shadow_isolate(snapshot, path_b_instructions, constants);
+
+    let result_a = handle_a.join().ok()?;
+    let result_b = handle_b.join().ok()?;
+
+    if take_path_a {
+        let _ = result_b;
+        Some(result_a.state)
+    } else {
+        let _ = result_a;
+        Some(result_b.state)
+    }
+}
