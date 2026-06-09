@@ -92,4 +92,7 @@ pub enum OpCode {
 
     // Sprint 224: Continuous GPGPU compute streaming loop
     OpDispatchComputeLoop(usize), // arg_count
+
+    // Sprint 276: Temporal quantum time-travel reversal
+    TimeTravelReverse(i64), // checkpoint_id
 }

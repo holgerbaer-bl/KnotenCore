@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 276: Temporal Quantum Reversal (2026-06-01)
+Sprint 276: Temporal Quantum Reversal. Embedded time-travel debugging operators inside the VM core loop. Leverages existing VMState snapshots to reverse instruction pointer states accurately, allowing live modification of historical registers.
+- **TimeTravelReverse OpCode**: New `OpCode::TimeTravelReverse(checkpoint_id: i64)` variant. When the VM encounters this opcode, it looks up the checkpoint in the `SnapshotRegistry` (`src/vm/snapshot.rs`) and rewinds `globals`, `stack`, `frames`, `ip`, and `base_pointer` to the exact historical state.
+- **Live Register Mutation**: After rollback, the caller can mutate historical register values (e.g., fix a bad variable), and the VM immediately resumes forward execution with the corrected state — no recompilation needed.
+- **Test**: `test_vm_temporal_reversal` creates a VM with `x = 5`, snapshots, runs `x = x + 5` to reach `x = 10`, triggers `TimeTravelReverse` back to `x = 5`, manually rewrites `x` to `20` in the historical globals, then re-executes `x = x + 5` to produce `x = 25`.
+- **Test Suite**: 209 → 210 tests (122 lib + 55 integration + 25 sandbox + 7 LSP + 1 new).
+- **CI**: 210/210 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 275: C-ABI Foreign Function Facade (2026-06-01)
 Sprint 275: C-ABI Foreign Function Facade. Standardized export symbols under extern "C" macros within a dedicated facade module, enabling full cross-language embeddability with zero-allocation data passing chains.
 - **C-Compat Exports**: New `src/ffi.rs` module with `#[no_mangle] extern "C"` symbols: `knotencore_create_vm`, `knotencore_compile_json`, `knotencore_spawn_isolate`.

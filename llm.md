@@ -99,6 +99,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Dynamic WGSL Shader Synthesis** (Sprint 273) → Empowers the runtime to natively compile JSON-AST mathematical expression graphs into optimized WebGPU compute shaders at runtime, bypassing CPU-bound evaluation paths.
 - **Speculative Branch Execution** (Sprint 274) → Evaluates dual control flow paths concurrently using transient speculative shadow isolates. Automatically commits valid execution tracks and prunes alternative paths via low-overhead snapshot rollbacks.
 - **Universal C-ABI Facade Layer** (Sprint 275) → Projects a normative C-compatible boundary for multi-language execution host environments. Guarantees stateless cross-language invocation bindings for embedded runtime instances.
+- **Temporal Quantum Reversal** (Sprint 276) → Adds native instruction-level time-travel capabilities. Allows agents to trigger state rollbacks to historical execution checkpoints to inspect or correct data topologies before re-executing code lines.
 
 ---
 

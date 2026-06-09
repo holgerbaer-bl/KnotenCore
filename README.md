@@ -53,7 +53,10 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Mathematical Resilience Fortress:** Integrated proptest framework into the native testbett, executing deep mathematical property-based fuzzing over the ADSR audio shaper and SIMD Glam matrix transformation FFI layers.
 * **Dynamic Shader Synthesis:** Integrated a JIT Multi-Pass Shader Graph Synthesizer, compiling dynamic AST computation blocks directly into high-performance WGSL compute shaders executed directly on the GPU pipeline cache.
 * **Speculative Isolate Execution:** Integrated a runtime speculative branching engine. Complex conditional blocks spawn parallel shadow isolates across independent OS threads, merging the winning path atomically with zero-latency snapshot rollbacks for losing branches.
-* **Universal C-ABI Embedding Facade:** Exposed a low-overhead, unsafe-free C-compatible ABI boundary (libknotencore), enabling native orchestration, bytecode injection, and multi-threaded isolate spawning from host languages like Python, C++, and Node.js. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+* **Universal C-ABI Embedding Facade:** Exposed a low-overhead, unsafe-free C-compatible ABI boundary (libknotencore), enabling native orchestration, bytecode injection, and multi-threaded isolate spawning from host languages like Python, C++, and Node.js.
+
+### Temporal Quantum Architecture (v1.6.0)
+* **Temporal Quantum Reversal:** Integrated instruction-accurate time-travel debugging inside the Register Stack-VM ALU core. Exploits localized snapshot frames to enable instant deterministic state rewinds and historic state mutation under execution faults. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 

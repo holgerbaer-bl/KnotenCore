@@ -1494,6 +1494,12 @@ impl VM {
                     }
                     self.stack.push(RelType::Void);
                 }
+                OpCode::TimeTravelReverse(checkpoint_id) => {
+                    if let Some(mut state) = snapshot::snapshot_isolate(*checkpoint_id) {
+                        state.ip = self.ip;
+                        self.rollback(state);
+                    }
+                }
                 OpCode::Return => {
                     let ret_val = self
                         .stack
@@ -2980,5 +2986,61 @@ mod tests {
         );
 
         let _ = perms;
+    }
+
+    #[test]
+    fn test_vm_temporal_reversal() {
+        let checkpoint_id: i64 = 42;
+
+        let perms = AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: false,
+            allow_fs_write: false,
+        };
+        let constants = vec![RelType::Str("x".to_string()), RelType::Int(5), RelType::Void];
+
+        let instructions_add = vec![
+            OpCode::GetGlobal(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::SetGlobal(0),
+            OpCode::Constant(2),
+            OpCode::Return,
+        ];
+
+        let instructions_rewind = vec![
+            OpCode::TimeTravelReverse(checkpoint_id),
+            OpCode::Constant(2),
+            OpCode::Return,
+        ];
+
+        let mut vm = VM::new();
+        vm.globals.insert("x".to_string(), RelType::Int(5));
+        store_snapshot(checkpoint_id, vm.snapshot());
+
+        let result = vm.run(&instructions_add, &constants, &perms, None).unwrap();
+        assert_eq!(result, RelType::Void);
+        assert_eq!(vm.globals.get("x"), Some(&RelType::Int(10)));
+
+        let r2 = vm.run(&instructions_rewind, &constants, &perms, None).unwrap();
+        assert_eq!(r2, RelType::Void);
+        assert_eq!(
+            vm.globals.get("x"),
+            Some(&RelType::Int(5)),
+            "After rewind, x should be 5 (snapshot value)"
+        );
+
+        vm.globals.insert("x".to_string(), RelType::Int(20));
+
+        let r3 = vm.run(&instructions_add, &constants, &perms, None).unwrap();
+        assert_eq!(r3, RelType::Void);
+        assert_eq!(
+            vm.globals.get("x"),
+            Some(&RelType::Int(25)),
+            "After live mutation in the past (x=20) then +5: 20 + 5 = 25"
+        );
+
+        drain_isolate_snapshots();
     }
 }
