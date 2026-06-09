@@ -56,7 +56,8 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Universal C-ABI Embedding Facade:** Exposed a low-overhead, unsafe-free C-compatible ABI boundary (libknotencore), enabling native orchestration, bytecode injection, and multi-threaded isolate spawning from host languages like Python, C++, and Node.js.
 
 ### Temporal Quantum Architecture (v1.6.0)
-* **Temporal Quantum Reversal:** Integrated instruction-accurate time-travel debugging inside the Register Stack-VM ALU core. Exploits localized snapshot frames to enable instant deterministic state rewinds and historic state mutation under execution faults. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+* **Temporal Quantum Reversal:** Integrated instruction-accurate time-travel debugging inside the Register Stack-VM ALU core. Exploits localized snapshot frames to enable instant deterministic state rewinds and historic state mutation under execution faults.
+* **Cryptographic State Verifiability:** Embedded deterministic Merkle-tree state framing into Register Stack-VM frames, enabling zero-knowledge proof generation of untampered bytecode execution paths. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 

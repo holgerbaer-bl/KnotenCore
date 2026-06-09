@@ -100,6 +100,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Speculative Branch Execution** (Sprint 274) → Evaluates dual control flow paths concurrently using transient speculative shadow isolates. Automatically commits valid execution tracks and prunes alternative paths via low-overhead snapshot rollbacks.
 - **Universal C-ABI Facade Layer** (Sprint 275) → Projects a normative C-compatible boundary for multi-language execution host environments. Guarantees stateless cross-language invocation bindings for embedded runtime instances.
 - **Temporal Quantum Reversal** (Sprint 276) → Adds native instruction-level time-travel capabilities. Allows agents to trigger state rollbacks to historical execution checkpoints to inspect or correct data topologies before re-executing code lines.
+- **Cryptographic Execution Verification** (Sprint 277) → VM frames generate cryptographic execution proofs natively. Validates execution path integrity in untrusted host networks without exposing dynamic stack layouts.
 
 ---
 

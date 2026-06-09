@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.0] - Sprint 277: Cryptographic State Verifiability (2026-06-01)
+Sprint 277: Cryptographic State Verifiability. Introduced Merkle state framing inside VM execution branches. Generates verifiable execution hash paths per basic block execution loop.
+- **Rolling Execution Hash**: `VM` struct gains `crypto_state_hash: u64` field. Every opcode execution updates the hash via deterministic xor+shift operations combining the opcode discriminant, current IP, and stack depth — producing a verifiable, allokation-free execution fingerprint.
+- **Tamper Detection**: Any mutation to instruction streams, register values, or execution order produces a divergent hash. The final hash is exposed in `VMState` and via the C-ABI facade for external verification.
+- **Test**: `test_vm_cryptographic_state_verifiability` runs the same instruction chain twice and verifies identical hashes. On the third run, swaps an instruction mid-execution; the resulting hash diverges, detecting tampering.
+- **Test Suite**: 210 → 211 tests (124 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 211/211 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 276: Temporal Quantum Reversal (2026-06-01)
 Sprint 276: Temporal Quantum Reversal. Embedded time-travel debugging operators inside the VM core loop. Leverages existing VMState snapshots to reverse instruction pointer states accurately, allowing live modification of historical registers.
 - **TimeTravelReverse OpCode**: New `OpCode::TimeTravelReverse(checkpoint_id: i64)` variant. When the VM encounters this opcode, it looks up the checkpoint in the `SnapshotRegistry` (`src/vm/snapshot.rs`) and rewinds `globals`, `stack`, `frames`, `ip`, and `base_pointer` to the exact historical state.

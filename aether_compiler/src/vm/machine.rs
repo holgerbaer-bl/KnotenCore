@@ -36,6 +36,7 @@ pub struct VM {
     pub ip: usize,
     pub base_pointer: usize,
     pub is_inspectable: bool,
+    pub crypto_state_hash: u64,
 }
 
 #[derive(Clone)]
@@ -45,6 +46,7 @@ pub struct VMState {
     pub frames: Vec<CallFrame>,
     pub ip: usize,
     pub base_pointer: usize,
+    pub crypto_state_hash: u64,
 }
 
 pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
@@ -210,6 +212,13 @@ pub fn drain_hot_path_table() {
     }
 }
 
+fn opcode_discriminant_hash(op: &OpCode) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    std::mem::discriminant(op).hash(&mut h);
+    h.finish()
+}
+
 impl VM {
     pub fn new() -> Self {
         Self {
@@ -219,6 +228,7 @@ impl VM {
             ip: 0,
             base_pointer: 0,
             is_inspectable: false,
+            crypto_state_hash: 0,
         }
     }
 
@@ -229,6 +239,7 @@ impl VM {
             frames: self.frames.clone(),
             ip: self.ip,
             base_pointer: self.base_pointer,
+            crypto_state_hash: self.crypto_state_hash,
         }
     }
 
@@ -238,6 +249,7 @@ impl VM {
         self.frames = state.frames;
         self.ip = state.ip;
         self.base_pointer = state.base_pointer;
+        self.crypto_state_hash = state.crypto_state_hash;
     }
 
     #[inline(always)]
@@ -263,6 +275,13 @@ impl VM {
             if self.is_inspectable {
                 update_inspection_state(self.ip, self.stack.len());
             }
+
+            self.crypto_state_hash = self
+                .crypto_state_hash
+                .wrapping_mul(0x9E3779B97F4A7C15)
+                .wrapping_add(self.ip as u64)
+                .wrapping_add(self.stack.len() as u64)
+                .wrapping_add(opcode_discriminant_hash(op));
 
             instr_count += 1;
             if instr_count.is_multiple_of(100) {
@@ -3048,5 +3067,55 @@ mod tests {
         );
 
         drain_isolate_snapshots();
+    }
+
+    #[test]
+    fn test_vm_cryptographic_state_verifiability() {
+        let perms = AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: false,
+            allow_fs_write: false,
+        };
+        let constants = vec![RelType::Int(10), RelType::Int(5), RelType::Int(2)];
+
+        let instructions = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::Constant(2),
+            OpCode::Multiply,
+            OpCode::Return,
+        ];
+
+        let mut vm1 = VM::new();
+        vm1.run(&instructions, &constants, &perms, None).unwrap();
+        let hash1 = vm1.crypto_state_hash;
+        assert!(hash1 > 0, "Hash must be non-zero after execution");
+
+        let mut vm2 = VM::new();
+        vm2.run(&instructions, &constants, &perms, None).unwrap();
+        let hash2 = vm2.crypto_state_hash;
+        assert_eq!(
+            hash1, hash2,
+            "Identical execution must produce identical hash"
+        );
+
+        let tampered = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Subtract,
+            OpCode::Constant(2),
+            OpCode::Multiply,
+            OpCode::Return,
+        ];
+
+        let mut vm3 = VM::new();
+        vm3.run(&tampered, &constants, &perms, None).unwrap();
+        let hash3 = vm3.crypto_state_hash;
+        assert_ne!(
+            hash1, hash3,
+            "Tampered instruction (Subtract vs Add) must produce divergent hash"
+        );
     }
 }
