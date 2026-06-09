@@ -56,10 +56,11 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Cluster-Wide Work-Stealing:** Expanded the deterministic scheduler grid to support cross-network RDMA operations. Isolates can balance asymmetric execution loads by stealing bytecode segments directly across node boundaries with zero OS layer intervention.
 * **Universal C-ABI Embedding Facade:** Exposed a low-overhead, unsafe-free C-compatible ABI boundary (libknotencore), enabling native orchestration, bytecode injection, and multi-threaded isolate spawning from host languages like Python, C++, and Node.js.
 
-### Temporal Quantum Architecture (v1.6.0)
-* **Temporal Quantum Reversal:** Integrated instruction-accurate time-travel debugging inside the Register Stack-VM ALU core. Exploits localized snapshot frames to enable instant deterministic state rewinds and historic state mutation under execution faults.
-* **Cryptographic State Verifiability:** Embedded deterministic Merkle-tree state framing into Register Stack-VM frames, enabling zero-knowledge proof generation of untampered bytecode execution paths.
-* **Adaptive Evolutionary PGO:** Embedded a runtime profile-guided optimization layer. The engine dynamic-mutates active instruction streams based on real-time execution metrics, remapping hot-paths and unrolling tight loops natively inside running isolates. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+### Deterministic Execution & State Rewind Architecture (v1.6.0)
+* **Deterministic State Rewind:** Integrated instruction-accurate state rewinding inside the Register Stack-VM ALU core. Exploits localized snapshot frames to enable deterministic state rollbacks and live register mutations under execution faults.
+* **Deterministic Execution Path Hashing:** Embedded an accumulation-based hash framing into Register Stack-VM execution loops, enabling verification of unmodified bytecode execution paths across host language boundaries.
+* **Adaptive Evolutionary PGO:** Embedded a runtime profile-guided optimization layer. The engine dynamic-mutates active instruction streams based on real-time execution metrics, remapping hot-paths and unrolling tight loops natively inside running isolates.
+* **Sovereign JIT Native Code Generation:** Deployed an allocation-free native machine code generation layer within the JIT execution subsystem, emitting standalone executable memory segments bypassing external compiler toolchains. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 

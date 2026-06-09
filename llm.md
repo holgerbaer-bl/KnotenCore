@@ -99,10 +99,11 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Dynamic WGSL Shader Synthesis** (Sprint 273) → Empowers the runtime to natively compile JSON-AST mathematical expression graphs into optimized WebGPU compute shaders at runtime, bypassing CPU-bound evaluation paths.
 - **Speculative Branch Execution** (Sprint 274) → Evaluates dual control flow paths concurrently using transient speculative shadow isolates. Automatically commits valid execution tracks and prunes alternative paths via low-overhead snapshot rollbacks.
 - **Universal C-ABI Facade Layer** (Sprint 275) → Projects a normative C-compatible boundary for multi-language execution host environments. Guarantees stateless cross-language invocation bindings for embedded runtime instances.
-- **Temporal Quantum Reversal** (Sprint 276) → Adds native instruction-level time-travel capabilities. Allows agents to trigger state rollbacks to historical execution checkpoints to inspect or correct data topologies before re-executing code lines.
-- **Cryptographic Execution Verification** (Sprint 277) → VM frames generate cryptographic execution proofs natively. Validates execution path integrity in untrusted host networks without exposing dynamic stack layouts.
+- **Deterministic State Rewind** (Sprint 276) → Adds native instruction-level time-travel capabilities. Allows agents to trigger state rollbacks to historical execution checkpoints to inspect or correct data topologies before re-executing code lines.
+- **Deterministic Execution Path Hashing** (Sprint 277) → VM frames generate cryptographic execution proofs natively. Validates execution path integrity in untrusted host networks without exposing dynamic stack layouts.
 - **Cluster-Wide Heterogeneous Work-Stealing** (Sprint 278) → Scales the local work-stealing layout across network topologies. Enables remote direct memory access semantics for horizontal load mitigation between independent cluster runtimes.
 - **Adaptive Evolutionary PGO** (Sprint 279) → Connects agent telemetry directly into bytecode execution paths. Dynamically rearranges opcode orders and optimizes active register stack maps at runtime without invocation context teardowns.
+- **Sovereign JIT Native Code Generation** (Sprint 280) → Integrates an internal machine code emitter within the JIT runtime. Enables isolates to output native x86_64/ARM64 binary segments directly into executable memory pages for autonomous self-compilation loops.
 
 ---
 
