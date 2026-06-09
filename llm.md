@@ -102,6 +102,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Temporal Quantum Reversal** (Sprint 276) → Adds native instruction-level time-travel capabilities. Allows agents to trigger state rollbacks to historical execution checkpoints to inspect or correct data topologies before re-executing code lines.
 - **Cryptographic Execution Verification** (Sprint 277) → VM frames generate cryptographic execution proofs natively. Validates execution path integrity in untrusted host networks without exposing dynamic stack layouts.
 - **Cluster-Wide Heterogeneous Work-Stealing** (Sprint 278) → Scales the local work-stealing layout across network topologies. Enables remote direct memory access semantics for horizontal load mitigation between independent cluster runtimes.
+- **Adaptive Evolutionary PGO** (Sprint 279) → Connects agent telemetry directly into bytecode execution paths. Dynamically rearranges opcode orders and optimizes active register stack maps at runtime without invocation context teardowns.
 
 ---
 

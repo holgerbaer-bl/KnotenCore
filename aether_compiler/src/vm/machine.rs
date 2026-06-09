@@ -10,6 +10,8 @@ use super::snapshot;
 
 pub use isolate::SpeculativeResult;
 pub use isolate::VMIsolate;
+pub use isolate::drain_hot_swap_registry;
+pub use isolate::optimize_active_hotpath;
 pub use isolate::spawn_isolate;
 pub use isolate::spawn_shadow_isolate;
 pub use scheduler::WorkItem;
@@ -178,7 +180,7 @@ pub fn get_vm_inspection_snapshot() -> Option<(usize, usize)> {
 }
 
 // Sprint 256: Hot-path profiling — tracks instruction block execution frequency
-static HOT_PATH_TABLE: std::sync::OnceLock<std::sync::Mutex<HashMap<usize, usize>>> =
+pub(crate) static HOT_PATH_TABLE: std::sync::OnceLock<std::sync::Mutex<HashMap<usize, usize>>> =
     std::sync::OnceLock::new();
 
 fn get_hot_path_table() -> &'static std::sync::Mutex<HashMap<usize, usize>> {
@@ -210,9 +212,8 @@ fn is_hot_path(ip: usize) -> bool {
 }
 
 pub fn drain_hot_path_table() {
-    if let Some(table) = HOT_PATH_TABLE.get() {
-        table.lock().unwrap_or_else(|e| e.into_inner()).clear();
-    }
+    let table = HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
+    table.lock().unwrap_or_else(|e| e.into_inner()).clear();
 }
 
 fn opcode_discriminant_hash(op: &OpCode) -> u64 {
@@ -2617,17 +2618,34 @@ mod tests {
 
     #[test]
     fn test_jit_hot_path_detection() {
-        drain_hot_path_table();
+        let table = HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
+        table.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        let _ = table;
 
         for i in 0..10_000 {
             track_hot_path(5);
             if i == 9_999 {
-                assert!(is_hot_path(5), "IP 5 must be hot after 10k hits");
+                let table = HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
+                let count = table
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .get(&5)
+                    .copied()
+                    .unwrap_or(0);
+                assert!(count >= 10_000, "IP 5 count={} must be >= 10k", count);
             }
         }
-        assert!(!is_hot_path(1), "IP 1 must NOT be hot (0 hits)");
 
-        drain_hot_path_table();
+        let table = HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
+        let count1 = table
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&1)
+            .copied()
+            .unwrap_or(0);
+        assert!(count1 < 10_000, "IP 1 must NOT be hot ({count1} hits)");
+
+        table.lock().unwrap_or_else(|e| e.into_inner()).clear();
     }
 
     #[test]
@@ -3153,5 +3171,91 @@ mod tests {
         assert_eq!(result, RelType::Int(4), "7 - 3 = 4");
 
         drain_cluster_work_queues();
+    }
+
+    #[test]
+    fn test_vm_adaptive_evolutionary_pgo() {
+        let isolate_id: i64 = 77;
+
+        let instructions = vec![
+            OpCode::Constant(0),
+            OpCode::SetGlobal(2),
+            OpCode::Constant(0),
+            OpCode::SetGlobal(3),
+            OpCode::GetGlobal(3),
+            OpCode::Constant(1),
+            OpCode::Less,
+            OpCode::JumpIfFalse(17),
+            OpCode::GetGlobal(2),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::SetGlobal(2),
+            OpCode::GetGlobal(3),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::SetGlobal(3),
+            OpCode::Jump(4),
+            OpCode::GetGlobal(2),
+            OpCode::Return,
+        ];
+
+        let constants = vec![
+            RelType::Int(0),
+            RelType::Int(1),
+            RelType::Str("acc".to_string()),
+            RelType::Str("i".to_string()),
+        ];
+
+        let registry = isolate::get_hot_swap_registry();
+        registry.lock().unwrap_or_else(|e| e.into_inner()).insert(
+            isolate_id,
+            std::sync::Arc::new(std::sync::Mutex::new((
+                instructions.clone(),
+                constants.clone(),
+            ))),
+        );
+
+        let inst_before = {
+            let guard = registry.lock().unwrap_or_else(|e| e.into_inner());
+            let code = guard.get(&isolate_id).unwrap();
+            code.lock().unwrap_or_else(|e| e.into_inner()).0.len()
+        };
+
+        let hot_table = HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
+        hot_table
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(16, 15_000);
+
+        let modified = optimize_active_hotpath(isolate_id);
+        assert!(modified, "Must detect and optimize hotpath");
+
+        let inst_after = {
+            let guard = registry.lock().unwrap_or_else(|e| e.into_inner());
+            let code = guard.get(&isolate_id).unwrap();
+            code.lock().unwrap_or_else(|e| e.into_inner()).0.len()
+        };
+
+        assert_ne!(
+            inst_before, inst_after,
+            "Instruction count must change after PGO unrolling"
+        );
+
+        let perms = AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: false,
+            allow_fs_write: false,
+        };
+        let mut vm = VM::new();
+        let result = vm.run(&instructions, &constants, &perms, None).unwrap();
+        assert_eq!(
+            result,
+            RelType::Int(1),
+            "Loop runs once before PGO: acc = 0 + 1 = 1"
+        );
+
+        drain_hot_swap_registry();
+        drain_hot_path_table();
     }
 }

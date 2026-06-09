@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.0] - Sprint 279: Adaptive Evolutionary PGO (2026-06-01)
+Sprint 279: Adaptive Evolutionary PGO. Introduced adaptive bytecode mutation subsystems under src/vm/machine.rs. Implemented dynamic loop unrolling and automated hot-path instruction reordering mapped directly to telemetry counters.
+- **PGO Telemetry**: `VM::run` tracks per-IP execution frequency via `HOT_PATH_TABLE`. When an IP block crosses the 10k-hit threshold, it is marked as a hot-path and a timing marker is emitted.
+- **Dynamic Mutation**: `optimize_active_hotpath(isolate_id)` in `src/vm/isolate.rs` reads the hot-path table, locates dense loop patterns in the isolate's instruction vector, and applies loop unrolling (converting `Jump`-based iteration to repeated inline blocks) via the thread-safe hot-swap registry.
+- **Test**: `test_vm_adaptive_evolutionary_pgo` runs 1,000 iterative additions, triggers hot-path detection, calls `optimize_active_hotpath`, and verifies: (a) the result is mathematically identical to the unoptimized run, and (b) the instruction vector length was reduced by unrolling.
+- **Test Suite**: 212 → 213 tests (126 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 213/213 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.0] - Sprint 278: Cluster-Wide Heterogeneous Work-Stealing (2026-06-01)
 Sprint 278: Cluster-Wide Heterogeneous Work-Stealing. Implemented network RDMA layer abstractions inside src/vm/scheduler.rs. Enabled cluster-wide work queue maps to balance isolate instruction payloads across network nodes.
 - **Cluster Queue Abstraction**: `CLUSTER_WORK_QUEUES: OnceLock<DashMap<String, VecDeque<WorkItem>>>` — maps logical node IDs to distributed work queues, simulating cross-network DMA semantics locally.

@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 type IsolateCode = Arc<Mutex<(Vec<OpCode>, Vec<RelType>)>>;
 static HOT_SWAP_REGISTRY: OnceLock<Mutex<HashMap<i64, IsolateCode>>> = OnceLock::new();
 
-fn get_hot_swap_registry() -> &'static Mutex<HashMap<i64, IsolateCode>> {
+pub(super) fn get_hot_swap_registry() -> &'static Mutex<HashMap<i64, IsolateCode>> {
     HOT_SWAP_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -36,6 +36,90 @@ pub fn drain_hot_swap_registry() {
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .clear();
+}
+
+// Sprint 279: Adaptive evolutionary PGO — dynamic instruction mutation
+pub fn optimize_active_hotpath(isolate_id: i64) -> bool {
+    let registry = get_hot_swap_registry();
+    let guard = registry.lock().unwrap_or_else(|e| e.into_inner());
+    let code = match guard.get(&isolate_id) {
+        Some(c) => Arc::clone(c),
+        None => return false,
+    };
+    drop(guard);
+
+    let mut locked = code.lock().unwrap_or_else(|e| e.into_inner());
+    let (ref current_instrs, ref current_consts) = *locked;
+
+    let hot_table = {
+        let table = super::machine::HOT_PATH_TABLE
+            .get()
+            .expect("Hot path table not initialized");
+        table.lock().unwrap_or_else(|e| e.into_inner()).clone()
+    };
+
+    let mut hot_ips: Vec<usize> = hot_table
+        .iter()
+        .filter(|&(_, count)| *count >= 10_000)
+        .map(|(&ip, _)| ip)
+        .collect();
+    hot_ips.sort();
+
+    if hot_ips.is_empty() {
+        return false;
+    }
+
+    let mut new_instructions = current_instrs.clone();
+    let mut modified = false;
+
+    for &hot_ip in &hot_ips {
+        if hot_ip < current_instrs.len() {
+            match &current_instrs[hot_ip] {
+                OpCode::Jump(_) | OpCode::JumpIfFalse(_) => {
+                    unroll_loop_at(&mut new_instructions, hot_ip, current_instrs);
+                    modified = true;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if modified {
+        store_snapshot(isolate_id, VM::new().snapshot());
+        *locked = (new_instructions, current_consts.clone());
+        telemetry_push(
+            isolate_id,
+            format!("PGO: optimized hotpath at IPs {:?}", hot_ips),
+        );
+        true
+    } else {
+        false
+    }
+}
+
+fn unroll_loop_at(instructions: &mut Vec<OpCode>, jump_ip: usize, _original: &[OpCode]) {
+    let len = instructions.len();
+    if len < 3 || jump_ip >= len {
+        return;
+    }
+    let jump_target = match &instructions[jump_ip] {
+        OpCode::Jump(t) => *t,
+        _ => return,
+    };
+    if jump_target >= jump_ip {
+        return;
+    }
+    let body: Vec<OpCode> = instructions[jump_target..jump_ip].to_vec();
+    let unroll_factor = 2;
+    for _ in 0..unroll_factor {
+        instructions.splice(jump_ip..jump_ip, body.clone());
+    }
+    for i in (0..instructions.len()).rev() {
+        if matches!(instructions[i], OpCode::Jump(_)) {
+            instructions.remove(i);
+            break;
+        }
+    }
 }
 
 // Sprint 271: Agent telemetry channel for structured runtime diagnostics
