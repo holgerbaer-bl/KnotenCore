@@ -114,11 +114,10 @@ fn unroll_loop_at(instructions: &mut Vec<OpCode>, jump_ip: usize, _original: &[O
         let _copy_offset = jump_ip + copy_idx * body_len;
         for instr in &mut cloned_body {
             match instr {
-                OpCode::Jump(t) | OpCode::JumpIfFalse(t) => {
-                    if *t >= jump_ip {
-                        *t += body_len;
-                    }
+                OpCode::Jump(t) | OpCode::JumpIfFalse(t) if *t >= jump_ip => {
+                    *t += body_len;
                 }
+                OpCode::Jump(_) | OpCode::JumpIfFalse(_) => {}
                 _ => {}
             }
         }
