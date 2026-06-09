@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.5.0-alpha] - Sprint 275: C-ABI Foreign Function Facade (2026-06-01)
+Sprint 275: C-ABI Foreign Function Facade. Standardized export symbols under extern "C" macros within a dedicated facade module, enabling full cross-language embeddability with zero-allocation data passing chains.
+- **C-Compat Exports**: New `src/ffi.rs` module with `#[no_mangle] extern "C"` symbols: `knotencore_create_vm`, `knotencore_compile_json`, `knotencore_spawn_isolate`.
+- **Opaque Pointer API**: `knotencore_create_vm()` returns a `*mut VM` opaque handle. `knotencore_compile_json(json_ptr, len)` parses JSON-AST and returns bytecode as `*mut u8` with length output. `knotencore_spawn_isolate(vm_ptr, bytecode_ptr)` spawns a VMIsolate on a native OS thread.
+- **Zero-Allocation Passing**: All cross-ABI data moved via raw pointers (`*const c_char`, `*mut f32`) with explicit length parameters, eliminating heap fragmentation across the FFI boundary.
+- **Test**: `test_c_abi_facade_embedding` calls exported symbols via raw pointer chains, creates a VM, compiles a JSON math AST, spawns an isolate, and verifies result integrity with proper opaque pointer cleanup.
+- **Test Suite**: 208 → 209 tests (122 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 209/209 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.5.0-alpha] - Sprint 274: Speculative Isolate Execution & Branch Rollbacks (2026-06-01)
 Sprint 274: Speculative Isolate Execution & Branch Rollbacks. Implemented speculative shadow isolation inside src/vm/scheduler.rs. Parallelizes conditional branches across concurrent threads, utilizing transient snapshot contexts to roll back unselected execution branches without blocking the master VM pipeline.
 - **Shadow Isolate Spawning**: `spawn_shadow_isolate()` in `src/vm/isolate.rs` creates a lightweight transient isolate from a frozen VM snapshot, running on a dedicated OS thread with its own instruction pointer and register file.

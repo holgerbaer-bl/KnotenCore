@@ -5,6 +5,7 @@ pub mod compiler;
 pub mod dsl_emitter;
 pub mod evaluator;
 pub mod executor;
+pub mod ffi;
 pub mod math;
 pub mod natives;
 pub mod optimizer;
