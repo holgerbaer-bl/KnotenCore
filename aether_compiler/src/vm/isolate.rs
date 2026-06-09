@@ -114,12 +114,6 @@ fn unroll_loop_at(instructions: &mut Vec<OpCode>, jump_ip: usize, _original: &[O
     for _ in 0..unroll_factor {
         instructions.splice(jump_ip..jump_ip, body.clone());
     }
-    for i in (0..instructions.len()).rev() {
-        if matches!(instructions[i], OpCode::Jump(_)) {
-            instructions.remove(i);
-            break;
-        }
-    }
 }
 
 // Sprint 271: Agent telemetry channel for structured runtime diagnostics

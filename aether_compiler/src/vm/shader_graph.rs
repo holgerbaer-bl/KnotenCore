@@ -87,6 +87,14 @@ fn hash_node<H: std::hash::Hasher>(node: &Node, hasher: &mut H) {
             6u8.hash(hasher);
             hash_node(n, hasher);
         }
+        Node::Sin(n) => {
+            7u8.hash(hasher);
+            hash_node(n, hasher);
+        }
+        Node::Cos(n) => {
+            8u8.hash(hasher);
+            hash_node(n, hasher);
+        }
         _ => {
             255u8.hash(hasher);
         }
@@ -95,8 +103,8 @@ fn hash_node<H: std::hash::Hasher>(node: &Node, hasher: &mut H) {
 
 fn compile_expr(node: &Node) -> String {
     match node {
-        Node::FloatLiteral(v) => format!("{:.1}", v),
-        Node::IntLiteral(v) => format!("{:.1}f32", *v as f64),
+        Node::FloatLiteral(v) => format!("{:.6}f", v),
+        Node::IntLiteral(v) => format!("{:.6}f", *v as f64),
         Node::Add(l, r) => format!("({} + {})", compile_expr(l), compile_expr(r)),
         Node::Sub(l, r) => format!("({} - {})", compile_expr(l), compile_expr(r)),
         Node::Mul(l, r) => format!("({} * {})", compile_expr(l), compile_expr(r)),
@@ -125,7 +133,7 @@ mod tests {
         let source = compiler.compile(&ast);
         assert!(source.contains("@group(0) @binding(0)"));
         assert!(source.contains("@compute @workgroup_size(64)"));
-        assert!(source.contains("(2.0f32 * 3.0) + 5.0"));
+        assert!(source.contains("(2.000000f * 3.000000f) + 5.000000f"));
 
         let source2 = compiler.compile(&ast);
         assert_eq!(source, source2, "Same AST must return cached result");

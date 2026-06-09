@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.1-patch] - Sprint 281: Core Stabilization & Compiler Rectification (2026-06-01)
+Sprint 281: Core Stabilization & Compiler Rectification. Fixed native stack corruption in src/vm/native_emit.rs by balancing push/pop boundaries. Corrected loop optimization boundaries in src/vm/isolate.rs and patched memory ownership inside the C-ABI ffi.rs layer.
+- **JIT Emitter Fixes**: `native_emit.rs` now balances pop/push pairs (pop rcx, pop rax before ALU, push rax after). Multiply pushes result register rax, not rcx. Division uses 64-bit cqo (0x48, 0x99) sign extension. Constants read from actual constant pool values instead of hardcoded zeros.
+- **PGO Loop Fix**: `unroll_loop_at` no longer deletes the terminal backward Jump; loop integrity preserved. Test reads mutated instructions from hot-swap registry.
+- **FFI Memory Fix**: `knotencore_spawn_isolate` uses `ManuallyDrop` to prevent premature deallocation, keeping bytecode alive for full thread lifetime. Parent `vm_ptr` globals inherited by spawned isolate.
+- **WGSL Fix**: Float/int literals use WGSL-conformant `{:.6}f` suffix. `Sin`/`Cos` nodes added to structural hash to prevent cache collisions.
+- **Test Isolation**: `HOT_PATH_TABLE` test access wrapped in thread-local storage to prevent cross-test state leakage.
+- **Test Suite**: 214/214 tests stable and reproducible.
+- **CI**: 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.0] - Sprint 280: Sovereign JIT Native Code Generation & Global Grounding Pass (2026-06-01)
 Sprint 280: Sovereign JIT Native Code Generation & Global Grounding Pass. Implemented native machine code emission interfaces within src/vm/native_emit.rs. Executed a global documentation refactoring, replacing hyper-inflated marketing terminology with normative system-engineering definitions.
 - **Native Emitter Module**: New `src/vm/native_emit.rs` with `NativeMachineCodeEmitter` and `emit_native_machine_block(opcodes) -> Vec<u8>`. Translates arithmetic VM opcodes (Add, Sub, Mul, Div, Constant) directly into x86_64 machine code byte stubs via register-based stack simulation.

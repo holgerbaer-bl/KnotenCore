@@ -88,8 +88,15 @@ pub extern "C" fn knotencore_spawn_isolate(
         return std::ptr::null_mut();
     }
     let code = unsafe { Box::from_raw(code_ptr as *mut CompiledCode) };
+    let parent_globals = unsafe { &*vm_ptr }.globals.clone();
+    let code_ref = std::mem::ManuallyDrop::new(code);
 
-    let isolate = crate::vm::isolate::VMIsolate::new(code.instructions, code.constants);
+    let mut isolate = crate::vm::isolate::VMIsolate::new(
+        code_ref.instructions.clone(),
+        code_ref.constants.clone(),
+    );
+    isolate.local_heap.extend(parent_globals);
+
     let handle = std::thread::spawn(move || isolate.run());
 
     Box::into_raw(Box::new(handle)) as *mut std::ffi::c_void

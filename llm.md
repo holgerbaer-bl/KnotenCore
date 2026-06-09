@@ -104,6 +104,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Cluster-Wide Heterogeneous Work-Stealing** (Sprint 278) → Scales the local work-stealing layout across network topologies. Enables remote direct memory access semantics for horizontal load mitigation between independent cluster runtimes.
 - **Adaptive Evolutionary PGO** (Sprint 279) → Connects agent telemetry directly into bytecode execution paths. Dynamically rearranges opcode orders and optimizes active register stack maps at runtime without invocation context teardowns.
 - **Sovereign JIT Native Code Generation** (Sprint 280) → Integrates an internal machine code emitter within the JIT runtime. Enables isolates to output native x86_64/ARM64 binary segments directly into executable memory pages for autonomous self-compilation loops.
+- **Core Codebase Rectification** (Sprint 281) — Hardens FFI bytecode allocation lifetimes against use-after-free conditions and patch compiler caching anomalies for trigonometric expressions. Establishes isolated evaluation boundaries for global test fixtures.
 
 ---
 
