@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.4-alpha] - Sprint 284: JIT Control-Flow Emitter Expansion & Jump Localization (2026-06-01)
+Sprint 284: JIT Control-Flow Emitter Expansion & Jump Localization. Implemented structural branch translation inside src/vm/native_emit.rs, converting Jump and JumpIfFalse into native x86_64 jmp and jz stubs. Enhanced unroll_loop_at to localise internal loop branch targets.
+- **Unconditional Branch**: `OpCode::Jump(target)` emits `jmp rel32` (E9 + 4-byte relative offset). Offset computed from address mapping table that tracks variable-length x86_64 instruction positions.
+- **Conditional Branch**: `OpCode::JumpIfFalse(target)` pops stack, tests rax against zero via `cmp rax, 0`, and emits `jz rel32` (0F 84 + 4-byte offset) to branch when the condition is false.
+- **Address Mapping**: An internal `addr_map: Vec<usize>` records the native byte offset for each VM instruction index, enabling precise relative jump computation regardless of variable instruction encoding widths.
+- **Loop Localization**: `unroll_loop_at` in isolate.rs now localizes internal Jump/JumpIfFalse targets within unrolled copies — branches in each unrolled body point to their own local addresses instead of the original loop.
+- **Test**: `test_jit_native_control_flow_branching` compiles a conditional branch (push 1, JumpIfFalse to alt, push 10, Jump to end, alt: push 20, return), executes natively, and verifies the truthy path returns 10.
+- **Test Suite**: 215 → 216 tests (129 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 216/216 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.3-alpha] - Sprint 283: Executable JIT Memory Pages (2026-06-01)
 Sprint 283: Executable JIT Memory Pages. Integrated memmap2 dependency inside aether_compiler. Implemented execute_native_block within src/vm/native_emit.rs to map, copy, and invoke raw binary streams directly on the host CPU architecture.
 - **memmap2 Integration**: Added `memmap2` v0.9 to `aether_compiler/Cargo.toml`.

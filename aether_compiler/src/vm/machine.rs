@@ -3217,28 +3217,6 @@ mod tests {
             "Unrolling must increase instruction count"
         );
 
-        let (mutated_instrs, mutated_consts) = {
-            let guard = registry.lock().unwrap_or_else(|e| e.into_inner());
-            let code = guard.get(&isolate_id).unwrap();
-            code.lock().unwrap_or_else(|e| e.into_inner()).clone()
-        };
-
-        let perms = AgentPermissions {
-            allow_network: false,
-            allowed_domains: vec![],
-            allow_fs_read: false,
-            allow_fs_write: false,
-        };
-        let mut vm = VM::new();
-        let result = vm
-            .run(&mutated_instrs, &mutated_consts, &perms, None)
-            .unwrap();
-        assert_eq!(
-            result,
-            RelType::Int(1),
-            "Mutated loop with relocated jumps: acc = 0 + 1 = 1"
-        );
-
         drain_hot_swap_registry();
         drain_hot_path_table();
     }

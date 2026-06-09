@@ -108,8 +108,21 @@ fn unroll_loop_at(instructions: &mut Vec<OpCode>, jump_ip: usize, _original: &[O
     let body: Vec<OpCode> = instructions[jump_target..jump_ip].to_vec();
     let unroll_factor = 2;
     let body_len = body.len();
-    for _ in 0..unroll_factor {
-        instructions.splice(jump_ip..jump_ip, body.clone());
+
+    for copy_idx in 0..unroll_factor {
+        let mut cloned_body = body.clone();
+        let _copy_offset = jump_ip + copy_idx * body_len;
+        for instr in &mut cloned_body {
+            match instr {
+                OpCode::Jump(t) | OpCode::JumpIfFalse(t) => {
+                    if *t >= jump_ip {
+                        *t += body_len;
+                    }
+                }
+                _ => {}
+            }
+        }
+        instructions.splice(jump_ip..jump_ip, cloned_body);
     }
     relocate_jumps(instructions, jump_ip, body_len * unroll_factor);
 }
