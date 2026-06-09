@@ -1,17 +1,19 @@
 use crate::executor::RelType;
+use dashmap::DashMap;
 use knoten_core_types::opcode::OpCode;
 use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::OnceLock;
 
 // Sprint 262: Deterministic work-stealing scheduler
 pub type WorkItem = (OpCode, Vec<RelType>);
 pub type WorkQueue = std::collections::VecDeque<WorkItem>;
 pub type WorkQueueMap = HashMap<i64, WorkQueue>;
 
-static WORK_STEALING_QUEUES: std::sync::OnceLock<std::sync::Mutex<WorkQueueMap>> =
-    std::sync::OnceLock::new();
+static WORK_STEALING_QUEUES: OnceLock<Mutex<WorkQueueMap>> = OnceLock::new();
 
-fn get_work_queues() -> &'static std::sync::Mutex<WorkQueueMap> {
-    WORK_STEALING_QUEUES.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+fn get_work_queues() -> &'static Mutex<WorkQueueMap> {
+    WORK_STEALING_QUEUES.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 pub fn push_work_batch(isolate_id: i64, work: Vec<WorkItem>) {
@@ -37,7 +39,7 @@ pub fn drain_work_stealing_queues() {
     }
 }
 
-// Sprint 274: Speculative branch dispatch — runs both true/false paths in parallel shadow isolates
+// Sprint 274: Speculative branch dispatch
 use super::machine::VMState;
 
 pub fn dispatch_speculative_branch(
@@ -63,5 +65,35 @@ pub fn dispatch_speculative_branch(
     } else {
         let _ = result_a;
         Some(result_b.state)
+    }
+}
+
+// Sprint 278: Cluster-wide work-stealing over logical node IDs
+static CLUSTER_WORK_QUEUES: OnceLock<DashMap<String, WorkQueue>> = OnceLock::new();
+
+fn get_cluster_queues() -> &'static DashMap<String, WorkQueue> {
+    CLUSTER_WORK_QUEUES.get_or_init(DashMap::new)
+}
+
+pub fn push_cluster_work_batch(node_id: &str, work: Vec<WorkItem>) {
+    let queues = get_cluster_queues();
+    queues.entry(node_id.to_string()).or_default().extend(work);
+}
+
+pub fn try_steal_cluster_work(node_id: &str, thief_id: i64) -> Option<(OpCode, Vec<RelType>)> {
+    let queues = get_cluster_queues();
+    if let Some(mut entry) = queues.get_mut(node_id)
+        && !entry.is_empty()
+    {
+        let stolen = entry.pop_front()?;
+        let _ = thief_id;
+        return Some(stolen);
+    }
+    try_steal_work(thief_id)
+}
+
+pub fn drain_cluster_work_queues() {
+    if let Some(queues) = CLUSTER_WORK_QUEUES.get() {
+        queues.clear();
     }
 }

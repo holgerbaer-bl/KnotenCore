@@ -7,7 +7,7 @@
 *(Noun) /knoːtən kɔːr/*
 
 1. **Not** a relentless underground German hardcore techno subgenre. 
-2. A blazing-fast, thread-safe, and deterministic **AI-Native Execution Runtime** — agents feed it structured JSON logic, the AOT compiler turns it into flat bytecode, and the Stack-VM executes it at bare-metal speed. No browser. No GC. No surprises.
+2. A thread-safe, deterministic **AI-Native Execution Runtime** — agents feed it structured JSON logic, the AOT compiler turns it into flat bytecode, and the Stack-VM executes it at bare-metal speed. No browser. No GC.
 
 **The Deterministic AI-Native Execution Runtime.**
 
@@ -53,6 +53,7 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Mathematical Resilience Fortress:** Integrated proptest framework into the native testbett, executing deep mathematical property-based fuzzing over the ADSR audio shaper and SIMD Glam matrix transformation FFI layers.
 * **Dynamic Shader Synthesis:** Integrated a JIT Multi-Pass Shader Graph Synthesizer, compiling dynamic AST computation blocks directly into high-performance WGSL compute shaders executed directly on the GPU pipeline cache.
 * **Speculative Isolate Execution:** Integrated a runtime speculative branching engine. Complex conditional blocks spawn parallel shadow isolates across independent OS threads, merging the winning path atomically with zero-latency snapshot rollbacks for losing branches.
+* **Cluster-Wide Work-Stealing:** Expanded the deterministic scheduler grid to support cross-network RDMA operations. Isolates can balance asymmetric execution loads by stealing bytecode segments directly across node boundaries with zero OS layer intervention.
 * **Universal C-ABI Embedding Facade:** Exposed a low-overhead, unsafe-free C-compatible ABI boundary (libknotencore), enabling native orchestration, bytecode injection, and multi-threaded isolate spawning from host languages like Python, C++, and Node.js.
 
 ### Temporal Quantum Architecture (v1.6.0)

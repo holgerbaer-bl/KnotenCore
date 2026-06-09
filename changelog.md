@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.0] - Sprint 278: Cluster-Wide Heterogeneous Work-Stealing (2026-06-01)
+Sprint 278: Cluster-Wide Heterogeneous Work-Stealing. Implemented network RDMA layer abstractions inside src/vm/scheduler.rs. Enabled cluster-wide work queue maps to balance isolate instruction payloads across network nodes.
+- **Cluster Queue Abstraction**: `CLUSTER_WORK_QUEUES: OnceLock<DashMap<String, VecDeque<WorkItem>>>` — maps logical node IDs to distributed work queues, simulating cross-network DMA semantics locally.
+- **Cross-Network DMA**: `push_cluster_work_batch(node_id, work)` pushes bytecode payloads to remote node queues; `try_steal_cluster_work(node_id, thief_id)` steals work from a remote node via lock-free DashMap access, falling back to local work-stealing if the remote queue is empty or unavailable.
+- **Test**: `test_cluster_work_stealing_rdma` pushes a math instruction chain to a "remote" node ("Knoten_Berlin"), a thief isolate steals and executes it locally, verifying correct computation.
+- **Test Suite**: 211 → 212 tests (125 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 212/212 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.0] - Sprint 277: Cryptographic State Verifiability (2026-06-01)
 Sprint 277: Cryptographic State Verifiability. Introduced Merkle state framing inside VM execution branches. Generates verifiable execution hash paths per basic block execution loop.
 - **Rolling Execution Hash**: `VM` struct gains `crypto_state_hash: u64` field. Every opcode execution updates the hash via deterministic xor+shift operations combining the opcode discriminant, current IP, and stack depth — producing a verifiable, allokation-free execution fingerprint.
@@ -659,7 +668,7 @@ Sprint 201: Panic-Free Parser. Eliminated all hard panics from the parser and CL
 ## [v1.3.0-alpha] - Sprint 200: The SIMD Auto-Vectorization & Culture Milestone (2026-05-25) 👑
 
 Sprint 200 — THE JUBILEE MILESTONE. Implemented SIMD auto-vectorization for 4-element float arrays, injected the cult ASCII meme, and prepared compiler profiling infrastructure.
-- **👑 Cult Meme**: Immortalized the Sprint 200 ASCII art meme in the header of `src/optimizer.rs` (both copies). The tortoise-vs-lightning comparison between serial and SIMD execution is now a permanent part of the codebase.
+- **👑 Cult Meme**: Immortalized the Sprint 200 ASCII art meme in the header of `src/optimizer.rs` (both copies). The tortoise-vs-SIMD comparison between serial and parallel execution is now a permanent part of the codebase.
 - **⚡ SIMD Auto-Vectorizer**: Added `OpCode::SimdExec { elements: [usize; 4], scale: usize }` to the VM instruction set. The `optimize_simd_vectors()` pass detects 5 consecutive `Constant` opcodes with float values and collapses them into a single SIMD instruction. The machine handler uses `glam::Vec4` to scale all 4 elements in a single CPU tick.
 - **Profiler Kopplung**: When the SIMD pass matches, it pushes `"SIMD_MATCH_VECTOR_4_SCALE"` into the `timing_markers` vector (Sprint 199 infrastructure).
 - **SIMD Machine Handler**: `OpCode::SimdExec` loads 4 float constants and a scale factor, performs `glam::Vec4 * factor`, and pushes the resulting `Array([x, y, z, w])` onto the VM stack.
@@ -1197,7 +1206,7 @@ Bridges the gap between the 2D window space and 3D world space by implementing S
 - **`src/natives/registry.rs`**: Expanded `InputState` to natively track `mouse_x`, `mouse_y`, optical left click downs, and continuously mirrored 3D `view_projection` matrix pipelines directly off the window loop. 
 - **Inverse Matrix Mathematics**: Leveraged `glam` to perform mathematically pure linear unprojection mapping 2D screen coordinates into 3D normalized device coordinates (NDC), allowing extraction of precise depth-origin ray vectors.
 - **`src/window.rs`**: Wired up real-time `CursorMoved` and `MouseInput` polling within the native `winit` event loop dynamically feeding structural context directly back into the executor tree.
-- **Ray-AABB Intersection (`src/executor.rs` & `src/math.rs`)**: Established `registry_raycast_aabb` hook inside the `ExternCall` fallback mapping into the native optimized AABB engine for lightning-fast volume intersections.
+- **Ray-AABB Intersection (`src/executor.rs` & `src/math.rs`)**: Established `registry_raycast_aabb` hook inside the `ExternCall` fallback mapping into the native optimized AABB engine for volume intersections.
 - **Demo Script**: Created `examples/raycast_demo.nod` testing the pipeline from un-projection coordinates against the sandbox physics layer visually.
 
 ## [v1.0.27] - Sprint 128: The Crucible (AOT vs JIT Performance Benchmark) (2026-04-05)

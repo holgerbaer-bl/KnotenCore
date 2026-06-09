@@ -14,8 +14,11 @@ pub use isolate::spawn_isolate;
 pub use isolate::spawn_shadow_isolate;
 pub use scheduler::WorkItem;
 pub use scheduler::dispatch_speculative_branch;
+pub use scheduler::drain_cluster_work_queues;
 pub use scheduler::drain_work_stealing_queues;
+pub use scheduler::push_cluster_work_batch;
 pub use scheduler::push_work_batch;
+pub use scheduler::try_steal_cluster_work;
 pub use scheduler::try_steal_work;
 pub use snapshot::drain_isolate_snapshots;
 pub use snapshot::rollback_isolate;
@@ -3117,5 +3120,38 @@ mod tests {
             hash1, hash3,
             "Tampered instruction (Subtract vs Add) must produce divergent hash"
         );
+    }
+
+    #[test]
+    fn test_cluster_work_stealing_rdma() {
+        let constants = vec![RelType::Int(7), RelType::Int(3)];
+
+        push_cluster_work_batch(
+            "Knoten_Berlin",
+            vec![(OpCode::Subtract, vec![RelType::Int(7), RelType::Int(3)])],
+        );
+
+        let stolen = try_steal_cluster_work("Knoten_Berlin", 99);
+        assert!(stolen.is_some(), "Must steal work from remote node");
+        let (op, _consts) = stolen.unwrap();
+        assert_eq!(op, OpCode::Subtract);
+
+        let mut vm = VM::new();
+        let instructions = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Subtract,
+            OpCode::Return,
+        ];
+        let perms = AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: false,
+            allow_fs_write: false,
+        };
+        let result = vm.run(&instructions, &constants, &perms, None).unwrap();
+        assert_eq!(result, RelType::Int(4), "7 - 3 = 4");
+
+        drain_cluster_work_queues();
     }
 }
