@@ -117,10 +117,8 @@ fn unroll_loop_at(instructions: &mut Vec<OpCode>, jump_ip: usize, _original: &[O
 fn relocate_jumps(instructions: &mut [OpCode], insert_pos: usize, shift_amount: usize) {
     for instr in instructions.iter_mut() {
         match instr {
-            OpCode::Jump(target) | OpCode::JumpIfFalse(target) => {
-                if *target >= insert_pos {
-                    *target += shift_amount;
-                }
+            OpCode::Jump(target) | OpCode::JumpIfFalse(target) if *target >= insert_pos => {
+                *target += shift_amount;
             }
             _ => {}
         }
