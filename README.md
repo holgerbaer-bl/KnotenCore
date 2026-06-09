@@ -61,7 +61,8 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Deterministic Execution Path Hashing:** Embedded an accumulation-based hash framing into Register Stack-VM execution loops, enabling verification of unmodified bytecode execution paths across host language boundaries.
 * **Adaptive Evolutionary PGO:** Embedded a runtime profile-guided optimization layer. The engine dynamic-mutates active instruction streams based on real-time execution metrics, remapping hot-paths and unrolling tight loops natively inside running isolates.
 * **Sovereign JIT Native Code Generation:** Deployed an allocation-free native machine code generation layer within the JIT execution subsystem, emitting standalone executable memory segments bypassing external compiler toolchains.
-* **Compiler Stabilization (v1.6.1):** Rectified x86_64 JIT stack operand handling to prevent allocation leaks and fixed the frame-pointer alignment during execution returns. Resolved PGO loop truncation bugs and corrected dynamic WGSL float parsing rules. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+* **Compiler Stabilization (v1.6.1):** Rectified x86_64 JIT stack operand handling to prevent allocation leaks and fixed the frame-pointer alignment during execution returns. Resolved PGO loop truncation bugs and corrected dynamic WGSL float parsing rules.
+* **JIT & Optimizer Rectification (v1.6.2):** Corrected the x86_64 JIT subtraction operand execution order to guarantee left-minus-right mathematical parity. Implemented an absolute bytecode jump target relocation pass within the PGO loop unroller to maintain control-flow integrity during optimization splices. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 

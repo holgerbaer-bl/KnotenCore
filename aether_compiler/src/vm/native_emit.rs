@@ -26,8 +26,8 @@ pub fn emit_native_machine_block(opcodes: &[OpCode], constants: &[RelType]) -> V
                 if stack_depth >= 2 {
                     code.extend_from_slice(&[0x59]);
                     code.extend_from_slice(&[0x58]);
-                    code.extend_from_slice(&[0x48, 0x29, 0xC1]);
-                    code.push(0x51);
+                    code.extend_from_slice(&[0x48, 0x29, 0xC8]);
+                    code.push(0x50);
                     stack_depth -= 1;
                 }
             }

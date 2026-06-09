@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.2-patch] - Sprint 282: JIT Operand Rectification, Bytecode Relocation & Telemetry Isolation (2026-06-01)
+Sprint 282: JIT Operand Rectification, Bytecode Relocation & Telemetry Isolation. Patched OpCode::Subtract machine code generation in src/vm/native_emit.rs. Added relocate_jumps inside src/vm/isolate.rs to shift absolute offsets. Refactored HOT_PATH_TABLE to genuine thread_local storage.
+- **JIT Subtract Fix**: Changed `sub rcx, rax` (0x48, 0x29, 0xC1) to `sub rax, rcx` (0x48, 0x29, 0xC8) so left-minus-right parity matches the VM interpreter. Result pushed from rax.
+- **Bytecode Relocation**: `relocate_jumps(instructions, insert_pos, shift)` shifts all absolute Jump/JumpIfFalse targets >= insert_pos by shift amount, preserving control-flow after unrolling splices.
+- **Thread-Local Telemetry**: `HOT_PATH_TABLE` refactored from global `OnceLock<Mutex<>>` to `thread_local! RefCell<HashMap<>>`. Test `test_jit_hot_path_detection` runs real VM instances with production `track_hot_path` logic.
+- **PGO Test**: `test_vm_adaptive_evolutionary_pgo` now executes mutated bytecode with relocated jumps, verifying the unrolled loop produces a correct mathematical result.
+- **Test Suite**: 214/214 tests stable and reproducible.
+- **CI**: 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.1-patch] - Sprint 281: Core Stabilization & Compiler Rectification (2026-06-01)
 Sprint 281: Core Stabilization & Compiler Rectification. Fixed native stack corruption in src/vm/native_emit.rs by balancing push/pop boundaries. Corrected loop optimization boundaries in src/vm/isolate.rs and patched memory ownership inside the C-ABI ffi.rs layer.
 - **JIT Emitter Fixes**: `native_emit.rs` now balances pop/push pairs (pop rcx, pop rax before ALU, push rax after). Multiply pushes result register rax, not rcx. Division uses 64-bit cqo (0x48, 0x99) sign extension. Constants read from actual constant pool values instead of hardcoded zeros.

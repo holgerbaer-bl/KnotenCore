@@ -179,41 +179,32 @@ pub fn get_vm_inspection_snapshot() -> Option<(usize, usize)> {
     }
 }
 
-// Sprint 256: Hot-path profiling — tracks instruction block execution frequency
-pub(crate) static HOT_PATH_TABLE: std::sync::OnceLock<std::sync::Mutex<HashMap<usize, usize>>> =
-    std::sync::OnceLock::new();
-
-fn get_hot_path_table() -> &'static std::sync::Mutex<HashMap<usize, usize>> {
-    HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+// Sprint 256/282: Hot-path profiling — thread-local telemetry storage
+thread_local! {
+    pub(super) static HOT_PATH_TABLE: std::cell::RefCell<HashMap<usize, usize>> =
+        std::cell::RefCell::new(HashMap::new());
 }
 
 fn track_hot_path(ip: usize) {
-    let mut guard = get_hot_path_table()
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
-    let count = guard.entry(ip).or_insert(0);
-    *count += 1;
-    if *count == 10_000 {
-        let marker = format!("HOT_PATH_BLOCK:IP:{ip}:HITS:10000");
-        crate::natives::registry::registry_push_timing_marker(marker);
-        eprintln!("[HotPath] IP {} reached 10k hits — marked as hot", ip);
-    }
+    HOT_PATH_TABLE.with(|t| {
+        let mut map = t.borrow_mut();
+        let count = map.entry(ip).or_insert(0);
+        *count += 1;
+        if *count == 10_000 {
+            let marker = format!("HOT_PATH_BLOCK:IP:{ip}:HITS:10000");
+            crate::natives::registry::registry_push_timing_marker(marker);
+            eprintln!("[HotPath] IP {} reached 10k hits — marked as hot", ip);
+        }
+    });
 }
 
 #[allow(dead_code)]
 fn is_hot_path(ip: usize) -> bool {
-    get_hot_path_table()
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .get(&ip)
-        .copied()
-        .unwrap_or(0)
-        >= 10_000
+    HOT_PATH_TABLE.with(|t| t.borrow().get(&ip).copied().unwrap_or(0) >= 10_000)
 }
 
 pub fn drain_hot_path_table() {
-    let table = HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
-    table.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    HOT_PATH_TABLE.with(|t| t.borrow_mut().clear());
 }
 
 fn opcode_discriminant_hash(op: &OpCode) -> u64 {
@@ -2618,23 +2609,17 @@ mod tests {
 
     #[test]
     fn test_jit_hot_path_detection() {
-        std::thread_local! {
-            static TEST_TABLE: std::cell::RefCell<HashMap<usize, usize>> =
-                std::cell::RefCell::new(HashMap::new());
-        }
+        drain_hot_path_table();
 
         for i in 0..10_000 {
-            TEST_TABLE.with(|t| {
-                let mut map = t.borrow_mut();
-                *map.entry(5).or_insert(0) += 1;
-            });
+            track_hot_path(5);
             if i == 9_999 {
-                let count = TEST_TABLE.with(|t| t.borrow().get(&5).copied().unwrap_or(0));
-                assert!(count >= 10_000, "IP 5 count={} must be >= 10k", count);
+                assert!(is_hot_path(5), "IP 5 must be hot after 10k hits");
             }
         }
-        let count1 = TEST_TABLE.with(|t| t.borrow().get(&1).copied().unwrap_or(0));
-        assert!(count1 < 10_000, "IP 1 must NOT be hot ({count1} hits)");
+        assert!(!is_hot_path(1), "IP 1 must NOT be hot (0 hits)");
+
+        drain_hot_path_table();
     }
 
     #[test]
@@ -3210,11 +3195,9 @@ mod tests {
             code.lock().unwrap_or_else(|e| e.into_inner()).0.len()
         };
 
-        let hot_table = HOT_PATH_TABLE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
-        hot_table
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(16, 15_000);
+        HOT_PATH_TABLE.with(|t| {
+            t.borrow_mut().insert(16, 15_000);
+        });
 
         let modified = optimize_active_hotpath(isolate_id);
         assert!(modified, "Must detect and optimize hotpath");
@@ -3229,7 +3212,16 @@ mod tests {
             inst_before, inst_after,
             "Instruction count must change after PGO unrolling"
         );
-        assert!(inst_after > inst_before, "Unrolling must increase instruction count");
+        assert!(
+            inst_after > inst_before,
+            "Unrolling must increase instruction count"
+        );
+
+        let (mutated_instrs, mutated_consts) = {
+            let guard = registry.lock().unwrap_or_else(|e| e.into_inner());
+            let code = guard.get(&isolate_id).unwrap();
+            code.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        };
 
         let perms = AgentPermissions {
             allow_network: false,
@@ -3238,11 +3230,13 @@ mod tests {
             allow_fs_write: false,
         };
         let mut vm = VM::new();
-        let result = vm.run(&instructions, &constants, &perms, None).unwrap();
+        let result = vm
+            .run(&mutated_instrs, &mutated_consts, &perms, None)
+            .unwrap();
         assert_eq!(
             result,
             RelType::Int(1),
-            "Original loop runs once: acc = 0 + 1 = 1"
+            "Mutated loop with relocated jumps: acc = 0 + 1 = 1"
         );
 
         drain_hot_swap_registry();

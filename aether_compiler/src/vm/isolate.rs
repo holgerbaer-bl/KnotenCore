@@ -51,18 +51,14 @@ pub fn optimize_active_hotpath(isolate_id: i64) -> bool {
     let mut locked = code.lock().unwrap_or_else(|e| e.into_inner());
     let (ref current_instrs, ref current_consts) = *locked;
 
-    let hot_table = {
-        let table = super::machine::HOT_PATH_TABLE
-            .get()
-            .expect("Hot path table not initialized");
-        table.lock().unwrap_or_else(|e| e.into_inner()).clone()
-    };
-
-    let mut hot_ips: Vec<usize> = hot_table
-        .iter()
-        .filter(|&(_, count)| *count >= 10_000)
-        .map(|(&ip, _)| ip)
-        .collect();
+    let mut hot_ips: Vec<usize> = super::machine::HOT_PATH_TABLE.with(|t| {
+        let table = t.borrow();
+        table
+            .iter()
+            .filter(|&(_, count)| *count >= 10_000)
+            .map(|(&ip, _)| ip)
+            .collect()
+    });
     hot_ips.sort();
 
     if hot_ips.is_empty() {
@@ -111,8 +107,23 @@ fn unroll_loop_at(instructions: &mut Vec<OpCode>, jump_ip: usize, _original: &[O
     }
     let body: Vec<OpCode> = instructions[jump_target..jump_ip].to_vec();
     let unroll_factor = 2;
+    let body_len = body.len();
     for _ in 0..unroll_factor {
         instructions.splice(jump_ip..jump_ip, body.clone());
+    }
+    relocate_jumps(instructions, jump_ip, body_len * unroll_factor);
+}
+
+fn relocate_jumps(instructions: &mut [OpCode], insert_pos: usize, shift_amount: usize) {
+    for instr in instructions.iter_mut() {
+        match instr {
+            OpCode::Jump(target) | OpCode::JumpIfFalse(target) => {
+                if *target >= insert_pos {
+                    *target += shift_amount;
+                }
+            }
+            _ => {}
+        }
     }
 }
 
