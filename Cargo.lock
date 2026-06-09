@@ -40,6 +40,7 @@ dependencies = [
  "glam",
  "image",
  "knoten_core_types",
+ "memmap2",
  "noise",
  "pollster",
  "proptest",

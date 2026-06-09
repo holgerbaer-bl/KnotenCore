@@ -1,5 +1,6 @@
 use crate::executor::RelType;
 use knoten_core_types::opcode::OpCode;
+use memmap2::MmapMut;
 
 pub struct NativeMachineCodeEmitter;
 
@@ -80,6 +81,31 @@ pub fn emit_native_machine_block(opcodes: &[OpCode], constants: &[RelType]) -> V
     code
 }
 
+/// # Safety
+/// The caller must ensure `bytecode` contains valid, position-independent x86_64
+/// machine code that terminates with a `ret` instruction. Executing arbitrary or
+/// malformed bytecode may cause undefined behavior, crashes, or security vulnerabilities.
+pub unsafe fn execute_native_block(bytecode: &[u8]) -> Result<i64, String> {
+    if bytecode.is_empty() {
+        return Err("Empty bytecode".into());
+    }
+
+    let mut mmap =
+        MmapMut::map_anon(bytecode.len()).map_err(|e| format!("mmap allocation failed: {}", e))?;
+
+    mmap.copy_from_slice(bytecode);
+
+    let exec_mmap = mmap
+        .make_exec()
+        .map_err(|e| format!("make_exec failed: {}", e))?;
+
+    let func: extern "C" fn() -> i64 = unsafe { std::mem::transmute(exec_mmap.as_ptr()) };
+
+    let result = func();
+
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -104,5 +130,20 @@ mod tests {
         assert!(code.contains(&0x48), "Must contain REX.W prefix bytes");
         assert!(code.contains(&0xC3), "Must end with ret instruction");
         assert!(code.len() > 16, "Code must span multiple instructions");
+    }
+
+    #[test]
+    fn test_jit_native_execution_in_memory() {
+        let constants = vec![RelType::Int(15), RelType::Int(2)];
+        let ops = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Subtract,
+            OpCode::Return,
+        ];
+
+        let code = emit_native_machine_block(&ops, &constants);
+        let result = unsafe { execute_native_block(&code) }.expect("Native execution must succeed");
+        assert_eq!(result, 13, "15 - 2 = 13 via native x86_64 execution");
     }
 }

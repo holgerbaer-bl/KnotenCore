@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.3-alpha] - Sprint 283: Executable JIT Memory Pages (2026-06-01)
+Sprint 283: Executable JIT Memory Pages. Integrated memmap2 dependency inside aether_compiler. Implemented execute_native_block within src/vm/native_emit.rs to map, copy, and invoke raw binary streams directly on the host CPU architecture.
+- **memmap2 Integration**: Added `memmap2` v0.9 to `aether_compiler/Cargo.toml`.
+- **RWX Memory Execution**: `execute_native_block(bytecode)` allocates an anonymous `MmapMut`, copies x86_64 bytecode into the page, transitions permissions via `make_exec()` (write→execute, W^X compliant), casts the page address to `extern "C" fn() -> i64`, and invokes the native function pointer.
+- **Test**: `test_jit_native_execution_in_memory` compiles `Constant(15) + Constant(2) + Subtract + Return` to machine code, executes it via `execute_native_block`, and verifies the CPU returns `13`.
+- **Test Suite**: 214 → 215 tests (128 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 215/215 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.2-patch] - Sprint 282: JIT Operand Rectification, Bytecode Relocation & Telemetry Isolation (2026-06-01)
 Sprint 282: JIT Operand Rectification, Bytecode Relocation & Telemetry Isolation. Patched OpCode::Subtract machine code generation in src/vm/native_emit.rs. Added relocate_jumps inside src/vm/isolate.rs to shift absolute offsets. Refactored HOT_PATH_TABLE to genuine thread_local storage.
 - **JIT Subtract Fix**: Changed `sub rcx, rax` (0x48, 0x29, 0xC1) to `sub rax, rcx` (0x48, 0x29, 0xC8) so left-minus-right parity matches the VM interpreter. Result pushed from rax.

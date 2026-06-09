@@ -8,6 +8,7 @@ autobins = false
 dunce = "1.0"
 bytemuck = { version = "1.25.0", features = ["derive"] }
 cpal = "0.15.3"
+memmap2 = "0.9"
 pollster = "0.4.0"
 rand = "0.10.0"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
