@@ -2998,7 +2998,11 @@ mod tests {
             allow_fs_read: false,
             allow_fs_write: false,
         };
-        let constants = vec![RelType::Str("x".to_string()), RelType::Int(5), RelType::Void];
+        let constants = vec![
+            RelType::Str("x".to_string()),
+            RelType::Int(5),
+            RelType::Void,
+        ];
 
         let instructions_add = vec![
             OpCode::GetGlobal(0),
@@ -3023,7 +3027,9 @@ mod tests {
         assert_eq!(result, RelType::Void);
         assert_eq!(vm.globals.get("x"), Some(&RelType::Int(10)));
 
-        let r2 = vm.run(&instructions_rewind, &constants, &perms, None).unwrap();
+        let r2 = vm
+            .run(&instructions_rewind, &constants, &perms, None)
+            .unwrap();
         assert_eq!(r2, RelType::Void);
         assert_eq!(
             vm.globals.get("x"),
