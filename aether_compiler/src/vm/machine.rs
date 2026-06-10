@@ -21,6 +21,7 @@ pub use scheduler::drain_work_stealing_queues;
 pub use scheduler::push_cluster_work_batch;
 pub use scheduler::push_work_batch;
 pub use scheduler::try_steal_cluster_work;
+pub use scheduler::try_steal_wasm_work;
 pub use scheduler::try_steal_work;
 pub use snapshot::drain_isolate_snapshots;
 pub use snapshot::rollback_isolate;

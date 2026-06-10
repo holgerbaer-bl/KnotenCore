@@ -97,3 +97,17 @@ pub fn drain_cluster_work_queues() {
         queues.clear();
     }
 }
+
+// Sprint 286: WASM-aware non-blocking work-stealing — avoids mutex contention
+// in single-threaded WASM runtimes by falling through immediately if the local
+// queue lock cannot be acquired without blocking.
+pub fn try_steal_wasm_work(thief_id: i64) -> Option<(OpCode, Vec<RelType>)> {
+    let queues = WORK_STEALING_QUEUES.get()?;
+    let mut guard = queues.try_lock().ok()?;
+    for (&victim_id, victim_queue) in guard.iter_mut() {
+        if victim_id != thief_id && !victim_queue.is_empty() {
+            return victim_queue.pop_front();
+        }
+    }
+    None
+}

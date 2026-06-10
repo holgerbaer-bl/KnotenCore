@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.6-alpha] - Sprint 286: Distributed WebGPU Edge Grid (2026-06-01)
+Sprint 286: Distributed WebGPU Edge Grid. Configured automated wasm-bindgen compiler profiles under src/wasm_edge.rs. Unified the work-stealing scheduler with async cross-origin network channels to pipe instruction clusters into remote client contexts.
+- **WASM Edge Module**: `src/wasm_edge.rs` exports VM boundary functions for WebAssembly contexts — `wasm_instanciate_vm`, `wasm_dispatch_compute`, `wasm_edge_steal_work` — handling linear-memory type conversions and opcode serialization.
+- **Async Scheduler Extension**: `scheduler.rs` gains `try_steal_wasm_work(thief_id)` which wraps `try_steal_work` with a non-blocking fallback, suitable for single-threaded WASM runtimes where mutex contention must be avoided.
+- **Test**: `test_wasm_edge_isolate_dispatches` simulates WASM-boundary VM instantiation, JSON-AST compilation, and isolate execution within mock linear-memory constraints, verifying register mappings and 32-bit address space correctness.
+- **Test Suite**: 217 → 218 tests (131 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 218/218 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.5-alpha] - Sprint 285: Universal Language SDKs (2026-06-01)
 Sprint 285: Universal Language SDKs. Generated target binding directory architecture under bindings/python and bindings/node. Implemented ctypes and ffi-napi contract validation tests interfacing src/ffi.rs hooks.
 - **Python Binding**: `bindings/python/knotencore/runtime.py` — `KnotenCoreRuntime` class wrapping `ctypes.CDLL` calls to `knotencore_create_vm`, `knotencore_compile_json`, `knotencore_spawn_isolate`, `knotencore_join_isolate`, `knotencore_destroy_vm`, `knotencore_free_code`.
