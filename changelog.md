@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.5-alpha] - Sprint 285: Universal Language SDKs (2026-06-01)
+Sprint 285: Universal Language SDKs. Generated target binding directory architecture under bindings/python and bindings/node. Implemented ctypes and ffi-napi contract validation tests interfacing src/ffi.rs hooks.
+- **Python Binding**: `bindings/python/knotencore/runtime.py` — `KnotenCoreRuntime` class wrapping `ctypes.CDLL` calls to `knotencore_create_vm`, `knotencore_compile_json`, `knotencore_spawn_isolate`, `knotencore_join_isolate`, `knotencore_destroy_vm`, `knotencore_free_code`.
+- **Node.js Binding**: `bindings/node/runtime.js` — CommonJS module exposing `createVM`, `compileJSON`, `spawnIsolate`, `joinIsolate`, `destroyVM` via `ffi-napi` patterns with opaque `Buffer` pointer handling.
+- **Test**: `test_ffi_host_boundary_shims` simulates cross-language data marshalling: creates VM, compiles JSON, spawns isolate, joins with type-tagged result, verifies memory lifecycle across sequential invocations.
+- **Test Suite**: 216 → 217 tests (130 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 217/217 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.4-alpha] - Sprint 284: JIT Control-Flow Emitter Expansion & Jump Localization (2026-06-01)
 Sprint 284: JIT Control-Flow Emitter Expansion & Jump Localization. Implemented structural branch translation inside src/vm/native_emit.rs, converting Jump and JumpIfFalse into native x86_64 jmp and jz stubs. Enhanced unroll_loop_at to localise internal loop branch targets.
 - **Unconditional Branch**: `OpCode::Jump(target)` emits `jmp rel32` (E9 + 4-byte relative offset). Offset computed from address mapping table that tracks variable-length x86_64 instruction positions.

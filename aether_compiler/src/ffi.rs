@@ -242,4 +242,56 @@ mod tests {
 
         knotencore_destroy_vm(vm_ptr);
     }
+
+    #[test]
+    fn test_ffi_host_boundary_shims() {
+        let vm_ptr = knotencore_create_vm();
+        assert!(!vm_ptr.is_null());
+
+        let json_a = "{\"IntLiteral\": 42}";
+        let json_b = "{\"IntLiteral\": 7}";
+        let json_c = "{\"Add\": [{\"IntLiteral\": 42}, {\"IntLiteral\": 7}]}";
+
+        let mut instr_len: usize = 0;
+        let mut const_len: usize = 0;
+
+        let code_a = knotencore_compile_json(
+            json_a.as_ptr() as *const c_char,
+            json_a.len(),
+            &mut instr_len,
+            &mut const_len,
+        );
+        assert!(!code_a.is_null());
+        knotencore_free_code(code_a);
+
+        let code_b = knotencore_compile_json(
+            json_b.as_ptr() as *const c_char,
+            json_b.len(),
+            &mut instr_len,
+            &mut const_len,
+        );
+        assert!(!code_b.is_null());
+        knotencore_free_code(code_b);
+
+        let code_c = knotencore_compile_json(
+            json_c.as_ptr() as *const c_char,
+            json_c.len(),
+            &mut instr_len,
+            &mut const_len,
+        );
+        assert!(!code_c.is_null());
+
+        let handle_ptr = knotencore_spawn_isolate(vm_ptr, code_c);
+        assert!(!handle_ptr.is_null());
+
+        let mut tag: i32 = 0;
+        let mut int_val: i64 = 0;
+        let mut float_val: f64 = 0.0;
+        let err_ptr = knotencore_join_isolate(handle_ptr, &mut tag, &mut int_val, &mut float_val);
+        assert!(err_ptr.is_null(), "Expected no error string");
+        assert_eq!(tag, 0, "Expected Int tag");
+        assert_eq!(int_val, 49, "42 + 7 = 49");
+
+        knotencore_destroy_vm(vm_ptr);
+    }
 }
