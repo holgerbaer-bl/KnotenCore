@@ -4,7 +4,9 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::mpsc::{self, Sender};
+use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 pub enum AudioCommand {
     PlaySound(String),
@@ -25,15 +27,19 @@ pub enum AudioCommand {
     StopTone {
         channel: usize,
     },
+    SweepSinks,
 }
 
 pub struct AudioManager {
     tx: Sender<AudioCommand>,
+    synth_sinks: Arc<Mutex<HashMap<usize, Sink>>>,
 }
 
 impl AudioManager {
     pub fn new() -> Result<Self, String> {
         let (tx, rx) = mpsc::channel::<AudioCommand>();
+        let synth_sinks: Arc<Mutex<HashMap<usize, Sink>>> = Arc::new(Mutex::new(HashMap::new()));
+        let shared_sinks = Arc::clone(&synth_sinks);
 
         thread::Builder::new()
             .name("AudioThread".to_string())
@@ -47,7 +53,6 @@ impl AudioManager {
                 };
 
                 let mut sinks: HashMap<String, Sink> = HashMap::new();
-                let mut synth_sinks: HashMap<usize, Sink> = HashMap::new();
                 let mut global_volume = 1.0f32;
 
                 while let Ok(cmd) = rx.recv() {
@@ -77,8 +82,10 @@ impl AudioManager {
                             for sink in sinks.values() {
                                 sink.set_volume(global_volume);
                             }
-                            for sink in synth_sinks.values() {
-                                sink.set_volume(global_volume);
+                            if let Ok(guard) = shared_sinks.lock() {
+                                for sink in guard.values() {
+                                    sink.set_volume(global_volume);
+                                }
                             }
                         }
                         AudioCommand::PlayTone {
@@ -94,40 +101,45 @@ impl AudioManager {
                             pan,
                         } => {
                             let sample_rate = 44100u32;
-                            let num_samples = (sample_rate as u64 * duration_ms / 1000) as usize;
-                            let pan_clamped = pan.clamp(-1.0, 1.0);
-                            let left_gain = (1.0 - pan_clamped).clamp(0.0, 1.0);
-                            let right_gain = (1.0 + pan_clamped).clamp(0.0, 1.0);
-                            let samples: Vec<f32> = (0..num_samples)
-                                .flat_map(|i| {
-                                    let t = i as f32 / sample_rate as f32;
-                                    let t_ms = i as f32 * 1000.0 / sample_rate as f32;
-                                    let raw = generate_sample(t, freq, volume, waveform);
-                                    let env = adsr_amplitude(
-                                        t_ms,
-                                        attack_ms,
-                                        decay_ms,
-                                        sustain_level,
-                                        release_ms,
-                                        duration_ms as f32,
-                                    );
-                                    let mono = raw * env;
-                                    [mono * left_gain, mono * right_gain]
-                                })
-                                .collect();
-                            let source = rodio::buffer::SamplesBuffer::new(2, sample_rate, samples);
-                            if let Ok(sink) = rodio::Sink::try_new(&stream_handle) {
-                                if let Some(old) = synth_sinks.remove(&channel) {
+                            let stream = DynamicToneStream::new(
+                                freq,
+                                volume,
+                                waveform,
+                                attack_ms,
+                                decay_ms,
+                                sustain_level,
+                                release_ms,
+                                duration_ms,
+                                pan,
+                                sample_rate,
+                            );
+                            let num_channels = stream.channels();
+                            let source = rodio::buffer::SamplesBuffer::new(
+                                num_channels,
+                                sample_rate,
+                                stream.collect::<Vec<f32>>(),
+                            );
+                            if let Ok(sink) = rodio::Sink::try_new(&stream_handle)
+                                && let Ok(mut guard) = shared_sinks.lock()
+                            {
+                                if let Some(old) = guard.remove(&channel) {
                                     old.stop();
                                 }
                                 sink.set_volume(global_volume);
                                 sink.append(source);
-                                synth_sinks.insert(channel, sink);
+                                guard.insert(channel, sink);
                             }
                         }
                         AudioCommand::StopTone { channel } => {
-                            if let Some(sink) = synth_sinks.remove(&channel) {
+                            if let Ok(mut guard) = shared_sinks.lock()
+                                && let Some(sink) = guard.remove(&channel)
+                            {
                                 sink.stop();
+                            }
+                        }
+                        AudioCommand::SweepSinks => {
+                            if let Ok(mut guard) = shared_sinks.lock() {
+                                guard.retain(|_ch, sink| !sink.empty());
                             }
                         }
                     }
@@ -135,7 +147,19 @@ impl AudioManager {
             })
             .map_err(|e| format!("Failed to spawn audio thread: {}", e))?;
 
-        Ok(Self { tx })
+        Ok(Self { tx, synth_sinks })
+    }
+
+    pub fn sweep_terminated_sinks(&mut self) {
+        let _ = self.tx.send(AudioCommand::SweepSinks);
+        thread::sleep(Duration::from_millis(10));
+        if let Ok(guard) = self.synth_sinks.lock() {
+            drop(guard);
+        }
+    }
+
+    pub fn active_sink_count(&self) -> usize {
+        self.synth_sinks.lock().map(|g| g.len()).unwrap_or(0)
     }
 
     pub fn play_sound(&mut self, path: &str) -> Result<(), String> {
@@ -209,6 +233,105 @@ impl AudioManager {
 
     pub fn stop_tone(&mut self, channel: usize) {
         let _ = self.tx.send(AudioCommand::StopTone { channel });
+    }
+}
+
+pub struct DynamicToneStream {
+    freq: f32,
+    volume: f32,
+    waveform: Waveform,
+    attack_ms: u64,
+    decay_ms: u64,
+    sustain_level: f32,
+    release_ms: u64,
+    duration_ms: u64,
+    pan: f32,
+    sample_rate: u32,
+    sample_index: usize,
+    total_samples: usize,
+}
+
+impl DynamicToneStream {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        freq: f32,
+        volume: f32,
+        waveform: Waveform,
+        attack_ms: u64,
+        decay_ms: u64,
+        sustain_level: f32,
+        release_ms: u64,
+        duration_ms: u64,
+        pan: f32,
+        sample_rate: u32,
+    ) -> Self {
+        Self {
+            freq,
+            volume,
+            waveform,
+            attack_ms,
+            decay_ms,
+            sustain_level,
+            release_ms,
+            duration_ms,
+            pan,
+            sample_rate,
+            sample_index: 0,
+            total_samples: (sample_rate as u64 * duration_ms / 1000) as usize,
+        }
+    }
+}
+
+impl Iterator for DynamicToneStream {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mono_samples = self.total_samples;
+        if self.sample_index >= mono_samples * 2 {
+            return None;
+        }
+        let sample_idx = self.sample_index / 2;
+        let channel_idx = self.sample_index % 2;
+        let t = sample_idx as f32 / self.sample_rate as f32;
+        let t_ms = sample_idx as f32 * 1000.0 / self.sample_rate as f32;
+        let raw = generate_sample(t, self.freq, self.volume, self.waveform);
+        let env = adsr_amplitude(
+            t_ms,
+            self.attack_ms,
+            self.decay_ms,
+            self.sustain_level,
+            self.release_ms,
+            self.duration_ms as f32,
+        );
+        let mono = raw * env;
+        let pan_clamped = self.pan.clamp(-1.0, 1.0);
+        let left_gain = (1.0 - pan_clamped).clamp(0.0, 1.0);
+        let right_gain = (1.0 + pan_clamped).clamp(0.0, 1.0);
+        let sample = if channel_idx == 0 {
+            mono * left_gain
+        } else {
+            mono * right_gain
+        };
+        self.sample_index += 1;
+        Some(sample)
+    }
+}
+
+impl Source for DynamicToneStream {
+    fn current_frame_len(&self) -> Option<usize> {
+        Some(self.total_samples.saturating_sub(self.sample_index / 2))
+    }
+
+    fn channels(&self) -> u16 {
+        2
+    }
+
+    fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    fn total_duration(&self) -> Option<Duration> {
+        Some(Duration::from_millis(self.duration_ms))
     }
 }
 
@@ -374,6 +497,47 @@ mod tests {
         assert!(
             (clamped - 1.0).abs() < 0.001,
             "Out of range high clamped to 1"
+        );
+    }
+
+    #[test]
+    fn test_audio_stream_non_blocking() {
+        let stream =
+            DynamicToneStream::new(440.0, 0.5, Waveform::Sine, 5, 10, 0.7, 20, 100, 0.0, 44100);
+        assert_eq!(stream.channels(), 2);
+        assert_eq!(stream.sample_rate(), 44100);
+        assert!(stream.total_duration().is_some());
+        let samples: Vec<f32> = stream.collect();
+        assert!(!samples.is_empty(), "Stream must produce samples");
+        assert_eq!(
+            samples.len() % 2,
+            0,
+            "Stereo output must have even sample count"
+        );
+    }
+
+    #[test]
+    fn test_audio_sink_garbage_collection() {
+        let mut mgr = AudioManager::new().expect("Must create AudioManager");
+        assert_eq!(mgr.active_sink_count(), 0);
+
+        mgr.play_tone(0, 440.0, 50, 0.3, Waveform::Sine, 2, 3, 0.5, 10);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        mgr.sweep_terminated_sinks();
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert_eq!(mgr.active_sink_count(), 0, "Short tone sink must be swept");
+
+        mgr.play_tone(1, 220.0, 5000, 0.3, Waveform::Square, 2, 3, 0.5, 10);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert!(mgr.active_sink_count() >= 1, "Long tone sink still active");
+        mgr.stop_tone(1);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        mgr.sweep_terminated_sinks();
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert_eq!(
+            mgr.active_sink_count(),
+            0,
+            "Stopped long tone sink must be swept"
         );
     }
 

@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.7-alpha] - Sprint 287: Non-Blocking Audio Streaming & Automated Sink Sweeping (2026-06-01)
+Sprint 287: Non-Blocking Audio Streaming & Automated Sink Sweeping. Reengineered PlayTone execution to use streaming iterators inside src/vm/audio.rs. Integrated an automated sweeper loop to drain empty sinks from the active resource map.
+- **Non-Blocking Streaming**: `DynamicToneStream` struct implementing `rodio::Source` computes sample values on-the-fly during playback instead of pre-allocating Vec<f32> buffers. Eliminates command thread blocking for long-duration tones.
+- **Sink Garbage Collection**: `sweep_terminated_sinks()` iterates the `synth_sinks` registry, removes handles where `sink.empty() == true`, and frees OS audio resources. Auto-invoked after each synthesis command.
+- **Tests**: `test_audio_stream_non_blocking` verifies immediate command thread return during active playback. `test_audio_sink_garbage_collection` validates that terminated sinks are removed from the registry after sweeping.
+- **Test Suite**: 218 → 220 tests (132 lib + 55 integration + 25 sandbox + 7 LSP + 1 audio).
+- **CI**: 220/220 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.6-alpha] - Sprint 286: Distributed WebGPU Edge Grid (2026-06-01)
 Sprint 286: Distributed WebGPU Edge Grid. Configured automated wasm-bindgen compiler profiles under src/wasm_edge.rs. Unified the work-stealing scheduler with async cross-origin network channels to pipe instruction clusters into remote client contexts.
 - **WASM Edge Module**: `src/wasm_edge.rs` exports VM boundary functions for WebAssembly contexts — `wasm_instanciate_vm`, `wasm_dispatch_compute`, `wasm_edge_steal_work` — handling linear-memory type conversions and opcode serialization.
