@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 type IsolateCode = Arc<Mutex<(Vec<OpCode>, Vec<RelType>)>>;
 static HOT_SWAP_REGISTRY: OnceLock<Mutex<HashMap<i64, IsolateCode>>> = OnceLock::new();
 
-pub(super) fn get_hot_swap_registry() -> &'static Mutex<HashMap<i64, IsolateCode>> {
+pub fn get_hot_swap_registry() -> &'static Mutex<HashMap<i64, IsolateCode>> {
     HOT_SWAP_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()))
 }
 

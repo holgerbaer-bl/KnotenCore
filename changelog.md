@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.0-release] - Sprint 290: Production-Grade Workspace Consolidation & Autonomous Cluster CLI (2026-06-01)
+Sprint 290: Production-Grade Workspace Consolidation & Autonomous Cluster CLI. Created standalone bin target for knoten-init inside src/bin/knoten_init.rs. Integrated declarative environment provisioning configurations and unified developer codespaces.
+- **knoten-init CLI**: New binary target `src/bin/knoten_init.rs`. `--init` scaffolds `.knoten_data/storage/`, `knoten_config.json`, and `main.nod` in the working directory. `--cluster-sim` spawns 3 thread-isolated cluster nodes and runs a transient `migrate_active_isolate` migration to verify the pipeline.
+- **DevContainer Profiles**: `.devcontainer/devcontainer.json` + `Dockerfile` with Rust toolchain, WGPU dependencies, and system libraries preconfigured for one-click browser-based compilation via GitHub Codespaces.
+- **Test**: `test_cli_scaffolding_and_validation` invokes scaffold logic in a temp directory, verifies directory/file creation and JSON validity.
+- **Test Suite**: 222 → 223 tests (136 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 223/223 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.9-alpha] - Sprint 289: Cross-Node Isolate Migration (2026-06-01)
 Sprint 289: Cross-Node Isolate Migration. Implemented migrate_active_isolate under src/vm/scheduler.rs. Unified binary state compilation with dynamic cluster work queue delivery vectors to stream operational contexts over network nodes.
 - **Migration Interface**: `migrate_active_isolate(isolate_id, target_node)` freezes the VM, serializes its VMState via `storage::serialize_vm_state`, and pushes the binary payload into the target node's cluster work queue.

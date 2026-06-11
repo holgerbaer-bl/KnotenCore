@@ -113,6 +113,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Dynamic Audio Streaming** (Sprint 287) — Migrates audio.rs from synchronous sample pre-allocation to dynamic rodio::Source evaluation. Mitigates command thread starvation and enforces automated idle-sink reclamation.
 - **Persistent State Serialization** (Sprint 288) — Deploys robust binary state encoding inside storage.rs. Maps dynamic register stack allocations and execution path hashes into immutable byte-streams for file-system persistence.
 - **Distributed Context Migration** (Sprint 289) — Bridges storage serialization with cross-network work-stealing queues. Allows running isolates to halt, hot-serialize, and resume execution contexts on remote cluster destinations seamlessly.
+- **Autonomous Orchestration CLI** (Sprint 290) — Integrates a native bootstrapping toolchain inside a new binary target. Standardizes multi-node simulation scaffolding and exports automated verification matrix profiles.
 
 ---
 

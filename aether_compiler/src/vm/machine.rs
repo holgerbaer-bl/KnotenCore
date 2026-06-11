@@ -3246,7 +3246,7 @@ mod tests {
             ))),
         );
 
-        let perms = AgentPermissions {
+        let _perms = AgentPermissions {
             allow_network: false,
             allowed_domains: vec![],
             allow_fs_read: false,
@@ -3264,7 +3264,7 @@ mod tests {
             .expect("Target node must receive migration payload");
         let (migrated_instrs, migrated_consts, serialized_state) = received;
 
-        let mut migrated =
+        let migrated =
             resume_migrated_isolate(&migrated_instrs, &migrated_consts, &serialized_state)
                 .expect("Resume must succeed");
 
