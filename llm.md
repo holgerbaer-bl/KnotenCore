@@ -112,6 +112,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Distributed Edge WASM Convergence** (Sprint 286) — Compiles the core Stack-VM into highly sandboxed WebAssembly modules. Integrates decentralized WebGPU vertex and compute pipeline dispatches directly over network browser instances.
 - **Dynamic Audio Streaming** (Sprint 287) — Migrates audio.rs from synchronous sample pre-allocation to dynamic rodio::Source evaluation. Mitigates command thread starvation and enforces automated idle-sink reclamation.
 - **Persistent State Serialization** (Sprint 288) — Deploys robust binary state encoding inside storage.rs. Maps dynamic register stack allocations and execution path hashes into immutable byte-streams for file-system persistence.
+- **Distributed Context Migration** (Sprint 289) — Bridges storage serialization with cross-network work-stealing queues. Allows running isolates to halt, hot-serialize, and resume execution contexts on remote cluster destinations seamlessly.
 
 ---
 

@@ -18,8 +18,11 @@ pub use scheduler::WorkItem;
 pub use scheduler::dispatch_speculative_branch;
 pub use scheduler::drain_cluster_work_queues;
 pub use scheduler::drain_work_stealing_queues;
+pub use scheduler::migrate_active_isolate;
 pub use scheduler::push_cluster_work_batch;
 pub use scheduler::push_work_batch;
+pub use scheduler::receive_migration_payload;
+pub use scheduler::resume_migrated_isolate;
 pub use scheduler::try_steal_cluster_work;
 pub use scheduler::try_steal_wasm_work;
 pub use scheduler::try_steal_work;
@@ -3220,5 +3223,61 @@ mod tests {
 
         drain_hot_swap_registry();
         drain_hot_path_table();
+    }
+
+    #[test]
+    fn test_cross_node_isolate_migration() {
+        let constants = vec![RelType::Int(5), RelType::Int(3)];
+        let instructions = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::Return,
+        ];
+
+        let isolate_id: i64 = 42;
+
+        let registry = isolate::get_hot_swap_registry();
+        registry.lock().unwrap_or_else(|e| e.into_inner()).insert(
+            isolate_id,
+            std::sync::Arc::new(std::sync::Mutex::new((
+                instructions.clone(),
+                constants.clone(),
+            ))),
+        );
+
+        let perms = AgentPermissions {
+            allow_network: false,
+            allowed_domains: vec![],
+            allow_fs_read: false,
+            allow_fs_write: false,
+        };
+        let mut vm = VM::new();
+        vm.globals.insert("x".to_string(), RelType::Int(10));
+        vm.crypto_state_hash = 0xABCD;
+        let state = vm.snapshot();
+        store_snapshot(isolate_id, state);
+
+        migrate_active_isolate(isolate_id, "Knoten_Zadar").expect("Migration must succeed");
+
+        let received = receive_migration_payload("Knoten_Zadar")
+            .expect("Target node must receive migration payload");
+        let (migrated_instrs, migrated_consts, serialized_state) = received;
+
+        let mut migrated =
+            resume_migrated_isolate(&migrated_instrs, &migrated_consts, &serialized_state)
+                .expect("Resume must succeed");
+
+        assert!(
+            migrated.local_heap.get("x") == Some(&RelType::Int(10)),
+            "Migrated isolate must retain globals"
+        );
+
+        let result = migrated.run().expect("Migrated isolate must run");
+        assert_eq!(result, RelType::Int(8), "5 + 3 = 8 on migrated isolate");
+
+        drain_hot_swap_registry();
+        drain_cluster_work_queues();
+        drain_isolate_snapshots();
     }
 }

@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.9-alpha] - Sprint 289: Cross-Node Isolate Migration (2026-06-01)
+Sprint 289: Cross-Node Isolate Migration. Implemented migrate_active_isolate under src/vm/scheduler.rs. Unified binary state compilation with dynamic cluster work queue delivery vectors to stream operational contexts over network nodes.
+- **Migration Interface**: `migrate_active_isolate(isolate_id, target_node)` freezes the VM, serializes its VMState via `storage::serialize_vm_state`, and pushes the binary payload into the target node's cluster work queue.
+- **Remote Resumption**: `resume_migrated_isolate(instructions, constants, serialized_state)` deserializes VMState, creates a new VMIsolate with the migrated globals/stack/frames/ip, and continues execution.
+- **Test**: `test_cross_node_isolate_migration` runs computations, migrates state to a remote node, resumes with identical globals and crypto_state_hash continuity.
+- **Test Suite**: 221 → 222 tests (135 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 222/222 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.8-alpha] - Sprint 288: Persistent State Snapshot Registry (2026-06-01)
 Sprint 288: Persistent State Snapshot Registry. Developed binary serialization schemas inside src/vm/storage.rs. Enabled full VMState and execution context encoding to dump and resume active isolates directly from disk.
 - **Binary Serialization**: `serialize_vm_state(state) -> Vec<u8>` encodes globals, stack, frames, ip, base_pointer, and crypto_state_hash into a compact little-endian binary format. `deserialize_vm_state(bytes) -> VMState` reconstructs the exact state.

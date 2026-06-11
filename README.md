@@ -68,7 +68,8 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Universal Language SDKs (v1.6.5):** Implemented automated native language shims for Python and Node.js utilizing the stable C-ABI boundary layer. Enables allocation-free host runtime instantiations and multi-threaded isolate code streaming.
 * **Distributed WebGPU Edge Grid (v1.6.6):** Deployed a WebAssembly compilation and execution layer enabling isolates to scale across browser nodes. Interconnects edge runtimes via peer-to-peer pipelines to distribute WebGPU shader synthesis dynamically.
 * **Streaming Audio Infrastructure (v1.6.7):** Refactored the core synthesizer to process long-form tone generations as non-blocking dynamic streaming sources. Implemented automated background sweeping for terminated audio channels to guarantee stable descriptor thresholds.
-* **Persistent Snapshot Storage (v1.6.8):** Implemented a binary disk serialization layer for isolate runtime states. Enables bit-accurate snapshot serialization and physical disk persistence to support cold-starts and horizontal isolate migrations. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+* **Persistent Snapshot Storage (v1.6.8):** Implemented a binary disk serialization layer for isolate runtime states. Enables bit-accurate snapshot serialization and physical disk persistence to support cold-starts and horizontal isolate migrations.
+* **Cross-Node Isolate Migration (v1.6.9):** Engineered a distributed context handoff pipeline within the cluster scheduler. Enables live runtime environments to pack active execution states into binary network payloads, migrating isolates horizontally across cluster nodes with execution path hash continuity. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 
