@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.6.8-alpha] - Sprint 288: Persistent State Snapshot Registry (2026-06-01)
+Sprint 288: Persistent State Snapshot Registry. Developed binary serialization schemas inside src/vm/storage.rs. Enabled full VMState and execution context encoding to dump and resume active isolates directly from disk.
+- **Binary Serialization**: `serialize_vm_state(state) -> Vec<u8>` encodes globals, stack, frames, ip, base_pointer, and crypto_state_hash into a compact little-endian binary format. `deserialize_vm_state(bytes) -> VMState` reconstructs the exact state.
+- **Disk I/O**: `persist_snapshot_to_disk(slot_id, state)` writes serialized bytes to a file on disk. `load_snapshot_from_disk(slot_id) -> Option<VMState>` reads and deserializes.
+- **Test**: `test_vm_state_disk_serialization` creates a VM, runs computations, snapshots state, serializes to disk, loads into a fresh VM, and verifies identical globals, stack, ip, and crypto_state_hash.
+- **Test Suite**: 220 → 221 tests (134 lib + 55 integration + 25 sandbox + 7 LSP).
+- **CI**: 221/221 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.6.7-alpha] - Sprint 287: Non-Blocking Audio Streaming & Automated Sink Sweeping (2026-06-01)
 Sprint 287: Non-Blocking Audio Streaming & Automated Sink Sweeping. Reengineered PlayTone execution to use streaming iterators inside src/vm/audio.rs. Integrated an automated sweeper loop to drain empty sinks from the active resource map.
 - **Non-Blocking Streaming**: `DynamicToneStream` struct implementing `rodio::Source` computes sample values on-the-fly during playback instead of pre-allocating Vec<f32> buffers. Eliminates command thread blocking for long-duration tones.

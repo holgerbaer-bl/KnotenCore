@@ -111,6 +111,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Universal Host SDK Bindings** (Sprint 285) — Introduces idiomatische Python (ctypes) and Node.js (N-API/ffi) boundary shims wrapping the native C-ABI layer to enable embedded runtime multi-language execution orchestration.
 - **Distributed Edge WASM Convergence** (Sprint 286) — Compiles the core Stack-VM into highly sandboxed WebAssembly modules. Integrates decentralized WebGPU vertex and compute pipeline dispatches directly over network browser instances.
 - **Dynamic Audio Streaming** (Sprint 287) — Migrates audio.rs from synchronous sample pre-allocation to dynamic rodio::Source evaluation. Mitigates command thread starvation and enforces automated idle-sink reclamation.
+- **Persistent State Serialization** (Sprint 288) — Deploys robust binary state encoding inside storage.rs. Maps dynamic register stack allocations and execution path hashes into immutable byte-streams for file-system persistence.
 
 ---
 
