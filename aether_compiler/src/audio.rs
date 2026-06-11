@@ -113,12 +113,6 @@ impl AudioManager {
                                 pan,
                                 sample_rate,
                             );
-                            let num_channels = stream.channels();
-                            let source = rodio::buffer::SamplesBuffer::new(
-                                num_channels,
-                                sample_rate,
-                                stream.collect::<Vec<f32>>(),
-                            );
                             if let Ok(sink) = rodio::Sink::try_new(&stream_handle)
                                 && let Ok(mut guard) = shared_sinks.lock()
                             {
@@ -126,7 +120,7 @@ impl AudioManager {
                                     old.stop();
                                 }
                                 sink.set_volume(global_volume);
-                                sink.append(source);
+                                sink.append(stream);
                                 guard.insert(channel, sink);
                             }
                         }

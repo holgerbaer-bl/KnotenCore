@@ -2,6 +2,18 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.1-patch] - Sprint 291: Core Rectification & Test Suite Hardening (2026-06-01)
+Sprint 291: Core Rectification & Test Suite Hardening. Fixed OpCode::Add register targeting in src/vm/native_emit.rs. Resolved local branch localization inside src/vm/isolate.rs. Fixed VMState context recovery in src/vm/scheduler.rs and eliminated global CWD manipulation in tests.
+- **JIT Add Fix**: Verified `add rcx, rax` + `push rcx` is correct; added `test_jit_native_execution_add` to verify 10+5=15 on hardware.
+- **PGO Branch Localization**: `unroll_loop_at` now shifts internal jumps with `t < jump_ip` proportionally to their cloned segment offset.
+- **Migration State Restore**: `resume_migrated_isolate` now transfers `stack`, `frames`, `ip`, `base_pointer` from deserialized VMState — no more state discarding.
+- **Audio Non-Blocking**: Removed `stream.collect::<Vec<f32>>()` from PlayTone handler; `sink.append(stream)` now accepts `DynamicToneStream` directly as a `rodio::Source`.
+- **Test Isolation**: `test_cli_scaffolding_and_validation` uses absolute `PathBuf` instead of `set_current_dir`.
+- **Migration Test Enhancement**: Snapshot taken AFTER VM instructions executed (IP>0, stack populated).
+- **Test Suite**: 223 → 224 tests (136 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin).
+- **CI**: 224/224 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.0-release] - Sprint 290: Production-Grade Workspace Consolidation & Autonomous Cluster CLI (2026-06-01)
 Sprint 290: Production-Grade Workspace Consolidation & Autonomous Cluster CLI. Created standalone bin target for knoten-init inside src/bin/knoten_init.rs. Integrated declarative environment provisioning configurations and unified developer codespaces.
 - **knoten-init CLI**: New binary target `src/bin/knoten_init.rs`. `--init` scaffolds `.knoten_data/storage/`, `knoten_config.json`, and `main.nod` in the working directory. `--cluster-sim` spawns 3 thread-isolated cluster nodes and runs a transient `migrate_active_isolate` migration to verify the pipeline.

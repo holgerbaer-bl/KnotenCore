@@ -111,13 +111,15 @@ fn unroll_loop_at(instructions: &mut Vec<OpCode>, jump_ip: usize, _original: &[O
 
     for copy_idx in 0..unroll_factor {
         let mut cloned_body = body.clone();
-        let _copy_offset = jump_ip + copy_idx * body_len;
+        let copy_offset = jump_ip + copy_idx * body_len;
         for instr in &mut cloned_body {
             match instr {
                 OpCode::Jump(t) | OpCode::JumpIfFalse(t) if *t >= jump_ip => {
                     *t += body_len;
                 }
-                OpCode::Jump(_) | OpCode::JumpIfFalse(_) => {}
+                OpCode::Jump(t) | OpCode::JumpIfFalse(t) if *t < jump_ip => {
+                    *t = *t + copy_offset - jump_target;
+                }
                 _ => {}
             }
         }
@@ -189,6 +191,7 @@ pub struct VMIsolate {
     pub isolate_id: i64,
     pub mailbox: Option<std::sync::mpsc::Receiver<RelType>>,
     pub local_heap: HashMap<String, RelType>,
+    pub migration_state: Option<VMState>,
 }
 
 impl VMIsolate {
@@ -199,6 +202,7 @@ impl VMIsolate {
             isolate_id: -1,
             mailbox: None,
             local_heap: HashMap::new(),
+            migration_state: None,
         }
     }
 
@@ -214,6 +218,7 @@ impl VMIsolate {
             isolate_id,
             mailbox: Some(mailbox),
             local_heap: HashMap::new(),
+            migration_state: None,
         }
     }
 
@@ -221,6 +226,13 @@ impl VMIsolate {
         let mut vm = VM::new();
         for (k, v) in self.local_heap.drain() {
             vm.globals.insert(k, v);
+        }
+        if let Some(state) = self.migration_state.take() {
+            vm.stack = state.stack;
+            vm.frames = state.frames;
+            vm.ip = state.ip;
+            vm.base_pointer = state.base_pointer;
+            vm.crypto_state_hash = state.crypto_state_hash;
         }
 
         let swap_id = self.isolate_id;

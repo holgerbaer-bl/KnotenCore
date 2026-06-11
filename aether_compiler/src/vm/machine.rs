@@ -3253,6 +3253,16 @@ mod tests {
             allow_fs_write: false,
         };
         let mut vm = VM::new();
+        let pre_instr = vec![OpCode::Constant(0), OpCode::Return];
+        let pre_const = vec![RelType::Int(42)];
+        let _ = vm
+            .run(&pre_instr, &pre_const, &AgentPermissions::default(), None)
+            .unwrap();
+        assert!(
+            vm.ip > 0,
+            "VM must have executed instructions before snapshot"
+        );
+
         vm.globals.insert("x".to_string(), RelType::Int(10));
         vm.crypto_state_hash = 0xABCD;
         let state = vm.snapshot();
@@ -3271,6 +3281,10 @@ mod tests {
         assert!(
             migrated.local_heap.get("x") == Some(&RelType::Int(10)),
             "Migrated isolate must retain globals"
+        );
+        assert!(
+            migrated.migration_state.is_some(),
+            "Migration state must be preserved"
         );
 
         let result = migrated.run().expect("Migrated isolate must run");

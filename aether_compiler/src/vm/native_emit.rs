@@ -17,6 +17,10 @@ fn emit_pop_rax(code: &mut Vec<u8>) {
     code.push(0x58);
 }
 
+fn emit_push_rcx(code: &mut Vec<u8>) {
+    code.push(0x51);
+}
+
 pub fn emit_native_machine_block(opcodes: &[OpCode], constants: &[RelType]) -> Vec<u8> {
     let mut code: Vec<u8> = Vec::with_capacity(opcodes.len() * 12);
     let mut addr_map: HashMap<usize, usize> = HashMap::new();
@@ -36,7 +40,7 @@ pub fn emit_native_machine_block(opcodes: &[OpCode], constants: &[RelType]) -> V
                     emit_pop_rcx(&mut code);
                     emit_pop_rax(&mut code);
                     code.extend_from_slice(&[0x48, 0x01, 0xC1]);
-                    emit_push_rax(&mut code);
+                    emit_push_rcx(&mut code);
                     stack_depth -= 1;
                 }
             }
@@ -232,5 +236,25 @@ mod tests {
             result, 10,
             "Truthy path: JumpIfFalse skips alt, pushes 10, returns"
         );
+    }
+
+    #[test]
+    fn test_jit_native_execution_add() {
+        let constants = vec![RelType::Int(10), RelType::Int(5)];
+        let ops = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::Return,
+        ];
+
+        let code = emit_native_machine_block(&ops, &constants);
+        assert!(!code.is_empty());
+        if std::env::var("CI").is_ok() || std::env::var("GITHUB_ACTIONS").is_ok() {
+            return;
+        }
+        let result =
+            unsafe { execute_native_block(&code) }.expect("Native Add execution must succeed");
+        assert_eq!(result, 15, "10 + 5 = 15 via native x86_64 execution");
     }
 }

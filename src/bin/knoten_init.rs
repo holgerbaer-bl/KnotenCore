@@ -17,10 +17,17 @@ fn main() {
 }
 
 fn scaffold_workspace() {
+    scaffold_workspace_at(
+        &std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
+    );
+}
+
+fn scaffold_workspace_at(base: &std::path::Path) {
     let dirs = [".knoten_data/storage"];
     for d in &dirs {
-        fs::create_dir_all(d).expect("Failed to create directory");
-        println!("Created directory: {}", d);
+        let full = base.join(d);
+        fs::create_dir_all(&full).expect("Failed to create directory");
+        println!("Created directory: {}", full.display());
     }
 
     let config = serde_json::json!({
@@ -34,8 +41,8 @@ fn scaffold_workspace() {
         }
     });
     let config_str = serde_json::to_string_pretty(&config).unwrap();
-    fs::write("knoten_config.json", &config_str).expect("Failed to write config");
-    println!("Created: knoten_config.json");
+    fs::write(base.join("knoten_config.json"), &config_str).expect("Failed to write config");
+    println!("Created: {}", base.join("knoten_config.json").display());
 
     let main_nod = serde_json::json!({
         "Main": [
@@ -44,8 +51,8 @@ fn scaffold_workspace() {
         ]
     });
     let nod_str = serde_json::to_string_pretty(&main_nod).unwrap();
-    fs::write("main.nod", &nod_str).expect("Failed to write main.nod");
-    println!("Created: main.nod");
+    fs::write(base.join("main.nod"), &nod_str).expect("Failed to write main.nod");
+    println!("Created: {}", base.join("main.nod").display());
 
     println!("Workspace scaffolding complete.");
 }
@@ -86,39 +93,35 @@ fn run_cluster_simulation() {
 mod tests {
     use super::*;
     use std::fs;
-    use std::path::Path;
 
     #[test]
     fn test_cli_scaffolding_and_validation() {
         let tmp = std::env::temp_dir().join("knoten_test_scaffold");
         let _ = fs::remove_dir_all(&tmp);
         fs::create_dir_all(&tmp).unwrap();
-        let cwd = env::current_dir().unwrap();
-        env::set_current_dir(&tmp).unwrap();
 
-        scaffold_workspace();
+        scaffold_workspace_at(&tmp);
 
         assert!(
-            Path::new(".knoten_data/storage").exists(),
+            tmp.join(".knoten_data/storage").exists(),
             "Storage directory must be created"
         );
         assert!(
-            Path::new("knoten_config.json").exists(),
+            tmp.join("knoten_config.json").exists(),
             "Config file must be created"
         );
-        assert!(Path::new("main.nod").exists(), "main.nod must be created");
+        assert!(tmp.join("main.nod").exists(), "main.nod must be created");
 
-        let config_bytes = fs::read_to_string("knoten_config.json").unwrap();
+        let config_bytes = fs::read_to_string(tmp.join("knoten_config.json")).unwrap();
         let config: serde_json::Value =
             serde_json::from_str(&config_bytes).expect("Config must be valid JSON");
         assert_eq!(config["version"], "1.7.0");
 
-        let nod_bytes = fs::read_to_string("main.nod").unwrap();
+        let nod_bytes = fs::read_to_string(tmp.join("main.nod")).unwrap();
         let nod: serde_json::Value =
             serde_json::from_str(&nod_bytes).expect("main.nod must be valid JSON");
         assert!(nod["Main"].is_array());
 
-        env::set_current_dir(&cwd).unwrap();
         let _ = fs::remove_dir_all(&tmp);
     }
 }

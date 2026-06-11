@@ -145,8 +145,7 @@ pub fn resume_migrated_isolate(
         .map_err(|e| format!("Deserialization failed: {e}"))?;
     let mut isolate = VMIsolate::new(instructions.to_vec(), constants.to_vec());
     isolate.local_heap = state.globals.clone();
-    isolate.isolate_id = -1;
-    let _ = state;
+    isolate.migration_state = Some(state);
     Ok(isolate)
 }
 
