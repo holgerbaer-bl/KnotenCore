@@ -1,12 +1,17 @@
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
 use crate::executor::RelType;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::VM;
 use knoten_core_types::opcode::OpCode;
 
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn wasm_instanciate_vm() -> VM {
     VM::new()
 }
 
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn wasm_compile_json(json: &str) -> Option<(Vec<OpCode>, Vec<RelType>)> {
     let node: knoten_core_types::ast::Node = match serde_json::from_str(json) {
         Ok(n) => n,
@@ -17,6 +22,7 @@ pub fn wasm_compile_json(json: &str) -> Option<(Vec<OpCode>, Vec<RelType>)> {
     Some((compiler.instructions, compiler.constants))
 }
 
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn wasm_dispatch_compute(
     vm: &mut VM,
     instructions: &[OpCode],

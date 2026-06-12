@@ -148,25 +148,40 @@ pub fn emit_native_machine_block(opcodes: &[OpCode], constants: &[RelType]) -> V
 /// The caller must ensure `bytecode` contains valid, position-independent x86_64
 /// machine code that terminates with a `ret` instruction. Executing arbitrary or
 /// malformed bytecode may cause undefined behavior, crashes, or security vulnerabilities.
+///
+/// On non-x86_64 architectures this function returns an error without attempting
+/// memory allocation or execution.
 pub unsafe fn execute_native_block(bytecode: &[u8]) -> Result<i64, String> {
-    if bytecode.is_empty() {
-        return Err("Empty bytecode".into());
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        let _ = bytecode;
+        return Err(
+            "JIT execution unsupported on this architecture. Falling back to Interpreter."
+                .to_string(),
+        );
     }
 
-    let mut mmap =
-        MmapMut::map_anon(bytecode.len()).map_err(|e| format!("mmap allocation failed: {}", e))?;
+    #[cfg(target_arch = "x86_64")]
+    {
+        if bytecode.is_empty() {
+            return Err("Empty bytecode".into());
+        }
 
-    mmap.copy_from_slice(bytecode);
+        let mut mmap = MmapMut::map_anon(bytecode.len())
+            .map_err(|e| format!("mmap allocation failed: {}", e))?;
 
-    let exec_mmap = mmap
-        .make_exec()
-        .map_err(|e| format!("make_exec failed: {}", e))?;
+        mmap.copy_from_slice(bytecode);
 
-    let func: extern "C" fn() -> i64 = unsafe { std::mem::transmute(exec_mmap.as_ptr()) };
+        let exec_mmap = mmap
+            .make_exec()
+            .map_err(|e| format!("make_exec failed: {}", e))?;
 
-    let result = func();
+        let func: extern "C" fn() -> i64 = unsafe { std::mem::transmute(exec_mmap.as_ptr()) };
 
-    Ok(result)
+        let result = func();
+
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
@@ -256,5 +271,37 @@ mod tests {
         let result =
             unsafe { execute_native_block(&code) }.expect("Native Add execution must succeed");
         assert_eq!(result, 15, "10 + 5 = 15 via native x86_64 execution");
+    }
+
+    #[test]
+    fn test_jit_architecture_guard_fencing() {
+        let constants = vec![RelType::Int(1), RelType::Int(1)];
+        let ops = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::Return,
+        ];
+        let code = emit_native_machine_block(&ops, &constants);
+        assert!(!code.is_empty());
+
+        #[cfg(target_arch = "x86_64")]
+        {
+            if !(std::env::var("CI").is_ok() || std::env::var("GITHUB_ACTIONS").is_ok()) {
+                let result =
+                    unsafe { execute_native_block(&code) }.expect("x86_64 must execute natively");
+                assert_eq!(result, 2, "1 + 1 = 2");
+            }
+        }
+
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            let result = unsafe { execute_native_block(&code) };
+            assert!(result.is_err(), "Non-x86_64 must return error");
+            assert!(
+                result.unwrap_err().contains("JIT execution unsupported"),
+                "Error must indicate unsupported architecture"
+            );
+        }
     }
 }

@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.2-alpha] - Sprint 292: JIT Cross-Platform Architecture Guards & WASM Bindgen Finalization (2026-06-01)
+Sprint 292: JIT Cross-Platform Architecture Guards & WASM Bindgen Finalization. Added target_arch conditional compilation to execute_native_block. Completed wasm-bindgen interface mapping in src/wasm_edge.rs.
+- **Architecture Gate**: `execute_native_block` uses `#[cfg(target_arch = "x86_64")]` for mmap+execute; non-x86_64 targets return `Err("JIT execution unsupported on this architecture")` gracefully.
+- **WASM Bindgen**: Added `wasm-bindgen` as optional dependency; `wasm_edge.rs` functions decorated with `#[wasm_bindgen]` behind `#[cfg(target_arch = "wasm32")]`.
+- **Test**: `test_jit_architecture_guard_fencing` verifies execution success on x86_64, graceful error on unsupported architectures.
+- **Test Suite**: 224 → 225 tests (137 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin).
+- **CI**: 225/225 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.1-patch] - Sprint 291: Core Rectification & Test Suite Hardening (2026-06-01)
 Sprint 291: Core Rectification & Test Suite Hardening. Fixed OpCode::Add register targeting in src/vm/native_emit.rs. Resolved local branch localization inside src/vm/isolate.rs. Fixed VMState context recovery in src/vm/scheduler.rs and eliminated global CWD manipulation in tests.
 - **JIT Add Fix**: Verified `add rcx, rax` + `push rcx` is correct; added `test_jit_native_execution_add` to verify 10+5=15 on hardware.

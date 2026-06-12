@@ -49,6 +49,7 @@ dependencies = [
  "serde",
  "serde_json",
  "ureq",
+ "wasm-bindgen",
  "wgpu",
  "winit",
 ]
