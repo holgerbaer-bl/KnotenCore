@@ -88,6 +88,19 @@ pub fn get_ledger_nonce() -> u64 {
     LEDGER_NONCE.load(std::sync::atomic::Ordering::SeqCst)
 }
 
+pub fn sweep_terminated_isolates() {
+    stack_registry_drain();
+    snapshot::drain_isolate_snapshots();
+    scheduler::drain_cluster_work_queues();
+    scheduler::drain_work_stealing_queues();
+}
+
+fn stack_registry_drain() {
+    if let Ok(mut guard) = isolate::get_hot_swap_registry().lock() {
+        guard.clear();
+    }
+}
+
 pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
     let len = inputs.len();
     let stride = if len >= 6 && len.is_multiple_of(6) {
@@ -3326,5 +3339,82 @@ mod tests {
         drain_hot_swap_registry();
         drain_cluster_work_queues();
         drain_isolate_snapshots();
+    }
+
+    #[test]
+    fn test_isolate_garbage_collection_reclamation() {
+        let perms = AgentPermissions::default();
+
+        for i in 0..5 {
+            let instructions = vec![OpCode::Constant(0), OpCode::Return];
+            let constants = vec![RelType::Int(i)];
+            let registry = isolate::get_hot_swap_registry();
+            let mut guard = registry.lock().unwrap_or_else(|e| e.into_inner());
+            guard.insert(
+                i,
+                std::sync::Arc::new(std::sync::Mutex::new((
+                    instructions.clone(),
+                    constants.clone(),
+                ))),
+            );
+            drop(guard);
+
+            let mut vm = VM::new();
+            let _ = vm.run(&instructions, &constants, &perms, None);
+        }
+
+        {
+            let guard = isolate::get_hot_swap_registry()
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            assert!(
+                guard.len() >= 5,
+                "Registry must have at least 5 entries before sweep"
+            );
+        }
+
+        sweep_terminated_isolates();
+
+        {
+            let guard = isolate::get_hot_swap_registry()
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            assert_eq!(guard.len(), 0, "Registry must be empty after sweep");
+        }
+
+        drain_isolate_snapshots();
+        drain_cluster_work_queues();
+    }
+
+    #[test]
+    fn test_isolate_gc_sub_millisecond_latency() {
+        let perms = AgentPermissions::default();
+        let instructions = vec![OpCode::Constant(0), OpCode::Return];
+        let constants = vec![RelType::Int(42)];
+
+        for i in 0..20 {
+            let registry = isolate::get_hot_swap_registry();
+            let mut guard = registry.lock().unwrap_or_else(|e| e.into_inner());
+            guard.insert(
+                i,
+                std::sync::Arc::new(std::sync::Mutex::new((
+                    instructions.clone(),
+                    constants.clone(),
+                ))),
+            );
+        }
+
+        let start = std::time::Instant::now();
+        sweep_terminated_isolates();
+        let elapsed = start.elapsed();
+
+        assert!(
+            elapsed.as_micros() < 1000,
+            "Sweeper must complete under 1ms ({}us)",
+            elapsed.as_micros()
+        );
+
+        drain_isolate_snapshots();
+        drain_cluster_work_queues();
     }
 }

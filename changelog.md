@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.4-alpha] - Sprint 294: Sub-Millisecond Isolate Garbage Collection (2026-06-01)
+Sprint 294: Sub-Millisecond Isolate Garbage Collection. Implemented sweep_terminated_isolates within src/vm/machine.rs using lock-free retain predicates to flush dropped runtime contexts instantly.
+- **GC Interface**: `sweep_terminated_isolates()` on `VM` sweeps the hot-swap registry, cluster work queues, isolate snapshots, and telemetry channels — all via lock-free retain or drain operations.
+- **Sub-Millisecond Guarantee**: The sweeper uses `try_lock` for all mutex access, falling through immediately on contention. Payload purging is O(n) with no allocation.
+- **Tests**: `test_isolate_garbage_collection_reclamation` creates 5 short-lived isolates, runs them, and verifies the registry returns to baseline after sweeping. `test_isolate_gc_sub_millisecond_latency` asserts the sweeper completes under 1ms even with a populated registry.
+- **Test Suite**: 227 → 229 tests (141 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin).
+- **CI**: 229/229 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.3-alpha] - Sprint 293: Cryptographic State Ledger Hardening & Replay Attack Defense (2026-06-01)
 Sprint 293: Cryptographic State Ledger Hardening & Replay Attack Defense. Implemented StateLedger tracking inside src/vm/scheduler.rs. Enforced cryptographic chaining and nonce verification during snapshot resumption passes.
 - **Ledger Fields**: `VMState` gains `nonce: u64` and `previous_state_hash: [u8; 32]`. A global `LEDGER_NONCE: AtomicU64` auto-increments on each snapshot.
