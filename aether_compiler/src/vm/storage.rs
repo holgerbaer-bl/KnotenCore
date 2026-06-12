@@ -50,6 +50,8 @@ pub fn serialize_vm_state(state: &VMState) -> Result<Vec<u8>, String> {
     buf.extend_from_slice(&(state.ip as u64).to_le_bytes());
     buf.extend_from_slice(&(state.base_pointer as u64).to_le_bytes());
     buf.extend_from_slice(&state.crypto_state_hash.to_le_bytes());
+    buf.extend_from_slice(&state.nonce.to_le_bytes());
+    buf.extend_from_slice(&state.previous_state_hash);
 
     Ok(buf)
 }
@@ -92,6 +94,11 @@ pub fn deserialize_vm_state(bytes: &[u8]) -> Result<VMState, String> {
     let ip = read_u64(bytes, &mut pos)? as usize;
     let base_pointer = read_u64(bytes, &mut pos)? as usize;
     let crypto_state_hash = read_u64(bytes, &mut pos)?;
+    let nonce = read_u64(bytes, &mut pos)?;
+    let mut previous_state_hash = [0u8; 32];
+    if pos + 32 <= bytes.len() {
+        previous_state_hash.copy_from_slice(&bytes[pos..pos + 32]);
+    }
 
     Ok(VMState {
         globals,
@@ -100,6 +107,8 @@ pub fn deserialize_vm_state(bytes: &[u8]) -> Result<VMState, String> {
         ip,
         base_pointer,
         crypto_state_hash,
+        nonce,
+        previous_state_hash,
     })
 }
 
@@ -212,13 +221,19 @@ pub fn load_snapshot_from_disk(slot_id: &str) -> Option<VMState> {
         return None;
     }
     let bytes = fs::read(path).ok()?;
-    deserialize_vm_state(&bytes).ok()
+    let state = deserialize_vm_state(&bytes).ok()?;
+    if !super::machine::verify_ledger_hash(&state) {
+        eprintln!("[Ledger] Verification failed for snapshot {}", slot_id);
+        return None;
+    }
+    Some(state)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::executor::RelType;
+    use crate::vm::machine;
     use crate::vm::machine::VM;
 
     #[test]
@@ -266,5 +281,69 @@ mod tests {
         assert_eq!(loaded.crypto_state_hash, state.crypto_state_hash);
 
         let _ = fs::remove_file(format!("{}/test_slot.snap", STORAGE_DIR));
+    }
+
+    #[test]
+    fn test_cryptographic_ledger_chaining() {
+        let mut vm = VM::new();
+        vm.crypto_state_hash = 100;
+
+        let snap1 = vm.snapshot();
+        let n1 = snap1.nonce;
+        assert!(machine::verify_ledger_hash(&snap1));
+
+        vm.crypto_state_hash = 200;
+        let snap2 = vm.snapshot();
+        assert_eq!(snap2.nonce, n1 + 1, "Nonces must be sequential");
+        assert!(machine::verify_ledger_hash(&snap2));
+        assert_ne!(snap1.previous_state_hash, snap2.previous_state_hash);
+
+        vm.crypto_state_hash = 300;
+        let snap3 = vm.snapshot();
+        assert_eq!(snap3.nonce, n1 + 2, "Nonces must be sequential");
+        assert!(machine::verify_ledger_hash(&snap3));
+        assert_ne!(snap2.previous_state_hash, snap3.previous_state_hash);
+        assert_ne!(snap1.previous_state_hash, snap3.previous_state_hash);
+    }
+
+    #[test]
+    fn test_cryptographic_ledger_replay_defense() {
+        let mut vm = VM::new();
+        vm.crypto_state_hash = 42;
+        let snap = vm.snapshot();
+        assert!(machine::verify_ledger_hash(&snap));
+
+        let mut tampered = snap.clone();
+        tampered.nonce = 999;
+        assert!(
+            !machine::verify_ledger_hash(&tampered),
+            "Tampered nonce must fail verification"
+        );
+
+        tampered = snap.clone();
+        tampered.previous_state_hash = [0xFFu8; 32];
+        assert!(
+            !machine::verify_ledger_hash(&tampered),
+            "Tampered hash must fail verification"
+        );
+
+        tampered = snap.clone();
+        tampered.crypto_state_hash = 999;
+        assert!(
+            !machine::verify_ledger_hash(&tampered),
+            "Tampered crypto state hash must fail verification"
+        );
+
+        let mut replay_vm = VM::new();
+        replay_vm.crypto_state_hash = 1;
+        let _ = replay_vm.snapshot();
+        let _ = replay_vm.snapshot();
+        let later_nonce = machine::get_ledger_nonce();
+        let mut replayed = snap.clone();
+        replayed.nonce = later_nonce;
+        assert!(
+            !machine::verify_ledger_hash(&replayed),
+            "Replay with wrong ledger hash must fail"
+        );
     }
 }

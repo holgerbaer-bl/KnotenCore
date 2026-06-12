@@ -72,7 +72,8 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Cross-Node Isolate Migration (v1.6.9):** Engineered a distributed context handoff pipeline within the cluster scheduler. Enables live runtime environments to pack active execution states into binary network payloads, migrating isolates horizontally across cluster nodes with execution path hash continuity.
 * **Workspace Consolidation & Cluster Tooling (v1.7.0):** Deployed an autonomous cluster orchestration CLI tool named knoten-init alongside cloud-native development profiles. Establishes programmatic onboarding baselines to lower integration boundaries for external actors.
 * **Runtime Hardening & JIT Parity (v1.7.1):** Corrected the x86_64 JIT addition register emission matrix to prevent left-operand discarding. Fully integrated structural branch relocation for internal loop jumps and restored multi-threaded isolate migration states.
-* **Cross-Platform JIT Guarding (v1.7.2):** Implemented compile-time architecture gates for native memory execution. Protects non-x86_64 host environments by enforcing graceful runtime fallbacks to the deterministic software interpreter loop. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+* **Cross-Platform JIT Guarding (v1.7.2):** Implemented compile-time architecture gates for native memory execution. Protects non-x86_64 host environments by enforcing graceful runtime fallbacks to the deterministic software interpreter loop.
+* **Kryptographic State Ledger (v1.7.3):** Hardened the state rewind pipeline with a nonced block-chaining ledger model. Protects snapshot data from replay attacks by enforcing cryptographic hash continuity across historical execution boundaries. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 

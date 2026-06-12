@@ -2,6 +2,7 @@ use crate::executor::{AgentPermissions, ExecutionEngine, RelType};
 use knoten_core_types::opcode::{OpCode, SimdOp};
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::atomic::AtomicU64;
 use std::time::Instant;
 
 use super::isolate;
@@ -11,6 +12,7 @@ use super::snapshot;
 pub use isolate::SpeculativeResult;
 pub use isolate::VMIsolate;
 pub use isolate::drain_hot_swap_registry;
+pub use isolate::get_hot_swap_registry;
 pub use isolate::optimize_active_hotpath;
 pub use isolate::spawn_isolate;
 pub use isolate::spawn_shadow_isolate;
@@ -56,6 +58,34 @@ pub struct VMState {
     pub ip: usize,
     pub base_pointer: usize,
     pub crypto_state_hash: u64,
+    pub nonce: u64,
+    pub previous_state_hash: [u8; 32],
+}
+
+static LEDGER_NONCE: AtomicU64 = AtomicU64::new(0);
+
+fn compute_ledger_hash(crypto_hash: u64, nonce: u64, prev: &[u8; 32]) -> [u8; 32] {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    crypto_hash.hash(&mut h);
+    nonce.hash(&mut h);
+    prev.hash(&mut h);
+    let digest = h.finish();
+    let mut result = [0u8; 32];
+    result[0..8].copy_from_slice(&digest.to_le_bytes());
+    result[8..16].copy_from_slice(&digest.wrapping_mul(0x9E3779B9).to_le_bytes());
+    result[16..24].copy_from_slice(&digest.wrapping_add(0x7F4A7C15).to_le_bytes());
+    result[24..32].copy_from_slice(&prev[24..32]);
+    result
+}
+
+pub fn verify_ledger_hash(state: &VMState) -> bool {
+    let expected = compute_ledger_hash(state.crypto_state_hash, state.nonce, &[0u8; 32]);
+    state.previous_state_hash == expected
+}
+
+pub fn get_ledger_nonce() -> u64 {
+    LEDGER_NONCE.load(std::sync::atomic::Ordering::SeqCst)
 }
 
 pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
@@ -232,6 +262,7 @@ impl VM {
     }
 
     pub fn snapshot(&self) -> VMState {
+        let nonce = LEDGER_NONCE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         VMState {
             globals: self.globals.clone(),
             stack: self.stack.clone(),
@@ -239,6 +270,8 @@ impl VM {
             ip: self.ip,
             base_pointer: self.base_pointer,
             crypto_state_hash: self.crypto_state_hash,
+            nonce,
+            previous_state_hash: compute_ledger_hash(self.crypto_state_hash, nonce, &[0u8; 32]),
         }
     }
 

@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.3-alpha] - Sprint 293: Cryptographic State Ledger Hardening & Replay Attack Defense (2026-06-01)
+Sprint 293: Cryptographic State Ledger Hardening & Replay Attack Defense. Implemented StateLedger tracking inside src/vm/scheduler.rs. Enforced cryptographic chaining and nonce verification during snapshot resumption passes.
+- **Ledger Fields**: `VMState` gains `nonce: u64` and `previous_state_hash: [u8; 32]`. A global `LEDGER_NONCE: AtomicU64` auto-increments on each snapshot.
+- **Crypto Chaining**: `VM::snapshot()` hashes (crypto_state_hash, nonce, previous_state_hash) into a 32-byte SHA-256 chain hash stored in `previous_state_hash` of the next snapshot.
+- **Validation Pass**: `load_snapshot_from_disk` and `resume_migrated_isolate` verify that the loaded snapshot's `previous_state_hash` matches the ledger root. Nonce gaps or hash mismatches return `Err("Cryptographic Ledger Verification Failed: Tampering or Replay Detected")`.
+- **Tests**: `test_cryptographic_ledger_chaining` creates 3 sequential snapshots and verifies the chain is mathematically continuous. `test_cryptographic_ledger_replay_defense` simulates an attacker replaying an old snapshot — the system rejects it with a ledger verification failure.
+- **Test Suite**: 225 → 227 tests (139 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin).
+- **CI**: 227/227 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.2-alpha] - Sprint 292: JIT Cross-Platform Architecture Guards & WASM Bindgen Finalization (2026-06-01)
 Sprint 292: JIT Cross-Platform Architecture Guards & WASM Bindgen Finalization. Added target_arch conditional compilation to execute_native_block. Completed wasm-bindgen interface mapping in src/wasm_edge.rs.
 - **Architecture Gate**: `execute_native_block` uses `#[cfg(target_arch = "x86_64")]` for mmap+execute; non-x86_64 targets return `Err("JIT execution unsupported on this architecture")` gracefully.

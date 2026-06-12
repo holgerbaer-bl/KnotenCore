@@ -143,6 +143,11 @@ pub fn resume_migrated_isolate(
 ) -> Result<VMIsolate, String> {
     let state = super::storage::deserialize_vm_state(serialized_state)
         .map_err(|e| format!("Deserialization failed: {e}"))?;
+    if !super::machine::verify_ledger_hash(&state) {
+        return Err(
+            "Cryptographic Ledger Verification Failed: Tampering or Replay Detected".to_string(),
+        );
+    }
     let mut isolate = VMIsolate::new(instructions.to_vec(), constants.to_vec());
     isolate.local_heap = state.globals.clone();
     isolate.migration_state = Some(state);
