@@ -123,6 +123,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **GUI Telemetry & Inspection** (Sprint 297) — Embeds egui rendering pipelines over active WGPU surfaces to map real-time execution states and cryptographic ledger continuity roots.
 - **Distributed Pub-Sub Fabric** (Sprint 298) — Connects abstract bus handles across physical cluster boundaries, mapping transactional stream packets via lock-free peer-to-peer mesh pipelines.
 - **Raft Cluster Consensus** (Sprint 299) — Enforces transactional cluster state agreements within scheduler.rs, verifying ledger continuity logs to authorize autonomous cross-node isolate handoffs.
+- **Production Stability Calibration** (Sprint 300) — Freezes the normative JSON-AST schema specifications and locks down the multi-node isolate scheduler pipeline for public open-source orchestration.
 
 ---
 

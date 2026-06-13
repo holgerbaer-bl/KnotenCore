@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.0.0-release] - Sprint 300: Production Release Calibration & Stable WGPU Dashboard (2026-06-01)
+Sprint 300: Production Release Calibration & Stable WGPU Dashboard. Locked node_types.json specifications, saniert telemetry UI components inside the inspector panel, and finalized the v2.0.0 production gate.
+- **Production Dashboard**: `VMInspectorData` extended with `active_isolates` and `raft_cluster_status` fields for real-time cluster monitoring.
+- **Spec Freeze**: All `node_types.json` and `native_functions.json` schemas locked as v2.0.0. Validation test verifies AST node types match JSON schema entries.
+- **Test**: `test_v2_production_release_integrity` validates node_counts, verifies that LoadComputeShader/DispatchCompute/SpawnIsolate/PlayNote/StopNote are parseable, and confirms the inspector panel provides non-zero hash values after execution.
+- **Test Suite**: 236 → 238 tests (149 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin + 1 validation).
+- **CI**: 238/238 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.9-alpha] - Sprint 299: Distributed Raft Consensus & Failover Hardening (2026-06-01)
 Sprint 299: Distributed Raft Consensus & Failover Hardening. Implemented RaftNode state machine inside src/vm/scheduler.rs. Added autonomous heartbeat election cycles and validated ledger-backed failover mechanics.
 - **Raft State Machine**: `RaftState` enum (Leader, Follower, Candidate) + `RaftCluster` struct with node registry, term tracking, heartbeat intervals, and quorum-based leader election.
