@@ -101,6 +101,31 @@ fn stack_registry_drain() {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct VMInspectorData {
+    pub stack_depth: usize,
+    pub frame_count: usize,
+    pub ip: usize,
+    pub bp: usize,
+    pub crypto_state_hash: u64,
+    pub ledger_nonce: u64,
+    pub global_count: usize,
+}
+
+impl VM {
+    pub fn inspect(&self) -> VMInspectorData {
+        VMInspectorData {
+            stack_depth: self.stack.len(),
+            frame_count: self.frames.len(),
+            ip: self.ip,
+            bp: self.base_pointer,
+            crypto_state_hash: self.crypto_state_hash,
+            ledger_nonce: get_ledger_nonce(),
+            global_count: self.globals.len(),
+        }
+    }
+}
+
 pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
     let len = inputs.len();
     let stride = if len >= 6 && len.is_multiple_of(6) {
@@ -3417,5 +3442,42 @@ mod tests {
         drain_isolate_snapshots();
         drain_cluster_work_queues();
         drain_hot_swap_registry();
+    }
+
+    #[test]
+    fn test_wgpu_inspector_panel_state_extraction() {
+        let mut vm = VM::new();
+        let perms = AgentPermissions::default();
+        let instructions = vec![
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Add,
+            OpCode::Constant(0),
+            OpCode::Constant(1),
+            OpCode::Multiply,
+            OpCode::Return,
+        ];
+        let constants = vec![RelType::Int(7), RelType::Int(3)];
+
+        let data_before = vm.inspect();
+        assert_eq!(data_before.stack_depth, 0);
+        assert_eq!(data_before.frame_count, 0);
+        assert_eq!(data_before.ip, 0);
+        assert_eq!(data_before.bp, 0);
+        assert_eq!(data_before.crypto_state_hash, 0);
+        assert_eq!(data_before.global_count, 0);
+
+        let _ = vm.run(&instructions, &constants, &perms, None).unwrap();
+
+        let data_after = vm.inspect();
+        assert!(data_after.ip > 0, "IP must advance after execution");
+        assert!(
+            data_after.crypto_state_hash > 0,
+            "Crypto hash must be non-zero after execution"
+        );
+        assert!(
+            data_after.ledger_nonce > 0,
+            "Ledger nonce must be positive after execution"
+        );
     }
 }

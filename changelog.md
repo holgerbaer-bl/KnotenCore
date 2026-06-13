@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.7-alpha] - Sprint 297: WGPU Inspector Panel (2026-06-01)
+Sprint 297: WGPU Inspector Panel (Live GUI Debugger). Integrated egui overlays within machine.rs and the render loop. Added live registry tracking for VMState metrics.
+- **VMInspectorData**: New struct in `machine.rs` with `stack_depth`, `frame_count`, `ip`, `bp`, `crypto_state_hash`, `ledger_nonce`. `VM::inspect()` returns a snapshot of these metrics.
+- **UI Render**: `render_inspector_panel(ui, vm, data)` function renders a collapsible egui window showing stack depth, frames, instruction pointer, base pointer, and crypto ledger state.
+- **Test**: `test_wgpu_inspector_panel_state_extraction` runs VM instructions, calls `vm.inspect()`, and verifies extracted metrics match the actual VM register state.
+- **Test Suite**: 231 → 232 tests (144 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin).
+- **CI**: 232/232 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.6-alpha] - Sprint 296: Schema Sync & Pipeline Alignment (2026-06-01)
 Sprint 296: Schema Sync & Pipeline Alignment. Formally mapped LoadComputeShader, DispatchCompute, SpawnIsolate, PlayNote, and StopNote into node_types.json. Registered flat registry_play_tone signature inside native_functions.json.
 - **node_types.json**: Added `LoadComputeShader` (source: String), `DispatchCompute` (shader_id, x, y, z, inputs), `SpawnIsolate` (instructions, constants), `PlayNote` (channel, freq, duration_ms, waveform, attack_ms, decay_ms, sustain_level, release_ms, pan), `StopNote` (channel).
