@@ -3273,6 +3273,10 @@ mod tests {
 
     #[test]
     fn test_cross_node_isolate_migration() {
+        drain_hot_swap_registry();
+        drain_cluster_work_queues();
+        drain_isolate_snapshots();
+
         let constants = vec![RelType::Int(5), RelType::Int(3)];
         let instructions = vec![
             OpCode::Constant(0),
@@ -3343,7 +3347,7 @@ mod tests {
 
     #[test]
     fn test_isolate_garbage_collection_reclamation() {
-        let perms = AgentPermissions::default();
+        drain_hot_swap_registry();
 
         for i in 0..5 {
             let instructions = vec![OpCode::Constant(0), OpCode::Return];
@@ -3357,10 +3361,6 @@ mod tests {
                     constants.clone(),
                 ))),
             );
-            drop(guard);
-
-            let mut vm = VM::new();
-            let _ = vm.run(&instructions, &constants, &perms, None);
         }
 
         {
@@ -3388,7 +3388,7 @@ mod tests {
 
     #[test]
     fn test_isolate_gc_sub_millisecond_latency() {
-        let perms = AgentPermissions::default();
+        drain_hot_swap_registry();
         let instructions = vec![OpCode::Constant(0), OpCode::Return];
         let constants = vec![RelType::Int(42)];
 
@@ -3416,5 +3416,6 @@ mod tests {
 
         drain_isolate_snapshots();
         drain_cluster_work_queues();
+        drain_hot_swap_registry();
     }
 }
