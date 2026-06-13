@@ -345,6 +345,17 @@ pub fn count_nodes(node: &Node) -> usize {
                 count += count_nodes(mh);
             }
         }
+        Node::SpawnIsolate {
+            instructions,
+            constants,
+        } => {
+            for n in instructions {
+                count += count_nodes(n);
+            }
+            for n in constants {
+                count += count_nodes(n);
+            }
+        }
     }
     count
 }
@@ -558,6 +569,13 @@ pub fn optimize(node: Node) -> Node {
             Box::new(optimize(*w)),
         ),
         Node::StopNote(c) => Node::StopNote(Box::new(optimize(*c))),
+        Node::SpawnIsolate {
+            instructions,
+            constants,
+        } => Node::SpawnIsolate {
+            instructions: instructions.into_iter().map(optimize).collect(),
+            constants: constants.into_iter().map(optimize).collect(),
+        },
 
         Node::LoadMesh(p) => Node::LoadMesh(Box::new(optimize(*p))),
         Node::LoadTexture(p) => Node::LoadTexture(Box::new(optimize(*p))),
@@ -1220,6 +1238,7 @@ impl TypeChecker {
                 let _rt = self.check(r)?;
                 Ok(Type::Bool)
             }
+            Node::SpawnIsolate { .. } => Ok(Type::Void),
             Node::If(cond, then_b, else_b) => {
                 let ct = self.check(cond)?;
                 if ct != Type::Bool && ct != Type::Any {

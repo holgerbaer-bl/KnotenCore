@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.6-alpha] - Sprint 296: Schema Sync & Pipeline Alignment (2026-06-01)
+Sprint 296: Schema Sync & Pipeline Alignment. Formally mapped LoadComputeShader, DispatchCompute, SpawnIsolate, PlayNote, and StopNote into node_types.json. Registered flat registry_play_tone signature inside native_functions.json.
+- **node_types.json**: Added `LoadComputeShader` (source: String), `DispatchCompute` (shader_id, x, y, z, inputs), `SpawnIsolate` (instructions, constants), `PlayNote` (channel, freq, duration_ms, waveform, attack_ms, decay_ms, sustain_level, release_ms, pan), `StopNote` (channel).
+- **native_functions.json**: Registered `registry_play_tone` with 4-arg signature (channel: Int, frequency: Float, duration_ms: Int, waveform: Int) under the `registry` module, no panning required.
+- **Tests**: `test_ast_gpgpu_parsing` verifies LoadComputeShader/DispatchCompute AST→OpCode roundtrip. `test_ast_audio_isolate_mapping` verifies PlayNote/StopNote/SpawnIsolate AST→OpCode mapping.
+- **Test Suite**: 229 → 231 tests (143 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin).
+- **CI**: 231/231 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.5-alpha] - Sprint 295: Agent-Onboarding-Validierung (2026-06-01)
 Sprint 295: Agent-Onboarding-Validierung. Executed full AI-Readiness stress-test suite. Generated AGENT_VALIDATION_REPORT.md and saniert documentation gaps.
 - **7-Task Black-Box Protocol**: External AI agent attempted 7 tasks (Arithmetic Loop, Data Structure, Isolate RPC, Error Handling, GPGPU Compute, Audio Synth, Combined) using only llm.md, node_types.json, native_functions.json, and error_catalog.json.

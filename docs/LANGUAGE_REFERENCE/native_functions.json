@@ -1364,6 +1364,32 @@
           ]
         }
       }
+    },
+    {
+      "name": "registry_play_tone",
+      "module": "registry",
+      "description": "Plays a synthesized tone on the specified audio channel using default ADSR envelope and zero panning.",
+      "parameters": [
+        { "name": "channel", "type": "Int", "required": true, "description": "Audio channel index (0-15)" },
+        { "name": "frequency", "type": "Float", "required": true, "description": "Tone frequency in Hz" },
+        { "name": "duration_ms", "type": "Int", "required": true, "description": "Playback duration in milliseconds" },
+        { "name": "waveform", "type": "Int", "required": true, "description": "Waveform type: 0=Sine, 1=Sawtooth, 2=Square, 3=Triangle" }
+      ],
+      "returns": "Void",
+      "permissions": [],
+      "errors": ["ERR_AUDIO_WAVEFORM_BOUNDS"],
+      "example": {
+        "ExternCall": {
+          "module": "registry",
+          "function": "registry_play_tone",
+          "args": [
+            { "IntLiteral": 0 },
+            { "FloatLiteral": 440.0 },
+            { "IntLiteral": 500 },
+            { "IntLiteral": 0 }
+          ]
+        }
+      }
     }
   ]
 }

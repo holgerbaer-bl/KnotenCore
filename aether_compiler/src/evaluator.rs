@@ -718,6 +718,7 @@ impl ExecutionEngine {
             | Node::InitAudio
             | Node::PlayNote(_, _, _, _)
             | Node::StopNote(_)
+            | Node::SpawnIsolate { .. }
             | Node::PlayAudioFile(_)
             | Node::LoadMesh(_)
             | Node::LoadTexture(_)

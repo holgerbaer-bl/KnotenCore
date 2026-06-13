@@ -931,4 +931,50 @@ mod tests {
             "Invalid syntax should return Err(ParseError)"
         );
     }
+
+    #[test]
+    fn test_ast_gpgpu_parsing() {
+        let json = r#"{"LoadComputeShader": {"StringLiteral": "@compute fn main() {}"}}"#;
+        let node: knoten_core_types::ast::Node =
+            serde_json::from_str(json).expect("LoadComputeShader must parse");
+        assert!(
+            matches!(node, knoten_core_types::ast::Node::LoadComputeShader(_)),
+            "Must parse as LoadComputeShader AST node"
+        );
+
+        let json2 = r#"{"DispatchCompute": {"shader_id": {"IntLiteral": 1}, "x": {"IntLiteral": 4}, "y": {"IntLiteral": 1}, "z": {"IntLiteral": 1}, "inputs": []}}"#;
+        let node2: knoten_core_types::ast::Node =
+            serde_json::from_str(json2).expect("DispatchCompute must parse");
+        assert!(
+            matches!(node2, knoten_core_types::ast::Node::DispatchCompute { .. }),
+            "Must parse as DispatchCompute AST node"
+        );
+    }
+
+    #[test]
+    fn test_ast_audio_isolate_mapping() {
+        let json = r#"{"PlayNote": [{"IntLiteral": 0}, {"FloatLiteral": 440.0}, {"IntLiteral": 100}, {"IntLiteral": 0}]}"#;
+        let node: knoten_core_types::ast::Node =
+            serde_json::from_str(json).expect("PlayNote must parse");
+        assert!(
+            matches!(node, knoten_core_types::ast::Node::PlayNote(..)),
+            "Must parse as PlayNote 4-arg AST node"
+        );
+
+        let json2 = r#"{"StopNote": {"IntLiteral": 0}}"#;
+        let node2: knoten_core_types::ast::Node =
+            serde_json::from_str(json2).expect("StopNote must parse");
+        assert!(
+            matches!(node2, knoten_core_types::ast::Node::StopNote(_)),
+            "Must parse as StopNote AST node"
+        );
+
+        let json3 = r#"{"SpawnIsolate": {"instructions": [], "constants": []}}"#;
+        let node3: knoten_core_types::ast::Node =
+            serde_json::from_str(json3).expect("SpawnIsolate must parse");
+        assert!(
+            matches!(node3, knoten_core_types::ast::Node::SpawnIsolate { .. }),
+            "Must parse as SpawnIsolate AST node"
+        );
+    }
 }

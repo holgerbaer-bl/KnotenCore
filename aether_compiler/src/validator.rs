@@ -344,6 +344,7 @@ impl Validator {
             | Node::GetLastKeypress
             | Node::UIFillParent
             | Node::StopNote(_) => {}
+            Node::SpawnIsolate { .. } => {}
             Node::DrawRect {
                 x,
                 y,

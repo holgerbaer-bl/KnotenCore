@@ -1197,6 +1197,85 @@
       "additionalProperties": false
     },
     {
+      "description": "Load a WGSL compute shader from source string.",
+      "type": "object",
+      "required": ["LoadComputeShader"],
+      "properties": {
+        "LoadComputeShader": { "$ref": "#" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Dispatch a compute shader with grid dimensions and input data. [shader_id, x, y, z, inputs]",
+      "type": "object",
+      "required": ["DispatchCompute"],
+      "properties": {
+        "DispatchCompute": {
+          "type": "array",
+          "prefixItems": [
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" }
+          ],
+          "minItems": 5,
+          "maxItems": 5
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Spawn a thread-isolated VM execution context.",
+      "type": "object",
+      "required": ["SpawnIsolate"],
+      "properties": {
+        "SpawnIsolate": {
+          "type": "object",
+          "required": ["instructions", "constants"],
+          "properties": {
+            "instructions": { "type": "array", "items": { "$ref": "#" } },
+            "constants": { "type": "array", "items": { "$ref": "#" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Play a synthesized audio tone with ADSR envelope. [channel, frequency, duration_ms, waveform, attack_ms, decay_ms, sustain_level, release_ms, pan]",
+      "type": "object",
+      "required": ["PlayNote"],
+      "properties": {
+        "PlayNote": {
+          "type": "array",
+          "prefixItems": [
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" },
+            { "$ref": "#" }
+          ],
+          "minItems": 9,
+          "maxItems": 9
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Stop a playing audio tone on a specific channel.",
+      "type": "object",
+      "required": ["StopNote"],
+      "properties": {
+        "StopNote": { "$ref": "#" }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "Multi-pane split layout with horizontal or vertical direction and ratio factor.",
       "type": "object",
       "required": ["UISplitPanel"],

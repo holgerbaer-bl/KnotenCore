@@ -207,6 +207,10 @@ pub enum Node {
     InitAudio,
     PlayNote(Box<Node>, Box<Node>, Box<Node>, Box<Node>), // Channel, Frequency, Duration, Waveform
     StopNote(Box<Node>),                                  // Channel
+    SpawnIsolate {
+        instructions: Vec<Node>,
+        constants: Vec<Node>,
+    },
 
     // Asset Pipeline (Sprint 7)
     LoadMesh(Box<Node>),                                     // Path String
