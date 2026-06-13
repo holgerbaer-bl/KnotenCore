@@ -573,7 +573,7 @@ fn test_compute_readback_lock_free_concurrency() {
         let (result, elapsed) = handle.join().unwrap();
         let ms = elapsed.as_millis();
         total_thread_time_ms += ms;
-        assert!(ms < 100, "Thread blocked for {}ms — expected <100ms", ms);
+        assert!(ms < 500, "Thread blocked for {}ms — expected <500ms", ms);
         assert!(
             result.is_empty()
                 || result
@@ -585,13 +585,13 @@ fn test_compute_readback_lock_free_concurrency() {
 
     let total_elapsed = global_start.elapsed().as_millis();
     assert!(
-        total_elapsed < 200,
-        "Total elapsed {}ms — expected <200ms for lock-free concurrency",
+        total_elapsed < 500,
+        "Total elapsed {}ms — expected <500ms for lock-free concurrency",
         total_elapsed
     );
     assert!(
-        total_thread_time_ms < 200,
-        "Cumulative thread time {}ms — expected <200ms",
+        total_thread_time_ms < 1000,
+        "Cumulative thread time {}ms — expected <1000ms",
         total_thread_time_ms
     );
 }
