@@ -118,6 +118,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Architecture Guarding & WASM Interop** (Sprint 292) — Hardens native_emit.rs with target architecture constraints. Fully exposes core VM execution hooks to the browser via verified wasm-bindgen compiler contracts.
 - **State Ledger Cryptography** (Sprint 293) — Deploys unmanipulierbare cryptographic chain hashes inside scheduler.rs, enforcing sequencing checks and validating state transitions against historical ledger roots.
 - **Isolate Memory Harvesting** (Sprint 294) — Deploys non-blocking registry garbage collection inside machine.rs, evicting dead thread allocations and cleaning migration staging payloads under sub-millisecond thresholds.
+- **Autonomous Onboarding Verification** (Sprint 295) — Integrates the 7-task black-box stress-testing protocol to enforce hallucination-free compiler schemas.
 
 ---
 

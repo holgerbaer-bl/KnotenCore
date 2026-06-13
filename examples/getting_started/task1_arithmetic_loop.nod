@@ -1,0 +1,14 @@
+{
+  "Block": [
+    {"Assign": ["sum", {"IntLiteral": 0}]},
+    {"Assign": ["i", {"IntLiteral": 2}]},
+    {"While": [
+      {"Lt": [{"Identifier": "i"}, {"IntLiteral": 200}]},
+      {"Block": [
+        {"Assign": ["sum", {"Add": [{"Identifier": "sum"}, {"Identifier": "i"}]}]},
+        {"Assign": ["i", {"Add": [{"Identifier": "i"}, {"IntLiteral": 2}]}]}
+      ]}
+    ]},
+    {"Return": {"Identifier": "sum"}}
+  ]
+}

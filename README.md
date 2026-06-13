@@ -74,7 +74,8 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Runtime Hardening & JIT Parity (v1.7.1):** Corrected the x86_64 JIT addition register emission matrix to prevent left-operand discarding. Fully integrated structural branch relocation for internal loop jumps and restored multi-threaded isolate migration states.
 * **Cross-Platform JIT Guarding (v1.7.2):** Implemented compile-time architecture gates for native memory execution. Protects non-x86_64 host environments by enforcing graceful runtime fallbacks to the deterministic software interpreter loop.
 * **Kryptographic State Ledger (v1.7.3):** Hardened the state rewind pipeline with a nonced block-chaining ledger model. Protects snapshot data from replay attacks by enforcing cryptographic hash continuity across historical execution boundaries.
-* **Zero-Copy Isolate Garbage Collection (v1.7.4):** Integrated a sub-millisecond compact memory sweeper for terminated isolates. Reclaims execution pages and returns memory directly to the host OS without runtime pauses. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+* **Zero-Copy Isolate Garbage Collection (v1.7.4):** Integrated a sub-millisecond compact memory sweeper for terminated isolates. Reclaims execution pages and returns memory directly to the host OS without runtime pauses.
+* **Agent Validation Layer (v1.7.5):** Deployed the standardized autonomous agent onboarding matrix to mathematically verify specification adherence and compiler documentation Parity. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 

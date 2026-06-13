@@ -1,0 +1,16 @@
+{
+  "Block": [
+    {"Assign": ["numerator", {"IntLiteral": 10}]},
+    {"Assign": ["denominator", {"IntLiteral": 0}]},
+    {"If": [
+      {"Eq": [{"Identifier": "denominator"}, {"IntLiteral": 0}]},
+      {"Block": [
+        {"Print": {"StringLiteral": "Fehler: Division durch Null erkannt"}},
+        {"Return": {"IntLiteral": -1}}
+      ]},
+      {"Block": [
+        {"Return": {"Div": [{"Identifier": "numerator"}, {"Identifier": "denominator"}]}}
+      ]}
+    ]}
+  ]
+}

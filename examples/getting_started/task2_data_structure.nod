@@ -1,0 +1,9 @@
+{
+  "Block": [
+    {"Assign": ["raw", {"ExternCall": {"module": "fs", "function": "file_read", "args": [{"StringLiteral": "data.json"}]}}]},
+    {"Assign": ["parsed", {"ExternCall": {"module": "json", "function": "json_parse", "args": [{"Identifier": "raw"}]}}]},
+    {"Assign": ["nested", {"PropertyGet": [{"Identifier": "parsed"}, "value"]}]},
+    {"Assign": ["result", {"Mul": [{"Identifier": "nested"}, {"IntLiteral": 2}]}]},
+    {"ExternCall": {"module": "fs", "function": "file_write", "args": [{"StringLiteral": "output.json"}, {"ExternCall": {"module": "json", "function": "json_stringify", "args": [{"Identifier": "result"}]}}]}}
+  ]
+}

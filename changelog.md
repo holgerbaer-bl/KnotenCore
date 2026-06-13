@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.5-alpha] - Sprint 295: Agent-Onboarding-Validierung (2026-06-01)
+Sprint 295: Agent-Onboarding-Validierung. Executed full AI-Readiness stress-test suite. Generated AGENT_VALIDATION_REPORT.md and saniert documentation gaps.
+- **7-Task Black-Box Protocol**: External AI agent attempted 7 tasks (Arithmetic Loop, Data Structure, Isolate RPC, Error Handling, GPGPU Compute, Audio Synth, Combined) using only llm.md, node_types.json, native_functions.json, and error_catalog.json.
+- **Validation Report**: `AGENT_VALIDATION_REPORT.md` documents iteration counts, first errors, self-resolution rates, hallucination incidents, and the final AI-Readiness Score.
+- **Examples**: 7 runnable `.nod` programs under `examples/getting_started/` demonstrating core language features.
+- **Test Suite**: 229/229 tests stable.
+- **CI**: 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.4-alpha] - Sprint 294: Sub-Millisecond Isolate Garbage Collection (2026-06-01)
 Sprint 294: Sub-Millisecond Isolate Garbage Collection. Implemented sweep_terminated_isolates within src/vm/machine.rs using lock-free retain predicates to flush dropped runtime contexts instantly.
 - **GC Interface**: `sweep_terminated_isolates()` on `VM` sweeps the hot-swap registry, cluster work queues, isolate snapshots, and telemetry channels — all via lock-free retain or drain operations.

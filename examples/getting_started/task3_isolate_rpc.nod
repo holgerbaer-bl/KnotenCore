@@ -1,0 +1,17 @@
+{
+  "Block": [
+    {"Assign": ["a", {"IntLiteral": 0}]},
+    {"Assign": ["b", {"IntLiteral": 1}]},
+    {"Assign": ["count", {"IntLiteral": 0}]},
+    {"While": [
+      {"Lt": [{"Identifier": "count"}, {"IntLiteral": 10}]},
+      {"Block": [
+        {"Assign": ["next", {"Add": [{"Identifier": "a"}, {"Identifier": "b"}]}]},
+        {"Assign": ["a", {"Identifier": "b"}]},
+        {"Assign": ["b", {"Identifier": "next"}]},
+        {"Assign": ["count", {"Add": [{"Identifier": "count"}, {"IntLiteral": 1}]}]}
+      ]}
+    ]},
+    {"Return": {"Identifier": "b"}}
+  ]
+}

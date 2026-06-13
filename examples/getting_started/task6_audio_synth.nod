@@ -1,0 +1,14 @@
+{
+  "Block": [
+    {"Assign": ["base_freq", {"FloatLiteral": 261.63}]},
+    {"Assign": ["step", {"IntLiteral": 0}]},
+    {"While": [
+      {"Lt": [{"Identifier": "step"}, {"IntLiteral": 13}]},
+      {"Block": [
+        {"Assign": ["freq", {"Mul": [{"Identifier": "base_freq"}, {"Pow": [{"FloatLiteral": 1.059463}, {"Identifier": "step"}]}]}]},
+        {"ExternCall": {"module": "registry", "function": "registry_play_tone_panned", "args": [{"IntLiteral": 0}, {"Identifier": "freq"}, {"IntLiteral": 100}, {"IntLiteral": 0}, {"FloatLiteral": 0.0}]}},
+        {"Assign": ["step", {"Add": [{"Identifier": "step"}, {"IntLiteral": 1}]}]}
+      ]}
+    ]}
+  ]
+}

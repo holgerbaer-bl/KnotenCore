@@ -1,0 +1,28 @@
+{
+  "Block": [
+    {"Assign": ["config_raw", {"ExternCall": {"module": "fs", "function": "file_read", "args": [{"StringLiteral": "config.json"}]}}]},
+    {"Assign": ["config", {"ExternCall": {"module": "json", "function": "json_parse", "args": [{"Identifier": "config_raw"}]}}]},
+    {"Assign": ["mode", {"PropertyGet": [{"Identifier": "config"}, "backend"]}]},
+    {"If": [
+      {"Eq": [{"Identifier": "mode"}, {"StringLiteral": "gpu"}]},
+      {"Block": [
+        {"Assign": ["shader_src", {"StringLiteral": "@compute fn main() {} "}]},
+        {"Assign": ["result", {"IntLiteral": 42}]}
+      ]},
+      {"Block": [
+        {"Assign": ["sum", {"IntLiteral": 0}]},
+        {"Assign": ["i", {"IntLiteral": 0}]},
+        {"While": [
+          {"Lt": [{"Identifier": "i"}, {"IntLiteral": 100}]},
+          {"Block": [
+            {"Assign": ["sum", {"Add": [{"Identifier": "sum"}, {"Identifier": "i"}]}]},
+            {"Assign": ["i", {"Add": [{"Identifier": "i"}, {"IntLiteral": 1}]}]}
+          ]}
+        ]},
+        {"Assign": ["result", {"Identifier": "sum"}]}
+      ]}
+    ]},
+    {"ExternCall": {"module": "fs", "function": "file_write", "args": [{"StringLiteral": "output.log"}, {"ToString": {"Identifier": "result"}}]}},
+    {"Return": {"Identifier": "result"}}
+  ]
+}
