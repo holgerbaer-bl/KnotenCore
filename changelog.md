@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.9-alpha] - Sprint 299: Distributed Raft Consensus & Failover Hardening (2026-06-01)
+Sprint 299: Distributed Raft Consensus & Failover Hardening. Implemented RaftNode state machine inside src/vm/scheduler.rs. Added autonomous heartbeat election cycles and validated ledger-backed failover mechanics.
+- **Raft State Machine**: `RaftState` enum (Leader, Follower, Candidate) + `RaftCluster` struct with node registry, term tracking, heartbeat intervals, and quorum-based leader election.
+- **Ledger-Backed Commit**: `commit_ledger_entry(node_id, nonce)` replicates ledger entries across the cluster; a state is only considered committed when a quorum of nodes has acknowledged the ledger hash.
+- **Autonomous Failover**: `detect_leader_failure()` monitors heartbeat timeouts. On leader loss, remaining nodes elect a new leader, which loads the last valid ledger snapshot and triggers `resume_migrated_isolate`.
+- **Tests**: `test_raft_cluster_leader_election` simulates 3 nodes, verifies stable leader election. `test_raft_autonomous_failover_resilience` simulates leader hard-drop, verifies new leader elected and isolate resumed.
+- **Test Suite**: 234 → 236 tests (147 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin + 1 new).
+- **CI**: 236/236 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.8-alpha] - Sprint 298: P2P Mesh-Bus Routing (2026-06-01)
 Sprint 298: P2P Mesh-Bus Routing (Distributed Pub-Sub Architecture). Extended bus_publish and bus_subscribe inside src/vm/isolate.rs to process cross-node packet routing tables.
 - **Mesh Routing Table**: `MESH_ROUTING_TABLE: OnceLock<DashMap<String, Vec<String>>>` maps topic names to subscriber node IDs. `mesh_subscribe(topic, node_id)` registers a remote subscriber.

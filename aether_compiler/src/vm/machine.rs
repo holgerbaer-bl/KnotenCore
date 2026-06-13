@@ -16,7 +16,9 @@ pub use isolate::get_hot_swap_registry;
 pub use isolate::optimize_active_hotpath;
 pub use isolate::spawn_isolate;
 pub use isolate::spawn_shadow_isolate;
+pub use scheduler::RaftCluster;
 pub use scheduler::WorkItem;
+pub use scheduler::bootstrap_raft_cluster;
 pub use scheduler::dispatch_speculative_branch;
 pub use scheduler::drain_cluster_work_queues;
 pub use scheduler::drain_work_stealing_queues;
@@ -3528,5 +3530,49 @@ mod tests {
         isolate::bus_drain();
         isolate::drain_mesh_routing_table();
         drain_cluster_work_queues();
+    }
+
+    #[test]
+    fn test_raft_cluster_leader_election() {
+        let nodes = ["Knoten_Berlin", "Knoten_Balingen", "Knoten_Zadar"];
+        let cluster = bootstrap_raft_cluster(&nodes);
+
+        assert!(cluster.current_leader.is_some(), "Must elect a leader");
+        assert!(cluster.term > 0, "Term must advance");
+        assert!(
+            cluster.commit_ledger_entry("Knoten_Berlin", 1),
+            "Ledger commit must succeed with quorum"
+        );
+        assert!(
+            cluster
+                .nodes
+                .contains(cluster.current_leader.as_ref().unwrap()),
+            "Leader must be a member of the cluster"
+        );
+    }
+
+    #[test]
+    fn test_raft_autonomous_failover_resilience() {
+        let nodes = ["Knoten_Berlin", "Knoten_Balingen", "Knoten_Zadar"];
+        let mut cluster = RaftCluster::new(&nodes);
+
+        cluster.start_election();
+        let original_leader = cluster.current_leader.clone().unwrap();
+        cluster.heartbeat(&original_leader);
+
+        cluster.heartbeats.insert(original_leader.clone(), 0);
+        let failover_occurred = cluster.detect_leader_failure();
+        assert!(
+            failover_occurred,
+            "Must detect leader failure and trigger new election"
+        );
+        assert!(
+            cluster.current_leader.is_some(),
+            "Must have a leader after failover"
+        );
+        assert!(
+            cluster.term > 1,
+            "Term must have advanced after failover election"
+        );
     }
 }
