@@ -3353,6 +3353,18 @@ mod tests {
         let state = vm.snapshot();
         store_snapshot(isolate_id, state);
 
+        let registry = isolate::get_hot_swap_registry();
+        registry
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .entry(isolate_id)
+            .or_insert_with(|| {
+                std::sync::Arc::new(std::sync::Mutex::new((
+                    instructions.clone(),
+                    constants.clone(),
+                )))
+            });
+
         migrate_active_isolate(isolate_id, "Knoten_Zadar").expect("Migration must succeed");
 
         let received = receive_migration_payload("Knoten_Zadar")
