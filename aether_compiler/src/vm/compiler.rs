@@ -802,6 +802,88 @@ impl Compiler {
                     .push(OpCode::OpDispatchComputeLoop(inputs.len()));
                 true
             }
+            Node::Sin(n) => {
+                if !self.compile_node(n) {
+                    return false;
+                }
+                let name_idx = self.add_constant(RelType::Str("math_sin".to_string()));
+                let module_idx = self.add_constant(RelType::Str("math".to_string()));
+                self.instructions.push(OpCode::ExternCall {
+                    name_idx,
+                    arg_count: 1,
+                });
+                let _ = module_idx;
+                true
+            }
+            Node::Cos(n) => {
+                if !self.compile_node(n) {
+                    return false;
+                }
+                let name_idx = self.add_constant(RelType::Str("math_cos".to_string()));
+                let module_idx = self.add_constant(RelType::Str("math".to_string()));
+                self.instructions.push(OpCode::ExternCall {
+                    name_idx,
+                    arg_count: 1,
+                });
+                let _ = module_idx;
+                true
+            }
+            Node::Transform2D {
+                x,
+                y,
+                rotation: _,
+                scale,
+                body: _,
+            } => {
+                let name_idx = self.add_constant(RelType::Str("math_vector_scale".to_string()));
+                let module_idx = self.add_constant(RelType::Str("math".to_string()));
+                if !self.compile_node(x) {
+                    return false;
+                }
+                if !self.compile_node(y) {
+                    return false;
+                }
+                if !self.compile_node(scale) {
+                    return false;
+                }
+                self.instructions.push(OpCode::NativeExternCall {
+                    module_idx,
+                    func_idx: name_idx,
+                    arg_count: 3,
+                });
+                true
+            }
+            Node::DrawRect {
+                x,
+                y,
+                width,
+                height,
+                color,
+            } => {
+                let name_idx = self.add_constant(RelType::Str("ui_draw_rect".to_string()));
+                let module_idx = self.add_constant(RelType::Str("ui".to_string()));
+                if !self.compile_node(x) {
+                    return false;
+                }
+                if !self.compile_node(y) {
+                    return false;
+                }
+                if !self.compile_node(width) {
+                    return false;
+                }
+                if !self.compile_node(height) {
+                    return false;
+                }
+                if !self.compile_node(color) {
+                    return false;
+                }
+                self.instructions.push(OpCode::NativeExternCall {
+                    module_idx,
+                    func_idx: name_idx,
+                    arg_count: 5,
+                });
+                true
+            }
             _ => {
                 eprintln!(
                     "[Compiler Error] Unhandled AST node during transpilation: {:?}",

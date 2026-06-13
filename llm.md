@@ -124,6 +124,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Distributed Pub-Sub Fabric** (Sprint 298) — Connects abstract bus handles across physical cluster boundaries, mapping transactional stream packets via lock-free peer-to-peer mesh pipelines.
 - **Raft Cluster Consensus** (Sprint 299) — Enforces transactional cluster state agreements within scheduler.rs, verifying ledger continuity logs to authorize autonomous cross-node isolate handoffs.
 - **Production Stability Calibration** (Sprint 300) — Freezes the normative JSON-AST schema specifications and locks down the multi-node isolate scheduler pipeline for public open-source orchestration.
+- **Backend Compilation Sync** (Sprint 301) — Bridges the gap between frontend schema definitions and actual bytecode execution, natively supporting 2D transformation pipelines and non-blocking time throttling.
 
 ---
 

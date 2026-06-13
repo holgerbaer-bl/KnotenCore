@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.1.0-alpha] - Sprint 301: VM Compiler Alignment & Runtime Hardening (2026-06-01)
+Sprint 301: VM Compiler Alignment & Runtime Hardening. Added Transform2D, DrawRect, Sin, and Cos to src/vm/compiler.rs. Patched particle_render.wgsl binding layout and fixed the watchdog cycle leak in machine.rs and evaluator.rs.
+- **Watchdog Fix**: `accumulated_cpu` now subtracts `time_sleep_ms` duration when the VM processes sleep commands, preventing false timeouts in long-running isolates with periodic sleep intervals.
+- **Compiler Expansion**: `compiler.rs` gains match arms for `Transform2D` (position + scale), `DrawRect` (6-arg native call), `Sin`, and `Cos` (1-arg math functions). Previously returned `false`, causing compilation failures.
+- **WGPU Binding**: `particle_render.wgsl` `@binding(2)` added with `var<uniform> transform` for matrix transform uniform buffer.
+- **Tests**: `test_compiler_ast_full_alignment` compiles a JSON with all 75+ node types. `test_watchdog_sleep_exclusion` verifies a 200ms sleep-loop survives the watchdog.
+- **Test Suite**: 238 → 240 tests (151 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin + 1).
+- **CI**: 240/240 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v2.0.0-release] - Sprint 300: Production Release Calibration & Stable WGPU Dashboard (2026-06-01)
 Sprint 300: Production Release Calibration & Stable WGPU Dashboard. Locked node_types.json specifications, saniert telemetry UI components inside the inspector panel, and finalized the v2.0.0 production gate.
 - **Production Dashboard**: `VMInspectorData` extended with `active_isolates` and `raft_cluster_status` fields for real-time cluster monitoring.

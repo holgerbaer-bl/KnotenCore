@@ -66,6 +66,8 @@ pub struct VMState {
 
 static LEDGER_NONCE: AtomicU64 = AtomicU64::new(0);
 
+pub(crate) static VM_SLEEP_ACCUMULATED_MS: AtomicU64 = AtomicU64::new(0);
+
 fn compute_ledger_hash(crypto_hash: u64, nonce: u64, prev: &[u8; 32]) -> [u8; 32] {
     use std::hash::{Hash, Hasher};
     let mut h = std::collections::hash_map::DefaultHasher::new();
@@ -367,14 +369,17 @@ impl VM {
             if instr_count.is_multiple_of(100) {
                 track_hot_path(self.ip);
             }
-            if instr_count.is_multiple_of(1000)
-                && accumulated_cpu + start.elapsed() >= std::time::Duration::from_millis(50)
-            {
-                eprintln!(
-                    "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
-                );
-                push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
-                return Err("Watchdog: Execution timeout exceeded (50ms)".into());
+            if instr_count.is_multiple_of(1000) {
+                let sleep_ms = VM_SLEEP_ACCUMULATED_MS.load(std::sync::atomic::Ordering::SeqCst);
+                let effective_cpu =
+                    accumulated_cpu.saturating_sub(std::time::Duration::from_millis(sleep_ms));
+                if effective_cpu + start.elapsed() >= std::time::Duration::from_millis(50) {
+                    eprintln!(
+                        "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
+                    );
+                    push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
+                    return Err("Watchdog: Execution timeout exceeded (50ms)".into());
+                }
             }
 
             match op {
@@ -3651,6 +3656,84 @@ mod tests {
         assert!(
             data.crypto_state_hash > 0,
             "Dashboard must show crypto hash integrity"
+        );
+    }
+
+    #[test]
+    fn test_compiler_ast_full_alignment() {
+        use knoten_core_types::ast::Node;
+        let mut compiler = crate::vm::compiler::Compiler::new();
+
+        let test_nodes: Vec<Node> = vec![
+            Node::IntLiteral(1),
+            Node::FloatLiteral(1.0),
+            Node::BoolLiteral(true),
+            Node::StringLiteral("test".into()),
+            Node::Add(Box::new(Node::IntLiteral(1)), Box::new(Node::IntLiteral(2))),
+            Node::Sub(Box::new(Node::IntLiteral(1)), Box::new(Node::IntLiteral(2))),
+            Node::Mul(Box::new(Node::IntLiteral(1)), Box::new(Node::IntLiteral(2))),
+            Node::Div(Box::new(Node::IntLiteral(1)), Box::new(Node::IntLiteral(2))),
+            Node::Sin(Box::new(Node::FloatLiteral(1.0))),
+            Node::Cos(Box::new(Node::FloatLiteral(1.0))),
+            Node::Eq(Box::new(Node::IntLiteral(1)), Box::new(Node::IntLiteral(1))),
+            Node::Lt(Box::new(Node::IntLiteral(1)), Box::new(Node::IntLiteral(2))),
+            Node::Gt(Box::new(Node::IntLiteral(2)), Box::new(Node::IntLiteral(1))),
+        ];
+
+        let mut success_count = 0;
+        for node in &test_nodes {
+            if compiler.compile_node(node) {
+                success_count += 1;
+            }
+        }
+        assert!(
+            success_count >= test_nodes.len(),
+            "All {} test nodes must compile, only {} succeeded",
+            test_nodes.len(),
+            success_count
+        );
+    }
+
+    #[test]
+    fn test_watchdog_sleep_exclusion() {
+        let instructions = vec![
+            OpCode::Constant(0),
+            OpCode::ExternCall {
+                name_idx: 1,
+                arg_count: 1,
+            },
+            OpCode::Constant(0),
+            OpCode::ExternCall {
+                name_idx: 1,
+                arg_count: 1,
+            },
+            OpCode::Constant(0),
+            OpCode::ExternCall {
+                name_idx: 1,
+                arg_count: 1,
+            },
+            OpCode::Constant(0),
+            OpCode::ExternCall {
+                name_idx: 1,
+                arg_count: 1,
+            },
+            OpCode::Return,
+        ];
+        let constants = vec![
+            RelType::Int(16),
+            RelType::Str("time_sleep_ms".to_string()),
+            RelType::Str("time".to_string()),
+        ];
+
+        let mut vm = VM::new();
+        let bridge = crate::natives::bridge::CoreBridge;
+        let perms = AgentPermissions::default();
+        VM_SLEEP_ACCUMULATED_MS.store(0, std::sync::atomic::Ordering::SeqCst);
+
+        let result = vm.run(&instructions, &constants, &perms, Some(&bridge));
+        assert!(
+            result.is_ok(),
+            "Isolate must survive 4x16ms sleep without watchdog timeout"
         );
     }
 }
