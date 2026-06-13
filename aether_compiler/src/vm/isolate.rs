@@ -185,6 +185,78 @@ pub fn bus_drain() {
     get_buses().clear();
 }
 
+// Sprint 298: P2P Mesh-Bus Routing — cross-node pub-sub via cluster work queues
+static MESH_ROUTING_TABLE: OnceLock<dashmap::DashMap<String, Vec<String>>> = OnceLock::new();
+
+fn get_mesh_table() -> &'static dashmap::DashMap<String, Vec<String>> {
+    MESH_ROUTING_TABLE.get_or_init(dashmap::DashMap::new)
+}
+
+pub fn mesh_subscribe(topic: &str, node_id: &str) {
+    get_mesh_table()
+        .entry(topic.to_string())
+        .or_default()
+        .push(node_id.to_string());
+}
+
+pub fn bus_publish_mesh(topic: String, data: Vec<RelType>) {
+    bus_publish(topic.clone(), data.clone());
+
+    if let Some(subscribers) = get_mesh_table().get(&topic) {
+        for node_id in subscribers.iter() {
+            let payload = crate::executor::RelType::Array(data.clone());
+            super::scheduler::push_cluster_work_batch(
+                node_id,
+                vec![(
+                    knoten_core_types::opcode::OpCode::Constant(0),
+                    vec![payload],
+                )],
+            );
+        }
+    }
+}
+
+pub fn bus_poll_remote(topic: &str, node_id: &str) -> Option<Vec<RelType>> {
+    if let Some((_op, payload)) = super::scheduler::try_steal_cluster_work(node_id, -1)
+        && payload.len() == 1
+        && let crate::executor::RelType::Array(arr) = &payload[0]
+    {
+        bus_publish(topic.to_string(), arr.clone());
+        return Some(arr.clone());
+    }
+    bus_subscribe(topic).map(|arc| (*arc).clone())
+}
+
+pub fn mesh_stream_publish(topic: String, data: &[RelType]) {
+    if data.len() <= 1024 {
+        bus_publish_mesh(topic, data.to_vec());
+        return;
+    }
+    let chunks: Vec<&[RelType]> = data.chunks(1024).collect();
+    let total = chunks.len();
+    for (idx, chunk) in chunks.iter().enumerate() {
+        let mut framed: Vec<RelType> = Vec::with_capacity(chunk.len() + 3);
+        framed.push(RelType::Int(idx as i64));
+        framed.push(RelType::Int(total as i64));
+        let checksum: i64 = chunk.iter().fold(0i64, |acc, r| {
+            acc.wrapping_add(match r {
+                RelType::Int(v) => *v,
+                RelType::Float(f) => f.to_bits() as i64,
+                _ => 0,
+            })
+        });
+        framed.push(RelType::Int(checksum));
+        framed.extend_from_slice(chunk);
+        bus_publish_mesh(topic.clone(), framed);
+    }
+}
+
+pub fn drain_mesh_routing_table() {
+    if let Some(table) = MESH_ROUTING_TABLE.get() {
+        table.clear();
+    }
+}
+
 pub struct VMIsolate {
     pub instructions: Vec<OpCode>,
     pub constants: Vec<RelType>,

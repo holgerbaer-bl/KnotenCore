@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v1.7.8-alpha] - Sprint 298: P2P Mesh-Bus Routing (2026-06-01)
+Sprint 298: P2P Mesh-Bus Routing (Distributed Pub-Sub Architecture). Extended bus_publish and bus_subscribe inside src/vm/isolate.rs to process cross-node packet routing tables.
+- **Mesh Routing Table**: `MESH_ROUTING_TABLE: OnceLock<DashMap<String, Vec<String>>>` maps topic names to subscriber node IDs. `mesh_subscribe(topic, node_id)` registers a remote subscriber.
+- **Cross-Node Pub-Sub**: `bus_publish` now checks the mesh routing table and pushes serialized payloads into cluster work queues for remote subscribers. `bus_poll_remote(topic, node_id)` polls the cluster queue for incoming remote data.
+- **Transactional Buffering**: `mesh_stream_publish` segments large payloads (>1024 elements) with sequence numbers and a checksum, enabling ordered reassembly at the subscriber.
+- **Tests**: `test_p2p_mesh_bus_distributed_routing` publishes from node A, subscribes on node B via cluster queue — verifies lossless delivery. `test_p2p_mesh_bus_network_partition_resilience` simulates packet loss/empty queue — verifies graceful None return, no panics.
+- **Test Suite**: 232 → 234 tests (145 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin + 1 new).
+- **CI**: 234/234 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v1.7.7-alpha] - Sprint 297: WGPU Inspector Panel (2026-06-01)
 Sprint 297: WGPU Inspector Panel (Live GUI Debugger). Integrated egui overlays within machine.rs and the render loop. Added live registry tracking for VMState metrics.
 - **VMInspectorData**: New struct in `machine.rs` with `stack_depth`, `frame_count`, `ip`, `bp`, `crypto_state_hash`, `ledger_nonce`. `VM::inspect()` returns a snapshot of these metrics.

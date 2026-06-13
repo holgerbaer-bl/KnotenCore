@@ -121,6 +121,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Autonomous Onboarding Verification** (Sprint 295) — Integrates the 7-task black-box stress-testing protocol to enforce hallucination-free compiler schemas.
 - **AST Pipeline Alignment** (Sprint 296) — Aligns node_types.json schemas with VM opcodes. Exposes native AST nodes for standalone compute shaders, isolated actor spawning, and raw chiptune streaming handles without FFI overhead.
 - **GUI Telemetry & Inspection** (Sprint 297) — Embeds egui rendering pipelines over active WGPU surfaces to map real-time execution states and cryptographic ledger continuity roots.
+- **Distributed Pub-Sub Fabric** (Sprint 298) — Connects abstract bus handles across physical cluster boundaries, mapping transactional stream packets via lock-free peer-to-peer mesh pipelines.
 
 ---
 

@@ -3480,4 +3480,53 @@ mod tests {
             "Ledger nonce must be positive after execution"
         );
     }
+
+    #[test]
+    fn test_p2p_mesh_bus_distributed_routing() {
+        let data = vec![RelType::Int(42), RelType::Float(3.14)];
+
+        isolate::mesh_subscribe("global_telemetry", "Knoten_Zadar");
+        isolate::bus_publish_mesh("global_telemetry".to_string(), data);
+
+        let local = isolate::bus_subscribe("global_telemetry");
+        assert!(local.is_some(), "Local subscriber must receive data");
+        assert_eq!(local.unwrap().len(), 2);
+
+        let remote = isolate::bus_poll_remote("global_telemetry", "Knoten_Zadar");
+        assert!(
+            remote.is_some(),
+            "Remote node must receive data via cluster queue"
+        );
+        assert_eq!(remote.unwrap().len(), 2);
+
+        isolate::bus_drain();
+        isolate::drain_mesh_routing_table();
+        drain_cluster_work_queues();
+    }
+
+    #[test]
+    fn test_p2p_mesh_bus_network_partition_resilience() {
+        let result = isolate::bus_poll_remote("nonexistent_topic", "offline_node");
+        assert!(
+            result.is_none(),
+            "Polling empty/offline queue must return None gracefully"
+        );
+
+        isolate::bus_publish_mesh("resilience_test".to_string(), vec![RelType::Int(1)]);
+        let polled = isolate::bus_poll_remote("resilience_test", "Knoten_Berlin");
+        assert!(polled.is_some(), "Mesh bus must survive single-node poll");
+        assert_eq!(polled.unwrap().len(), 1);
+
+        let data = vec![RelType::Int(7); 2048];
+        isolate::mesh_stream_publish("large_stream".to_string(), &data);
+        let chunked = isolate::bus_subscribe("large_stream");
+        assert!(
+            chunked.is_some(),
+            "Streamed large payload must be published"
+        );
+
+        isolate::bus_drain();
+        isolate::drain_mesh_routing_table();
+        drain_cluster_work_queues();
+    }
 }
