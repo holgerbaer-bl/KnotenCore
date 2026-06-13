@@ -3591,8 +3591,7 @@ mod tests {
         let native_fns_path = format!("{}/native_functions.json", base);
 
         let node_types: serde_json::Value = serde_json::from_str(
-            &std::fs::read_to_string(&node_types_path)
-                .expect("node_types.json must exist"),
+            &std::fs::read_to_string(&node_types_path).expect("node_types.json must exist"),
         )
         .expect("node_types.json must be valid JSON");
         let schema_nodes = node_types["oneOf"].as_array().expect("oneOf must be array");
@@ -3602,8 +3601,7 @@ mod tests {
         );
 
         let native_fns: serde_json::Value = serde_json::from_str(
-            &std::fs::read_to_string(&native_fns_path)
-                .expect("native_functions.json must exist"),
+            &std::fs::read_to_string(&native_fns_path).expect("native_functions.json must exist"),
         )
         .expect("native_functions.json must be valid JSON");
         let functions = native_fns["functions"]
