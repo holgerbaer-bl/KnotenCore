@@ -127,14 +127,18 @@ pub struct RaftCluster {
     pub term: u64,
     pub votes: HashMap<String, u64>,
     pub heartbeats: HashMap<String, u64>,
+    pub election_timeouts: HashMap<String, u64>,
+    pub replicated_logs: Vec<(u64, String)>,
 }
 
 impl RaftCluster {
     pub fn new(node_names: &[&str]) -> Self {
         let mut heartbeats = HashMap::new();
+        let mut timeouts = HashMap::new();
         let nodes: Vec<String> = node_names.iter().map(|n| n.to_string()).collect();
         for node in &nodes {
             heartbeats.insert(node.clone(), 0);
+            timeouts.insert(node.clone(), 150 + (nodes.len() as u64 * 37 % 150));
         }
         Self {
             nodes,
@@ -142,26 +146,28 @@ impl RaftCluster {
             term: 0,
             votes: HashMap::new(),
             heartbeats,
+            election_timeouts: timeouts,
+            replicated_logs: Vec::new(),
         }
     }
 
     pub fn start_election(&mut self) {
         self.term += 1;
         self.votes.clear();
+        let mut rng = rand::random::<u64>();
         for node in &self.nodes {
-            self.votes.insert(node.clone(), 0);
+            rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
+            let vote = if rng.is_multiple_of(7) { 0u64 } else { 1u64 };
+            self.votes.insert(node.clone(), vote);
         }
         let quorum = (self.nodes.len() / 2) + 1;
-        for (i, node) in self.nodes.iter().enumerate() {
-            if i < quorum {
-                *self.votes.get_mut(node).unwrap() += 1;
-            }
-        }
-        if let Some(leader) = self
-            .votes
-            .iter()
-            .max_by_key(|&(_, v)| *v)
-            .map(|(n, _)| n.clone())
+        let total_votes: u64 = self.votes.values().sum();
+        if total_votes >= quorum as u64
+            && let Some(leader) = self
+                .votes
+                .iter()
+                .max_by_key(|&(_, v)| *v)
+                .map(|(n, _)| n.clone())
         {
             self.current_leader = Some(leader);
         }
@@ -171,6 +177,10 @@ impl RaftCluster {
         if let Some(count) = self.heartbeats.get_mut(node_id) {
             *count += 1;
         }
+    }
+
+    pub fn is_election_timeout(&self, node_id: &str) -> bool {
+        self.election_timeouts.get(node_id).copied().unwrap_or(200) > 150
     }
 
     pub fn detect_leader_failure(&mut self) -> bool {
@@ -187,6 +197,19 @@ impl RaftCluster {
     pub fn commit_ledger_entry(&self, _node_id: &str, _nonce: u64) -> bool {
         self.current_leader.is_some()
             && self.votes.values().filter(|&&v| v > 0).count() > self.nodes.len() / 2
+    }
+
+    pub fn replicate_log_entry(&mut self, nonce: u64, ledger_hash: &str) -> bool {
+        let entry = (nonce, ledger_hash.to_string());
+        if !self.replicated_logs.contains(&entry) {
+            self.replicated_logs.push(entry);
+        }
+        self.current_leader.is_some()
+            && self.votes.values().filter(|&&v| v > 0).count() > self.nodes.len() / 2
+    }
+
+    pub fn get_quorum_acked_logs(&self) -> Vec<(u64, String)> {
+        self.replicated_logs.clone()
     }
 }
 

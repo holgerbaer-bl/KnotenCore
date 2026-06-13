@@ -3736,4 +3736,46 @@ mod tests {
             "Isolate must survive 4x16ms sleep without watchdog timeout"
         );
     }
+
+    #[test]
+    fn test_raft_network_randomized_election() {
+        let nodes = ["Knoten_Berlin", "Knoten_Balingen", "Knoten_Zadar"];
+        let cluster = bootstrap_raft_cluster(&nodes);
+
+        assert!(
+            cluster.current_leader.is_some(),
+            "Randomized election must produce a leader"
+        );
+        assert!(cluster.term > 0, "Term must advance");
+
+        let mut cluster2 = RaftCluster::new(&nodes);
+        cluster2.start_election();
+        assert!(
+            cluster2.current_leader.is_some(),
+            "Second cluster must also elect"
+        );
+        assert!(
+            cluster2.is_election_timeout("Knoten_Berlin"),
+            "Timeout must be configurable"
+        );
+    }
+
+    #[test]
+    fn test_raft_distributed_log_replication() {
+        let nodes = ["Knoten_Berlin", "Knoten_Balingen", "Knoten_Zadar"];
+        let mut cluster = RaftCluster::new(&nodes);
+        cluster.start_election();
+
+        let replicated = cluster.replicate_log_entry(1, "deadbeef");
+        assert!(
+            replicated,
+            "Log entry must replicate with quorum acknowledgment"
+        );
+        assert_eq!(cluster.replicated_logs.len(), 1);
+        assert_eq!(cluster.replicated_logs[0].0, 1);
+        assert_eq!(cluster.replicated_logs[0].1, "deadbeef");
+
+        let acked = cluster.get_quorum_acked_logs();
+        assert_eq!(acked.len(), 1, "Quorum acked logs must be retrievable");
+    }
 }

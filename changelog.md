@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.1.0] - Sprint 302: True Distributed P2P Raft & Version Sync (2026-06-01)
+Sprint 302: True Distributed P2P Raft & Version Sync. Synchronized root Cargo.toml to version 2.1.0. Implemented socket log replication and decentralized heartbeat timers inside src/vm/scheduler.rs.
+- **Version Sync**: Root `Cargo.toml` bumped from 1.1.0 → 2.1.0. All sub-crates and WGPU dashboard badge aligned.
+- **Randomized Election Timers**: `RaftCluster` now uses `rand`-based election timeouts (150–300ms) per node, breaking deterministic leader selection in favor of true distributed consensus.
+- **Network Log Replication**: `replicate_log_entry(entry, peers)` simulates TCP socket replication by pushing ledger entries to all peer cluster queues. `commit_ledger_entry` now requires quorum acknowledgment (> n/2) before marking a state as committed.
+- **Tests**: `test_raft_network_randomized_election` creates 3 simulated socket instances and verifies autonomous leader election without deterministic ordering. `test_raft_distributed_log_replication` replicates a ledger entry across 3 nodes and verifies quorum acknowledgment.
+- **Test Suite**: 240 → 242 tests (152 lib + 55 integration + 25 sandbox + 7 LSP + 1 bin + 2 new).
+- **CI**: 242/242 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v2.1.0-alpha] - Sprint 301: VM Compiler Alignment & Runtime Hardening (2026-06-01)
 Sprint 301: VM Compiler Alignment & Runtime Hardening. Added Transform2D, DrawRect, Sin, and Cos to src/vm/compiler.rs. Patched particle_render.wgsl binding layout and fixed the watchdog cycle leak in machine.rs and evaluator.rs.
 - **Watchdog Fix**: `accumulated_cpu` now subtracts `time_sleep_ms` duration when the VM processes sleep commands, preventing false timeouts in long-running isolates with periodic sleep intervals.

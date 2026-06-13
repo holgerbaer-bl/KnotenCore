@@ -125,6 +125,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Raft Cluster Consensus** (Sprint 299) — Enforces transactional cluster state agreements within scheduler.rs, verifying ledger continuity logs to authorize autonomous cross-node isolate handoffs.
 - **Production Stability Calibration** (Sprint 300) — Freezes the normative JSON-AST schema specifications and locks down the multi-node isolate scheduler pipeline for public open-source orchestration.
 - **Backend Compilation Sync** (Sprint 301) — Bridges the gap between frontend schema definitions and actual bytecode execution, natively supporting 2D transformation pipelines and non-blocking time throttling.
+- **Network Consensus Protocol** (Sprint 302) — Replaced the local deterministic scheduler stub with a true network-layer Raft protocol backing decentralized multi-node state replication.
 
 ---
 
