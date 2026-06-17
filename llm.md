@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v1.5.0-alpha Official Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.2.0-stable Official Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,14 +10,15 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — Sprint 126
+## 🎯 AI-Readiness Benchmark — Sprint 302
 
 KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
 generating `.nod` programs, your output can be tested against 20 standardised tasks.
 
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
-**AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)
+**AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
+**Current Engine Version: v2.1.0** — 242/242 tests, true distributed Raft consensus (Sprint 302), WASM-bindgen CI gates active.  
 *Note: As of Sprint 134, all AST Nodes including UI Layouts, file IO, array data operations natively map gracefully in the VM Compiler, and strict audit rectifications confirm 100% crash output parity (`Fault: Div by zero (at Node::MathDiv)`) and heavily sandboxed permissions (`fs_write`, `registry_file_create`). Use AST nodes or FFI Call structures freely based on convenience.*
 
 ---
@@ -203,8 +204,8 @@ Six new AST nodes completing the Boolean algebra. All accept `Box<Node>` operand
 | Scenario | Must Use | Example |
 |----------|----------|---------|
 | Control flow, math, basic UI | Direct AST Node | `{"If": [...]}` or `{"UITextInput": ...}` |
-| Legacy FFI functions | `NativeCall` (Deprecated) | `{"NativeCall": ["print", ...]}` |
-| All modern native FFI / I/O | `ExternCall` | `{"ExternCall": {"module": "registry", "function": "registry_create_window", "args": []}}` |
+| Inter-Isolate & user-defined functions | `Call` | `{"Call": ["my_func", [{"IntLiteral": 10}]]}` |
+| System FFI (Registry, WGPU, Time, IO) | `ExternCall` | `{"ExternCall": {"module": "registry", "function": "registry_create_window", "args": []}}` |
 
 4. **State-binding pattern** — `text = UITextInput(text)` seeds the buffer on first call; subsequent calls read the live egui buffer.
 5. **Never force-push git** — use `git push origin main` only.

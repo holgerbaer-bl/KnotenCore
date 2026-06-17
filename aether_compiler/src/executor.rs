@@ -1028,7 +1028,92 @@ impl ExecutionEngine {
                 }
                 ExecResult::Value(RelType::Str(crate::natives::ui::ui_text_input_get()))
             }
-            Node::UISetStyle(_, _, _, _, _, _) => ExecResult::Value(RelType::Void),
+            Node::UISetStyle(rounding, spacing, accent, fill, btn_idle, btn_hover) => {
+                let r_val = match self.evaluate(rounding) {
+                    ExecResult::Value(RelType::Float(f)) => f as f32,
+                    ExecResult::Value(RelType::Int(i)) => i as f32,
+                    _ => 0.0,
+                };
+                let s_val = match self.evaluate(spacing) {
+                    ExecResult::Value(RelType::Float(f)) => f as f32,
+                    ExecResult::Value(RelType::Int(i)) => i as f32,
+                    _ => 0.0,
+                };
+
+                fn parse_rgba_jit(val: &RelType) -> Option<[f32; 4]> {
+                    if let RelType::Array(arr) = val
+                        && arr.len() >= 4
+                    {
+                        let r = match arr[0] {
+                            RelType::Float(f) => f as f32,
+                            RelType::Int(i) => i as f32,
+                            _ => 0.0,
+                        };
+                        let g = match arr[1] {
+                            RelType::Float(f) => f as f32,
+                            RelType::Int(i) => i as f32,
+                            _ => 0.0,
+                        };
+                        let b = match arr[2] {
+                            RelType::Float(f) => f as f32,
+                            RelType::Int(i) => i as f32,
+                            _ => 0.0,
+                        };
+                        let a = match arr[3] {
+                            RelType::Float(f) => f as f32,
+                            RelType::Int(i) => i as f32,
+                            _ => 1.0,
+                        };
+                        return Some([r, g, b, a]);
+                    }
+                    None
+                }
+
+                let acc_rgba = match self.evaluate(accent) {
+                    ExecResult::Value(ref val) => {
+                        parse_rgba_jit(val).unwrap_or([0.1, 0.5, 0.9, 1.0])
+                    }
+                    _ => [0.1, 0.5, 0.9, 1.0],
+                };
+                let fill_rgba = match self.evaluate(fill) {
+                    ExecResult::Value(ref val) => {
+                        parse_rgba_jit(val).unwrap_or([0.1, 0.1, 0.1, 1.0])
+                    }
+                    _ => [0.1, 0.1, 0.1, 1.0],
+                };
+
+                let idle_rgba = if let Some(idle_node) = btn_idle {
+                    match self.evaluate(idle_node) {
+                        ExecResult::Value(ref val) => parse_rgba_jit(val),
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+
+                let hover_rgba = if let Some(hover_node) = btn_hover {
+                    match self.evaluate(hover_node) {
+                        ExecResult::Value(ref val) => parse_rgba_jit(val),
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+
+                crate::natives::registry::send_render_command(
+                    crate::natives::registry::RenderCommand::UpdateStyle {
+                        window_id: 1,
+                        rounding: r_val,
+                        spacing: s_val,
+                        accent_rgba: acc_rgba,
+                        fill_rgba,
+                        btn_idle_rgba: idle_rgba,
+                        btn_hover_rgba: hover_rgba,
+                    },
+                );
+
+                ExecResult::Value(RelType::Void)
+            }
             Node::UIHorizontal(body)
             | Node::UIFullscreen(body)
             | Node::UIGrid(_, _, body)

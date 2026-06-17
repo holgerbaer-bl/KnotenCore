@@ -243,7 +243,7 @@ mod tests {
         vm.globals
             .insert("name".to_string(), RelType::Str("test".to_string()));
         vm.stack.push(RelType::Int(10));
-        vm.stack.push(RelType::Float(3.14));
+        vm.stack.push(RelType::Float(3.15));
         vm.ip = 7;
         vm.base_pointer = 2;
         vm.crypto_state_hash = 0xDEADBEEFCAFEu64;
@@ -266,7 +266,7 @@ mod tests {
         assert_eq!(deserialized.stack[0], RelType::Int(10));
         assert!(
             (match deserialized.stack[1] {
-                RelType::Float(f) => (f - 3.14).abs() < 0.001,
+                RelType::Float(f) => (f - 3.15).abs() < 0.001,
                 _ => false,
             })
         );

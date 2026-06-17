@@ -1,0 +1,288 @@
+{
+  "Block": [
+    {
+      "Assign": [
+        "text",
+        {
+          "StringLiteral": "Type your text here..."
+        }
+      ]
+    },
+    {
+      "Assign": [
+        "angle",
+        {
+          "FloatLiteral": 0.0
+        }
+      ]
+    },
+    {
+      "UISetStyle": [
+        {
+          "FloatLiteral": 8.0
+        },
+        {
+          "FloatLiteral": 12.0
+        },
+        {
+          "ArrayCreate": [
+            {
+              "FloatLiteral": 0.1
+            },
+            {
+              "FloatLiteral": 0.6
+            },
+            {
+              "FloatLiteral": 0.9
+            },
+            {
+              "FloatLiteral": 1.0
+            }
+          ]
+        },
+        {
+          "ArrayCreate": [
+            {
+              "FloatLiteral": 0.15
+            },
+            {
+              "FloatLiteral": 0.15
+            },
+            {
+              "FloatLiteral": 0.18
+            },
+            {
+              "FloatLiteral": 0.95
+            }
+          ]
+        },
+        {
+          "ArrayCreate": [
+            {
+              "FloatLiteral": 0.2
+            },
+            {
+              "FloatLiteral": 0.2
+            },
+            {
+              "FloatLiteral": 0.25
+            },
+            {
+              "FloatLiteral": 1.0
+            }
+          ]
+        },
+        {
+          "ArrayCreate": [
+            {
+              "FloatLiteral": 0.3
+            },
+            {
+              "FloatLiteral": 0.3
+            },
+            {
+              "FloatLiteral": 0.4
+            },
+            {
+              "FloatLiteral": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "UIWindow": [
+        "dashboard_win",
+        {
+          "StringLiteral": "Styled Visual Dashboard"
+        },
+        {
+          "Block": [
+            {
+              "UIHBox": [
+                {
+                  "UIVBox": [
+                    {
+                      "UILabel": {
+                        "StringLiteral": "=== LEFT PANEL: Text Editor ==="
+                      }
+                    },
+                    {
+                      "Assign": [
+                        "text",
+                        {
+                          "UITextInput": {
+                            "StringLiteral": "text"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "If": [
+                        {
+                          "UIButton": {
+                            "StringLiteral": "Clear Text"
+                          }
+                        },
+                        {
+                          "Assign": [
+                            "text",
+                            {
+                              "StringLiteral": ""
+                            }
+                          ]
+                        },
+                        null
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "UIVBox": [
+                    {
+                      "UILabel": {
+                        "StringLiteral": "=== RIGHT PANEL: Math & Visualisation ==="
+                      }
+                    },
+                    {
+                      "Assign": [
+                        "angle",
+                        {
+                          "Add": [
+                            {
+                              "Identifier": "angle"
+                            },
+                            {
+                              "FloatLiteral": 0.05
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Assign": [
+                        "sin_val",
+                        {
+                          "ExternCall": {
+                            "module": "math",
+                            "function": "math_sin",
+                            "args": [
+                              {
+                                "Identifier": "angle"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Assign": [
+                        "cos_val",
+                        {
+                          "ExternCall": {
+                            "module": "math",
+                            "function": "math_cos",
+                            "args": [
+                              {
+                                "Identifier": "angle"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "ExternCall": {
+                        "module": "ui",
+                        "function": "ui_progress_gauge",
+                        "args": [
+                          {
+                            "StringLiteral": "Sinus Wave"
+                          },
+                          {
+                            "Identifier": "sin_val"
+                          },
+                          {
+                            "FloatLiteral": -1.0
+                          },
+                          {
+                            "FloatLiteral": 1.0
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "ExternCall": {
+                        "module": "ui",
+                        "function": "ui_progress_gauge",
+                        "args": [
+                          {
+                            "StringLiteral": "Cosinus Wave"
+                          },
+                          {
+                            "Identifier": "cos_val"
+                          },
+                          {
+                            "FloatLiteral": -1.0
+                          },
+                          {
+                            "FloatLiteral": 1.0
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "ExternCall": {
+                        "module": "ui",
+                        "function": "ui_bar_chart",
+                        "args": [
+                          {
+                            "StringLiteral": "Waveform Cache"
+                          },
+                          {
+                            "ArrayCreate": [
+                              {
+                                "FloatLiteral": 0.1
+                              },
+                              {
+                                "FloatLiteral": 0.4
+                              },
+                              {
+                                "FloatLiteral": 0.8
+                              },
+                              {
+                                "FloatLiteral": 0.9
+                              },
+                              {
+                                "FloatLiteral": 0.7
+                              },
+                              {
+                                "FloatLiteral": 0.3
+                              },
+                              {
+                                "FloatLiteral": -0.2
+                              },
+                              {
+                                "FloatLiteral": -0.6
+                              },
+                              {
+                                "FloatLiteral": -0.9
+                              },
+                              {
+                                "FloatLiteral": -0.7
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

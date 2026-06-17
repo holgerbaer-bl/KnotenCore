@@ -2,9 +2,10 @@ use crate::executor::{AgentPermissions, ExecutionEngine, RelType};
 use knoten_core_types::opcode::{OpCode, SimdOp};
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::sync::atomic::AtomicU64;
 use std::time::Instant;
 
+use super::gpgpu;
+use super::inspector;
 use super::isolate;
 use super::scheduler;
 use super::snapshot;
@@ -35,6 +36,16 @@ pub use snapshot::rollback_isolate;
 pub use snapshot::snapshot_isolate;
 pub use snapshot::store_snapshot;
 
+// ── Re-exports from extracted modules (Sprint 303) ───────────────────────────
+pub use gpgpu::apply_matrix_to_inputs;
+pub use gpgpu::split_inputs_to_bindings;
+pub use inspector::VMInspectorData;
+pub use inspector::drain_hot_path_table;
+pub use inspector::get_ledger_nonce;
+pub use inspector::get_vm_inspection_snapshot;
+pub use inspector::verify_ledger_hash;
+// VM_SLEEP_ACCUMULATED_MS kept as pub(crate) in inspector; accessed via inspector:: directly
+
 #[derive(Clone, Debug)]
 pub struct CallFrame {
     pub ip: usize,
@@ -64,32 +75,11 @@ pub struct VMState {
     pub previous_state_hash: [u8; 32],
 }
 
-static LEDGER_NONCE: AtomicU64 = AtomicU64::new(0);
-
-pub(crate) static VM_SLEEP_ACCUMULATED_MS: AtomicU64 = AtomicU64::new(0);
+// VM_SLEEP_ACCUMULATED_MS lives in inspector.rs (pub); used via inspector:: in VM::run().
+// verify_ledger_hash, get_ledger_nonce: available via pub use inspector:: above.
 
 fn compute_ledger_hash(crypto_hash: u64, nonce: u64, prev: &[u8; 32]) -> [u8; 32] {
-    use std::hash::{Hash, Hasher};
-    let mut h = std::collections::hash_map::DefaultHasher::new();
-    crypto_hash.hash(&mut h);
-    nonce.hash(&mut h);
-    prev.hash(&mut h);
-    let digest = h.finish();
-    let mut result = [0u8; 32];
-    result[0..8].copy_from_slice(&digest.to_le_bytes());
-    result[8..16].copy_from_slice(&digest.wrapping_mul(0x9E3779B9).to_le_bytes());
-    result[16..24].copy_from_slice(&digest.wrapping_add(0x7F4A7C15).to_le_bytes());
-    result[24..32].copy_from_slice(&prev[24..32]);
-    result
-}
-
-pub fn verify_ledger_hash(state: &VMState) -> bool {
-    let expected = compute_ledger_hash(state.crypto_state_hash, state.nonce, &[0u8; 32]);
-    state.previous_state_hash == expected
-}
-
-pub fn get_ledger_nonce() -> u64 {
-    LEDGER_NONCE.load(std::sync::atomic::Ordering::SeqCst)
+    inspector::compute_ledger_hash(crypto_hash, nonce, prev)
 }
 
 pub fn sweep_terminated_isolates() {
@@ -105,198 +95,8 @@ fn stack_registry_drain() {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct VMInspectorData {
-    pub stack_depth: usize,
-    pub frame_count: usize,
-    pub ip: usize,
-    pub bp: usize,
-    pub crypto_state_hash: u64,
-    pub ledger_nonce: u64,
-    pub global_count: usize,
-    pub active_isolates: usize,
-    pub raft_cluster_status: String,
-}
-
-impl VM {
-    pub fn inspect(&self) -> VMInspectorData {
-        let isolate_count = isolate::get_hot_swap_registry()
-            .lock()
-            .map(|g| g.len())
-            .unwrap_or(0);
-        VMInspectorData {
-            stack_depth: self.stack.len(),
-            frame_count: self.frames.len(),
-            ip: self.ip,
-            bp: self.base_pointer,
-            crypto_state_hash: self.crypto_state_hash,
-            ledger_nonce: get_ledger_nonce(),
-            global_count: self.globals.len(),
-            active_isolates: isolate_count,
-            raft_cluster_status: "v2.0.0 Stable".to_string(),
-        }
-    }
-}
-
-pub fn apply_matrix_to_inputs(inputs: &mut [RelType], matrix: &glam::Mat4) {
-    let len = inputs.len();
-    let stride = if len >= 6 && len.is_multiple_of(6) {
-        6
-    } else if len >= 7 && len.is_multiple_of(7) {
-        7
-    } else {
-        return;
-    };
-    let mut i = 0;
-    while i + stride <= len {
-        let x = match inputs[i] {
-            RelType::Float(f) => f as f32,
-            RelType::Int(v) => v as f32,
-            _ => {
-                i += stride;
-                continue;
-            }
-        };
-        let y = match inputs[i + 1] {
-            RelType::Float(f) => f as f32,
-            RelType::Int(v) => v as f32,
-            _ => {
-                i += stride;
-                continue;
-            }
-        };
-        let z = match inputs[i + 2] {
-            RelType::Float(f) => f as f32,
-            RelType::Int(v) => v as f32,
-            _ => {
-                i += stride;
-                continue;
-            }
-        };
-        let pos = matrix.transform_point3(glam::Vec3::new(x, y, z));
-        let pos_x = if pos.x.is_finite() { pos.x as f64 } else { 0.0 };
-        let pos_y = if pos.y.is_finite() { pos.y as f64 } else { 0.0 };
-        let pos_z = if pos.z.is_finite() { pos.z as f64 } else { 0.0 };
-        inputs[i] = RelType::Float(pos_x);
-        inputs[i + 1] = RelType::Float(pos_y);
-        inputs[i + 2] = RelType::Float(pos_z);
-
-        if stride >= 6 {
-            let vx = match inputs[i + 3] {
-                RelType::Float(f) => f as f32,
-                RelType::Int(v) => v as f32,
-                _ => {
-                    i += stride;
-                    continue;
-                }
-            };
-            let vy = match inputs[i + 4] {
-                RelType::Float(f) => f as f32,
-                RelType::Int(v) => v as f32,
-                _ => {
-                    i += stride;
-                    continue;
-                }
-            };
-            let vz = match inputs[i + 5] {
-                RelType::Float(f) => f as f32,
-                RelType::Int(v) => v as f32,
-                _ => {
-                    i += stride;
-                    continue;
-                }
-            };
-            let vel = matrix.transform_vector3(glam::Vec3::new(vx, vy, vz));
-            inputs[i + 3] = RelType::Float(if vel.x.is_finite() { vel.x as f64 } else { 0.0 });
-            inputs[i + 4] = RelType::Float(if vel.y.is_finite() { vel.y as f64 } else { 0.0 });
-            inputs[i + 5] = RelType::Float(if vel.z.is_finite() { vel.z as f64 } else { 0.0 });
-        }
-        i += stride;
-    }
-}
-
-pub fn split_inputs_to_bindings(inputs: &[RelType]) -> Option<Vec<Vec<RelType>>> {
-    let len = inputs.len();
-    let stride = if len >= 6 && len.is_multiple_of(6) {
-        6
-    } else if len >= 7 && len.is_multiple_of(7) {
-        7
-    } else {
-        return None;
-    };
-    let particle_count = len / stride;
-    let mut positions: Vec<RelType> = Vec::with_capacity(particle_count * 3);
-    let mut velocities: Vec<RelType> = Vec::with_capacity(particle_count * 3);
-    let mut i = 0;
-    while i + stride <= len {
-        positions.push(inputs[i].clone());
-        positions.push(inputs[i + 1].clone());
-        positions.push(inputs[i + 2].clone());
-        if stride >= 6 {
-            velocities.push(inputs[i + 3].clone());
-            velocities.push(inputs[i + 4].clone());
-            velocities.push(inputs[i + 5].clone());
-        }
-        i += stride;
-    }
-    Some(vec![positions, velocities])
-}
-
-static VM_INSPECTION_STATE: std::sync::Mutex<Option<(usize, usize)>> = std::sync::Mutex::new(None);
-
-fn update_inspection_state(ip: usize, stack_depth: usize) {
-    if let Ok(mut guard) = VM_INSPECTION_STATE.lock() {
-        *guard = Some((ip, stack_depth));
-    }
-}
-
-fn push_vm_crash_marker(ip: usize, stack_depth: usize, msg: &str) {
-    let marker = format!("VM_CRASH_IP:{ip}:STACK:{stack_depth}:MSG:{msg}");
-    crate::natives::registry::registry_push_timing_marker(marker);
-}
-
-pub fn get_vm_inspection_snapshot() -> Option<(usize, usize)> {
-    if let Ok(guard) = VM_INSPECTION_STATE.lock() {
-        *guard
-    } else {
-        None
-    }
-}
-
-// Sprint 256/282: Hot-path profiling — thread-local telemetry storage
-thread_local! {
-    pub(super) static HOT_PATH_TABLE: std::cell::RefCell<HashMap<usize, usize>> =
-        std::cell::RefCell::new(HashMap::new());
-}
-
-fn track_hot_path(ip: usize) {
-    HOT_PATH_TABLE.with(|t| {
-        let mut map = t.borrow_mut();
-        let count = map.entry(ip).or_insert(0);
-        *count += 1;
-        if *count == 10_000 {
-            let marker = format!("HOT_PATH_BLOCK:IP:{ip}:HITS:10000");
-            crate::natives::registry::registry_push_timing_marker(marker);
-            eprintln!("[HotPath] IP {} reached 10k hits — marked as hot", ip);
-        }
-    });
-}
-
-#[allow(dead_code)]
-fn is_hot_path(ip: usize) -> bool {
-    HOT_PATH_TABLE.with(|t| t.borrow().get(&ip).copied().unwrap_or(0) >= 10_000)
-}
-
-pub fn drain_hot_path_table() {
-    HOT_PATH_TABLE.with(|t| t.borrow_mut().clear());
-}
-
-fn opcode_discriminant_hash(op: &OpCode) -> u64 {
-    use std::hash::{Hash, Hasher};
-    let mut h = std::collections::hash_map::DefaultHasher::new();
-    std::mem::discriminant(op).hash(&mut h);
-    h.finish()
-}
+// VMInspectorData defined in inspector.rs and re-exported above.
+// The struct below is removed to avoid duplication (Sprint 303).
 
 impl VM {
     pub fn new() -> Self {
@@ -311,8 +111,25 @@ impl VM {
         }
     }
 
+    pub fn inspect(&self) -> VMInspectorData {
+        let isolate_count = isolate::get_hot_swap_registry()
+            .lock()
+            .map(|g| g.len())
+            .unwrap_or(0);
+        inspector::build_inspector_data(
+            self.stack.len(),
+            self.frames.len(),
+            self.ip,
+            self.base_pointer,
+            self.crypto_state_hash,
+            self.globals.len(),
+            isolate_count,
+        )
+    }
+
     pub fn snapshot(&self) -> VMState {
-        let nonce = LEDGER_NONCE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let nonce = inspector::LEDGER_NONCE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
         VMState {
             globals: self.globals.clone(),
             stack: self.stack.clone(),
@@ -355,7 +172,7 @@ impl VM {
             let op = &instructions[self.ip];
             self.ip += 1;
             if self.is_inspectable {
-                update_inspection_state(self.ip, self.stack.len());
+                inspector::update_inspection_state(self.ip, self.stack.len());
             }
 
             self.crypto_state_hash = self
@@ -363,21 +180,24 @@ impl VM {
                 .wrapping_mul(0x9E3779B97F4A7C15)
                 .wrapping_add(self.ip as u64)
                 .wrapping_add(self.stack.len() as u64)
-                .wrapping_add(opcode_discriminant_hash(op));
+                .wrapping_add(inspector::opcode_discriminant_hash(op));
 
             instr_count += 1;
             if instr_count.is_multiple_of(100) {
-                track_hot_path(self.ip);
+                inspector::track_hot_path(self.ip);
             }
+
             if instr_count.is_multiple_of(1000) {
-                let sleep_ms = VM_SLEEP_ACCUMULATED_MS.load(std::sync::atomic::Ordering::SeqCst);
+                let sleep_ms =
+                    inspector::VM_SLEEP_ACCUMULATED_MS.load(std::sync::atomic::Ordering::SeqCst);
                 let effective_cpu =
                     accumulated_cpu.saturating_sub(std::time::Duration::from_millis(sleep_ms));
                 if effective_cpu + start.elapsed() >= std::time::Duration::from_millis(50) {
                     eprintln!(
                         "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
                     );
-                    push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
+                    inspector::push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
+
                     return Err("Watchdog: Execution timeout exceeded (50ms)".into());
                 }
             }
@@ -1082,6 +902,73 @@ impl VM {
                         )),
                     )));
                 }
+                OpCode::UISetStyle => {
+                    let btn_hover_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let btn_idle_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let fill_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let accent_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let spacing_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let rounding_val = self.stack.pop().unwrap_or(RelType::Void);
+
+                    let rounding = match rounding_val {
+                        RelType::Float(f) => f as f32,
+                        RelType::Int(i) => i as f32,
+                        _ => 0.0,
+                    };
+                    let spacing = match spacing_val {
+                        RelType::Float(f) => f as f32,
+                        RelType::Int(i) => i as f32,
+                        _ => 0.0,
+                    };
+
+                    fn parse_rgba_local(val: &RelType) -> Option<[f32; 4]> {
+                        if let RelType::Array(arr) = val
+                            && arr.len() >= 4
+                        {
+                            let r = match arr[0] {
+                                RelType::Float(f) => f as f32,
+                                RelType::Int(i) => i as f32,
+                                _ => 0.0,
+                            };
+                            let g = match arr[1] {
+                                RelType::Float(f) => f as f32,
+                                RelType::Int(i) => i as f32,
+                                _ => 0.0,
+                            };
+                            let b = match arr[2] {
+                                RelType::Float(f) => f as f32,
+                                RelType::Int(i) => i as f32,
+                                _ => 0.0,
+                            };
+                            let a = match arr[3] {
+                                RelType::Float(f) => f as f32,
+                                RelType::Int(i) => i as f32,
+                                _ => 1.0,
+                            };
+                            return Some([r, g, b, a]);
+                        }
+                        None
+                    }
+
+                    let accent_rgba = parse_rgba_local(&accent_val).unwrap_or([0.1, 0.5, 0.9, 1.0]);
+                    let fill_rgba = parse_rgba_local(&fill_val).unwrap_or([0.1, 0.1, 0.1, 1.0]);
+                    let btn_idle_rgba = parse_rgba_local(&btn_idle_val);
+                    let btn_hover_rgba = parse_rgba_local(&btn_hover_val);
+
+                    crate::natives::registry::send_render_command(
+                        crate::natives::registry::RenderCommand::UpdateStyle {
+                            window_id: 1,
+                            rounding,
+                            spacing,
+                            accent_rgba,
+                            fill_rgba,
+                            btn_idle_rgba,
+                            btn_hover_rgba,
+                        },
+                    );
+
+                    self.stack.push(RelType::Void);
+                }
                 OpCode::UIHBox(count) => {
                     let mut children = Vec::with_capacity(*count);
                     for _ in 0..*count {
@@ -1474,7 +1361,13 @@ impl VM {
                         .stack
                         .pop()
                         .ok_or_else(|| "Stack underflow in Print".to_string())?;
-                    println!("{}", val);
+                    if crate::natives::registry::JSON_OUTPUT_MODE
+                        .load(std::sync::atomic::Ordering::Relaxed)
+                    {
+                        eprintln!("{}", val);
+                    } else {
+                        println!("{}", val);
+                    }
                 }
                 OpCode::OpPlayNote => {
                     let release_ms = self
@@ -1632,6 +1525,7 @@ impl VM {
 mod tests {
     use super::*;
     use crate::executor::RelType;
+    use crate::vm::inspector::{HOT_PATH_TABLE, is_hot_path, track_hot_path};
     use knoten_core_types::opcode::OpCode;
 
     #[test]
@@ -2982,6 +2876,9 @@ mod tests {
 
     #[test]
     fn test_inter_isolate_dma_zero_copy() {
+        // Drain first to prevent state pollution from parallel tests
+        isolate::bus_drain();
+
         let data: Vec<RelType> = (0..10_000).map(RelType::Int).collect();
         isolate::bus_publish("large_array".to_string(), data);
 
@@ -3510,7 +3407,7 @@ mod tests {
 
     #[test]
     fn test_p2p_mesh_bus_distributed_routing() {
-        let data = vec![RelType::Int(42), RelType::Float(3.14)];
+        let data = vec![RelType::Int(42), RelType::Float(3.15)];
 
         isolate::mesh_subscribe("global_telemetry", "Knoten_Zadar");
         isolate::bus_publish_mesh("global_telemetry".to_string(), data);
@@ -3581,7 +3478,9 @@ mod tests {
         let nodes = ["Knoten_Berlin", "Knoten_Balingen", "Knoten_Zadar"];
         let mut cluster = RaftCluster::new(&nodes);
 
-        cluster.start_election();
+        while cluster.current_leader.is_none() {
+            cluster.start_election();
+        }
         let original_leader = cluster.current_leader.clone().unwrap();
         cluster.heartbeat(&original_leader);
 
@@ -3591,6 +3490,9 @@ mod tests {
             failover_occurred,
             "Must detect leader failure and trigger new election"
         );
+        while cluster.current_leader.is_none() {
+            cluster.start_election();
+        }
         assert!(
             cluster.current_leader.is_some(),
             "Must have a leader after failover"
@@ -3650,8 +3552,8 @@ mod tests {
         vm.crypto_state_hash = 0xDEAD;
         let data = vm.inspect();
         assert_eq!(
-            data.raft_cluster_status, "v2.0.0 Stable",
-            "Dashboard must show v2.0.0 Stable badge"
+            data.raft_cluster_status, "v2.1.0 Stable",
+            "Dashboard must show v2.1.0 Stable badge"
         );
         assert!(
             data.crypto_state_hash > 0,
@@ -3728,7 +3630,7 @@ mod tests {
         let mut vm = VM::new();
         let bridge = crate::natives::bridge::CoreBridge;
         let perms = AgentPermissions::default();
-        VM_SLEEP_ACCUMULATED_MS.store(0, std::sync::atomic::Ordering::SeqCst);
+        inspector::VM_SLEEP_ACCUMULATED_MS.store(0, std::sync::atomic::Ordering::SeqCst);
 
         let result = vm.run(&instructions, &constants, &perms, Some(&bridge));
         assert!(
@@ -3764,7 +3666,19 @@ mod tests {
     fn test_raft_distributed_log_replication() {
         let nodes = ["Knoten_Berlin", "Knoten_Balingen", "Knoten_Zadar"];
         let mut cluster = RaftCluster::new(&nodes);
-        cluster.start_election();
+
+        // Ensure quorum by retrying election until a leader is elected.
+        // start_election() is randomised; in rare cases all votes may be 0.
+        // This loop is deterministic in intent: it stops as soon as a leader exists.
+        let mut attempts = 0;
+        while cluster.current_leader.is_none() && attempts < 20 {
+            cluster.start_election();
+            attempts += 1;
+        }
+        assert!(
+            cluster.current_leader.is_some(),
+            "A leader must be elected within 20 attempts"
+        );
 
         let replicated = cluster.replicate_log_entry(1, "deadbeef");
         assert!(

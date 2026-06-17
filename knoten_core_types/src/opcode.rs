@@ -95,4 +95,7 @@ pub enum OpCode {
 
     // Sprint 276: Temporal quantum time-travel reversal
     TimeTravelReverse(i64), // checkpoint_id
+
+    // Sprint 304: egui visual UI styling configuration
+    UISetStyle,
 }

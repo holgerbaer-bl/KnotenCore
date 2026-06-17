@@ -215,7 +215,9 @@ impl RaftCluster {
 
 pub fn bootstrap_raft_cluster(node_names: &[&str]) -> RaftCluster {
     let mut cluster = RaftCluster::new(node_names);
-    cluster.start_election();
+    while cluster.current_leader.is_none() {
+        cluster.start_election();
+    }
     cluster
 }
 

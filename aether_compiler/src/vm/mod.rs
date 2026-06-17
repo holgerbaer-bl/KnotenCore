@@ -1,4 +1,6 @@
 pub mod compiler;
+pub mod gpgpu;
+pub mod inspector;
 pub mod isolate;
 pub mod machine;
 pub mod native_emit;
@@ -10,3 +12,9 @@ pub mod storage;
 pub use compiler::Compiler;
 pub use knoten_core_types::opcode;
 pub use machine::*;
+// Sprint 303: re-export new module APIs
+pub use gpgpu::{apply_matrix_to_inputs, split_inputs_to_bindings};
+pub use inspector::{
+    VMInspectorData, drain_hot_path_table, get_ledger_nonce, get_vm_inspection_snapshot,
+    verify_ledger_hash,
+};

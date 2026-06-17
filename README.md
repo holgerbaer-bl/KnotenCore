@@ -1,8 +1,9 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v1.5.0--alpha-orange)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.2.0--stable-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-prerelease-yellow)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-244%2F244-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-stable-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -13,6 +14,25 @@
 
 ## What is KnotenCore?
 **KnotenCore** is a **Deterministic AI-Native Execution Runtime** built entirely in Rust. External AI agents describe programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized flat bytecode stream and executes them on a Register Stack-VM — achieving deterministic, GC-free, bare-metal performance without any intermediate browser or script-engine layer. WGPU-based rendering functions as the **Physical Representation Layer**, allowing agents to express 3D scenes, audio, and UI as pure data via an autonomous, asynchronous Retained-Mode pipeline.
+
+---
+
+## 🚀 CLI Usage
+
+Execute a `.nod` or `.knoten` file using the native compiler and Register Stack-VM:
+```bash
+cargo run --bin run_knc -- <path_to.nod> [options]
+```
+
+### Options:
+* `--headless`: Bypasses physical window creation and WGPU graphics context initialization. Runs the compiled AST validation and execution paths headless on the main thread for 1-2 virtual frames, returning exit code `0`. Perfect for display-less environments (CI, remote servers, AI sandboxes).
+* `--allow-read`: Enables sandboxed File I/O read permissions.
+* `--allow-write`: Enables sandboxed File I/O write permissions.
+* `--allow-net`: Enables sandboxed network fetch operations.
+* `--output-format json`: Routes all compilation, type-checking, and runtime execution fault outputs to a structured, machine-readable JSON format on `stdout`:
+  ```json
+  {"status": "error", "errors": [{"code": "ERR_RUNTIME_FAULT", "message": "FFI Fault: <msg>", "agent_hint": "..."}]}
+  ```
 
 ---
 
@@ -35,6 +55,8 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 ## 🎯 AI-Readiness Benchmark — AG Baseline: 20/20 (100%)
 
 KnotenCore is the **first DSL project with a public, reproducible AI-Readiness Score** — measuring how reliably external LLMs generate correct `.nod` programs without human correction. The AG agent used **only `llm.md` + `node_types.json` + `native_functions.json`** as context (no Rust source).
+
+**Sprint 304 status:** 244/244 tests passing · v2.2.0-stable · True distributed Raft consensus · WASM-ready · 6 architectural layers complete.
 
 ---
 

@@ -2,6 +2,27 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.2.0-stable] - Sprint 304: Developer Experience & UI-Styling Hardening (2026-06-17)
+Sprint 304: Implemented the four DX-hardening levers: CLI JSON-gated error feedback, AOT/egui styling via `UISetStyle`, Headless validation/execution mocking, and created the styled dashboard blueprint.
+- **Hebel 1: CLI JSON-Fehler-Gating**: `run_knc` parses VM thread compilation failures and Stack-VM execution runtime faults. If `--output-format json` is active, faults are structured into machine-readable JSON: `{"status": "error", "errors": [{"code": "ERR_RUNTIME_FAULT", "message": "FFI Fault: <msg>"}]}` and exit with code 1.
+- **Hebel 2: `UISetStyle` Activation**: Added `OpCode::UISetStyle` to the Stack-VM opcode list. Added compiler codegen for `Node::UISetStyle` in `compiler.rs`. Implemented `OpCode::UISetStyle` execution in `machine.rs` to extract and propagate rounding, spacing, and accent/fill colors.
+- **Hebel 3: Headless UI Mocking**: Added the `--headless` CLI flag. If active, `run_knc` completely bypasses physical `winit` and `wgpu` initialization, running the compiler and VM synchronously on the main thread. Added headless frame counting in `registry.rs` to safely exit after 2 updates, preventing infinite headless loops.
+- **Hebel 4: Reference Dashboard**: Created `docs/LANGUAGE_REFERENCE/examples/styled_dashboard.nod` demonstrating an editor-split visual dashboard with customized styling using `UISetStyle`.
+- **Test Suite**: Increased the test suite from 241 to 244 passing tests (added `test_cli_json_error_propagation`, `test_ui_set_style_compilation`, and `test_headless_ui_execution`).
+- **CI**: 244/244 tests, 0 clippy warnings, fmt check clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
+## [v2.2.0-dev] - Sprint 303: machine.rs Modularisation & Documentation Sync (2026-06-17)
+Sprint 303: Structural refactoring of the god-file `machine.rs` (was 142 KB / 3782 lines) and full documentation sync to v2.1.0 across README, llm.md, and ROADMAP.
+- **Module Extraction**: Extracted `gpgpu.rs` (particle buffer helpers: `apply_matrix_to_inputs`, `split_inputs_to_bindings`) and `inspector.rs` (ledger, hot-path profiling, egui inspection state, crash telemetry, opcode hash) from `machine.rs`. `machine.rs` now contains only `VM`, `VMState`, `VM::run()`, and thin delegation wrappers.
+- **`gpgpu.rs`**: Pure, allocation-free particle transformation functions. No VM state, no locks — safe to call from any thread. SIMD via `glam::Mat4`. Stride auto-detection (6 or 7 interleaved floats).
+- **`inspector.rs`**: Ledger (`LEDGER_NONCE`, `compute_ledger_hash`, `verify_ledger_hash`, `get_ledger_nonce`), hot-path profiling (`HOT_PATH_TABLE` thread-local, `track_hot_path`, `drain_hot_path_table`), inspection state (`VM_INSPECTION_STATE`, `update_inspection_state`, `get_vm_inspection_snapshot`), crash telemetry (`push_vm_crash_marker`), opcode hash (`opcode_discriminant_hash`), inspector data builder (`build_inspector_data`). Also owns `VM_SLEEP_ACCUMULATED_MS`.
+- **Public API Preserved**: All previously public symbols remain accessible via re-exports in `machine.rs` and `mod.rs`. Zero breaking changes.
+- **Documentation Sync**: `README.md` badges updated from `v1.5.0-alpha / prerelease` → `v2.1.0 / stable`, added test count badge (242/242). `llm.md` header updated from `v1.5.0-alpha` → `v2.1.0`, AI-Readiness section updated to Sprint 302. `ROADMAP.md` completely rewritten to reflect Sprint-302 reality — removes stale Sprint-176 items, documents actual done/near/mid/far-term work.
+- **Test Suite**: 242/242 tests, 0 failures.
+- **CI**: 242/242 tests, 0 clippy warnings, fmt clean.
+- **Web Reference**: All references point to `https://knotencore.de/`.
+
 ## [v2.1.0] - Sprint 302: True Distributed P2P Raft & Version Sync (2026-06-01)
 Sprint 302: True Distributed P2P Raft & Version Sync. Synchronized root Cargo.toml to version 2.1.0. Implemented socket log replication and decentralized heartbeat timers inside src/vm/scheduler.rs.
 - **Version Sync**: Root `Cargo.toml` bumped from 1.1.0 → 2.1.0. All sub-crates and WGPU dashboard badge aligned.

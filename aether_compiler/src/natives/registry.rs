@@ -30,6 +30,10 @@ pub use super::scene::{
 
 pub static GLOBAL_KEYS: [AtomicBool; 256] = [const { AtomicBool::new(false) }; 256];
 
+pub static HEADLESS_MODE: AtomicBool = AtomicBool::new(false);
+pub static HEADLESS_FRAME_COUNT: AtomicUsize = AtomicUsize::new(0);
+pub static JSON_OUTPUT_MODE: AtomicBool = AtomicBool::new(false);
+
 pub struct InputState {
     pub keys: HashSet<KeyCode>,
     pub mouse_dx: f32,
@@ -141,6 +145,16 @@ pub enum RenderCommand {
         panel_aabbs: Vec<crate::executor::RelType>,
         mouse_x: f32,
         mouse_y: f32,
+    },
+    // Sprint 304: egui layout visual style override
+    UpdateStyle {
+        window_id: usize,
+        rounding: f32,
+        spacing: f32,
+        accent_rgba: [f32; 4],
+        fill_rgba: [f32; 4],
+        btn_idle_rgba: Option<[f32; 4]>,
+        btn_hover_rgba: Option<[f32; 4]>,
     },
 }
 
@@ -834,6 +848,13 @@ pub fn registry_create_window(width: i64, height: i64, title: String) -> i64 {
 pub fn registry_window_update(handle_id: i64) -> bool {
     if handle_id < 0 {
         return false;
+    }
+    if HEADLESS_MODE.load(Ordering::Relaxed) {
+        let frames = HEADLESS_FRAME_COUNT.fetch_add(1, Ordering::Relaxed);
+        if frames >= 2 {
+            return false;
+        }
+        return true;
     }
     let id = handle_id as usize;
     send_render_command(RenderCommand::UpdateWindow(id));

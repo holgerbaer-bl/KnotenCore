@@ -587,6 +587,76 @@ impl KnotenApp {
                     state.window.request_redraw();
                 }
             }
+            RenderCommand::UpdateStyle {
+                window_id,
+                rounding,
+                spacing,
+                accent_rgba,
+                fill_rgba,
+                btn_idle_rgba,
+                btn_hover_rgba,
+            } => {
+                if let Some(state) = self.windows.get_mut(&window_id) {
+                    let mut visuals = egui::Visuals::dark();
+
+                    // Rounding
+                    visuals.window_rounding = egui::Rounding::same(rounding);
+                    visuals.widgets.noninteractive.rounding = egui::Rounding::same(rounding);
+                    visuals.widgets.inactive.rounding = egui::Rounding::same(rounding);
+                    visuals.widgets.hovered.rounding = egui::Rounding::same(rounding);
+                    visuals.widgets.active.rounding = egui::Rounding::same(rounding);
+
+                    // Spacing
+                    state.egui_ctx.style_mut(|s| {
+                        s.spacing.item_spacing = egui::vec2(spacing, spacing);
+                        s.spacing.window_margin = egui::Margin::same(spacing);
+                    });
+
+                    // Accent Color
+                    let accent_color = egui::Color32::from_rgba_unmultiplied(
+                        (accent_rgba[0] * 255.0) as u8,
+                        (accent_rgba[1] * 255.0) as u8,
+                        (accent_rgba[2] * 255.0) as u8,
+                        (accent_rgba[3] * 255.0) as u8,
+                    );
+                    visuals.selection.bg_fill = accent_color;
+                    visuals.hyperlink_color = accent_color;
+
+                    // Fill Color
+                    let fill_color = egui::Color32::from_rgba_unmultiplied(
+                        (fill_rgba[0] * 255.0) as u8,
+                        (fill_rgba[1] * 255.0) as u8,
+                        (fill_rgba[2] * 255.0) as u8,
+                        (fill_rgba[3] * 255.0) as u8,
+                    );
+                    visuals.window_fill = fill_color;
+                    visuals.panel_fill = fill_color;
+
+                    // Button Colors
+                    if let Some(idle) = btn_idle_rgba {
+                        let c = egui::Color32::from_rgba_unmultiplied(
+                            (idle[0] * 255.0) as u8,
+                            (idle[1] * 255.0) as u8,
+                            (idle[2] * 255.0) as u8,
+                            (idle[3] * 255.0) as u8,
+                        );
+                        visuals.widgets.inactive.bg_fill = c;
+                    }
+                    if let Some(hover) = btn_hover_rgba {
+                        let c = egui::Color32::from_rgba_unmultiplied(
+                            (hover[0] * 255.0) as u8,
+                            (hover[1] * 255.0) as u8,
+                            (hover[2] * 255.0) as u8,
+                            (hover[3] * 255.0) as u8,
+                        );
+                        visuals.widgets.hovered.bg_fill = c;
+                        visuals.widgets.active.bg_fill = c;
+                    }
+
+                    state.egui_ctx.set_visuals(visuals);
+                    state.window.request_redraw();
+                }
+            }
             RenderCommand::CloseWindow(id) => {
                 self.windows.remove(&id);
                 if self.windows.is_empty() {

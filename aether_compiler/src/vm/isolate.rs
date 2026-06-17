@@ -51,7 +51,7 @@ pub fn optimize_active_hotpath(isolate_id: i64) -> bool {
     let mut locked = code.lock().unwrap_or_else(|e| e.into_inner());
     let (ref current_instrs, ref current_consts) = *locked;
 
-    let mut hot_ips: Vec<usize> = super::machine::HOT_PATH_TABLE.with(|t| {
+    let mut hot_ips: Vec<usize> = super::inspector::HOT_PATH_TABLE.with(|t| {
         let table = t.borrow();
         table
             .iter()

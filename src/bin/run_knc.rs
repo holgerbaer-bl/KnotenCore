@@ -43,6 +43,7 @@ fn run() {
     let mut no_opt = false;
     let mut transpile = false;
     let mut output_format_json = false;
+    let mut is_headless = false;
     let mut file_path = String::new();
 
     let mut skip_next = false;
@@ -63,6 +64,8 @@ fn run() {
             engine.permissions.allow_fs_write = true;
         } else if arg == "--allow-net" {
             engine.permissions.allow_network = true;
+        } else if arg == "--headless" {
+            is_headless = true;
         } else if arg == "--output-format" {
             if let Some(next_arg) = args.get(i + 1) {
                 if next_arg == "json" {
@@ -79,6 +82,8 @@ fn run() {
 
     if output_format_json {
         std::panic::set_hook(Box::new(|_| {}));
+        knoten_core::natives::registry::JSON_OUTPUT_MODE
+            .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 
     // Check if we are bundled (Sprint 11) - Respects permissions set above
@@ -217,6 +222,76 @@ fn run() {
         }
     }
 
+    // ── Pre-Execution Setup ──────────────────────────────────────────
+    if transpile {
+        eprintln!(
+            "'--transpile' is not yet connected to the VM pipeline. Use the default bytecode path."
+        );
+        std::process::exit(1);
+    }
+
+    if is_headless {
+        knoten_core::natives::registry::HEADLESS_MODE
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        knoten_core::natives::registry::HEADLESS_FRAME_COUNT
+            .store(0, std::sync::atomic::Ordering::Relaxed);
+
+        let mut compiler = knoten_core::vm::compiler::Compiler::new();
+        if let Some(parent) = std::path::Path::new(&file_path).parent()
+            && !parent.as_os_str().is_empty()
+        {
+            compiler.current_dir = parent.to_path_buf();
+        }
+        if !compiler.compile_node(&ast) {
+            if output_format_json {
+                println!(
+                    r#"{{"status": "error", "errors": [{{"code": "ERR_UNKNOWN_NODE", "message": "AST transpilation validation failed", "agent_hint": "Check node_types.json! You probably emitted a node type not supported by the compiler."}}]}}"#
+                );
+            } else {
+                eprintln!("\n[VM Crash] AST transpilation validation natively failed inline.");
+            }
+            std::process::exit(1);
+        }
+
+        let mut vm = knoten_core::vm::machine::VM::new();
+        let raw_result = vm.run(
+            &compiler.instructions,
+            &compiler.constants,
+            &engine.permissions,
+            Some(&*engine.bridge),
+        );
+
+        let result = match raw_result {
+            Ok(v) => v.to_string(),
+            Err(e) => {
+                if output_format_json {
+                    let msg = if e.starts_with("FFI Fault:") {
+                        e.clone()
+                    } else {
+                        format!("FFI Fault: {}", e)
+                    };
+                    println!(
+                        r#"{{"status": "error", "errors": [{{"code": "ERR_RUNTIME_FAULT", "message": "{}", "agent_hint": "Verify VM execution flow, math operations, array bounds, or FFI safety."}}]}}"#,
+                        msg.replace("\"", "\\\"").replace("\n", " ")
+                    );
+                } else {
+                    eprintln!("VM Runtime Error: {}", e);
+                }
+                std::process::exit(1);
+            }
+        };
+
+        if output_format_json {
+            println!(
+                r#"{{"status": "success", "result": "{}"}}"#,
+                result.replace("\"", "\\\"")
+            );
+        } else {
+            println!("\nExecution Finished.\nResult: {}", result);
+        }
+        std::process::exit(0);
+    }
+
     // ── Main Thread Loop & Proxy Setup ─────────────────────────────
     use winit::event_loop::EventLoop;
     #[cfg(target_os = "windows")]
@@ -226,14 +301,6 @@ fn run() {
     #[cfg(target_os = "windows")]
     builder.with_any_thread(true);
     let event_loop = builder.build().expect("Failed to create event loop");
-
-    // ── Pre-Execution Setup ──────────────────────────────────────────
-    if transpile {
-        eprintln!(
-            "'--transpile' is not yet connected to the VM pipeline. Use the default bytecode path."
-        );
-        std::process::exit(1);
-    }
 
     let proxy = event_loop.create_proxy();
     knoten_core::natives::registry::set_render_channel(proxy);
@@ -253,7 +320,13 @@ fn run() {
                 compiler.current_dir = parent.to_path_buf();
             }
             if !compiler.compile_node(&ast_for_thread) {
-                eprintln!("\n[VM Crash] AST transpilation validation natively failed inline.");
+                if output_format_json {
+                    println!(
+                        r#"{{"status": "error", "errors": [{{"code": "ERR_UNKNOWN_NODE", "message": "AST transpilation validation failed", "agent_hint": "Check node_types.json! You probably emitted a node type not supported by the compiler."}}]}}"#
+                    );
+                } else {
+                    eprintln!("\n[VM Crash] AST transpilation validation natively failed inline.");
+                }
                 std::process::exit(1);
             }
 
@@ -267,10 +340,29 @@ fn run() {
 
             let result = match raw_result {
                 Ok(v) => v.to_string(),
-                Err(e) => e,
+                Err(e) => {
+                    if output_format_json {
+                        let msg = if e.starts_with("FFI Fault:") {
+                            e.clone()
+                        } else {
+                            format!("FFI Fault: {}", e)
+                        };
+                        println!(
+                            r#"{{"status": "error", "errors": [{{"code": "ERR_RUNTIME_FAULT", "message": "{}", "agent_hint": "Verify VM execution flow, math operations, array bounds, or FFI safety."}}]}}"#,
+                            msg.replace("\"", "\\\"").replace("\n", " ")
+                        );
+                        std::process::exit(1);
+                    }
+                    e
+                }
             };
 
-            println!("\nExecution Finished.\nResult: {}", result);
+            if output_format_json {
+                println!(r#"{{"status": "success", "result": "{}"}}"#, result.replace("\"", "\\\""));
+                std::process::exit(0);
+            } else {
+                println!("\nExecution Finished.\nResult: {}", result);
+            }
             knoten_core::natives::registry::exit_event_loop();
         })
         .expect("Failed to spawn executor thread");

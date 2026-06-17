@@ -682,6 +682,38 @@ impl Compiler {
                 self.instructions.push(OpCode::UITextInput);
                 true
             }
+            Node::UISetStyle(rounding, spacing, accent, fill, btn_idle, btn_hover) => {
+                if !self.compile_node(rounding) {
+                    return false;
+                }
+                if !self.compile_node(spacing) {
+                    return false;
+                }
+                if !self.compile_node(accent) {
+                    return false;
+                }
+                if !self.compile_node(fill) {
+                    return false;
+                }
+                if let Some(idle) = btn_idle {
+                    if !self.compile_node(idle) {
+                        return false;
+                    }
+                } else {
+                    let idx = self.add_constant(RelType::Void);
+                    self.instructions.push(OpCode::Constant(idx));
+                }
+                if let Some(hover) = btn_hover {
+                    if !self.compile_node(hover) {
+                        return false;
+                    }
+                } else {
+                    let idx = self.add_constant(RelType::Void);
+                    self.instructions.push(OpCode::Constant(idx));
+                }
+                self.instructions.push(OpCode::UISetStyle);
+                true
+            }
             Node::UIHorizontal(body) => {
                 let count = if let Node::Block(children) = &**body {
                     for child in children {

@@ -687,3 +687,91 @@ fn test_github_release_workflow_trigger() {
         "Must target macOS Apple Silicon"
     );
 }
+
+// ── Sprint 304: DX & Styling Hardening Tests ─────────────────────────
+
+/// test_cli_json_error_propagation: Verifiziere, dass ein Division-by-Zero-Laufzeitfehler im VM-Thread valides JSON ausgibt.
+#[test]
+fn test_cli_json_error_propagation() {
+    let mut cmd = std::process::Command::new("cargo");
+    cmd.args([
+        "run",
+        "--bin",
+        "run_knc",
+        "--",
+        "--output-format",
+        "json",
+        "tests/intentional_crash.knoten",
+    ]);
+    let output = cmd.output().expect("Failed to execute cargo run");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Parse stdout as JSON
+    let json: serde_json::Value =
+        serde_json::from_str(&stdout).expect("Stdout must be valid JSON on runtime fault");
+    assert_eq!(json["status"], "error");
+    let errors = json["errors"].as_array().expect("errors must be an array");
+    assert!(!errors.is_empty());
+    assert_eq!(errors[0]["code"], "ERR_RUNTIME_FAULT");
+    assert!(
+        errors[0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("FFI Fault:")
+    );
+}
+
+/// test_ui_set_style_compilation: Sichert ab, dass `UISetStyle` ohne Compiler-Crash durch das AOT-System läuft.
+#[test]
+fn test_ui_set_style_compilation() {
+    use knoten_core::ast::Node;
+    use knoten_core::vm::compiler::Compiler;
+    use knoten_core_types::opcode::OpCode;
+
+    let node = Node::UISetStyle(
+        Box::new(Node::FloatLiteral(5.0)),
+        Box::new(Node::FloatLiteral(10.0)),
+        Box::new(Node::ArrayCreate(vec![
+            Node::FloatLiteral(1.0),
+            Node::FloatLiteral(0.0),
+            Node::FloatLiteral(0.0),
+            Node::FloatLiteral(1.0),
+        ])),
+        Box::new(Node::ArrayCreate(vec![
+            Node::FloatLiteral(0.15),
+            Node::FloatLiteral(0.15),
+            Node::FloatLiteral(0.18),
+            Node::FloatLiteral(0.95),
+        ])),
+        None,
+        None,
+    );
+
+    let mut compiler = Compiler::new();
+    let success = compiler.compile_node(&node);
+    assert!(success, "Compilation of UISetStyle must succeed");
+    assert!(compiler.instructions.contains(&OpCode::UISetStyle));
+}
+
+/// test_headless_ui_execution: Prüft, ob das `--headless` Flag ein UI-Programm in einer displaylosen Umgebung fehlerfrei validiert.
+#[test]
+fn test_headless_ui_execution() {
+    let mut cmd = std::process::Command::new("cargo");
+    cmd.args([
+        "run",
+        "--bin",
+        "run_knc",
+        "--",
+        "--headless",
+        "--output-format",
+        "json",
+        "benchmark/tasks/14_ui_label_button.nod",
+    ]);
+    let output = cmd.output().expect("Failed to execute cargo run");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value =
+        serde_json::from_str(&stdout).expect("Stdout must be valid JSON in headless mode");
+    assert_eq!(json["status"], "success");
+    assert!(output.status.success());
+}

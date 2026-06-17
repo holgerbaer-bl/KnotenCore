@@ -137,7 +137,7 @@ impl BridgeModule for CoreBridge {
                     {
                         if *ms > 0 {
                             std::thread::sleep(std::time::Duration::from_millis(*ms as u64));
-                            crate::vm::machine::VM_SLEEP_ACCUMULATED_MS
+                            crate::vm::inspector::VM_SLEEP_ACCUMULATED_MS
                                 .fetch_add(*ms as u64, std::sync::atomic::Ordering::SeqCst);
                         }
                         return Some(ExecResult::Value(RelType::Void));
