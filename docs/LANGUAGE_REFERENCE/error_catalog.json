@@ -91,6 +91,18 @@
       "category": "Runtime",
       "message_pattern": "Invalid matrix handle {}: must be -1 (passthrough) or a valid registry ID >= 0",
       "agent_hint": "The matrix_handle field must be an IntLiteral >= -1. Use -1 to skip matrix transformation."
+    },
+    {
+      "code": "ERR_SANDBOX_TIMEOUT",
+      "category": "Security",
+      "message_pattern": "Execution aborted: Exceeded maximum allowed instruction count (1,000,000 opcodes)",
+      "agent_hint": "Your script exceeded the maximum opcode limit (1,000,000 instructions). Check for infinite loops or refactor heavy loops into GPGPU compute shaders."
+    },
+    {
+      "code": "ERR_MEMORY_LIMIT_EXCEEDED",
+      "category": "Security",
+      "message_pattern": "Execution aborted: Exceeded maximum allowed VM memory limit (16 MB)",
+      "agent_hint": "Your script exceeded the 16MB memory threshold. Avoid allocating massive arrays in the VM register stack and use streaming or GPGPU buffers."
     }
   ]
 }

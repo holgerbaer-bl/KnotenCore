@@ -1,19 +1,19 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.2.0--stable-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.3.0--headless--alpha-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-244%2F244-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-stable-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Release](https://img.shields.io/badge/release-alpha-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
 1. **Not** a relentless underground German hardcore techno subgenre. 
 2. A thread-safe, deterministic **AI-Native Execution Runtime** — agents feed it structured JSON logic, the AOT compiler turns it into flat bytecode, and the Stack-VM executes it at bare-metal speed. No browser. No GC.
 
-**The Deterministic AI-Native Execution Runtime.**
+**The Headless-First Deterministic AI-Native Execution Runtime.**
 
 ## What is KnotenCore?
-**KnotenCore** is a **Deterministic AI-Native Execution Runtime** built entirely in Rust. External AI agents describe programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized flat bytecode stream and executes them on a Register Stack-VM — achieving deterministic, GC-free, bare-metal performance without any intermediate browser or script-engine layer. WGPU-based rendering functions as the **Physical Representation Layer**, allowing agents to express 3D scenes, audio, and UI as pure data via an autonomous, asynchronous Retained-Mode pipeline.
+**KnotenCore** is a **Headless-First Deterministic AI-Native Execution Runtime** built entirely in Rust. External AI agents describe programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized flat bytecode stream and executes them on a Register Stack-VM — achieving deterministic, GC-free, bare-metal performance. Lightweight headless execution is the core foundation; heavyweight windowing and graphics (`wgpu`, `winit`, `egui`) are isolated behind an optional `ui` feature gate or mocked with zero-overhead no-op stubs. Strict sandbox guards strictly enforce an instruction hard-stop at 1,000,000 opcodes (`ERR_SANDBOX_TIMEOUT`) and a 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).
 
 ---
 

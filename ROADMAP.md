@@ -1,11 +1,12 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.2.0-stable** · Sprint 304 · 244/244 tests · 0 Clippy warnings
+Current engine version: **v2.3.0-headless-alpha** · Sprint 305 · 155/155 tests · 0 Clippy warnings
 
 ## Done (selected milestones)
 
 - ✅ Stack-VM with AOT compiler + JIT evaluator
-- ✅ Full sandbox (FS, network whitelist, symlink blocking, watchdog)
+- ✅ Full sandbox (FS, network whitelist, symlink blocking, watchdog, 1M opcode cap, 16MB memory guard)
+- ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)
 - ✅ GPGPU compute with lock-free crossbeam readback
@@ -25,6 +26,7 @@ Current engine version: **v2.2.0-stable** · Sprint 304 · 244/244 tests · 0 Cl
 - ✅ Texture atlas / instanced rendering groundwork
 - ✅ `machine.rs` modularisation (split into `vm_core`, `gpgpu`, `inspector`, `ledger` in Sprint 303)
 - ✅ Parser panics → `Result` / JSON-feedback validation (Sprint 304)
+- ✅ Headless Engine Transition & Sandbox Wächter Hardening (Sprint 305)
 
 ## Near-Term
 

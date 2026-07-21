@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
@@ -9,8 +10,20 @@ use std::sync::atomic::AtomicI64;
 use crossbeam_channel::{Receiver, Sender, bounded};
 use dashmap::DashMap;
 
-use std::collections::HashSet;
+#[cfg(feature = "ui")]
 use winit::keyboard::KeyCode;
+
+#[cfg(not(feature = "ui"))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum KeyCode {
+    Space,
+    KeyW,
+    KeyA,
+    KeyS,
+    KeyD,
+    ShiftLeft,
+    Unknown,
+}
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
@@ -172,6 +185,7 @@ pub fn exit_event_loop() {
     send_render_command(RenderCommand::ExitEventLoop);
 }
 
+#[cfg(feature = "ui")]
 static RENDER_TX: Mutex<Option<winit::event_loop::EventLoopProxy<RenderCommand>>> =
     Mutex::new(None);
 pub static AUDIO_STATE: Mutex<Option<crate::audio::AudioManager>> = Mutex::new(None);
@@ -263,17 +277,25 @@ pub fn registry_loop_music(path: &str) -> Result<(), String> {
     Err("Audio engine not initialized".into())
 }
 
+#[cfg(feature = "ui")]
 pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) {
     let mut guard = RENDER_TX.lock().unwrap_or_else(|e| e.into_inner());
     *guard = Some(tx);
 }
 
+#[cfg(not(feature = "ui"))]
+pub fn set_render_channel() {}
+
+#[cfg(feature = "ui")]
 pub fn send_render_command(cmd: RenderCommand) {
     let guard = RENDER_TX.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(tx) = guard.as_ref() {
         let _ = tx.send_event(cmd);
     }
 }
+
+#[cfg(not(feature = "ui"))]
+pub fn send_render_command(_cmd: RenderCommand) {}
 
 /// Sprint 162: Send a UI tree to a specific window for retained-mode rendering.
 /// The window ID must match a window previously created with `registry_create_window`.
@@ -589,6 +611,7 @@ pub struct StatefulCounter {
 }
 
 // GPU Context managed by the Registry
+#[cfg(feature = "ui")]
 pub struct GpuContext {
     pub instance: wgpu::Instance,
     pub adapter: wgpu::Adapter,
@@ -596,12 +619,22 @@ pub struct GpuContext {
     pub queue: Arc<wgpu::Queue>,
 }
 
+#[cfg(not(feature = "ui"))]
+pub struct GpuContext;
+
 // SAFETY: wgpu GPU types are Send+Sync; our registry is single-threaded.
 unsafe impl Send for GpuContext {}
 unsafe impl Sync for GpuContext {}
 
+#[cfg(feature = "ui")]
 pub struct TextureAsset {
     pub bind_group: Arc<wgpu::BindGroup>,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[cfg(not(feature = "ui"))]
+pub struct TextureAsset {
     pub width: u32,
     pub height: u32,
 }
@@ -934,6 +967,7 @@ pub fn registry_file_write(handle_id: i64, content: String) {
 
 // ── GPU Orchestration ────────────────────────────────────────────────
 
+#[cfg(feature = "ui")]
 pub fn registry_gpu_init() -> i64 {
     let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
@@ -988,6 +1022,11 @@ pub fn registry_gpu_init() -> i64 {
     id as i64
 }
 
+#[cfg(not(feature = "ui"))]
+pub fn registry_gpu_init() -> i64 {
+    -1
+}
+
 pub fn registry_fill_color(window_handle: i64, _r: i64, _g: i64, _b: i64) {
     if window_handle < 0 {}
     // Note: We could send a Command for this too.
@@ -1009,6 +1048,7 @@ impl crate::natives::NativeModule for RegistryModule {
 
 // ── Texture Orchestration ─────────────────────────────────────────
 
+#[cfg(feature = "ui")]
 pub fn registry_texture_load(path: String) -> i64 {
     let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(&path) {
         Ok(p) => p,
@@ -1145,6 +1185,12 @@ pub fn registry_texture_load(path: String) -> i64 {
         );
     });
 
+    id as i64
+}
+
+#[cfg(not(feature = "ui"))]
+pub fn registry_texture_load(_path: String) -> i64 {
+    let id = COUNTER_NEXT_ID.fetch_add(1, Ordering::Relaxed);
     id as i64
 }
 

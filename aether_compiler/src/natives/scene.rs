@@ -7,6 +7,7 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
+#[cfg(feature = "ui")]
 use winit::window::Window as WinitWindow;
 
 use crate::natives::registry::{RenderCommand, send_render_command};
@@ -28,6 +29,7 @@ pub struct SceneLight {
 }
 
 /// Per-window WGPU + input + scene state
+#[cfg(feature = "ui")]
 pub struct RegistryWindowState {
     pub window: Arc<WinitWindow>,
     pub input: Arc<Mutex<crate::natives::registry::InputState>>,
@@ -63,6 +65,9 @@ pub struct RegistryWindowState {
     pub particle_pipeline: Option<wgpu::RenderPipeline>,
     pub particle_bgl: Option<wgpu::BindGroupLayout>,
 }
+
+#[cfg(not(feature = "ui"))]
+pub struct RegistryWindowState;
 
 pub(crate) static NEXT_ENTITY_ID: AtomicUsize = AtomicUsize::new(1);
 pub(crate) static NEXT_LIGHT_ID: AtomicUsize = AtomicUsize::new(1);

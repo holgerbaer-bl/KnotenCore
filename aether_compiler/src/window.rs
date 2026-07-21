@@ -1,11 +1,19 @@
+#[cfg(feature = "ui")]
 use crate::natives::registry::{CachedMesh, RegistryWindowState, RenderCommand};
+#[cfg(feature = "ui")]
 use std::collections::HashMap;
+#[cfg(feature = "ui")]
 use std::sync::Arc;
+#[cfg(feature = "ui")]
 use winit::application::ApplicationHandler;
+#[cfg(feature = "ui")]
 use winit::event::WindowEvent;
+#[cfg(feature = "ui")]
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
+#[cfg(feature = "ui")]
 use winit::window::{Window as WinitWindow, WindowId};
 
+#[cfg(feature = "ui")]
 pub struct KnotenApp {
     pub windows: HashMap<usize, RegistryWindowState>,
     pub window_id_map: HashMap<WindowId, usize>,
@@ -1956,3 +1964,21 @@ fn collect_floats(rel: &crate::executor::RelType, out: &mut Vec<f32>) {
         _ => {} // Skip non-numeric types
     }
 }
+
+#[cfg(not(feature = "ui"))]
+pub struct KnotenApp;
+
+#[cfg(not(feature = "ui"))]
+impl Default for KnotenApp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(not(feature = "ui"))]
+impl KnotenApp {
+    pub fn new() -> Self {
+        Self
+    }
+}
+

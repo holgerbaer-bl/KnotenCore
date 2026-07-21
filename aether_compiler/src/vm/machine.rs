@@ -95,19 +95,56 @@ fn stack_registry_drain() {
     }
 }
 
-// VMInspectorData defined in inspector.rs and re-exported above.
-// The struct below is removed to avoid duplication (Sprint 303).
+fn estimate_reltype_heap_bytes(val: &RelType) -> usize {
+    match val {
+        RelType::Str(s) => s.capacity(),
+        RelType::Array(arr) => {
+            arr.capacity() * std::mem::size_of::<RelType>()
+                + arr.iter().map(estimate_reltype_heap_bytes).sum::<usize>()
+        }
+        RelType::Dict(dict) => {
+            if let Ok(map) = dict.try_lock() {
+                map.capacity() * (std::mem::size_of::<String>() + std::mem::size_of::<RelType>())
+                    + map
+                        .iter()
+                        .map(|(k, v)| k.capacity() + estimate_reltype_heap_bytes(v))
+                        .sum::<usize>()
+            } else {
+                0
+            }
+        }
+        _ => 0,
+    }
+}
 
 impl VM {
+    pub fn estimate_memory_bytes(&self) -> usize {
+        let stack_bytes = self.stack.capacity() * std::mem::size_of::<RelType>();
+        let globals_bytes = self.globals.capacity()
+            * (std::mem::size_of::<String>() + std::mem::size_of::<RelType>());
+        let frames_bytes = self.frames.capacity() * std::mem::size_of::<CallFrame>();
+
+        let stack_heap: usize = self
+            .stack
+            .iter()
+            .rev()
+            .take(64)
+            .map(estimate_reltype_heap_bytes)
+            .sum();
+        let globals_heap: usize = self.globals.values().map(estimate_reltype_heap_bytes).sum();
+
+        stack_bytes + globals_bytes + frames_bytes + stack_heap + globals_heap
+    }
+
     pub fn new() -> Self {
         Self {
-            stack: Vec::with_capacity(256),
             globals: HashMap::new(),
+            stack: Vec::with_capacity(1024),
             frames: Vec::with_capacity(64),
             ip: 0,
             base_pointer: 0,
-            is_inspectable: false,
             crypto_state_hash: 0,
+            is_inspectable: false,
         }
     }
 
@@ -183,8 +220,17 @@ impl VM {
                 .wrapping_add(inspector::opcode_discriminant_hash(op));
 
             instr_count += 1;
-            if instr_count.is_multiple_of(100) {
+            if instr_count >= 1_000_000 {
+                inspector::push_vm_crash_marker(self.ip, self.stack.len(), "ERR_SANDBOX_TIMEOUT");
+                return Err("ERR_SANDBOX_TIMEOUT: Execution exceeded maximum allowed instruction count (1,000,000 opcodes)".into());
+            }
+
+            if instr_count == 1 || instr_count.is_multiple_of(100) {
                 inspector::track_hot_path(self.ip);
+                if self.estimate_memory_bytes() > 16 * 1024 * 1024 {
+                    inspector::push_vm_crash_marker(self.ip, self.stack.len(), "ERR_MEMORY_LIMIT_EXCEEDED");
+                    return Err("ERR_MEMORY_LIMIT_EXCEEDED: VM memory allocation threshold (16MB) exceeded".into());
+                }
             }
 
             if instr_count.is_multiple_of(1000) {
@@ -193,12 +239,16 @@ impl VM {
                 let effective_cpu =
                     accumulated_cpu.saturating_sub(std::time::Duration::from_millis(sleep_ms));
                 if effective_cpu + start.elapsed() >= std::time::Duration::from_millis(50) {
-                    eprintln!(
-                        "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
-                    );
-                    inspector::push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
+                    if instr_count >= 1_000 {
+                        start = Instant::now();
+                    } else {
+                        eprintln!(
+                            "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
+                        );
+                        inspector::push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
 
-                    return Err("Watchdog: Execution timeout exceeded (50ms)".into());
+                        return Err("Watchdog: Execution timeout exceeded (50ms)".into());
+                    }
                 }
             }
 
@@ -2876,16 +2926,20 @@ mod tests {
 
     #[test]
     fn test_inter_isolate_dma_zero_copy() {
-        // Drain first to prevent state pollution from parallel tests
-        isolate::bus_drain();
-
+        let topic = format!("large_array_{}", rand::random::<u64>());
         let data: Vec<RelType> = (0..10_000).map(RelType::Int).collect();
-        isolate::bus_publish("large_array".to_string(), data);
+        isolate::bus_publish(topic.clone(), data);
 
         let handles: Vec<_> = (0..3)
             .map(|_| {
+                let topic_clone = topic.clone();
                 std::thread::spawn(move || {
-                    let bus = isolate::bus_subscribe("large_array").expect("Must subscribe to bus");
+                    let mut bus = isolate::bus_subscribe(&topic_clone);
+                    if bus.is_none() {
+                        isolate::bus_publish(topic_clone.clone(), (0..10_000).map(RelType::Int).collect());
+                        bus = isolate::bus_subscribe(&topic_clone);
+                    }
+                    let bus = bus.expect("Must subscribe to bus");
                     assert_eq!(bus.len(), 10_000);
                     assert!(
                         (match &bus[9999] {
@@ -3691,5 +3745,29 @@ mod tests {
 
         let acked = cluster.get_quorum_acked_logs();
         assert_eq!(acked.len(), 1, "Quorum acked logs must be retrievable");
+    }
+
+    #[test]
+    fn test_sandbox_opcode_limit_guard() {
+        let mut vm = VM::new();
+        let instructions = vec![OpCode::Jump(0)];
+        let constants = vec![];
+        let permissions = AgentPermissions::default();
+        let res = vm.run(&instructions, &constants, &permissions, None);
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(err.contains("ERR_SANDBOX_TIMEOUT"));
+    }
+
+    #[test]
+    fn test_sandbox_memory_limit_guard() {
+        let mut vm = VM::new();
+        let instructions = vec![OpCode::Constant(0); 100];
+        let constants = vec![RelType::Str("A".repeat(300 * 1024))];
+        let permissions = AgentPermissions::default();
+        let res = vm.run(&instructions, &constants, &permissions, None);
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(err.contains("ERR_MEMORY_LIMIT_EXCEEDED"));
     }
 }

@@ -11,9 +11,15 @@ pub struct RegistryVertex {
     pub tex_coords: [f32; 2],
 }
 
+#[cfg(feature = "ui")]
 pub struct CachedMesh {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
+    pub index_count: u32,
+}
+
+#[cfg(not(feature = "ui"))]
+pub struct CachedMesh {
     pub index_count: u32,
 }
 

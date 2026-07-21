@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.3.0-headless-alpha] - Sprint 305: Headless Engine Transition & Sandbox Hardening (2026-07-20)
+Sprint 305: Transitioned KnotenCore to a headless-first runtime architecture. Optional `ui` feature gate isolates heavyweight rendering crates (`wgpu`, `winit`, `egui`). Added no-op stubs for UI calls, instruction count limits, and memory limits.
+- **Headless-First Architecture & Feature Flagging**: Introduced optional `ui` feature in root `Cargo.toml` and `aether_compiler/Cargo.toml`. Heavyweight dependencies (`wgpu`, `winit`, `egui`, `egui-wgpu`, `egui-winit`) are now optional and compiled behind `#[cfg(feature = "ui")]`.
+- **Conditional Compilation & No-Op UI Stubs**: Wrapped window and rendering logic in `window.rs`, `registry.rs`, and `run_knc.rs` behind `#[cfg(feature = "ui")]`. Added safe no-op stubs so `.nod` files containing UI nodes compile and execute without physical display requirements.
+- **Sandbox Instruction Counter Guard**: Enforced a hard instruction count cap of 1,000,000 opcodes in `machine.rs`. If execution exceeds 1,000,000 instructions, execution terminates immediately returning `ERR_SANDBOX_TIMEOUT`.
+- **Sandbox Memory Guard**: Enforced a hard memory allocation threshold of 16 MB per VM thread for stack registers and array/string memory. Exceeding this limit returns `ERR_MEMORY_LIMIT_EXCEEDED`.
+- **Documentation & Error Catalog**: Updated `README.md`, `llm.md`, `changelog.md`, and registered `ERR_SANDBOX_TIMEOUT` and `ERR_MEMORY_LIMIT_EXCEEDED` in `error_catalog.json`.
+
 ## [v2.2.0-stable] - Sprint 304: Developer Experience & UI-Styling Hardening (2026-06-17)
 Sprint 304: Implemented the four DX-hardening levers: CLI JSON-gated error feedback, AOT/egui styling via `UISetStyle`, Headless validation/execution mocking, and created the styled dashboard blueprint.
 - **Hebel 1: CLI JSON-Fehler-Gating**: `run_knc` parses VM thread compilation failures and Stack-VM execution runtime faults. If `--output-format json` is active, faults are structured into machine-readable JSON: `{"status": "error", "errors": [{"code": "ERR_RUNTIME_FAULT", "message": "FFI Fault: <msg>"}]}` and exit with code 1.
