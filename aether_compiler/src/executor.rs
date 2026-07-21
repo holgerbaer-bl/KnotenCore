@@ -1261,16 +1261,12 @@ impl ExecutionEngine {
         let mut accumulated = std::path::PathBuf::new();
         for component in check_path.components() {
             accumulated.push(component);
-            if accumulated.exists() {
-                match std::fs::symlink_metadata(&accumulated) {
-                    Ok(meta) if meta.file_type().is_symlink() => {
-                        return Err(format!(
-                            "Symlink blocked: '{}' is a symbolic link",
-                            accumulated.display()
-                        ));
-                    }
-                    _ => {}
-                }
+            if matches!(std::fs::symlink_metadata(&accumulated), Ok(meta) if meta.file_type().is_symlink())
+            {
+                return Err(format!(
+                    "Symlink blocked: '{}' is a symbolic link",
+                    accumulated.display()
+                ));
             }
         }
         // For reads: the file must already exist, so we can canonicalize directly.
@@ -1302,16 +1298,12 @@ impl ExecutionEngine {
         let mut accumulated = std::path::PathBuf::new();
         for component in abs.components() {
             accumulated.push(component);
-            if accumulated.exists() {
-                match std::fs::symlink_metadata(&accumulated) {
-                    Ok(meta) if meta.file_type().is_symlink() => {
-                        return Err(format!(
-                            "Symlink blocked: '{}' is a symbolic link",
-                            accumulated.display()
-                        ));
-                    }
-                    _ => {}
-                }
+            if matches!(std::fs::symlink_metadata(&accumulated), Ok(meta) if meta.file_type().is_symlink())
+            {
+                return Err(format!(
+                    "Symlink blocked: '{}' is a symbolic link",
+                    accumulated.display()
+                ));
             }
         }
         // Normalize by resolving ".." components without requiring the path to exist

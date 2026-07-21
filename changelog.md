@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.3.2-hotfix] - Sprint 305: Headless Linux Test Assertions Fix (2026-07-21)
+Sprint 305 Hotfix 2: Fixed cross-platform path resolution and symlink metadata detection for headless Linux test runners.
+- **Cross-Platform Symlink Testing**: Changed temporary directory creation in `sandbox_tests.rs` to construct `cwd.join("target")` paths, preventing `/tmp` CWD escape false-positives under Linux.
+- **Symlink Metadata Hardening (`executor.rs`)**: Replaced `if accumulated.exists()` with `if let Ok(meta) = std::fs::symlink_metadata(&accumulated)` across `validate_fs_path` and `validate_fs_path_write`, enabling reliable symlink detection on Linux and Windows regardless of link validity.
+- **Test Suite**: 247/247 tests passing under both Linux and Windows environments.
+
 ## [v2.3.1-hotfix] - Sprint 305: Headless CI Pipeline & Clippy Warnings Fix (2026-07-21)
 Sprint 305 Hotfix: Repaired GitHub Actions CI pipeline, added headless Linux testing step, and eliminated all Clippy warnings under default and `--no-default-features` builds.
 - **CI Pipeline Modernization**: Added explicit `headless-linux` job to `.github/workflows/ci.yml` running `cargo test --workspace --no-default-features` and `cargo clippy --workspace --no-default-features --all-targets -- -D warnings` on Ubuntu runners.

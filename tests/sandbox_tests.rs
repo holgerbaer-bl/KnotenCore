@@ -84,7 +84,8 @@ fn test_domain_whitelist_empty_allows_all() {
 #[test]
 fn test_symlink_blocked_by_validate_fs_path() {
     // Create a temporary symlink (if platform supports it)
-    let tmp_dir = std::env::temp_dir().join("knotencore_symlink_test");
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::env::temp_dir());
+    let tmp_dir = cwd.join("target").join("knotencore_symlink_test");
     let _ = std::fs::create_dir_all(&tmp_dir);
 
     let target_file = tmp_dir.join("real_file.txt");
@@ -126,7 +127,8 @@ fn test_symlink_blocked_by_validate_fs_path() {
 /// Symlink path must be rejected by validate_fs_path_write
 #[test]
 fn test_symlink_blocked_by_validate_fs_path_write() {
-    let tmp_dir = std::env::temp_dir().join("knotencore_symlink_write_test");
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::env::temp_dir());
+    let tmp_dir = cwd.join("target").join("knotencore_symlink_write_test");
     let _ = std::fs::create_dir_all(&tmp_dir);
 
     let target_file = tmp_dir.join("real_write_target.txt");
