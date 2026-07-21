@@ -300,7 +300,8 @@ fn run() {
         #[cfg(target_os = "windows")]
         use winit::platform::windows::EventLoopBuilderExtWindows;
 
-        let mut builder = EventLoop::<knoten_core::natives::registry::RenderCommand>::with_user_event();
+        let mut builder =
+            EventLoop::<knoten_core::natives::registry::RenderCommand>::with_user_event();
         #[cfg(target_os = "windows")]
         builder.with_any_thread(true);
         let event_loop = builder.build().expect("Failed to create event loop");
@@ -376,8 +377,10 @@ fn run() {
 
     #[cfg(not(feature = "ui"))]
     {
-        knoten_core::natives::registry::HEADLESS_MODE.store(true, std::sync::atomic::Ordering::Relaxed);
-        knoten_core::natives::registry::HEADLESS_FRAME_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+        knoten_core::natives::registry::HEADLESS_MODE
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        knoten_core::natives::registry::HEADLESS_FRAME_COUNT
+            .store(0, std::sync::atomic::Ordering::Relaxed);
 
         let mut compiler = knoten_core::vm::compiler::Compiler::new();
         if let Some(parent) = std::path::Path::new(&file_path).parent()
@@ -425,7 +428,10 @@ fn run() {
         };
 
         if output_format_json {
-            println!(r#"{{"status": "success", "result": "{}"}}"#, result.replace("\"", "\\\""));
+            println!(
+                r#"{{"status": "success", "result": "{}"}}"#,
+                result.replace("\"", "\\\"")
+            );
         } else {
             println!("\nExecution Finished.\nResult: {}", result);
         }

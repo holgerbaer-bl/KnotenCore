@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.3.1-hotfix] - Sprint 305: Headless CI Pipeline & Clippy Warnings Fix (2026-07-21)
+Sprint 305 Hotfix: Repaired GitHub Actions CI pipeline, added headless Linux testing step, and eliminated all Clippy warnings under default and `--no-default-features` builds.
+- **CI Pipeline Modernization**: Added explicit `headless-linux` job to `.github/workflows/ci.yml` running `cargo test --workspace --no-default-features` and `cargo clippy --workspace --no-default-features --all-targets -- -D warnings` on Ubuntu runners.
+- **Clippy & Feature Gate Hardening**: Fixed all `unused_imports` and `dead_code` warnings across `#[cfg(feature = "ui")]` feature gates.
+- **Formatting**: Ensured 100% compliance with `cargo fmt --check`.
+- **Test Suite**: Verified 247/247 tests passing under both default and `--no-default-features` builds.
+
 ## [v2.3.0-headless-alpha] - Sprint 305: Headless Engine Transition & Sandbox Hardening (2026-07-20)
 Sprint 305: Transitioned KnotenCore to a headless-first runtime architecture. Optional `ui` feature gate isolates heavyweight rendering crates (`wgpu`, `winit`, `egui`). Added no-op stubs for UI calls, instruction count limits, and memory limits.
 - **Headless-First Architecture & Feature Flagging**: Introduced optional `ui` feature in root `Cargo.toml` and `aether_compiler/Cargo.toml`. Heavyweight dependencies (`wgpu`, `winit`, `egui`, `egui-wgpu`, `egui-winit`) are now optional and compiled behind `#[cfg(feature = "ui")]`.

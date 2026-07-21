@@ -1981,4 +1981,3 @@ impl KnotenApp {
         Self
     }
 }
-

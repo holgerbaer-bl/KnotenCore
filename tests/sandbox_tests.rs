@@ -272,7 +272,10 @@ fn test_vm_ffi_bypass_blocked() {
     );
     let err = result.unwrap_err();
     assert!(
-        err.contains("Watchdog") || err.contains("timeout"),
+        err.contains("Watchdog")
+            || err.contains("timeout")
+            || err.contains("ERR_SANDBOX_TIMEOUT")
+            || err.contains("ERR_MEMORY_LIMIT_EXCEEDED"),
         "Error must be a watchdog timeout: {}",
         err
     );

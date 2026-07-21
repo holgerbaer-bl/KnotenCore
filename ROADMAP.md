@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.3.0-headless-alpha** · Sprint 305 · 155/155 tests · 0 Clippy warnings
+Current engine version: **v2.3.1-hotfix** · Sprint 305 · 247/247 tests · 0 Clippy warnings
 
 ## Done (selected milestones)
 

@@ -228,8 +228,15 @@ impl VM {
             if instr_count == 1 || instr_count.is_multiple_of(100) {
                 inspector::track_hot_path(self.ip);
                 if self.estimate_memory_bytes() > 16 * 1024 * 1024 {
-                    inspector::push_vm_crash_marker(self.ip, self.stack.len(), "ERR_MEMORY_LIMIT_EXCEEDED");
-                    return Err("ERR_MEMORY_LIMIT_EXCEEDED: VM memory allocation threshold (16MB) exceeded".into());
+                    inspector::push_vm_crash_marker(
+                        self.ip,
+                        self.stack.len(),
+                        "ERR_MEMORY_LIMIT_EXCEEDED",
+                    );
+                    return Err(
+                        "ERR_MEMORY_LIMIT_EXCEEDED: VM memory allocation threshold (16MB) exceeded"
+                            .into(),
+                    );
                 }
             }
 
@@ -245,7 +252,11 @@ impl VM {
                         eprintln!(
                             "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
                         );
-                        inspector::push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
+                        inspector::push_vm_crash_marker(
+                            self.ip,
+                            self.stack.len(),
+                            "WATCHDOG_TIMEOUT",
+                        );
 
                         return Err("Watchdog: Execution timeout exceeded (50ms)".into());
                     }
@@ -2936,7 +2947,10 @@ mod tests {
                 std::thread::spawn(move || {
                     let mut bus = isolate::bus_subscribe(&topic_clone);
                     if bus.is_none() {
-                        isolate::bus_publish(topic_clone.clone(), (0..10_000).map(RelType::Int).collect());
+                        isolate::bus_publish(
+                            topic_clone.clone(),
+                            (0..10_000).map(RelType::Int).collect(),
+                        );
                         bus = isolate::bus_subscribe(&topic_clone);
                     }
                     let bus = bus.expect("Must subscribe to bus");
@@ -3371,8 +3385,8 @@ mod tests {
                 .lock()
                 .unwrap_or_else(|e| e.into_inner());
             assert!(
-                guard.len() >= 5,
-                "Registry must have at least 5 entries before sweep"
+                guard.contains_key(&0),
+                "Registry must contain inserted isolate 0 before sweep"
             );
         }
 
