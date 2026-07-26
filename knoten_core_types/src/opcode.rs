@@ -98,4 +98,19 @@ pub enum OpCode {
 
     // Sprint 304: egui visual UI styling configuration
     UISetStyle,
+
+    // Sprint 306: Native Cast Opcodes — type-safe stack conversions
+    ToInt,   // Float → Int (truncating) or Str → Int (parsing)
+    ToFloat, // Int → Float or Str → Float (parsing)
+
+    // Sprint 306: High-Performance String & Array Primitives
+    StringConcat,   // pops (lhs: Str, rhs: Str) → pushes Str (concatenated)
+    StringContains, // pops (haystack: Str, needle: Str) → pushes Bool
+    ArraySlice,     // pops (arr: Array, start: Int, end: Int) → pushes Array
+
+    // Sprint 306: Sandboxed In-Memory VFS opcodes
+    VfsWrite,  // pops (path: Str, data: Str) → pushes Void
+    VfsRead,   // pops (path: Str) → pushes Str (file contents) or Void if not found
+    VfsExists, // pops (path: Str) → pushes Bool
+    VfsList,   // pops (prefix: Str) → pushes Array of matching paths
 }

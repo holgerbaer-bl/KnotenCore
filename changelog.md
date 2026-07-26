@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.4.0-core] - Sprint 306: Headless Core & Agentic DX (2026-07-26)
+Sprint 306: Implemented Native Cast Opcodes (`ToInt`, `ToFloat`), High-Performance String & Array Primitives (`StringConcat`, `StringContains`, `ArraySlice`), and Sandboxed In-Memory Virtual File System (VFS).
+- **Native Cast Opcodes (`ToInt`, `ToFloat`)**: Added `OpCode::ToInt` and `OpCode::ToFloat` to `knoten_core_types` and implemented their execution in `machine.rs`. Enables type-safe stack conversions for Int, Float, Bool, and Str types without external helper function calls.
+- **High-Performance String & Array Primitives**: Added `OpCode::StringConcat`, `OpCode::StringContains`, and `OpCode::ArraySlice` for bare-metal stack-VM evaluation without heap allocations.
+- **Sandboxed In-Memory Virtual File System (VFS)**: Implemented `vm::vfs::VirtualFs` with thread-safe `Arc<RwLock<HashMap<String, Vec<u8>>>>` storage. Script VFS operations (`VfsRead`, `VfsWrite`, `VfsExists`, `VfsList`) are 100% isolated in RAM and never access the host filesystem. Path traversal (`..`) and null bytes are blocked at the validation layer.
+- **Headless Test Suite**: Created `tests/headless_core_tests.rs` with comprehensive test coverage for all new opcodes and VFS operations under `--no-default-features`.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to version v2.4.0-core.
+
 ## [v2.3.6-hotfix] - Sprint 305: Fix Unused Import & Platform Path Qualifiers (2026-07-26)
 Sprint 305 Hotfix 6: Resolved platform-conditional `unused_imports` Clippy warning under Linux `-D warnings` and cross-platform compilation of `sandbox_tests.rs`.
 - **Inline Path Qualifiers (`sandbox_tests.rs`)**: Removed top-level `use std::path::Path;` which was unused on Unix targets, and replaced Windows symlink calls with direct `std::path::Path::new` qualification.

@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.3.6-hotfix** · Sprint 305 · 247/247 tests · 0 Clippy warnings
+Current engine version: **v2.4.0-core** · Sprint 306 · Headless Core & Agentic DX
 
 ## Done (selected milestones)
 
@@ -27,6 +27,7 @@ Current engine version: **v2.3.6-hotfix** · Sprint 305 · 247/247 tests · 0 Cl
 - ✅ `machine.rs` modularisation (split into `vm_core`, `gpgpu`, `inspector`, `ledger` in Sprint 303)
 - ✅ Parser panics → `Result` / JSON-feedback validation (Sprint 304)
 - ✅ Headless Engine Transition & Sandbox Wächter Hardening (Sprint 305)
+- ✅ Native Cast Opcodes, High-Performance String & Array Primitives, Sandboxed In-Memory VFS (Sprint 306 - v2.4.0-core)
 
 ## Near-Term
 

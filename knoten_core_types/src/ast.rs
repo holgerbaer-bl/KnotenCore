@@ -284,6 +284,21 @@ pub enum Node {
         field: String,
         value: Box<Node>,
     },
+
+    // Sprint 306: Native Cast Opcodes
+    ToInt(Box<Node>),   // Converts Float/Str → Int
+    ToFloat(Box<Node>), // Converts Int/Str → Float
+
+    // Sprint 306: High-Performance String & Array Primitives
+    StringConcat(Box<Node>, Box<Node>), // lhs: Str, rhs: Str → Str
+    StringContains(Box<Node>, Box<Node>), // haystack: Str, needle: Str → Bool
+    ArraySlice(Box<Node>, Box<Node>, Box<Node>), // arr: Array, start: Int, end: Int → Array
+
+    // Sprint 306: Sandboxed In-Memory VFS
+    VfsWrite(Box<Node>, Box<Node>), // path: Str, data: Str → Void
+    VfsRead(Box<Node>),             // path: Str → Str | Void
+    VfsExists(Box<Node>),           // path: Str → Bool
+    VfsList(Box<Node>),             // prefix: Str → Array<Str>
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

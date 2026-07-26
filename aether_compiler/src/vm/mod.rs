@@ -8,6 +8,7 @@ pub mod scheduler;
 pub mod shader_graph;
 pub mod snapshot;
 pub mod storage;
+pub mod vfs; // Sprint 306: Sandboxed In-Memory VFS
 
 pub use compiler::Compiler;
 pub use knoten_core_types::opcode;
@@ -18,3 +19,5 @@ pub use inspector::{
     VMInspectorData, drain_hot_path_table, get_ledger_nonce, get_vm_inspection_snapshot,
     verify_ledger_hash,
 };
+// Sprint 306: re-export VFS
+pub use vfs::VirtualFs;

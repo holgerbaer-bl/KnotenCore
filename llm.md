@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.3.6-hotfix Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.4.0-core Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -127,6 +127,11 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Production Stability Calibration** (Sprint 300) — Freezes the normative JSON-AST schema specifications and locks down the multi-node isolate scheduler pipeline for public open-source orchestration.
 - **Backend Compilation Sync** (Sprint 301) — Bridges the gap between frontend schema definitions and actual bytecode execution, natively supporting 2D transformation pipelines and non-blocking time throttling.
 - **Network Consensus Protocol** (Sprint 302) — Replaced the local deterministic scheduler stub with a true network-layer Raft protocol backing decentralized multi-node state replication.
+- **egui Visual Styling** (Sprint 304) — `UISetStyle(rounding, spacing, accent_rgba, fill_rgba, btn_idle?, btn_hover?)` compiles to `OpCode::UISetStyle` and dispatches `RenderCommand::UpdateStyle` to the render thread. Six parameters; optional 5th/6th buttons override the system accent.
+- **Headless Core & Agentic DX** (Sprint 306) — Three headless-first engine features:
+  - **Native Cast Opcodes** — `OpCode::ToInt` / `OpCode::ToFloat` enable type-safe stack-level conversions: `Float→Int` (truncating), `Int→Float` (lossless), `Str→Int/Float` (parsing), `Bool→Int/Float`. Both compile from `Node::ToInt(expr)` / `Node::ToFloat(expr)`. Error on un-parseable strings.
+  - **High-Performance String & Array Primitives** — `OpCode::StringConcat` (stack concat with auto-stringify), `OpCode::StringContains` (substring check → Bool), `OpCode::ArraySlice` (bounds-clamped sub-array). All three compile from corresponding AST nodes and run on the bare-metal stack-VM without heap allocations.
+  - **Sandboxed In-Memory VFS** — `OpCode::VfsRead / VfsWrite / VfsExists / VfsList`. All script I/O is fully isolated in RAM via `vm::vfs::VirtualFs` (Arc<RwLock<HashMap>>). No host filesystem path is ever accessed. Path traversal (`..`) and null bytes are blocked at the validation layer. VFS state persists across `vm.run()` calls on the same `VM` instance.
 
 ---
 

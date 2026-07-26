@@ -581,6 +581,29 @@ impl Validator {
                 self.check_node(obj);
                 self.check_node(value);
             }
+            // Sprint 306: Cast Opcodes — validate inner expression
+            Node::ToInt(expr) | Node::ToFloat(expr) => {
+                self.check_node(expr);
+            }
+            // Sprint 306: String Primitives
+            Node::StringConcat(l, r) | Node::StringContains(l, r) => {
+                self.check_node(l);
+                self.check_node(r);
+            }
+            // Sprint 306: Array Primitives
+            Node::ArraySlice(arr, start, end_node) => {
+                self.check_node(arr);
+                self.check_node(start);
+                self.check_node(end_node);
+            }
+            // Sprint 306: VFS Nodes — accept all paths (runtime-validated)
+            Node::VfsRead(p) | Node::VfsExists(p) | Node::VfsList(p) => {
+                self.check_node(p);
+            }
+            Node::VfsWrite(p, d) => {
+                self.check_node(p);
+                self.check_node(d);
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ use super::inspector;
 use super::isolate;
 use super::scheduler;
 use super::snapshot;
+use super::vfs::VirtualFs;
 
 pub use isolate::SpeculativeResult;
 pub use isolate::VMIsolate;
@@ -61,6 +62,9 @@ pub struct VM {
     pub base_pointer: usize,
     pub is_inspectable: bool,
     pub crypto_state_hash: u64,
+    /// Sprint 306: Sandboxed In-Memory Virtual File System.
+    /// All script VFS I/O is isolated in RAM — never touches the host filesystem.
+    pub vfs: VirtualFs,
 }
 
 #[derive(Clone)]
@@ -145,6 +149,7 @@ impl VM {
             base_pointer: 0,
             crypto_state_hash: 0,
             is_inspectable: false,
+            vfs: VirtualFs::new(),
         }
     }
 
@@ -927,6 +932,185 @@ impl VM {
                         self.stack.push(RelType::Void);
                     }
                 }
+
+                // ── Sprint 306: Native Cast Opcodes ───────────────────────────────
+                OpCode::ToInt => {
+                    let val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in ToInt".to_string())?;
+                    match val {
+                        RelType::Int(i) => self.stack.push(RelType::Int(i)),
+                        RelType::Float(f) => self.stack.push(RelType::Int(f as i64)),
+                        RelType::Bool(b) => self.stack.push(RelType::Int(if b { 1 } else { 0 })),
+                        RelType::Str(s) => {
+                            let parsed = s
+                                .trim()
+                                .parse::<i64>()
+                                .map_err(|_| format!("ToInt: cannot parse '{}' as integer", s))?;
+                            self.stack.push(RelType::Int(parsed));
+                        }
+                        other => return Err(format!("ToInt: unsupported type {:?}", other)),
+                    }
+                }
+                OpCode::ToFloat => {
+                    let val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in ToFloat".to_string())?;
+                    match val {
+                        RelType::Float(f) => self.stack.push(RelType::Float(f)),
+                        RelType::Int(i) => self.stack.push(RelType::Float(i as f64)),
+                        RelType::Bool(b) => {
+                            self.stack.push(RelType::Float(if b { 1.0 } else { 0.0 }))
+                        }
+                        RelType::Str(s) => {
+                            let parsed = s
+                                .trim()
+                                .parse::<f64>()
+                                .map_err(|_| format!("ToFloat: cannot parse '{}' as float", s))?;
+                            self.stack.push(RelType::Float(parsed));
+                        }
+                        other => return Err(format!("ToFloat: unsupported type {:?}", other)),
+                    }
+                }
+
+                // ── Sprint 306: High-Performance String & Array Primitives ────────
+                OpCode::StringConcat => {
+                    let rhs = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in StringConcat (rhs)".to_string())?;
+                    let lhs = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in StringConcat (lhs)".to_string())?;
+                    match (lhs, rhs) {
+                        (RelType::Str(a), RelType::Str(b)) => self.stack.push(RelType::Str(a + &b)),
+                        (RelType::Str(a), other) => {
+                            self.stack.push(RelType::Str(a + &other.to_string()))
+                        }
+                        (other, RelType::Str(b)) => {
+                            self.stack.push(RelType::Str(other.to_string() + &b))
+                        }
+                        (l, r) => self
+                            .stack
+                            .push(RelType::Str(l.to_string() + &r.to_string())),
+                    }
+                }
+                OpCode::StringContains => {
+                    let needle = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in StringContains (needle)".to_string())?;
+                    let haystack = self.stack.pop().ok_or_else(|| {
+                        "Stack underflow in StringContains (haystack)".to_string()
+                    })?;
+                    match (haystack, needle) {
+                        (RelType::Str(h), RelType::Str(n)) => {
+                            self.stack.push(RelType::Bool(h.contains(n.as_str())))
+                        }
+                        _ => return Err("StringContains requires two Str values".into()),
+                    }
+                }
+                OpCode::ArraySlice => {
+                    let end_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in ArraySlice (end)".to_string())?;
+                    let start_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in ArraySlice (start)".to_string())?;
+                    let arr_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in ArraySlice (array)".to_string())?;
+                    match (arr_val, start_val, end_val) {
+                        (RelType::Array(arr), RelType::Int(start), RelType::Int(end)) => {
+                            let len = arr.len() as i64;
+                            let s = start.max(0).min(len) as usize;
+                            let e = end.max(0).min(len) as usize;
+                            let e = e.max(s);
+                            self.stack.push(RelType::Array(arr[s..e].to_vec()));
+                        }
+                        _ => return Err("ArraySlice requires (Array, Int start, Int end)".into()),
+                    }
+                }
+
+                // ── Sprint 306: Sandboxed In-Memory VFS Opcodes ──────────────────
+                OpCode::VfsWrite => {
+                    let data_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in VfsWrite (data)".to_string())?;
+                    let path_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in VfsWrite (path)".to_string())?;
+                    match (path_val, data_val) {
+                        (RelType::Str(path), RelType::Str(data)) => {
+                            self.vfs
+                                .write(&path, &data)
+                                .map_err(|e| format!("VfsWrite error: {}", e))?;
+                        }
+                        _ => return Err("VfsWrite expects (path: Str, data: Str)".into()),
+                    }
+                    self.stack.push(RelType::Void);
+                }
+                OpCode::VfsRead => {
+                    let path_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in VfsRead (path)".to_string())?;
+                    match path_val {
+                        RelType::Str(path) => {
+                            match self
+                                .vfs
+                                .read(&path)
+                                .map_err(|e| format!("VfsRead error: {}", e))?
+                            {
+                                Some(content) => self.stack.push(RelType::Str(content)),
+                                None => self.stack.push(RelType::Void),
+                            }
+                        }
+                        _ => return Err("VfsRead expects a Str path".into()),
+                    }
+                }
+                OpCode::VfsExists => {
+                    let path_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in VfsExists (path)".to_string())?;
+                    match path_val {
+                        RelType::Str(path) => {
+                            let exists = self
+                                .vfs
+                                .exists(&path)
+                                .map_err(|e| format!("VfsExists error: {}", e))?;
+                            self.stack.push(RelType::Bool(exists));
+                        }
+                        _ => return Err("VfsExists expects a Str path".into()),
+                    }
+                }
+                OpCode::VfsList => {
+                    let prefix_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in VfsList (prefix)".to_string())?;
+                    match prefix_val {
+                        RelType::Str(prefix) => {
+                            let paths = self
+                                .vfs
+                                .list(&prefix)
+                                .map_err(|e| format!("VfsList error: {}", e))?;
+                            let arr: Vec<RelType> = paths.into_iter().map(RelType::Str).collect();
+                            self.stack.push(RelType::Array(arr));
+                        }
+                        _ => return Err("VfsList expects a Str prefix".into()),
+                    }
+                }
+
                 OpCode::UILabel => {
                     let text_val = self.stack.pop().unwrap_or(RelType::Void);
                     let text = match text_val {

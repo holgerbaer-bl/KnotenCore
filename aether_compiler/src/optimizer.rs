@@ -356,6 +356,24 @@ pub fn count_nodes(node: &Node) -> usize {
                 count += count_nodes(n);
             }
         }
+        // Sprint 306: Cast Opcodes
+        Node::ToInt(n) | Node::ToFloat(n) => {
+            count += count_nodes(n);
+        }
+        // Sprint 306: String & Array Primitives
+        Node::StringConcat(l, r) | Node::StringContains(l, r) => {
+            count += count_nodes(l) + count_nodes(r);
+        }
+        Node::ArraySlice(arr, s, e) => {
+            count += count_nodes(arr) + count_nodes(s) + count_nodes(e);
+        }
+        // Sprint 306: VFS Nodes
+        Node::VfsRead(n) | Node::VfsExists(n) | Node::VfsList(n) => {
+            count += count_nodes(n);
+        }
+        Node::VfsWrite(l, r) => {
+            count += count_nodes(l) + count_nodes(r);
+        }
     }
     count
 }
@@ -813,6 +831,28 @@ pub fn optimize(node: Node) -> Node {
             inputs: inputs.into_iter().map(optimize).collect(),
             matrix_handle: matrix_handle.map(|mh| Box::new(optimize(*mh))),
         },
+        // Sprint 306: Cast Opcodes
+        Node::ToInt(expr) => Node::ToInt(Box::new(optimize(*expr))),
+        Node::ToFloat(expr) => Node::ToFloat(Box::new(optimize(*expr))),
+        // Sprint 306: String & Array Primitives
+        Node::StringConcat(l, r) => {
+            Node::StringConcat(Box::new(optimize(*l)), Box::new(optimize(*r)))
+        }
+        Node::StringContains(h, n) => {
+            Node::StringContains(Box::new(optimize(*h)), Box::new(optimize(*n)))
+        }
+        Node::ArraySlice(arr, s, e) => Node::ArraySlice(
+            Box::new(optimize(*arr)),
+            Box::new(optimize(*s)),
+            Box::new(optimize(*e)),
+        ),
+        // Sprint 306: VFS Nodes — pass through (no constant-folding applicable)
+        Node::VfsRead(p) => Node::VfsRead(Box::new(optimize(*p))),
+        Node::VfsExists(p) => Node::VfsExists(Box::new(optimize(*p))),
+        Node::VfsList(p) => Node::VfsList(Box::new(optimize(*p))),
+        Node::VfsWrite(p, d) => {
+            Node::VfsWrite(Box::new(optimize(*p)), Box::new(optimize(*d)))
+        }
     }
 }
 

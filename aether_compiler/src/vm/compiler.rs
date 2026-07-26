@@ -611,6 +611,72 @@ impl Compiler {
                 self.instructions.push(OpCode::WriteFile);
                 true
             }
+            // Sprint 306: Native Cast Opcodes
+            Node::ToInt(expr) => {
+                if !self.compile_node(expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::ToInt);
+                true
+            }
+            Node::ToFloat(expr) => {
+                if !self.compile_node(expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::ToFloat);
+                true
+            }
+            // Sprint 306: High-Performance String & Array Primitives
+            Node::StringConcat(lhs, rhs) => {
+                if !self.compile_node(lhs) || !self.compile_node(rhs) {
+                    return false;
+                }
+                self.instructions.push(OpCode::StringConcat);
+                true
+            }
+            Node::StringContains(haystack, needle) => {
+                if !self.compile_node(haystack) || !self.compile_node(needle) {
+                    return false;
+                }
+                self.instructions.push(OpCode::StringContains);
+                true
+            }
+            Node::ArraySlice(arr, start, end) => {
+                if !self.compile_node(arr) || !self.compile_node(start) || !self.compile_node(end) {
+                    return false;
+                }
+                self.instructions.push(OpCode::ArraySlice);
+                true
+            }
+            // Sprint 306: Sandboxed In-Memory VFS Nodes
+            Node::VfsWrite(path_expr, data_expr) => {
+                if !self.compile_node(path_expr) || !self.compile_node(data_expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::VfsWrite);
+                true
+            }
+            Node::VfsRead(path_expr) => {
+                if !self.compile_node(path_expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::VfsRead);
+                true
+            }
+            Node::VfsExists(path_expr) => {
+                if !self.compile_node(path_expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::VfsExists);
+                true
+            }
+            Node::VfsList(prefix_expr) => {
+                if !self.compile_node(prefix_expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::VfsList);
+                true
+            }
             Node::PlayNote(channel_expr, freq_expr, dur_expr, wave_expr) => {
                 if !self.compile_node(channel_expr) {
                     return false;

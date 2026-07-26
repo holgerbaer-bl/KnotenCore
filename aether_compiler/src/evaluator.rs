@@ -836,6 +836,97 @@ impl ExecutionEngine {
                 }
                 ExecResult::Value(RelType::Void)
             }
+            // Sprint 306: Native Cast Opcodes
+            Node::ToInt(expr) => {
+                let val = match self.evaluate_inner(expr) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                match val {
+                    RelType::Int(i) => ExecResult::Value(RelType::Int(i)),
+                    RelType::Float(f) => ExecResult::Value(RelType::Int(f as i64)),
+                    RelType::Bool(b) => ExecResult::Value(RelType::Int(if b { 1 } else { 0 })),
+                    RelType::Str(s) => match s.trim().parse::<i64>() {
+                        Ok(i) => ExecResult::Value(RelType::Int(i)),
+                        Err(_) => ExecResult::Fault {
+                            msg: format!("ToInt: cannot parse '{}' as integer", s),
+                            node: "Node::ToInt".into(),
+                        },
+                    },
+                    other => ExecResult::Fault {
+                        msg: format!("ToInt: unsupported type {:?}", other),
+                        node: "Node::ToInt".into(),
+                    },
+                }
+            }
+            Node::ToFloat(expr) => {
+                let val = match self.evaluate_inner(expr) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                match val {
+                    RelType::Float(f) => ExecResult::Value(RelType::Float(f)),
+                    RelType::Int(i) => ExecResult::Value(RelType::Float(i as f64)),
+                    RelType::Bool(b) => ExecResult::Value(RelType::Float(if b { 1.0 } else { 0.0 })),
+                    RelType::Str(s) => match s.trim().parse::<f64>() {
+                        Ok(f) => ExecResult::Value(RelType::Float(f)),
+                        Err(_) => ExecResult::Fault {
+                            msg: format!("ToFloat: cannot parse '{}' as float", s),
+                            node: "Node::ToFloat".into(),
+                        },
+                    },
+                    other => ExecResult::Fault {
+                        msg: format!("ToFloat: unsupported type {:?}", other),
+                        node: "Node::ToFloat".into(),
+                    },
+                }
+            }
+            // Sprint 306: String Primitives
+            Node::StringConcat(lhs, rhs) => {
+                let l = match self.evaluate_inner(lhs) { ExecResult::Value(v) => v, err => return err };
+                let r = match self.evaluate_inner(rhs) { ExecResult::Value(v) => v, err => return err };
+                match (l, r) {
+                    (RelType::Str(a), RelType::Str(b)) => ExecResult::Value(RelType::Str(a + &b)),
+                    (RelType::Str(a), other) => ExecResult::Value(RelType::Str(a + &other.to_string())),
+                    (other, RelType::Str(b)) => ExecResult::Value(RelType::Str(other.to_string() + &b)),
+                    (l, r) => ExecResult::Value(RelType::Str(l.to_string() + &r.to_string())),
+                }
+            }
+            Node::StringContains(haystack, needle) => {
+                let h = match self.evaluate_inner(haystack) { ExecResult::Value(v) => v, err => return err };
+                let n = match self.evaluate_inner(needle) { ExecResult::Value(v) => v, err => return err };
+                match (h, n) {
+                    (RelType::Str(h), RelType::Str(n)) => ExecResult::Value(RelType::Bool(h.contains(n.as_str()))),
+                    _ => ExecResult::Fault {
+                        msg: "StringContains requires two Str values".into(),
+                        node: "Node::StringContains".into(),
+                    },
+                }
+            }
+            Node::ArraySlice(arr, start, end_node) => {
+                let arr_val = match self.evaluate_inner(arr) { ExecResult::Value(v) => v, err => return err };
+                let s_val = match self.evaluate_inner(start) { ExecResult::Value(v) => v, err => return err };
+                let e_val = match self.evaluate_inner(end_node) { ExecResult::Value(v) => v, err => return err };
+                match (arr_val, s_val, e_val) {
+                    (RelType::Array(arr), RelType::Int(s), RelType::Int(e)) => {
+                        let len = arr.len() as i64;
+                        let s = s.max(0).min(len) as usize;
+                        let e = (e.max(0).min(len) as usize).max(s);
+                        ExecResult::Value(RelType::Array(arr[s..e].to_vec()))
+                    }
+                    _ => ExecResult::Fault {
+                        msg: "ArraySlice requires (Array, Int, Int)".into(),
+                        node: "Node::ArraySlice".into(),
+                    },
+                }
+            }
+            // Sprint 306: VFS nodes — require VM compilation path
+            Node::VfsWrite(_, _) | Node::VfsRead(_) | Node::VfsExists(_) | Node::VfsList(_) => {
+                ExecResult::Fault {
+                    msg: "VFS operations require VM compilation; use the compiler pipeline".into(),
+                    node: "Node::Vfs".into(),
+                }
+            }
         }
     }
 
