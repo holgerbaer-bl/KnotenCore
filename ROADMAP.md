@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.4.0-core** · Sprint 306 · Headless Core & Agentic DX
+Current engine version: **v2.5.0-opt** · Sprint 307 · Constant Folding & Static Optimization
 
 ## Done (selected milestones)
 
@@ -28,6 +28,7 @@ Current engine version: **v2.4.0-core** · Sprint 306 · Headless Core & Agentic
 - ✅ Parser panics → `Result` / JSON-feedback validation (Sprint 304)
 - ✅ Headless Engine Transition & Sandbox Wächter Hardening (Sprint 305)
 - ✅ Native Cast Opcodes, High-Performance String & Array Primitives, Sandboxed In-Memory VFS (Sprint 306 - v2.4.0-core)
+- ✅ Constant Folding for Casts, String Primitives & Unreachable Code Trimming (Sprint 307 - v2.5.0-opt)
 
 ## Near-Term
 

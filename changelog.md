@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.5.0-opt] - Sprint 307: Constant Folding & Static Optimization (2026-07-26)
+Sprint 307: Implemented AST-level constant folding for native cast opcodes (`ToInt`, `ToFloat`), string primitives (`StringConcat`, `StringContains`), and unreachable branch elimination for dead code pruning.
+- **Cast Constant Folding (`optimizer.rs`)**: Implemented compile-time static folding of `Node::ToInt` and `Node::ToFloat` for literal inputs (`IntLiteral`, `FloatLiteral`, `BoolLiteral`, valid `StringLiteral`). Un-parseable string literals pass through un-folded.
+- **String Primitive Constant Folding**: Implemented static evaluation of `Node::StringConcat` (concatenates string literals or string + scalar literals) and `Node::StringContains` (evaluates substring matching on string literals directly to `Node::BoolLiteral`).
+- **Unreachable Code Primming**: Improved condition folding for `Node::If(BoolLiteral(true), then_b, _)` and `Node::If(BoolLiteral(false), _, else_b)`, cleanly pruning dead branches from the AST before VM bytecode emission.
+- **Automated Regression Suite**: Created `tests/optimizer_tests.rs` to verify that optimized ASTs output identical results while generating fewer opcodes.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to version v2.5.0-opt.
+
 ## [v2.4.0-core] - Sprint 306: Headless Core & Agentic DX (2026-07-26)
 Sprint 306: Implemented Native Cast Opcodes (`ToInt`, `ToFloat`), High-Performance String & Array Primitives (`StringConcat`, `StringContains`, `ArraySlice`), and Sandboxed In-Memory Virtual File System (VFS).
 - **Native Cast Opcodes (`ToInt`, `ToFloat`)**: Added `OpCode::ToInt` and `OpCode::ToFloat` to `knoten_core_types` and implemented their execution in `machine.rs`. Enables type-safe stack conversions for Int, Float, Bool, and Str types without external helper function calls.

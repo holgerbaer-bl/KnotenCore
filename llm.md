@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.4.0-core Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.5.0-opt Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -132,6 +132,10 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
   - **Native Cast Opcodes** — `OpCode::ToInt` / `OpCode::ToFloat` enable type-safe stack-level conversions: `Float→Int` (truncating), `Int→Float` (lossless), `Str→Int/Float` (parsing), `Bool→Int/Float`. Both compile from `Node::ToInt(expr)` / `Node::ToFloat(expr)`. Error on un-parseable strings.
   - **High-Performance String & Array Primitives** — `OpCode::StringConcat` (stack concat with auto-stringify), `OpCode::StringContains` (substring check → Bool), `OpCode::ArraySlice` (bounds-clamped sub-array). All three compile from corresponding AST nodes and run on the bare-metal stack-VM without heap allocations.
   - **Sandboxed In-Memory VFS** — `OpCode::VfsRead / VfsWrite / VfsExists / VfsList`. All script I/O is fully isolated in RAM via `vm::vfs::VirtualFs` (Arc<RwLock<HashMap>>). No host filesystem path is ever accessed. Path traversal (`..`) and null bytes are blocked at the validation layer. VFS state persists across `vm.run()` calls on the same `VM` instance.
+- **Constant Folding & Static Optimization** (Sprint 307 - v2.5.0-opt) — AST-level optimizer passes in `optimizer.rs`:
+  - **Cast Folding**: Static compile-time evaluation of `Node::ToInt` (`IntLiteral`, `FloatLiteral`, `BoolLiteral`, valid `StringLiteral`) and `Node::ToFloat` (`FloatLiteral`, `IntLiteral`, `BoolLiteral`, valid `StringLiteral`).
+  - **String Primitive Folding**: Static evaluation of `Node::StringConcat` (concatenates string literals or string+scalar literals at compile time) and `Node::StringContains` (evaluates substring matching on string literals to `BoolLiteral`).
+  - **Unreachable Code Trimming**: `If(BoolLiteral(true), then_branch, _)` folds directly to `then_branch`, while `If(BoolLiteral(false), _, else_branch)` folds to `else_branch` (or `Block([])` if no else), eliminating dead branches before bytecode emission.
 
 ---
 

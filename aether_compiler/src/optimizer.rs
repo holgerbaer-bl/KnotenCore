@@ -831,16 +831,12 @@ pub fn optimize(node: Node) -> Node {
             inputs: inputs.into_iter().map(optimize).collect(),
             matrix_handle: matrix_handle.map(|mh| Box::new(optimize(*mh))),
         },
-        // Sprint 306: Cast Opcodes
-        Node::ToInt(expr) => Node::ToInt(Box::new(optimize(*expr))),
-        Node::ToFloat(expr) => Node::ToFloat(Box::new(optimize(*expr))),
-        // Sprint 306: String & Array Primitives
-        Node::StringConcat(l, r) => {
-            Node::StringConcat(Box::new(optimize(*l)), Box::new(optimize(*r)))
-        }
-        Node::StringContains(h, n) => {
-            Node::StringContains(Box::new(optimize(*h)), Box::new(optimize(*n)))
-        }
+        // Sprint 307: Cast Opcodes constant folding
+        Node::ToInt(expr) => optimize_to_int(*expr),
+        Node::ToFloat(expr) => optimize_to_float(*expr),
+        // Sprint 307: String Primitives constant folding
+        Node::StringConcat(l, r) => optimize_string_concat(*l, *r),
+        Node::StringContains(h, n) => optimize_string_contains(*h, *n),
         Node::ArraySlice(arr, s, e) => Node::ArraySlice(
             Box::new(optimize(*arr)),
             Box::new(optimize(*s)),
@@ -851,6 +847,72 @@ pub fn optimize(node: Node) -> Node {
         Node::VfsExists(p) => Node::VfsExists(Box::new(optimize(*p))),
         Node::VfsList(p) => Node::VfsList(Box::new(optimize(*p))),
         Node::VfsWrite(p, d) => Node::VfsWrite(Box::new(optimize(*p)), Box::new(optimize(*d))),
+    }
+}
+
+// ── Sprint 307: Constant Folding Helpers for Casts and String Primitives ──────────
+
+fn optimize_to_int(expr: Node) -> Node {
+    let opt_expr = optimize(expr);
+    match &opt_expr {
+        Node::IntLiteral(i) => Node::IntLiteral(*i),
+        Node::FloatLiteral(f) => Node::IntLiteral(*f as i64),
+        Node::BoolLiteral(b) => Node::IntLiteral(if *b { 1 } else { 0 }),
+        Node::StringLiteral(s) => match s.trim().parse::<i64>() {
+            Ok(i) => Node::IntLiteral(i),
+            Err(_) => Node::ToInt(Box::new(opt_expr)),
+        },
+        _ => Node::ToInt(Box::new(opt_expr)),
+    }
+}
+
+fn optimize_to_float(expr: Node) -> Node {
+    let opt_expr = optimize(expr);
+    match &opt_expr {
+        Node::FloatLiteral(f) => Node::FloatLiteral(*f),
+        Node::IntLiteral(i) => Node::FloatLiteral(*i as f64),
+        Node::BoolLiteral(b) => Node::FloatLiteral(if *b { 1.0 } else { 0.0 }),
+        Node::StringLiteral(s) => match s.trim().parse::<f64>() {
+            Ok(f) => Node::FloatLiteral(f),
+            Err(_) => Node::ToFloat(Box::new(opt_expr)),
+        },
+        _ => Node::ToFloat(Box::new(opt_expr)),
+    }
+}
+
+fn optimize_string_concat(left: Node, right: Node) -> Node {
+    let opt_l = optimize(left);
+    let opt_r = optimize(right);
+    match (&opt_l, &opt_r) {
+        (Node::StringLiteral(a), Node::StringLiteral(b)) => {
+            Node::StringLiteral(format!("{}{}", a, b))
+        }
+        (Node::StringLiteral(a), Node::IntLiteral(b)) => Node::StringLiteral(format!("{}{}", a, b)),
+        (Node::IntLiteral(a), Node::StringLiteral(b)) => Node::StringLiteral(format!("{}{}", a, b)),
+        (Node::StringLiteral(a), Node::FloatLiteral(b)) => {
+            Node::StringLiteral(format!("{}{}", a, b))
+        }
+        (Node::FloatLiteral(a), Node::StringLiteral(b)) => {
+            Node::StringLiteral(format!("{}{}", a, b))
+        }
+        (Node::StringLiteral(a), Node::BoolLiteral(b)) => {
+            Node::StringLiteral(format!("{}{}", a, b))
+        }
+        (Node::BoolLiteral(a), Node::StringLiteral(b)) => {
+            Node::StringLiteral(format!("{}{}", a, b))
+        }
+        _ => Node::StringConcat(Box::new(opt_l), Box::new(opt_r)),
+    }
+}
+
+fn optimize_string_contains(haystack: Node, needle: Node) -> Node {
+    let opt_h = optimize(haystack);
+    let opt_n = optimize(needle);
+    match (&opt_h, &opt_n) {
+        (Node::StringLiteral(h), Node::StringLiteral(n)) => {
+            Node::BoolLiteral(h.contains(n.as_str()))
+        }
+        _ => Node::StringContains(Box::new(opt_h), Box::new(opt_n)),
     }
 }
 
