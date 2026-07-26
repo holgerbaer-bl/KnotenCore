@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.5.1-hotfix] - Sprint 307: Fix Isolate GC Reclamation Assertion (2026-07-26)
+Sprint 307 Hotfix: Resolved race condition assertion failure in `test_isolate_garbage_collection_reclamation` on multi-threaded Windows runners.
+- **Deterministic Isolate Registration (`machine.rs`)**: Wrapped isolate registration under a single lock block using unique non-zero test IDs (`5000..5004`) to prevent race conditions during parallel test execution.
+- **Assertion Hardening**: Verified that inserted test IDs exist before sweep and are cleared after `sweep_terminated_isolates()`, ensuring deterministic assertions regardless of parallel test execution.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.5.1-hotfix`.
+
 ## [v2.5.0-opt] - Sprint 307: Constant Folding & Static Optimization (2026-07-26)
 Sprint 307: Implemented AST-level constant folding for native cast opcodes (`ToInt`, `ToFloat`), string primitives (`StringConcat`, `StringContains`), and unreachable branch elimination for dead code pruning.
 - **Cast Constant Folding (`optimizer.rs`)**: Implemented compile-time static folding of `Node::ToInt` and `Node::ToFloat` for literal inputs (`IntLiteral`, `FloatLiteral`, `BoolLiteral`, valid `StringLiteral`). Un-parseable string literals pass through un-folded.

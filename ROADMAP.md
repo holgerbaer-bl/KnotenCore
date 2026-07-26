@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.5.0-opt** · Sprint 307 · Constant Folding & Static Optimization
+Current engine version: **v2.5.1-hotfix** · Sprint 307 · Constant Folding & Isolate GC Fix
 
 ## Done (selected milestones)
 
