@@ -850,9 +850,7 @@ pub fn optimize(node: Node) -> Node {
         Node::VfsRead(p) => Node::VfsRead(Box::new(optimize(*p))),
         Node::VfsExists(p) => Node::VfsExists(Box::new(optimize(*p))),
         Node::VfsList(p) => Node::VfsList(Box::new(optimize(*p))),
-        Node::VfsWrite(p, d) => {
-            Node::VfsWrite(Box::new(optimize(*p)), Box::new(optimize(*d)))
-        }
+        Node::VfsWrite(p, d) => Node::VfsWrite(Box::new(optimize(*p)), Box::new(optimize(*d))),
     }
 }
 

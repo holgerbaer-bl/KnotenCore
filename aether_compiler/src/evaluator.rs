@@ -867,7 +867,9 @@ impl ExecutionEngine {
                 match val {
                     RelType::Float(f) => ExecResult::Value(RelType::Float(f)),
                     RelType::Int(i) => ExecResult::Value(RelType::Float(i as f64)),
-                    RelType::Bool(b) => ExecResult::Value(RelType::Float(if b { 1.0 } else { 0.0 })),
+                    RelType::Bool(b) => {
+                        ExecResult::Value(RelType::Float(if b { 1.0 } else { 0.0 }))
+                    }
                     RelType::Str(s) => match s.trim().parse::<f64>() {
                         Ok(f) => ExecResult::Value(RelType::Float(f)),
                         Err(_) => ExecResult::Fault {
@@ -883,20 +885,38 @@ impl ExecutionEngine {
             }
             // Sprint 306: String Primitives
             Node::StringConcat(lhs, rhs) => {
-                let l = match self.evaluate_inner(lhs) { ExecResult::Value(v) => v, err => return err };
-                let r = match self.evaluate_inner(rhs) { ExecResult::Value(v) => v, err => return err };
+                let l = match self.evaluate_inner(lhs) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                let r = match self.evaluate_inner(rhs) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
                 match (l, r) {
                     (RelType::Str(a), RelType::Str(b)) => ExecResult::Value(RelType::Str(a + &b)),
-                    (RelType::Str(a), other) => ExecResult::Value(RelType::Str(a + &other.to_string())),
-                    (other, RelType::Str(b)) => ExecResult::Value(RelType::Str(other.to_string() + &b)),
+                    (RelType::Str(a), other) => {
+                        ExecResult::Value(RelType::Str(a + &other.to_string()))
+                    }
+                    (other, RelType::Str(b)) => {
+                        ExecResult::Value(RelType::Str(other.to_string() + &b))
+                    }
                     (l, r) => ExecResult::Value(RelType::Str(l.to_string() + &r.to_string())),
                 }
             }
             Node::StringContains(haystack, needle) => {
-                let h = match self.evaluate_inner(haystack) { ExecResult::Value(v) => v, err => return err };
-                let n = match self.evaluate_inner(needle) { ExecResult::Value(v) => v, err => return err };
+                let h = match self.evaluate_inner(haystack) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                let n = match self.evaluate_inner(needle) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
                 match (h, n) {
-                    (RelType::Str(h), RelType::Str(n)) => ExecResult::Value(RelType::Bool(h.contains(n.as_str()))),
+                    (RelType::Str(h), RelType::Str(n)) => {
+                        ExecResult::Value(RelType::Bool(h.contains(n.as_str())))
+                    }
                     _ => ExecResult::Fault {
                         msg: "StringContains requires two Str values".into(),
                         node: "Node::StringContains".into(),
@@ -904,9 +924,18 @@ impl ExecutionEngine {
                 }
             }
             Node::ArraySlice(arr, start, end_node) => {
-                let arr_val = match self.evaluate_inner(arr) { ExecResult::Value(v) => v, err => return err };
-                let s_val = match self.evaluate_inner(start) { ExecResult::Value(v) => v, err => return err };
-                let e_val = match self.evaluate_inner(end_node) { ExecResult::Value(v) => v, err => return err };
+                let arr_val = match self.evaluate_inner(arr) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                let s_val = match self.evaluate_inner(start) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                let e_val = match self.evaluate_inner(end_node) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
                 match (arr_val, s_val, e_val) {
                     (RelType::Array(arr), RelType::Int(s), RelType::Int(e)) => {
                         let len = arr.len() as i64;

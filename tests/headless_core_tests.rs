@@ -119,23 +119,23 @@ fn test_tofloat_from_int() {
 #[test]
 fn test_tofloat_from_float_is_noop() {
     let mut vm = VM::default();
-    let constants = vec![RelType::Float(3.14)];
+    let constants = vec![RelType::Float(3.5)];
     let instructions = vec![OpCode::Constant(0), OpCode::ToFloat, OpCode::Return];
     let result = vm
         .run(&instructions, &constants, &sandbox_perms(), None)
         .unwrap();
-    assert_eq!(result, RelType::Float(3.14));
+    assert_eq!(result, RelType::Float(3.5));
 }
 
 #[test]
 fn test_tofloat_from_str() {
     let mut vm = VM::default();
-    let constants = vec![RelType::Str("2.718".to_string())];
+    let constants = vec![RelType::Str("2.5".to_string())];
     let instructions = vec![OpCode::Constant(0), OpCode::ToFloat, OpCode::Return];
     let result = vm
         .run(&instructions, &constants, &sandbox_perms(), None)
         .unwrap();
-    assert_eq!(result, RelType::Float(2.718));
+    assert_eq!(result, RelType::Float(2.5));
 }
 
 #[test]
