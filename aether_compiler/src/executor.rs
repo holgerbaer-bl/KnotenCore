@@ -1248,27 +1248,10 @@ impl ExecutionEngine {
     /// The resolved path must be a descendant of the current working directory.
     /// Sprint 190: Symlink blocking — rejects any path containing a symbolic link.
     pub fn validate_fs_path(path: &str) -> Result<PathBuf, String> {
-        let cwd = std::env::current_dir()
+        let cwd_raw = std::env::current_dir()
             .map_err(|e| format!("Cannot determine working directory: {}", e))?;
-        // Sprint 190: Walk each path component and reject symlinks
-        let path_obj = std::path::Path::new(path);
-        let check_path = if path_obj.is_absolute() {
-            path_obj.to_path_buf()
-        } else {
-            cwd.join(path_obj)
-        };
-        // Check each component for symlinks
-        let mut accumulated = std::path::PathBuf::new();
-        for component in check_path.components() {
-            accumulated.push(component);
-            if matches!(std::fs::symlink_metadata(&accumulated), Ok(meta) if meta.file_type().is_symlink())
-            {
-                return Err(format!(
-                    "Symlink blocked: '{}' is a symbolic link",
-                    accumulated.display()
-                ));
-            }
-        }
+        let cwd = dunce::canonicalize(&cwd_raw).unwrap_or(cwd_raw);
+
         // For reads: the file must already exist, so we can canonicalize directly.
         let canonical = dunce::canonicalize(path)
             .map_err(|e| format!("Path '{}' is invalid or does not exist: {}", path, e))?;
@@ -1278,25 +1261,13 @@ impl ExecutionEngine {
                 path
             ));
         }
-        Ok(canonical)
-    }
 
-    /// FINDING-05: Validate a filesystem path for write operations.
-    /// For writes, the file may not yet exist — we validate the parent directory.
-    /// Sprint 190: Symlink blocking — rejects any path containing a symbolic link.
-    pub fn validate_fs_path_write(path: &str) -> Result<std::path::PathBuf, String> {
-        let cwd = std::env::current_dir()
-            .map_err(|e| format!("Cannot determine working directory: {}", e))?;
-        let target = std::path::Path::new(path);
-        // Resolve as an absolute path relative to cwd if not already absolute
-        let abs = if target.is_absolute() {
-            target.to_path_buf()
-        } else {
-            cwd.join(target)
-        };
-        // Sprint 190: Walk each component and reject symlinks
-        let mut accumulated = std::path::PathBuf::new();
-        for component in abs.components() {
+        // Walk each path component starting after cwd and reject symlinks
+        let rel_to_cwd = canonical
+            .strip_prefix(&cwd)
+            .unwrap_or_else(|_| std::path::Path::new(""));
+        let mut accumulated = cwd.clone();
+        for component in rel_to_cwd.components() {
             accumulated.push(component);
             if matches!(std::fs::symlink_metadata(&accumulated), Ok(meta) if meta.file_type().is_symlink())
             {
@@ -1306,6 +1277,26 @@ impl ExecutionEngine {
                 ));
             }
         }
+
+        Ok(canonical)
+    }
+
+    /// FINDING-05: Validate a filesystem path for write operations.
+    /// For writes, the file may not yet exist — we validate the parent directory.
+    /// Sprint 190: Symlink blocking — rejects any path containing a symbolic link.
+    pub fn validate_fs_path_write(path: &str) -> Result<std::path::PathBuf, String> {
+        let cwd_raw = std::env::current_dir()
+            .map_err(|e| format!("Cannot determine working directory: {}", e))?;
+        let cwd = dunce::canonicalize(&cwd_raw).unwrap_or(cwd_raw);
+
+        let target = std::path::Path::new(path);
+        // Resolve as an absolute path relative to cwd if not already absolute
+        let abs = if target.is_absolute() {
+            target.to_path_buf()
+        } else {
+            cwd.join(target)
+        };
+
         // Normalize by resolving ".." components without requiring the path to exist
         let mut normalized = std::path::PathBuf::new();
         for component in abs.components() {
@@ -1323,6 +1314,23 @@ impl ExecutionEngine {
                 path
             ));
         }
+
+        // Walk each path component starting after cwd and reject symlinks
+        let rel_to_cwd = normalized
+            .strip_prefix(&cwd)
+            .unwrap_or_else(|_| std::path::Path::new(""));
+        let mut accumulated = cwd.clone();
+        for component in rel_to_cwd.components() {
+            accumulated.push(component);
+            if matches!(std::fs::symlink_metadata(&accumulated), Ok(meta) if meta.file_type().is_symlink())
+            {
+                return Err(format!(
+                    "Symlink blocked: '{}' is a symbolic link",
+                    accumulated.display()
+                ));
+            }
+        }
+
         Ok(normalized)
     }
 

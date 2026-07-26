@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.3.3-hotfix] - Sprint 305: CWD Parent Symlink & Canonicalization Hotfix (2026-07-26)
+Sprint 305 Hotfix 3: Resolved path resolution failures when repository/workspace parent folders contain symbolic links in host environments (e.g. GitHub runner paths).
+- **CWD Canonicalization**: Explicitly canonicalized the current working directory (`cwd`) using `dunce::canonicalize` at sandbox gate entry, preventing `starts_with` mismatch false-positives against canonicalized read/write targets.
+- **Relative Symlink Check walking**: Stripped the canonicalized `cwd` prefix from sandbox paths before validating path components for symlinks, ignoring any host/environment level symlinks in the path hierarchy preceding the sandbox root directory.
+- **Test Suite**: Fully verified on Linux/Windows.
+
 ## [v2.3.2-hotfix] - Sprint 305: Headless Linux Test Assertions Fix (2026-07-21)
 Sprint 305 Hotfix 2: Fixed cross-platform path resolution and symlink metadata detection for headless Linux test runners.
 - **Cross-Platform Symlink Testing**: Changed temporary directory creation in `sandbox_tests.rs` to construct `cwd.join("target")` paths, preventing `/tmp` CWD escape false-positives under Linux.
