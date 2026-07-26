@@ -2,6 +2,11 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.3.6-hotfix] - Sprint 305: Fix Unused Import & Platform Path Qualifiers (2026-07-26)
+Sprint 305 Hotfix 6: Resolved platform-conditional `unused_imports` Clippy warning under Linux `-D warnings` and cross-platform compilation of `sandbox_tests.rs`.
+- **Inline Path Qualifiers (`sandbox_tests.rs`)**: Removed top-level `use std::path::Path;` which was unused on Unix targets, and replaced Windows symlink calls with direct `std::path::Path::new` qualification.
+- **Verification**: Clean pass under both `cargo clippy --workspace --all-targets -- -D warnings` and `cargo clippy --workspace --no-default-features --all-targets -- -D warnings`.
+
 ## [v2.3.5-hotfix] - Sprint 305: Fix Rust Test Panic 101 & Clippy Warnings (2026-07-26)
 Sprint 305 Hotfix 5: Extracted exact failure log evidence from GitHub Actions Build #330 and fixed Rust panic exit code 101 on Linux and Clippy warnings on Windows.
 - **Direct Binary Execution in Integration Tests (`sandbox_tests.rs`)**: Replaced `Command::new("cargo").args(["run", ...])` in `test_cli_json_error_propagation` with `Command::new(env!("CARGO_BIN_EXE_run_knc"))`, eliminating nested cargo build output leakage to stdout and preventing JSON parsing failures.

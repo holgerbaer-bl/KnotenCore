@@ -5,7 +5,6 @@
 
 use knoten_core::executor::{AgentPermissions, ExecutionEngine};
 use knoten_core::natives::registry::registry_compute_readback;
-use std::path::Path;
 
 // ── Domain Whitelist Tests ───────────────────────────────────────────
 
@@ -99,7 +98,11 @@ fn test_symlink_blocked_by_validate_fs_path() {
     std::os::unix::fs::symlink(&target_file, &symlink_file).ok();
     #[cfg(windows)]
     {
-        std::os::windows::fs::symlink_file(Path::new(&target_file), Path::new(&symlink_file)).ok();
+        std::os::windows::fs::symlink_file(
+            std::path::Path::new(&target_file),
+            std::path::Path::new(&symlink_file),
+        )
+        .ok();
     }
 
     // If the symlink exists and is detected, validate_fs_path should reject it
@@ -140,7 +143,11 @@ fn test_symlink_blocked_by_validate_fs_path_write() {
     std::os::unix::fs::symlink(&target_file, &symlink_file).ok();
     #[cfg(windows)]
     {
-        std::os::windows::fs::symlink_file(Path::new(&target_file), Path::new(&symlink_file)).ok();
+        std::os::windows::fs::symlink_file(
+            std::path::Path::new(&target_file),
+            std::path::Path::new(&symlink_file),
+        )
+        .ok();
     }
 
     if symlink_file.exists() {
