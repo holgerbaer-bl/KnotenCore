@@ -2,6 +2,11 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.3.4-hotfix] - Sprint 305: Fix Exact CI Failures for Build #329 (2026-07-26)
+Sprint 305 Hotfix 4: Extracted exact failure log evidence from GitHub Actions Build #329 and fixed all underlying build/test issues.
+- **Symlink Check Pre-Resolution (`executor.rs`)**: Fixed `validate_fs_path` to check symlink metadata on raw user-supplied path components BEFORE calling `dunce::canonicalize` (which previously resolved symlinks into normal files before checking `is_symlink()`).
+- **Linux Audio Dependency (`ci.yml`)**: Installed `libasound2-dev` system package on `ubuntu-latest` runners in `.github/workflows/ci.yml`, resolving `alsa-sys` build script panic.
+
 ## [v2.3.3-hotfix] - Sprint 305: CWD Parent Symlink & Canonicalization Hotfix (2026-07-26)
 Sprint 305 Hotfix 3: Resolved path resolution failures when repository/workspace parent folders contain symbolic links in host environments (e.g. GitHub runner paths).
 - **CWD Canonicalization**: Explicitly canonicalized the current working directory (`cwd`) using `dunce::canonicalize` at sandbox gate entry, preventing `starts_with` mismatch false-positives against canonicalized read/write targets.

@@ -1252,22 +1252,19 @@ impl ExecutionEngine {
             .map_err(|e| format!("Cannot determine working directory: {}", e))?;
         let cwd = dunce::canonicalize(&cwd_raw).unwrap_or(cwd_raw);
 
-        // For reads: the file must already exist, so we can canonicalize directly.
-        let canonical = dunce::canonicalize(path)
-            .map_err(|e| format!("Path '{}' is invalid or does not exist: {}", path, e))?;
-        if !canonical.starts_with(&cwd) {
-            return Err(format!(
-                "Path escape detected: '{}' resolves outside the working directory",
-                path
-            ));
-        }
+        let target_path = std::path::Path::new(path);
+        let user_abs = if target_path.is_absolute() {
+            target_path.to_path_buf()
+        } else {
+            cwd.join(target_path)
+        };
 
-        // Walk each path component starting after cwd and reject symlinks
-        let rel_to_cwd = canonical
+        // Walk raw user path components starting after cwd and reject symlinks BEFORE resolving them
+        let rel_user = user_abs
             .strip_prefix(&cwd)
-            .unwrap_or_else(|_| std::path::Path::new(""));
+            .unwrap_or_else(|_| std::path::Path::new(path));
         let mut accumulated = cwd.clone();
-        for component in rel_to_cwd.components() {
+        for component in rel_user.components() {
             accumulated.push(component);
             if matches!(std::fs::symlink_metadata(&accumulated), Ok(meta) if meta.file_type().is_symlink())
             {
@@ -1276,6 +1273,16 @@ impl ExecutionEngine {
                     accumulated.display()
                 ));
             }
+        }
+
+        // For reads: the file must already exist, so we can canonicalize directly.
+        let canonical = dunce::canonicalize(path)
+            .map_err(|e| format!("Path '{}' is invalid or does not exist: {}", path, e))?;
+        if !canonical.starts_with(&cwd) {
+            return Err(format!(
+                "Path escape detected: '{}' resolves outside the working directory",
+                path
+            ));
         }
 
         Ok(canonical)
