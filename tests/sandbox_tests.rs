@@ -698,17 +698,10 @@ fn test_github_release_workflow_trigger() {
 /// test_cli_json_error_propagation: Verifiziere, dass ein Division-by-Zero-Laufzeitfehler im VM-Thread valides JSON ausgibt.
 #[test]
 fn test_cli_json_error_propagation() {
-    let mut cmd = std::process::Command::new("cargo");
-    cmd.args([
-        "run",
-        "--bin",
-        "run_knc",
-        "--",
-        "--output-format",
-        "json",
-        "tests/intentional_crash.knoten",
-    ]);
-    let output = cmd.output().expect("Failed to execute cargo run");
+    let bin_path = env!("CARGO_BIN_EXE_run_knc");
+    let mut cmd = std::process::Command::new(bin_path);
+    cmd.args(["--output-format", "json", "tests/intentional_crash.knoten"]);
+    let output = cmd.output().expect("Failed to execute run_knc binary");
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     // Parse stdout as JSON

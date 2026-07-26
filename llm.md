@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.3.4-hotfix Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.3.5-hotfix Release
 
 > **System Instruction for LLM Code Agents**
 >

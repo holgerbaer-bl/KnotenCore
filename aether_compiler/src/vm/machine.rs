@@ -2627,12 +2627,12 @@ mod tests {
     fn test_wasm_target_conditional_compilation() {
         #[cfg(target_arch = "wasm32")]
         {
-            assert!(
-                true,
-                "WASM target: WebGPU surface config must use Bgra8Unorm"
-            );
+            assert_eq!(std::env::consts::ARCH, "wasm32");
         }
-        assert!(cfg!(not(target_arch = "wasm32")), "Expected native target");
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            assert_ne!(std::env::consts::ARCH, "wasm32");
+        }
     }
 
     #[test]

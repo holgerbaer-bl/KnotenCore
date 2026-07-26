@@ -2,6 +2,11 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.3.5-hotfix] - Sprint 305: Fix Rust Test Panic 101 & Clippy Warnings (2026-07-26)
+Sprint 305 Hotfix 5: Extracted exact failure log evidence from GitHub Actions Build #330 and fixed Rust panic exit code 101 on Linux and Clippy warnings on Windows.
+- **Direct Binary Execution in Integration Tests (`sandbox_tests.rs`)**: Replaced `Command::new("cargo").args(["run", ...])` in `test_cli_json_error_propagation` with `Command::new(env!("CARGO_BIN_EXE_run_knc"))`, eliminating nested cargo build output leakage to stdout and preventing JSON parsing failures.
+- **Clippy Constant Assertion Fix (`machine.rs`)**: Replaced `assert!(true)` in `test_wasm_target_conditional_compilation` with dynamic `assert_ne!(std::env::consts::ARCH, "wasm32")`, fixing `-D warnings` failure under Clippy.
+
 ## [v2.3.4-hotfix] - Sprint 305: Fix Exact CI Failures for Build #329 (2026-07-26)
 Sprint 305 Hotfix 4: Extracted exact failure log evidence from GitHub Actions Build #329 and fixed all underlying build/test issues.
 - **Symlink Check Pre-Resolution (`executor.rs`)**: Fixed `validate_fs_path` to check symlink metadata on raw user-supplied path components BEFORE calling `dunce::canonicalize` (which previously resolved symlinks into normal files before checking `is_symlink()`).
