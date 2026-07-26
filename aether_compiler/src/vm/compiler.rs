@@ -677,6 +677,13 @@ impl Compiler {
                 self.instructions.push(OpCode::VfsList);
                 true
             }
+            Node::EventEmit(topic_expr, payload_expr) => {
+                if !self.compile_node(topic_expr) || !self.compile_node(payload_expr) {
+                    return false;
+                }
+                self.instructions.push(OpCode::EventEmit);
+                true
+            }
             Node::PlayNote(channel_expr, freq_expr, dur_expr, wave_expr) => {
                 if !self.compile_node(channel_expr) {
                     return false;

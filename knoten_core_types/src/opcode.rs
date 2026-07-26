@@ -113,4 +113,7 @@ pub enum OpCode {
     VfsRead,   // pops (path: Str) → pushes Str (file contents) or Void if not found
     VfsExists, // pops (path: Str) → pushes Bool
     VfsList,   // pops (prefix: Str) → pushes Array of matching paths
+
+    // Sprint 308: Agentic Event Streaming & Execution Hooks
+    EventEmit, // pops (topic: Str, payload: Any) → triggers VM event hook
 }

@@ -604,6 +604,11 @@ impl Validator {
                 self.check_node(p);
                 self.check_node(d);
             }
+            // Sprint 308: Agentic Event Streaming
+            Node::EventEmit(t, p) => {
+                self.check_node(t);
+                self.check_node(p);
+            }
         }
     }
 }

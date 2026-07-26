@@ -374,6 +374,10 @@ pub fn count_nodes(node: &Node) -> usize {
         Node::VfsWrite(l, r) => {
             count += count_nodes(l) + count_nodes(r);
         }
+        // Sprint 308: EventEmit
+        Node::EventEmit(t, p) => {
+            count += count_nodes(t) + count_nodes(p);
+        }
     }
     count
 }
@@ -847,6 +851,8 @@ pub fn optimize(node: Node) -> Node {
         Node::VfsExists(p) => Node::VfsExists(Box::new(optimize(*p))),
         Node::VfsList(p) => Node::VfsList(Box::new(optimize(*p))),
         Node::VfsWrite(p, d) => Node::VfsWrite(Box::new(optimize(*p)), Box::new(optimize(*d))),
+        // Sprint 308: EventEmit
+        Node::EventEmit(t, p) => Node::EventEmit(Box::new(optimize(*t)), Box::new(optimize(*p))),
     }
 }
 

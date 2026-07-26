@@ -299,6 +299,9 @@ pub enum Node {
     VfsRead(Box<Node>),             // path: Str → Str | Void
     VfsExists(Box<Node>),           // path: Str → Bool
     VfsList(Box<Node>),             // prefix: Str → Array<Str>
+
+    // Sprint 308: Agentic Event Streaming
+    EventEmit(Box<Node>, Box<Node>), // topic: Str, payload: Any → Void
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

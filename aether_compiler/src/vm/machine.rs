@@ -53,6 +53,19 @@ pub struct CallFrame {
     pub base_pointer: usize,
 }
 
+/// Sprint 308: Runtime Events emitted by script execution and VFS hooks
+#[derive(Debug, Clone, PartialEq)]
+pub enum VmEvent {
+    /// Custom script event via EventEmit opcode (topic, payload)
+    Custom { topic: String, payload: RelType },
+    /// VFS File Written
+    VfsWrite { path: String, bytes: usize },
+    /// VFS File Read
+    VfsRead { path: String },
+}
+
+pub type VmEventHook = std::sync::Arc<dyn Fn(VmEvent) + Send + Sync>;
+
 #[derive(Default)]
 pub struct VM {
     pub stack: Vec<RelType>,
@@ -65,6 +78,8 @@ pub struct VM {
     /// Sprint 306: Sandboxed In-Memory Virtual File System.
     /// All script VFS I/O is isolated in RAM — never touches the host filesystem.
     pub vfs: VirtualFs,
+    /// Sprint 308: Optional thread-safe event streaming hook
+    pub event_hook: Option<VmEventHook>,
 }
 
 #[derive(Clone)]
@@ -150,7 +165,12 @@ impl VM {
             crypto_state_hash: 0,
             is_inspectable: false,
             vfs: VirtualFs::new(),
+            event_hook: None,
         }
+    }
+
+    pub fn set_event_hook(&mut self, hook: VmEventHook) {
+        self.event_hook = Some(hook);
     }
 
     pub fn inspect(&self) -> VMInspectorData {
@@ -1053,6 +1073,12 @@ impl VM {
                             self.vfs
                                 .write(&path, &data)
                                 .map_err(|e| format!("VfsWrite error: {}", e))?;
+                            if let Some(ref hook) = self.event_hook {
+                                hook(VmEvent::VfsWrite {
+                                    path: path.clone(),
+                                    bytes: data.len(),
+                                });
+                            }
                         }
                         _ => return Err("VfsWrite expects (path: Str, data: Str)".into()),
                     }
@@ -1065,6 +1091,9 @@ impl VM {
                         .ok_or_else(|| "Stack underflow in VfsRead (path)".to_string())?;
                     match path_val {
                         RelType::Str(path) => {
+                            if let Some(ref hook) = self.event_hook {
+                                hook(VmEvent::VfsRead { path: path.clone() });
+                            }
                             match self
                                 .vfs
                                 .read(&path)
@@ -1109,6 +1138,29 @@ impl VM {
                         }
                         _ => return Err("VfsList expects a Str prefix".into()),
                     }
+                }
+
+                // ── Sprint 308: Agentic Event Streaming & Execution Hooks ───────
+                OpCode::EventEmit => {
+                    let payload_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in EventEmit (payload)".to_string())?;
+                    let topic_val = self
+                        .stack
+                        .pop()
+                        .ok_or_else(|| "Stack underflow in EventEmit (topic)".to_string())?;
+                    let topic = match topic_val {
+                        RelType::Str(t) => t,
+                        other => other.to_string(),
+                    };
+                    if let Some(ref hook) = self.event_hook {
+                        hook(VmEvent::Custom {
+                            topic,
+                            payload: payload_val,
+                        });
+                    }
+                    self.stack.push(RelType::Void);
                 }
 
                 OpCode::UILabel => {

@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.6.0-event] - Sprint 308: Agentic Event Streaming & Execution Hooks (2026-07-26)
+Sprint 308: Implemented real-time VM event streaming hooks and `OpCode::EventEmit` for host process observability and agentic event tracking.
+- **Event Emit Opcode (`OpCode::EventEmit`)**: Added `OpCode::EventEmit` and `Node::EventEmit(topic_expr, payload_expr)`. Pops topic and payload from VM stack, triggers host event callback, and pushes `RelType::Void`.
+- **Thread-Safe Event Hook (`machine.rs`)**: Added `VM::set_event_hook(Arc<dyn Fn(VmEvent) + Send + Sync>)` to `VM`. Supports `VmEvent::Custom`, `VmEvent::VfsWrite`, and `VmEvent::VfsRead` events.
+- **VFS Instrumentation**: Wired `VfsWrite` and `VfsRead` VM execution paths into the event hook bus.
+- **Automated Integration Test Suite**: Created `tests/vm_event_streaming_tests.rs` verifying event delivery to host callbacks.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.6.0-event`.
+
 ## [v2.5.1-hotfix] - Sprint 307: Fix Isolate GC Reclamation Assertion (2026-07-26)
 Sprint 307 Hotfix: Resolved race condition assertion failure in `test_isolate_garbage_collection_reclamation` on multi-threaded Windows runners.
 - **Deterministic Isolate Registration (`machine.rs`)**: Wrapped isolate registration under a single lock block using unique non-zero test IDs (`5000..5004`) to prevent race conditions during parallel test execution.

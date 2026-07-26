@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.5.1-hotfix** · Sprint 307 · Constant Folding & Isolate GC Fix
+Current engine version: **v2.6.0-event** · Sprint 308 · Agentic Event Streaming & Execution Hooks
 
 ## Done (selected milestones)
 
@@ -29,6 +29,7 @@ Current engine version: **v2.5.1-hotfix** · Sprint 307 · Constant Folding & Is
 - ✅ Headless Engine Transition & Sandbox Wächter Hardening (Sprint 305)
 - ✅ Native Cast Opcodes, High-Performance String & Array Primitives, Sandboxed In-Memory VFS (Sprint 306 - v2.4.0-core)
 - ✅ Constant Folding for Casts, String Primitives & Unreachable Code Trimming (Sprint 307 - v2.5.0-opt)
+- ✅ Agentic Event Streaming Hooks & EventEmit Opcode (Sprint 308 - v2.6.0-event)
 
 ## Near-Term
 

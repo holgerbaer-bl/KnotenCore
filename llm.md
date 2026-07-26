@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.5.1-hotfix Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.6.0-event Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -136,6 +136,9 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
   - **Cast Folding**: Static compile-time evaluation of `Node::ToInt` (`IntLiteral`, `FloatLiteral`, `BoolLiteral`, valid `StringLiteral`) and `Node::ToFloat` (`FloatLiteral`, `IntLiteral`, `BoolLiteral`, valid `StringLiteral`).
   - **String Primitive Folding**: Static evaluation of `Node::StringConcat` (concatenates string literals or string+scalar literals at compile time) and `Node::StringContains` (evaluates substring matching on string literals to `BoolLiteral`).
   - **Unreachable Code Trimming**: `If(BoolLiteral(true), then_branch, _)` folds directly to `then_branch`, while `If(BoolLiteral(false), _, else_branch)` folds to `else_branch` (or `Block([])` if no else), eliminating dead branches before bytecode emission.
+- **Agentic Event Streaming & Execution Hooks** (Sprint 308 - v2.6.0-event) — Real-time execution tracing and host observability:
+  - **`OpCode::EventEmit`**: Pops `(topic: Str, payload: Any)` from the VM stack, notifies the host's event callback hook, and pushes `RelType::Void`. Compiles from `Node::EventEmit(topic_expr, payload_expr)`.
+  - **Thread-Safe VM Event Bus**: `VM::set_event_hook(Arc<dyn Fn(VmEvent) + Send + Sync>)` enables external host applications and autonomous agents to stream real-time execution events (`VmEvent::Custom`, `VmEvent::VfsWrite`, `VmEvent::VfsRead`) without mutex bottlenecks or CPU polling.
 
 ---
 

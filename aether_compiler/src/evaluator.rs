@@ -956,6 +956,11 @@ impl ExecutionEngine {
                     node: "Node::Vfs".into(),
                 }
             }
+            // Sprint 308: EventEmit node — requires VM compilation path
+            Node::EventEmit(_, _) => ExecResult::Fault {
+                msg: "EventEmit requires VM compilation; use the compiler pipeline".into(),
+                node: "Node::EventEmit".into(),
+            },
         }
     }
 
