@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.8.0-rpc** · Sprint 310 · Headless JSON-RPC 2.0 Server & Agentic Transport Protocol
+Current engine version: **v2.8.1-hotfix** · Sprint 310 · Headless JSON-RPC 2.0 Server & Agentic Transport Protocol
 
 ## Done (selected milestones)
 

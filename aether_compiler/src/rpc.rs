@@ -204,9 +204,7 @@ impl RpcServer {
         };
 
         let mut sessions = self.sessions.lock().unwrap();
-        let session = sessions
-            .entry(session_id.clone())
-            .or_default();
+        let session = sessions.entry(session_id.clone()).or_default();
 
         session.instructions = instructions;
         session.constants = constants;

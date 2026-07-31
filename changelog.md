@@ -2,6 +2,10 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.8.1-hotfix] - Formatting & CI Fix (2026-07-31)
+- **Formatting**: Formatted `aether_compiler/src/rpc.rs` using `cargo fmt` to satisfy CI quality gates.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.8.1-hotfix`.
+
 ## [v2.8.0-rpc] - Sprint 310: Headless JSON-RPC 2.0 Server & Agentic Transport Protocol (2026-07-31)
 Sprint 310: Implemented Headless JSON-RPC 2.0 Server Engine (`aether_compiler/src/rpc.rs`) and `--rpc-port <PORT>` CLI mode for remote agentic execution, yield/resume control, and state inspection.
 - **JSON-RPC 2.0 Server Engine (`rpc.rs`)**: Full JSON-RPC 2.0 handler implementing methods `knc_compile`, `knc_execute`, `knc_yield_resume`, and `knc_inspect_state`.
