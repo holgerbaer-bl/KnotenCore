@@ -18,7 +18,7 @@ use crate::executor::{AgentPermissions, RelType};
 use crate::optimizer::optimize;
 use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
-use crate::vm::machine::{VM, VmEvent};
+use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
 /// JSON-RPC 2.0 Request Payload
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,6 +120,9 @@ impl RpcServer {
             "knc_execute" => self.handle_execute(req.id, req.params),
             "knc_yield_resume" => self.handle_yield_resume(req.id, req.params),
             "knc_inspect_state" => self.handle_inspect_state(req.id, req.params),
+            "knc_agent_handshake" => self.handle_agent_handshake(req.id, req.params),
+            "knc_agent_snapshot" => self.handle_agent_snapshot(req.id, req.params),
+            "knc_agent_restore" => self.handle_agent_restore(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -380,6 +383,136 @@ impl RpcServer {
             "frames_count": session.vm.frames.len(),
             "globals_count": session.vm.globals.len(),
             "inspector": inspector_data
+        });
+
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    fn handle_agent_handshake(&self, id: Option<Value>, _params: Value) -> JsonRpcResponse {
+        let default_quota = IsolateQuota::default();
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "protocol_version": "v2.11.0-agent",
+            "engine": "KnotenCore",
+            "capabilities": {
+                "jsonrpc": true,
+                "websocket": true,
+                "isolate_quotas": true,
+                "async_yield": true,
+                "state_snapshots": true
+            },
+            "default_quota": default_quota
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    fn handle_agent_snapshot(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        let session_id = params
+            .get("session_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("default")
+            .to_string();
+
+        let sessions = self.sessions.lock().unwrap();
+        let session = match sessions.get(&session_id) {
+            Some(s) => s,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    -32602,
+                    format!("Session '{}' not found", session_id),
+                );
+            }
+        };
+
+        let vm_state = session.vm.snapshot();
+        let snapshot_data = serde_json::json!({
+            "session_id": session_id,
+            "execution_state": session.vm.execution_state(),
+            "vm_state": vm_state,
+            "instructions": session.instructions,
+            "constants": session.constants,
+            "quota": session.vm.quota
+        });
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "session_id": session_id,
+            "snapshot": snapshot_data
+        });
+
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    fn handle_agent_restore(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        let session_id = params
+            .get("session_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("default")
+            .to_string();
+
+        let snapshot_val = match params.get("snapshot") {
+            Some(v) => v,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    -32602,
+                    "Missing 'snapshot' parameter in restore request",
+                );
+            }
+        };
+
+        let execution_state: VmExecutionState = match snapshot_val
+            .get("execution_state")
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+        {
+            Some(st) => st,
+            None => VmExecutionState::Ready,
+        };
+
+        let vm_state: crate::vm::machine::VMState = match snapshot_val
+            .get("vm_state")
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+        {
+            Some(st) => st,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    -32602,
+                    "Invalid 'vm_state' in snapshot payload",
+                );
+            }
+        };
+
+        let instructions: Vec<OpCode> = snapshot_val
+            .get("instructions")
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+            .unwrap_or_default();
+
+        let constants: Vec<RelType> = snapshot_val
+            .get("constants")
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+            .unwrap_or_default();
+
+        let quota: IsolateQuota = snapshot_val
+            .get("quota")
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+            .unwrap_or_default();
+
+        let mut sessions = self.sessions.lock().unwrap();
+        let session = sessions.entry(session_id.clone()).or_default();
+
+        session.vm.rollback(vm_state);
+        session.vm.set_quota(quota);
+        session.vm.execution_state = execution_state;
+        session.instructions = instructions;
+        session.constants = constants;
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "session_id": session_id,
+            "execution_state": format!("{:?}", session.vm.execution_state()),
+            "is_yielded": session.vm.is_yielded()
         });
 
         JsonRpcResponse::success(id, resp_val)

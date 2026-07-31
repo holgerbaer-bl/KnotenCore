@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.11.0-agent] - Sprint 313: Agentic Execution Protocol & State Snapshots (2026-07-31)
+Sprint 313: Implemented the Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`) for cross-isolate state persistence and migration.
+- **Agentic Protocol Endpoints (`rpc.rs`)**:
+  - `knc_agent_handshake`: Handshake endpoint returning protocol metadata, engine capabilities, and default isolate quotas.
+  - `knc_agent_snapshot`: Captures portable session state snapshots (VM registers, stack, callframes, IP, instructions, constants, quotas).
+  - `knc_agent_restore`: Restores snapshot payloads into target session boundaries, supporting seamless continuation of suspended execution via `knc_yield_resume`.
+- **Serde Encodings (`machine.rs`)**: Derived `Serialize` & `Deserialize` on `CallFrame`, `VmExecutionState`, and `VMState`.
+- **Automated Integration Test Suite**: Created `tests/agentic_protocol_tests.rs` verifying handshakes, capturing suspended Yielded states, restoring into fresh server/isolate instances, and executing to completion.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.11.0-agent`.
+
 ## [v2.10.0-ws] - Sprint 312: WebSocket RPC & Persistent Stream Layer (2026-07-31)
 Sprint 312: Implemented persistent WebSocket RPC transport (`listen_ws`), RFC 6455 framing & handshake, CLI flag `--ws-port <PORT>`, and real-time event streaming.
 - **WebSocket Transport (`rpc.rs`)**: Added `listen_ws`, `handle_ws_connection`, `read_ws_frame`, and `write_ws_frame` implementing self-contained RFC 6455 WebSocket handshakes and text frames.

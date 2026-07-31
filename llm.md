@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.10.0-ws Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.11.0-agent Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -151,6 +151,10 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **WebSocket RPC & Persistent Stream Layer** (Sprint 312 - v2.10.0-ws) — Realtime persistent transport:
   - **CLI Flag `--ws-port <PORT>`**: Launches KnotenCore in Headless Server Mode with RFC 6455 WebSocket RPC interface on `127.0.0.1:<PORT>`.
   - **Realtime Event Streaming**: Pushes real-time `VmEvent` notices (`knc_event`) over WebSocket text frames as execution and state transitions occur (`Yielded`, `Finished`, `Fault`).
+- **Agentic Execution Protocol & State Snapshots** (Sprint 313 - v2.11.0-agent) — Cross-isolate agentic state persistence:
+  - **`knc_agent_handshake`**: Returns version metadata (`v2.11.0-agent`), engine capabilities (`jsonrpc`, `websocket`, `isolate_quotas`, `async_yield`, `state_snapshots`), and default quota configuration.
+  - **`knc_agent_snapshot`**: Serializes session state (registers, stack, frames, IP, instructions, constants, quota) into portable JSON snapshot payload.
+  - **`knc_agent_restore`**: Restores snapshot payload into any session ID on fresh or existing Isolates, enabling seamless execution resuming (`knc_yield_resume`).
 
 ---
 

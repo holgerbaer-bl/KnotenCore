@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.10.0-ws** · Sprint 312 · WebSocket RPC & Persistent Stream Layer
+Current engine version: **v2.11.0-agent** · Sprint 313 · Agentic Execution Protocol & State Snapshots
 
 ## Done (selected milestones)
 
@@ -34,6 +34,7 @@ Current engine version: **v2.10.0-ws** · Sprint 312 · WebSocket RPC & Persiste
 - ✅ Headless JSON-RPC 2.0 Server Interface & Agentic Transport Protocol (Sprint 310 - v2.8.0-rpc)
 - ✅ Isolate Multi-Tenant Resource Quotas & RPC Session Enforcement (Sprint 311 - v2.9.0-isolate)
 - ✅ Persistent WebSocket RPC Transport & Realtime Event Broadcaster (Sprint 312 - v2.10.0-ws)
+- ✅ Agentic Execution Protocol, Portable State Snapshots & Restore (Sprint 313 - v2.11.0-agent)
 
 ## Near-Term
 

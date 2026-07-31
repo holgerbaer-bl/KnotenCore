@@ -47,14 +47,14 @@ pub use inspector::get_vm_inspection_snapshot;
 pub use inspector::verify_ledger_hash;
 // VM_SLEEP_ACCUMULATED_MS kept as pub(crate) in inspector; accessed via inspector:: directly
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct CallFrame {
     pub ip: usize,
     pub base_pointer: usize,
 }
 
 /// Sprint 309: VM Execution State Representation
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub enum VmExecutionState {
     #[default]
     Ready,
@@ -97,7 +97,7 @@ pub struct VM {
     pub quota: knoten_core_types::ast::IsolateQuota,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct VMState {
     pub globals: HashMap<String, RelType>,
     pub stack: Vec<RelType>,
