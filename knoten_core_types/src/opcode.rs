@@ -116,4 +116,7 @@ pub enum OpCode {
 
     // Sprint 308: Agentic Event Streaming & Execution Hooks
     EventEmit, // pops (topic: Str, payload: Any) → triggers VM event hook
+
+    // Sprint 309: Async Yield & Non-blocking Execution
+    Yield, // Yields VM execution, suspending instruction loop at current IP
 }

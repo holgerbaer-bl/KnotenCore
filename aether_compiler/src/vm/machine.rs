@@ -53,6 +53,17 @@ pub struct CallFrame {
     pub base_pointer: usize,
 }
 
+/// Sprint 309: VM Execution State Representation
+#[derive(Debug, Clone, PartialEq, Default)]
+pub enum VmExecutionState {
+    #[default]
+    Ready,
+    Running,
+    Yielded,
+    Finished(RelType),
+    Fault(String),
+}
+
 /// Sprint 308: Runtime Events emitted by script execution and VFS hooks
 #[derive(Debug, Clone, PartialEq)]
 pub enum VmEvent {
@@ -80,6 +91,8 @@ pub struct VM {
     pub vfs: VirtualFs,
     /// Sprint 308: Optional thread-safe event streaming hook
     pub event_hook: Option<VmEventHook>,
+    /// Sprint 309: Current VM execution state
+    pub execution_state: VmExecutionState,
 }
 
 #[derive(Clone)]
@@ -166,11 +179,37 @@ impl VM {
             is_inspectable: false,
             vfs: VirtualFs::new(),
             event_hook: None,
+            execution_state: VmExecutionState::Ready,
         }
     }
 
     pub fn set_event_hook(&mut self, hook: VmEventHook) {
         self.event_hook = Some(hook);
+    }
+
+    pub fn execution_state(&self) -> &VmExecutionState {
+        &self.execution_state
+    }
+
+    pub fn is_yielded(&self) -> bool {
+        matches!(self.execution_state, VmExecutionState::Yielded)
+    }
+
+    pub fn resume(
+        &mut self,
+        instructions: &[OpCode],
+        constants: &[RelType],
+        permissions: &AgentPermissions,
+        bridge: Option<&dyn crate::natives::bridge::BridgeModule>,
+    ) -> Result<RelType, String> {
+        if self.execution_state == VmExecutionState::Yielded {
+            self.execution_state = VmExecutionState::Running;
+            self.run_loop(instructions, constants, permissions, bridge)
+        } else {
+            let err = "Cannot resume VM: execution state is not Yielded".to_string();
+            self.execution_state = VmExecutionState::Fault(err.clone());
+            Err(err)
+        }
     }
 
     pub fn inspect(&self) -> VMInspectorData {
@@ -225,7 +264,18 @@ impl VM {
         self.frames.clear();
         self.ip = 0;
         self.base_pointer = 0;
+        self.execution_state = VmExecutionState::Running;
 
+        self.run_loop(instructions, constants, permissions, bridge)
+    }
+
+    pub fn run_loop(
+        &mut self,
+        instructions: &[OpCode],
+        constants: &[RelType],
+        permissions: &AgentPermissions,
+        bridge: Option<&dyn crate::natives::bridge::BridgeModule>,
+    ) -> Result<RelType, String> {
         let mut start = Instant::now();
         let mut instr_count: u64 = 0;
         let mut accumulated_cpu: std::time::Duration = std::time::Duration::ZERO;
@@ -1794,6 +1844,11 @@ impl VM {
                         self.rollback(state);
                     }
                 }
+                // ── Sprint 309: Async Yield ───────────────────────────
+                OpCode::Yield => {
+                    self.execution_state = VmExecutionState::Yielded;
+                    return Ok(RelType::Void);
+                }
                 OpCode::Return => {
                     let ret_val = self
                         .stack
@@ -1808,13 +1863,16 @@ impl VM {
                         self.stack.push(ret_val);
                     } else {
                         // Top level return exit
+                        self.execution_state = VmExecutionState::Finished(ret_val.clone());
                         return Ok(ret_val);
                     }
                 }
             }
         }
 
-        Ok(self.stack.pop().unwrap_or(RelType::Void))
+        let final_val = self.stack.pop().unwrap_or(RelType::Void);
+        self.execution_state = VmExecutionState::Finished(final_val.clone());
+        Ok(final_val)
     }
 }
 

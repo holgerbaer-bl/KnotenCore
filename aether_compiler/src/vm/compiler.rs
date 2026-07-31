@@ -684,6 +684,10 @@ impl Compiler {
                 self.instructions.push(OpCode::EventEmit);
                 true
             }
+            Node::Yield => {
+                self.instructions.push(OpCode::Yield);
+                true
+            }
             Node::PlayNote(channel_expr, freq_expr, dur_expr, wave_expr) => {
                 if !self.compile_node(channel_expr) {
                     return false;

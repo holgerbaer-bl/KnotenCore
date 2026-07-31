@@ -13,6 +13,7 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::GetLastKeypress
         | Node::MapCreate
         | Node::Load { .. }
+        | Node::Yield
         | Node::Import(_) => {}
         Node::Add(l, r)
         | Node::Sub(l, r)
@@ -853,6 +854,8 @@ pub fn optimize(node: Node) -> Node {
         Node::VfsWrite(p, d) => Node::VfsWrite(Box::new(optimize(*p)), Box::new(optimize(*d))),
         // Sprint 308: EventEmit
         Node::EventEmit(t, p) => Node::EventEmit(Box::new(optimize(*t)), Box::new(optimize(*p))),
+        // Sprint 309: Yield
+        Node::Yield => Node::Yield,
     }
 }
 

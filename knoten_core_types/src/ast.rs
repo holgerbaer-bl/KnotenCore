@@ -302,6 +302,9 @@ pub enum Node {
 
     // Sprint 308: Agentic Event Streaming
     EventEmit(Box<Node>, Box<Node>), // topic: Str, payload: Any → Void
+
+    // Sprint 309: Async Yield
+    Yield, // Yields VM execution
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

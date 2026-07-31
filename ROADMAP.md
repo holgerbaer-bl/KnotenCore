@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.6.0-event** · Sprint 308 · Agentic Event Streaming & Execution Hooks
+Current engine version: **v2.7.0-async** · Sprint 309 · Async Yield & Strategic Alignment
 
 ## Done (selected milestones)
 
@@ -30,6 +30,7 @@ Current engine version: **v2.6.0-event** · Sprint 308 · Agentic Event Streamin
 - ✅ Native Cast Opcodes, High-Performance String & Array Primitives, Sandboxed In-Memory VFS (Sprint 306 - v2.4.0-core)
 - ✅ Constant Folding for Casts, String Primitives & Unreachable Code Trimming (Sprint 307 - v2.5.0-opt)
 - ✅ Agentic Event Streaming Hooks & EventEmit Opcode (Sprint 308 - v2.6.0-event)
+- ✅ Async Yield Opcode, Non-blocking VM Suspension & Resuming (Sprint 309 - v2.7.0-async)
 
 ## Near-Term
 

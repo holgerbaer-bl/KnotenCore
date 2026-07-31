@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.7.0-async] - Sprint 309: Async Yield, Non-blocking Execution & Strategic Alignment (2026-07-26)
+Sprint 309: Implemented `OpCode::Yield`, non-blocking VM suspension & resuming, and updated README positioning for microservices & agent sandboxing.
+- **Async Yield Opcode (`OpCode::Yield`)**: Added `OpCode::Yield` and `Node::Yield`. Suspends execution loop at current IP without clearing registers/stack, setting `VM::execution_state` to `VmExecutionState::Yielded`.
+- **VM Execution State & Resuming (`machine.rs`)**: Introduced `VmExecutionState` (`Ready`, `Running`, `Yielded`, `Finished`, `Fault`) and implemented `VM::resume(...)` to seamlessly continue suspended VM execution from saved IP.
+- **Strategic Alignment Overhaul (`README.md`)**: Positioned KnotenCore as an ultra-lightweight, embeddable runtime for stateless microservices, headless data pipelines, and a deterministic text-based sandbox for AI-generated code and autonomous agents.
+- **Automated Integration Test Suite**: Created `tests/async_yield_tests.rs` verifying yield/resume semantics, state preservation, and execution parity.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.7.0-async`.
+
 ## [v2.6.0-event] - Sprint 308: Agentic Event Streaming & Execution Hooks (2026-07-26)
 Sprint 308: Implemented real-time VM event streaming hooks and `OpCode::EventEmit` for host process observability and agentic event tracking.
 - **Event Emit Opcode (`OpCode::EventEmit`)**: Added `OpCode::EventEmit` and `Node::EventEmit(topic_expr, payload_expr)`. Pops topic and payload from VM stack, triggers host event callback, and pushes `RelType::Void`.

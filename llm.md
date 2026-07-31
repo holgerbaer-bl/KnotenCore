@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.6.0-event Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.7.0-async Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -139,6 +139,9 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Agentic Event Streaming & Execution Hooks** (Sprint 308 - v2.6.0-event) — Real-time execution tracing and host observability:
   - **`OpCode::EventEmit`**: Pops `(topic: Str, payload: Any)` from the VM stack, notifies the host's event callback hook, and pushes `RelType::Void`. Compiles from `Node::EventEmit(topic_expr, payload_expr)`.
   - **Thread-Safe VM Event Bus**: `VM::set_event_hook(Arc<dyn Fn(VmEvent) + Send + Sync>)` enables external host applications and autonomous agents to stream real-time execution events (`VmEvent::Custom`, `VmEvent::VfsWrite`, `VmEvent::VfsRead`) without mutex bottlenecks or CPU polling.
+- **Async Yield, Non-blocking Execution & Strategic Alignment** (Sprint 309 - v2.7.0-async) — Execution suspension and resuming:
+  - **`OpCode::Yield`**: Suspends VM instruction execution at the current instruction pointer (`self.ip`), transitions `VM::execution_state` to `VmExecutionState::Yielded`, and returns `Ok(RelType::Void)` without clearing registers or call frames. Compiles from `Node::Yield`.
+  - **VM Execution Suspension & Resuming**: `VmExecutionState` (`Ready`, `Running`, `Yielded`, `Finished`, `Fault`). `VM::resume(...)` validates `VmExecutionState::Yielded`, restores state to `Running`, and seamlessly continues execution from the exact saved instruction pointer `self.ip`.
 
 ---
 

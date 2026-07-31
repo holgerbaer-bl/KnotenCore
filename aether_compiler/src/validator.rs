@@ -609,6 +609,8 @@ impl Validator {
                 self.check_node(t);
                 self.check_node(p);
             }
+            // Sprint 309: Async Yield
+            Node::Yield => {}
         }
     }
 }

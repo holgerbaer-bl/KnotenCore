@@ -1,6 +1,6 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.6.0--event-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.7.0--async-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-244%2F244-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
 [![Release](https://img.shields.io/badge/release-alpha-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
@@ -8,12 +8,12 @@
 *(Noun) /knoːtən kɔːr/*
 
 1. **Not** a relentless underground German hardcore techno subgenre. 
-2. A thread-safe, deterministic **AI-Native Execution Runtime** — agents feed it structured JSON logic, the AOT compiler turns it into flat bytecode, and the Stack-VM executes it at bare-metal speed. No browser. No GC.
+2. Eine thread-sichere, deterministische **Execution Runtime** — leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines sowie deterministische, textbasierte Sandbox für KI-generierten Code und autonome Agenten. No browser. No GC.
 
-**The Headless-First Deterministic AI-Native Execution Runtime.**
+**Die leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines & KI-Agenten.**
 
 ## What is KnotenCore?
-**KnotenCore** is a **Headless-First Deterministic AI-Native Execution Runtime** built entirely in Rust. External AI agents describe programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized flat bytecode stream and executes them on a Register Stack-VM — achieving deterministic, GC-free, bare-metal performance. Lightweight headless execution is the core foundation; heavyweight windowing and graphics (`wgpu`, `winit`, `egui`) are isolated behind an optional `ui` feature gate or mocked with zero-overhead no-op stubs. Strict sandbox guards strictly enforce an instruction hard-stop at 1,000,000 opcodes (`ERR_SANDBOX_TIMEOUT`) and a 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).
+**KnotenCore** ist eine **Headless-First Deterministic Execution Runtime** in Rust. Sie dient als leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines sowie deterministische, textbasierte Sandbox für KI-generierten Code und autonome Agenten. Externe KI-Agenten oder Microservices beschreiben Programme als strukturierte **JSON-AST Knoten** (`.nod` Dateien). Die Engine kompiliert diese direkt in einen AOT-optimierten Bytecode-Stream und führt sie auf einer Register Stack-VM mit bare-metal Performance und non-blocking Execution-Pausing (`OpCode::Yield`, `VM::resume()`) aus. Schwergewichtige UI-Funktionen (`wgpu`, `winit`, `egui`) sind hinter dem optionalen `ui` Feature-Gate isoliert. Strict Sandbox-Guards garantieren Instruction-Limits (1.000.000 Opcodes -> `ERR_SANDBOX_TIMEOUT`) und Arbeitsspeicher-Limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
 
 ---
 

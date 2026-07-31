@@ -961,6 +961,11 @@ impl ExecutionEngine {
                 msg: "EventEmit requires VM compilation; use the compiler pipeline".into(),
                 node: "Node::EventEmit".into(),
             },
+            // Sprint 309: Yield node — requires VM compilation path
+            Node::Yield => ExecResult::Fault {
+                msg: "Yield requires VM compilation; use the compiler pipeline".into(),
+                node: "Node::Yield".into(),
+            },
         }
     }
 
