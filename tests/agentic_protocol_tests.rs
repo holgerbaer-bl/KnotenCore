@@ -9,7 +9,7 @@
 use aether_compiler::executor::AgentPermissions;
 use aether_compiler::rpc::RpcServer;
 use knoten_core_types::ast::Node;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 fn test_perms() -> AgentPermissions {
     AgentPermissions {
@@ -41,7 +41,12 @@ fn test_agentic_handshake() {
     assert_eq!(resp["result"]["engine"], "KnotenCore");
     assert_eq!(resp["result"]["capabilities"]["state_snapshots"], true);
     assert_eq!(resp["result"]["capabilities"]["async_yield"], true);
-    assert!(resp["result"]["default_quota"]["max_instructions"].as_u64().unwrap() > 0);
+    assert!(
+        resp["result"]["default_quota"]["max_instructions"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
 }
 
 #[test]
@@ -51,7 +56,10 @@ fn test_agentic_snapshot_and_restore_resume_flow() {
     // AST: Yield, then add 10 + 20
     let ast = Node::Block(vec![
         Node::Yield,
-        Node::Add(Box::new(Node::IntLiteral(10)), Box::new(Node::IntLiteral(20))),
+        Node::Add(
+            Box::new(Node::IntLiteral(10)),
+            Box::new(Node::IntLiteral(20)),
+        ),
     ]);
 
     // 1. Execute on Server A (session_orig) -> should Yield
@@ -65,7 +73,8 @@ fn test_agentic_snapshot_and_restore_resume_flow() {
         "id": 100
     });
 
-    let resp_a: Value = serde_json::from_str(&server_a.dispatch_request(&exec_req.to_string())).unwrap();
+    let resp_a: Value =
+        serde_json::from_str(&server_a.dispatch_request(&exec_req.to_string())).unwrap();
     assert_eq!(resp_a["result"]["status"], "ok");
     assert_eq!(resp_a["result"]["is_yielded"], true);
 
@@ -79,7 +88,8 @@ fn test_agentic_snapshot_and_restore_resume_flow() {
         "id": 101
     });
 
-    let snap_resp: Value = serde_json::from_str(&server_a.dispatch_request(&snap_req.to_string())).unwrap();
+    let snap_resp: Value =
+        serde_json::from_str(&server_a.dispatch_request(&snap_req.to_string())).unwrap();
     assert_eq!(snap_resp["result"]["status"], "ok");
     let snapshot_payload = snap_resp["result"]["snapshot"].clone();
     assert!(!snapshot_payload.is_null());
@@ -97,7 +107,8 @@ fn test_agentic_snapshot_and_restore_resume_flow() {
         "id": 200
     });
 
-    let restore_resp: Value = serde_json::from_str(&server_b.dispatch_request(&restore_req.to_string())).unwrap();
+    let restore_resp: Value =
+        serde_json::from_str(&server_b.dispatch_request(&restore_req.to_string())).unwrap();
     assert_eq!(restore_resp["result"]["status"], "ok");
     assert_eq!(restore_resp["result"]["is_yielded"], true);
 
@@ -111,7 +122,8 @@ fn test_agentic_snapshot_and_restore_resume_flow() {
         "id": 201
     });
 
-    let resume_resp: Value = serde_json::from_str(&server_b.dispatch_request(&resume_req.to_string())).unwrap();
+    let resume_resp: Value =
+        serde_json::from_str(&server_b.dispatch_request(&resume_req.to_string())).unwrap();
     assert_eq!(resume_resp["result"]["status"], "ok");
     assert_eq!(resume_resp["result"]["result"]["Int"], 30);
 }
