@@ -1,6 +1,6 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.7.0-async-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.8.0-rpc-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-244%2F244-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
 [![Release](https://img.shields.io/badge/release-alpha-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
@@ -25,6 +25,7 @@ cargo run --bin run_knc -- <path_to.nod> [options]
 ```
 
 ### Options:
+* `--rpc-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing the JSON-RPC 2.0 interface on `127.0.0.1:<PORT>` (`knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`).
 * `--headless`: Bypasses physical window creation and WGPU graphics context initialization. Runs the compiled AST validation and execution paths headless on the main thread for 1-2 virtual frames, returning exit code `0`. Perfect for display-less environments (CI, remote servers, AI sandboxes).
 * `--allow-read`: Enables sandboxed File I/O read permissions.
 * `--allow-write`: Enables sandboxed File I/O write permissions.

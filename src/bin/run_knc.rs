@@ -44,6 +44,7 @@ fn run() {
     let mut no_opt = false;
     let mut transpile = false;
     let mut output_format_json = false;
+    let mut rpc_port: Option<u16> = None;
     let mut is_headless = false;
     let mut file_path = String::new();
 
@@ -67,6 +68,17 @@ fn run() {
             engine.permissions.allow_network = true;
         } else if arg == "--headless" {
             is_headless = true;
+        } else if arg == "--rpc-port" {
+            if let Some(next_arg) = args.get(i + 1) {
+                if let Ok(p) = next_arg.parse::<u16>() {
+                    rpc_port = Some(p);
+                }
+                skip_next = true;
+            }
+        } else if arg.starts_with("--rpc-port=") {
+            if let Ok(p) = arg.trim_start_matches("--rpc-port=").parse::<u16>() {
+                rpc_port = Some(p);
+            }
         } else if arg == "--output-format" {
             if let Some(next_arg) = args.get(i + 1) {
                 if next_arg == "json" {
@@ -85,6 +97,21 @@ fn run() {
         std::panic::set_hook(Box::new(|_| {}));
         knoten_core::natives::registry::JSON_OUTPUT_MODE
             .store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    if let Some(port) = rpc_port {
+        if !output_format_json {
+            println!(
+                "[Headless Server Mode] Starting JSON-RPC 2.0 Server on port {}...",
+                port
+            );
+        }
+        let server = aether_compiler::rpc::RpcServer::new(engine.permissions.clone());
+        if let Err(e) = server.listen_tcp(port) {
+            eprintln!("[RPC Error] Server failed: {}", e);
+            std::process::exit(1);
+        }
+        return;
     }
 
     // Check if we are bundled (Sprint 11) - Respects permissions set above

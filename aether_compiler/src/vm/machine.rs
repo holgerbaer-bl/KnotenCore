@@ -65,7 +65,7 @@ pub enum VmExecutionState {
 }
 
 /// Sprint 308: Runtime Events emitted by script execution and VFS hooks
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum VmEvent {
     /// Custom script event via EventEmit opcode (topic, payload)
     Custom { topic: String, payload: RelType },

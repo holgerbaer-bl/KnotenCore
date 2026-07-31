@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.7.0-async** · Sprint 309 · Async Yield & Strategic Alignment
+Current engine version: **v2.8.0-rpc** · Sprint 310 · Headless JSON-RPC 2.0 Server & Agentic Transport Protocol
 
 ## Done (selected milestones)
 
@@ -31,6 +31,7 @@ Current engine version: **v2.7.0-async** · Sprint 309 · Async Yield & Strategi
 - ✅ Constant Folding for Casts, String Primitives & Unreachable Code Trimming (Sprint 307 - v2.5.0-opt)
 - ✅ Agentic Event Streaming Hooks & EventEmit Opcode (Sprint 308 - v2.6.0-event)
 - ✅ Async Yield Opcode, Non-blocking VM Suspension & Resuming (Sprint 309 - v2.7.0-async)
+- ✅ Headless JSON-RPC 2.0 Server Interface & Agentic Transport Protocol (Sprint 310 - v2.8.0-rpc)
 
 ## Near-Term
 

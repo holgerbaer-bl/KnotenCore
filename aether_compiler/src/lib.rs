@@ -10,6 +10,7 @@ pub mod math;
 pub mod natives;
 pub mod optimizer;
 pub mod parser;
+pub mod rpc;
 pub mod test_lib;
 pub mod validator;
 pub mod vm;

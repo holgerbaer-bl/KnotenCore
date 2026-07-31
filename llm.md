@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.7.0-async Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.8.0-rpc Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -142,6 +142,13 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Async Yield, Non-blocking Execution & Strategic Alignment** (Sprint 309 - v2.7.0-async) — Execution suspension and resuming:
   - **`OpCode::Yield`**: Suspends VM instruction execution at the current instruction pointer (`self.ip`), transitions `VM::execution_state` to `VmExecutionState::Yielded`, and returns `Ok(RelType::Void)` without clearing registers or call frames. Compiles from `Node::Yield`.
   - **VM Execution Suspension & Resuming**: `VmExecutionState` (`Ready`, `Running`, `Yielded`, `Finished`, `Fault`). `VM::resume(...)` validates `VmExecutionState::Yielded`, restores state to `Running`, and seamlessly continues execution from the exact saved instruction pointer `self.ip`.
+- **Headless JSON-RPC 2.0 Server & Agentic Transport Protocol** (Sprint 310 - v2.8.0-rpc) — Remote agentic execution & RPC transport:
+  - **CLI Flag `--rpc-port <PORT>`**: Launches KnotenCore in Headless Server Mode binding a TCP socket on `127.0.0.1:<PORT>` for JSON-RPC 2.0 requests.
+  - **JSON-RPC 2.0 Methods**:
+    - `knc_compile`: Accepts `{ "ast": Node }` or `{ "code": "..." }`, validates AST, optimizes and compiles to bytecode.
+    - `knc_execute`: Compiles and runs AST/bytecode in a VM session (`session_id`), collecting emitted `VmEvent` items and returning results.
+    - `knc_yield_resume`: Resumes a suspended `Yielded` VM session.
+    - `knc_inspect_state`: Inspects VM state, IP, stack size, call frames, globals, and inspector metrics for an active session.
 
 ---
 

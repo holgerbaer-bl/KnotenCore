@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.8.0-rpc] - Sprint 310: Headless JSON-RPC 2.0 Server & Agentic Transport Protocol (2026-07-31)
+Sprint 310: Implemented Headless JSON-RPC 2.0 Server Engine (`aether_compiler/src/rpc.rs`) and `--rpc-port <PORT>` CLI mode for remote agentic execution, yield/resume control, and state inspection.
+- **JSON-RPC 2.0 Server Engine (`rpc.rs`)**: Full JSON-RPC 2.0 handler implementing methods `knc_compile`, `knc_execute`, `knc_yield_resume`, and `knc_inspect_state`.
+- **CLI Flag `--rpc-port` (`run_knc.rs`)**: Launches KnotenCore in Headless Server Mode binding TCP socket on `127.0.0.1:<PORT>` for external AI agents and microservice orchestration.
+- **Automated Integration Test Suite**: Created `tests/json_rpc_tests.rs` verifying compilation, script execution, event hook collection, session yield/resuming, state inspection, and protocol error handling.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.8.0-rpc`.
+
 ## [v2.7.0-async] - Sprint 309: Async Yield, Non-blocking Execution & Strategic Alignment (2026-07-26)
 Sprint 309: Implemented `OpCode::Yield`, non-blocking VM suspension & resuming, and updated README positioning for microservices & agent sandboxing.
 - **Async Yield Opcode (`OpCode::Yield`)**: Added `OpCode::Yield` and `Node::Yield`. Suspends execution loop at current IP without clearing registers/stack, setting `VM::execution_state` to `VmExecutionState::Yielded`.

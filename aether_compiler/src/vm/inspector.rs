@@ -51,7 +51,7 @@ pub fn get_ledger_nonce() -> u64 {
 // ── Inspector Panel ───────────────────────────────────────────────────────────
 
 /// Snapshot of VM metrics for the egui inspector panel (Sprint 297).
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct VMInspectorData {
     pub stack_depth: usize,
     pub frame_count: usize,

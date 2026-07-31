@@ -1,5 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 // Sprint 202: SIMD operation types for auto-vectorization
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SimdOp {
     Scale,     // elements * factor
     Add,       // elements_a + elements_b
@@ -8,7 +10,7 @@ pub enum SimdOp {
     Transform, // Sprint 249: transform via registered matrix handle
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum OpCode {
     Constant(usize),
     Add,
