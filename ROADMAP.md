@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.9.0-isolate** · Sprint 311 · Isolate Multi-Tenant Quotas & JSON-RPC Session Enforcement
+Current engine version: **v2.9.1-hotfix** · Sprint 311 · Isolate Multi-Tenant Quotas & JSON-RPC Session Enforcement
 
 ## Done (selected milestones)
 

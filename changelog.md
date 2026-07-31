@@ -2,6 +2,10 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.9.1-hotfix] - Hotfix for Opcode Limit Test Assertion (2026-07-31)
+- **VM Machine Test Fix**: Harmonized assertion in `test_sandbox_opcode_limit_guard` (`machine.rs`) to check for `ERR_QUOTA_EXCEEDED` or `ERR_SANDBOX_TIMEOUT`.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.9.1-hotfix`.
+
 ## [v2.9.0-isolate] - Sprint 311: Isolate Multi-Tenant Quotas & JSON-RPC Session Enforcement (2026-07-31)
 Sprint 311: Implemented configurable Multi-Tenant Resource Quotas (`IsolateQuota`), VM execution quota guards, and JSON-RPC session quota mapping (`-32000 Quota Exceeded`).
 - **`IsolateQuota` Struct (`ast.rs`)**: Introduced `IsolateQuota` with `max_instructions`, `max_memory_bytes`, and `execution_timeout_ms`.

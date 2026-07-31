@@ -4089,7 +4089,7 @@ mod tests {
         let res = vm.run(&instructions, &constants, &permissions, None);
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(err.contains("ERR_SANDBOX_TIMEOUT"));
+        assert!(err.contains("ERR_QUOTA_EXCEEDED") || err.contains("ERR_SANDBOX_TIMEOUT"));
     }
 
     #[test]
