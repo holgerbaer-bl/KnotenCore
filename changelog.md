@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.10.0-ws] - Sprint 312: WebSocket RPC & Persistent Stream Layer (2026-07-31)
+Sprint 312: Implemented persistent WebSocket RPC transport (`listen_ws`), RFC 6455 framing & handshake, CLI flag `--ws-port <PORT>`, and real-time event streaming.
+- **WebSocket Transport (`rpc.rs`)**: Added `listen_ws`, `handle_ws_connection`, `read_ws_frame`, and `write_ws_frame` implementing self-contained RFC 6455 WebSocket handshakes and text frames.
+- **Realtime Event Broadcaster (`rpc.rs`)**: Connected `VmEvent` bus directly to WebSocket frames, pushing real-time `knc_event` notifications as VM events occur.
+- **CLI Flag `--ws-port` (`run_knc.rs`)**: Added `--ws-port <PORT>` flag to launch KnotenCore in Headless WebSocket Server mode.
+- **Automated Integration Test Suite**: Created `tests/websocket_rpc_tests.rs` verifying handshake calculation, frame masking/unmasking, request execution, event streaming, and clean close frames.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.10.0-ws`.
+
 ## [v2.9.1-hotfix] - Hotfix for Opcode Limit Test Assertion (2026-07-31)
 - **VM Machine Test Fix**: Harmonized assertion in `test_sandbox_opcode_limit_guard` (`machine.rs`) to check for `ERR_QUOTA_EXCEEDED` or `ERR_SANDBOX_TIMEOUT`.
 - **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.9.1-hotfix`.

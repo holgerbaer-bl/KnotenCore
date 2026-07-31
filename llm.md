@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.9.1-hotfix Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.10.0-ws Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -148,6 +148,9 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Isolate Multi-Tenant Quotas & JSON-RPC Session Enforcement** (Sprint 311 - v2.9.0-isolate) — Resource protection & multi-tenant isolation:
   - **`IsolateQuota` Struct**: `max_instructions: u64`, `max_memory_bytes: usize`, `execution_timeout_ms: u64`. Default limits: 1,000,000 opcodes, 16MB RAM, 50ms watchdog.
   - **RPC Multi-Tenant Quota Enforcement**: Custom `"quota"` params accepted in `knc_compile`, `knc_execute`, `knc_yield_resume`. Quota violations mapped to JSON-RPC error code `-32000` (`Quota Exceeded`).
+- **WebSocket RPC & Persistent Stream Layer** (Sprint 312 - v2.10.0-ws) — Realtime persistent transport:
+  - **CLI Flag `--ws-port <PORT>`**: Launches KnotenCore in Headless Server Mode with RFC 6455 WebSocket RPC interface on `127.0.0.1:<PORT>`.
+  - **Realtime Event Streaming**: Pushes real-time `VmEvent` notices (`knc_event`) over WebSocket text frames as execution and state transitions occur (`Yielded`, `Finished`, `Fault`).
 
 ---
 

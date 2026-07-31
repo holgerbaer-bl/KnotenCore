@@ -430,4 +430,270 @@ impl RpcServer {
             line.clear();
         }
     }
+
+    pub fn dispatch_request_ws(&self, request_raw: &str) -> (Option<String>, String, Vec<VmEvent>) {
+        let response_str = self.dispatch_request(request_raw);
+        let mut session_id = None;
+        let mut events = Vec::new();
+
+        if let Some(s) = serde_json::from_str::<Value>(request_raw)
+            .ok()
+            .and_then(|v| v.get("params").cloned())
+            .and_then(|p| p.get("session_id").cloned())
+            .and_then(|v| v.as_str().map(|s| s.to_string()))
+        {
+            session_id = Some(s.clone());
+            let sessions = self.sessions.lock().unwrap();
+            if let Some(session) = sessions.get(&s) {
+                events = session.events.clone();
+            }
+        }
+
+        (session_id, response_str, events)
+    }
+
+    pub fn listen_ws(&self, port: u16) -> std::io::Result<()> {
+        let listener = TcpListener::bind(("127.0.0.1", port))?;
+        println!(
+            "[KnotenCore WebSocket RPC] Server listening on 127.0.0.1:{}",
+            port
+        );
+
+        for stream in listener.incoming().flatten() {
+            let permissions = self.permissions.clone();
+            let sessions = self.sessions.clone();
+            std::thread::spawn(move || {
+                let server = RpcServer {
+                    permissions,
+                    sessions,
+                };
+                server.handle_ws_connection(stream);
+            });
+        }
+        Ok(())
+    }
+
+    pub fn handle_ws_connection(&self, mut stream: TcpStream) {
+        let mut buf_reader = BufReader::new(stream.try_clone().unwrap());
+        let mut key = String::new();
+
+        loop {
+            let mut line = String::new();
+            if buf_reader.read_line(&mut line).unwrap_or(0) == 0 {
+                return;
+            }
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                break;
+            }
+            if trimmed.to_lowercase().starts_with("sec-websocket-key:") {
+                key = trimmed["sec-websocket-key:".len()..].trim().to_string();
+            }
+        }
+
+        if key.is_empty() {
+            return;
+        }
+
+        let magic = format!("{}258EAFA5-E914-47DA-95CA-C5AB0DC85B11", key);
+        let accept_val = base64_encode(&sha1_digest(magic.as_bytes()));
+
+        let handshake_response = format!(
+            "HTTP/1.1 101 Switching Protocols\r\n\
+             Upgrade: websocket\r\n\
+             Connection: Upgrade\r\n\
+             Sec-WebSocket-Accept: {}\r\n\r\n",
+            accept_val
+        );
+
+        if stream.write_all(handshake_response.as_bytes()).is_err() {
+            return;
+        }
+        let _ = stream.flush();
+
+        while let Ok(Some(req_str)) = read_ws_frame(&mut buf_reader) {
+            let (session_id_opt, resp_str, live_events) = self.dispatch_request_ws(&req_str);
+
+            for ev in live_events {
+                let ev_notice = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "method": "knc_event",
+                    "params": {
+                        "session_id": session_id_opt.as_deref().unwrap_or("default"),
+                        "event": ev
+                    }
+                });
+                let _ = write_ws_frame(&mut stream, &ev_notice.to_string());
+            }
+
+            if write_ws_frame(&mut stream, &resp_str).is_err() {
+                break;
+            }
+        }
+    }
+}
+
+#[allow(clippy::needless_range_loop)]
+pub fn sha1_digest(data: &[u8]) -> [u8; 20] {
+    let mut h0: u32 = 0x67452301;
+    let mut h1: u32 = 0xEFCDAB89;
+    let mut h2: u32 = 0x98BADCFE;
+    let mut h3: u32 = 0x10325476;
+    let mut h4: u32 = 0xC3D2E1F0;
+
+    let mut msg = data.to_vec();
+    let bit_len = (data.len() as u64) * 8;
+    msg.push(0x80);
+    while (msg.len() % 64) != 56 {
+        msg.push(0x00);
+    }
+    msg.extend_from_slice(&bit_len.to_be_bytes());
+
+    for chunk in msg.chunks(64) {
+        let mut w = [0u32; 80];
+        for i in 0..16 {
+            w[i] = u32::from_be_bytes([
+                chunk[i * 4],
+                chunk[i * 4 + 1],
+                chunk[i * 4 + 2],
+                chunk[i * 4 + 3],
+            ]);
+        }
+        for i in 16..80 {
+            w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
+        }
+
+        let mut a = h0;
+        let mut b = h1;
+        let mut c = h2;
+        let mut d = h3;
+        let mut e = h4;
+
+        for i in 0..80 {
+            let (f, k) = match i {
+                0..=19 => ((b & c) | ((!b) & d), 0x5A827999u32),
+                20..=39 => (b ^ c ^ d, 0x6ED9EBA1u32),
+                40..=59 => ((b & c) | (b & d) | (c & d), 0x8F1BBCDCu32),
+                _ => (b ^ c ^ d, 0xCA62C1D6u32),
+            };
+            let temp = a
+                .rotate_left(5)
+                .wrapping_add(f)
+                .wrapping_add(e)
+                .wrapping_add(k)
+                .wrapping_add(w[i]);
+            e = d;
+            d = c;
+            c = b.rotate_left(30);
+            b = a;
+            a = temp;
+        }
+
+        h0 = h0.wrapping_add(a);
+        h1 = h1.wrapping_add(b);
+        h2 = h2.wrapping_add(c);
+        h3 = h3.wrapping_add(d);
+        h4 = h4.wrapping_add(e);
+    }
+
+    let mut out = [0u8; 20];
+    out[0..4].copy_from_slice(&h0.to_be_bytes());
+    out[4..8].copy_from_slice(&h1.to_be_bytes());
+    out[8..12].copy_from_slice(&h2.to_be_bytes());
+    out[12..16].copy_from_slice(&h3.to_be_bytes());
+    out[16..20].copy_from_slice(&h4.to_be_bytes());
+    out
+}
+
+pub fn base64_encode(input: &[u8]) -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::new();
+    for chunk in input.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+
+        out.push(CHARSET[((triple >> 18) & 63) as usize] as char);
+        out.push(CHARSET[((triple >> 12) & 63) as usize] as char);
+        if chunk.len() > 1 {
+            out.push(CHARSET[((triple >> 6) & 63) as usize] as char);
+        } else {
+            out.push('=');
+        }
+        if chunk.len() > 2 {
+            out.push(CHARSET[(triple & 63) as usize] as char);
+        } else {
+            out.push('=');
+        }
+    }
+    out
+}
+
+pub fn read_ws_frame<R: std::io::Read>(reader: &mut R) -> std::io::Result<Option<String>> {
+    let mut header = [0u8; 2];
+    if reader.read_exact(&mut header).is_err() {
+        return Ok(None);
+    }
+
+    let opcode = header[0] & 0x0F;
+    if opcode == 0x8 {
+        return Ok(None);
+    }
+
+    let masked = (header[1] & 0x80) != 0;
+    let mut payload_len = (header[1] & 0x7F) as usize;
+
+    if payload_len == 126 {
+        let mut extended = [0u8; 2];
+        reader.read_exact(&mut extended)?;
+        payload_len = u16::from_be_bytes(extended) as usize;
+    } else if payload_len == 127 {
+        let mut extended = [0u8; 8];
+        reader.read_exact(&mut extended)?;
+        payload_len = u64::from_be_bytes(extended) as usize;
+    }
+
+    let mask = if masked {
+        let mut m = [0u8; 4];
+        reader.read_exact(&mut m)?;
+        Some(m)
+    } else {
+        None
+    };
+
+    let mut payload = vec![0u8; payload_len];
+    reader.read_exact(&mut payload)?;
+
+    if let Some(m) = mask {
+        for i in 0..payload_len {
+            payload[i] ^= m[i % 4];
+        }
+    }
+
+    let text = String::from_utf8(payload)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    Ok(Some(text))
+}
+
+pub fn write_ws_frame<W: std::io::Write>(writer: &mut W, text: &str) -> std::io::Result<()> {
+    let bytes = text.as_bytes();
+    let len = bytes.len();
+
+    let mut frame = Vec::new();
+    frame.push(0x81); // FIN = 1, Opcode = 1 (Text)
+
+    if len <= 125 {
+        frame.push(len as u8);
+    } else if len <= 65535 {
+        frame.push(126);
+        frame.extend_from_slice(&(len as u16).to_be_bytes());
+    } else {
+        frame.push(127);
+        frame.extend_from_slice(&(len as u64).to_be_bytes());
+    }
+
+    frame.extend_from_slice(bytes);
+    writer.write_all(&frame)?;
+    writer.flush()
 }

@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.9.1-hotfix** · Sprint 311 · Isolate Multi-Tenant Quotas & JSON-RPC Session Enforcement
+Current engine version: **v2.10.0-ws** · Sprint 312 · WebSocket RPC & Persistent Stream Layer
 
 ## Done (selected milestones)
 
@@ -33,6 +33,7 @@ Current engine version: **v2.9.1-hotfix** · Sprint 311 · Isolate Multi-Tenant 
 - ✅ Async Yield Opcode, Non-blocking VM Suspension & Resuming (Sprint 309 - v2.7.0-async)
 - ✅ Headless JSON-RPC 2.0 Server Interface & Agentic Transport Protocol (Sprint 310 - v2.8.0-rpc)
 - ✅ Isolate Multi-Tenant Resource Quotas & RPC Session Enforcement (Sprint 311 - v2.9.0-isolate)
+- ✅ Persistent WebSocket RPC Transport & Realtime Event Broadcaster (Sprint 312 - v2.10.0-ws)
 
 ## Near-Term
 

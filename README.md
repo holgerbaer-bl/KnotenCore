@@ -1,6 +1,6 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.9.1-hotfix-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.10.0-ws-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-244%2F244-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
 [![Release](https://img.shields.io/badge/release-alpha-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
@@ -13,7 +13,7 @@
 **Die leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines & KI-Agenten.**
 
 ## What is KnotenCore?
-**KnotenCore** ist eine **Headless-First Deterministic Execution Runtime** in Rust. Sie dient als leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines sowie deterministische, textbasierte Sandbox für KI-generierten Code und autonome Agenten. Externe KI-Agenten oder Microservices beschreiben Programme als strukturierte **JSON-AST Knoten** (`.nod` Dateien). Die Engine kompiliert diese direkt in einen AOT-optimierten Bytecode-Stream und führt sie auf einer Register Stack-VM mit bare-metal Performance, multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`) und non-blocking Execution-Pausing (`OpCode::Yield`, `VM::resume()`) aus. Schwergewichtige UI-Funktionen (`wgpu`, `winit`, `egui`) sind hinter dem optionalen `ui` Feature-Gate isoliert. Strict Sandbox-Guards garantieren Instruction-Limits (1.000.000 Opcodes -> `ERR_SANDBOX_TIMEOUT`) und Arbeitsspeicher-Limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
+**KnotenCore** ist eine **Headless-First Deterministic Execution Runtime** in Rust. Sie dient als leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines sowie deterministische, textbasierte Sandbox für KI-generierten Code und autonome Agenten. Externe KI-Agenten oder Microservices beschreiben Programme als strukturierte **JSON-AST Knoten** (`.nod` Dateien). Die Engine kompiliert diese direkt in einen AOT-optimierten Bytecode-Stream und führt sie auf einer Register Stack-VM mit bare-metal Performance, persistentem WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming) und multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`) aus. Schwergewichtige UI-Funktionen (`wgpu`, `winit`, `egui`) sind hinter dem optionalen `ui` Feature-Gate isoliert. Strict Sandbox-Guards garantieren Instruction-Limits (1.000.000 Opcodes -> `ERR_SANDBOX_TIMEOUT`) und Arbeitsspeicher-Limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
 
 ---
 

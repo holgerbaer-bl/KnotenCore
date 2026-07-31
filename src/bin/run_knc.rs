@@ -45,6 +45,7 @@ fn run() {
     let mut transpile = false;
     let mut output_format_json = false;
     let mut rpc_port: Option<u16> = None;
+    let mut ws_port: Option<u16> = None;
     let mut is_headless = false;
     let mut file_path = String::new();
 
@@ -79,6 +80,17 @@ fn run() {
             if let Ok(p) = arg.trim_start_matches("--rpc-port=").parse::<u16>() {
                 rpc_port = Some(p);
             }
+        } else if arg == "--ws-port" {
+            if let Some(next_arg) = args.get(i + 1) {
+                if let Ok(p) = next_arg.parse::<u16>() {
+                    ws_port = Some(p);
+                }
+                skip_next = true;
+            }
+        } else if arg.starts_with("--ws-port=") {
+            if let Ok(p) = arg.trim_start_matches("--ws-port=").parse::<u16>() {
+                ws_port = Some(p);
+            }
         } else if arg == "--output-format" {
             if let Some(next_arg) = args.get(i + 1) {
                 if next_arg == "json" {
@@ -109,6 +121,21 @@ fn run() {
         let server = aether_compiler::rpc::RpcServer::new(engine.permissions.clone());
         if let Err(e) = server.listen_tcp(port) {
             eprintln!("[RPC Error] Server failed: {}", e);
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    if let Some(port) = ws_port {
+        if !output_format_json {
+            println!(
+                "[Headless Server Mode] Starting WebSocket RPC Server on port {}...",
+                port
+            );
+        }
+        let server = aether_compiler::rpc::RpcServer::new(engine.permissions.clone());
+        if let Err(e) = server.listen_ws(port) {
+            eprintln!("[WebSocket RPC Error] Server failed: {}", e);
             std::process::exit(1);
         }
         return;
