@@ -93,6 +93,8 @@ pub struct VM {
     pub event_hook: Option<VmEventHook>,
     /// Sprint 309: Current VM execution state
     pub execution_state: VmExecutionState,
+    /// Sprint 311: Configurable Multi-Tenant Resource Quotas
+    pub quota: knoten_core_types::ast::IsolateQuota,
 }
 
 #[derive(Clone)]
@@ -180,7 +182,12 @@ impl VM {
             vfs: VirtualFs::new(),
             event_hook: None,
             execution_state: VmExecutionState::Ready,
+            quota: knoten_core_types::ast::IsolateQuota::default(),
         }
+    }
+
+    pub fn set_quota(&mut self, quota: knoten_core_types::ast::IsolateQuota) {
+        self.quota = quota;
     }
 
     pub fn set_event_hook(&mut self, hook: VmEventHook) {
@@ -295,23 +302,30 @@ impl VM {
                 .wrapping_add(inspector::opcode_discriminant_hash(op));
 
             instr_count += 1;
-            if instr_count >= 1_000_000 {
-                inspector::push_vm_crash_marker(self.ip, self.stack.len(), "ERR_SANDBOX_TIMEOUT");
-                return Err("ERR_SANDBOX_TIMEOUT: Execution exceeded maximum allowed instruction count (1,000,000 opcodes)".into());
+            if instr_count >= self.quota.max_instructions {
+                inspector::push_vm_crash_marker(self.ip, self.stack.len(), "ERR_QUOTA_EXCEEDED");
+                let msg = format!(
+                    "ERR_QUOTA_EXCEEDED: Execution exceeded maximum allowed instruction count ({})",
+                    self.quota.max_instructions
+                );
+                self.execution_state = VmExecutionState::Fault(msg.clone());
+                return Err(msg);
             }
 
             if instr_count == 1 || instr_count.is_multiple_of(100) {
                 inspector::track_hot_path(self.ip);
-                if self.estimate_memory_bytes() > 16 * 1024 * 1024 {
+                if self.estimate_memory_bytes() > self.quota.max_memory_bytes {
                     inspector::push_vm_crash_marker(
                         self.ip,
                         self.stack.len(),
                         "ERR_MEMORY_LIMIT_EXCEEDED",
                     );
-                    return Err(
-                        "ERR_MEMORY_LIMIT_EXCEEDED: VM memory allocation threshold (16MB) exceeded"
-                            .into(),
+                    let msg = format!(
+                        "ERR_MEMORY_LIMIT_EXCEEDED: VM memory allocation threshold ({} bytes) exceeded",
+                        self.quota.max_memory_bytes
                     );
+                    self.execution_state = VmExecutionState::Fault(msg.clone());
+                    return Err(msg);
                 }
             }
 
@@ -320,20 +334,28 @@ impl VM {
                     inspector::VM_SLEEP_ACCUMULATED_MS.load(std::sync::atomic::Ordering::SeqCst);
                 let effective_cpu =
                     accumulated_cpu.saturating_sub(std::time::Duration::from_millis(sleep_ms));
-                if effective_cpu + start.elapsed() >= std::time::Duration::from_millis(50) {
+                if self.quota.execution_timeout_ms > 0
+                    && effective_cpu + start.elapsed()
+                        >= std::time::Duration::from_millis(self.quota.execution_timeout_ms)
+                {
                     if instr_count >= 1_000 {
                         start = Instant::now();
                     } else {
                         eprintln!(
-                            "[KnotenCore Watchdog] Execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
+                            "[KnotenCore Watchdog] Execution timeout exceeded ({}ms). Terminating script to prevent CPU freeze.",
+                            self.quota.execution_timeout_ms
                         );
                         inspector::push_vm_crash_marker(
                             self.ip,
                             self.stack.len(),
                             "WATCHDOG_TIMEOUT",
                         );
-
-                        return Err("Watchdog: Execution timeout exceeded (50ms)".into());
+                        let msg = format!(
+                            "Watchdog: Execution timeout exceeded ({}ms)",
+                            self.quota.execution_timeout_ms
+                        );
+                        self.execution_state = VmExecutionState::Fault(msg.clone());
+                        return Err(msg);
                     }
                 }
             }

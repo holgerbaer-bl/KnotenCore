@@ -328,3 +328,21 @@ pub enum Type {
     Any,
     Void,
 }
+
+/// Sprint 311: Configurable Multi-Tenant Resource Quotas for Isolates & VM
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IsolateQuota {
+    pub max_instructions: u64,
+    pub max_memory_bytes: usize,
+    pub execution_timeout_ms: u64,
+}
+
+impl Default for IsolateQuota {
+    fn default() -> Self {
+        Self {
+            max_instructions: 1_000_000,
+            max_memory_bytes: 16 * 1024 * 1024,
+            execution_timeout_ms: 50,
+        }
+    }
+}

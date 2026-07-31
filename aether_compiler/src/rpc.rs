@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use knoten_core_types::ast::Node;
+use knoten_core_types::ast::{IsolateQuota, Node};
 use knoten_core_types::opcode::OpCode;
 
 use crate::executor::{AgentPermissions, RelType};
@@ -141,6 +141,24 @@ impl RpcServer {
         }
 
         let opt_node = optimize(node);
+
+        if let Some(q) = params
+            .get("quota")
+            .and_then(|v| serde_json::from_value::<IsolateQuota>(v.clone()).ok())
+        {
+            let count = crate::optimizer::count_nodes(&opt_node);
+            if (count as u64) > q.max_instructions {
+                return JsonRpcResponse::error(
+                    id,
+                    -32000,
+                    format!(
+                        "Quota Exceeded: AST node count ({}) exceeds max_instructions ({})",
+                        count, q.max_instructions
+                    ),
+                );
+            }
+        }
+
         let mut compiler = Compiler::new();
         if !compiler.compile_node(&opt_node) {
             return JsonRpcResponse::error(id, -32603, "Compiler Error: Node compilation failed");
@@ -206,6 +224,13 @@ impl RpcServer {
         let mut sessions = self.sessions.lock().unwrap();
         let session = sessions.entry(session_id.clone()).or_default();
 
+        if let Some(q) = params
+            .get("quota")
+            .and_then(|v| serde_json::from_value::<IsolateQuota>(v.clone()).ok())
+        {
+            session.vm.set_quota(q);
+        }
+
         session.instructions = instructions;
         session.constants = constants;
         session.events.clear();
@@ -241,7 +266,17 @@ impl RpcServer {
                 });
                 JsonRpcResponse::success(id, resp_val)
             }
-            Err(err) => JsonRpcResponse::error(id, -32603, format!("Runtime Fault: {}", err)),
+            Err(err) => {
+                if err.contains("ERR_QUOTA_EXCEEDED")
+                    || err.contains("ERR_SANDBOX_TIMEOUT")
+                    || err.contains("ERR_MEMORY_LIMIT_EXCEEDED")
+                    || err.contains("Watchdog")
+                {
+                    JsonRpcResponse::error(id, -32000, format!("Quota Exceeded: {}", err))
+                } else {
+                    JsonRpcResponse::error(id, -32603, format!("Runtime Fault: {}", err))
+                }
+            }
         }
     }
 
@@ -263,6 +298,13 @@ impl RpcServer {
                 );
             }
         };
+
+        if let Some(q) = params
+            .get("quota")
+            .and_then(|v| serde_json::from_value::<IsolateQuota>(v.clone()).ok())
+        {
+            session.vm.set_quota(q);
+        }
 
         if !session.vm.is_yielded() {
             return JsonRpcResponse::error(
@@ -294,7 +336,17 @@ impl RpcServer {
                 });
                 JsonRpcResponse::success(id, resp_val)
             }
-            Err(err) => JsonRpcResponse::error(id, -32603, format!("Resume Fault: {}", err)),
+            Err(err) => {
+                if err.contains("ERR_QUOTA_EXCEEDED")
+                    || err.contains("ERR_SANDBOX_TIMEOUT")
+                    || err.contains("ERR_MEMORY_LIMIT_EXCEEDED")
+                    || err.contains("Watchdog")
+                {
+                    JsonRpcResponse::error(id, -32000, format!("Quota Exceeded: {}", err))
+                } else {
+                    JsonRpcResponse::error(id, -32603, format!("Resume Fault: {}", err))
+                }
+            }
         }
     }
 

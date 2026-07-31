@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.9.0-isolate] - Sprint 311: Isolate Multi-Tenant Quotas & JSON-RPC Session Enforcement (2026-07-31)
+Sprint 311: Implemented configurable Multi-Tenant Resource Quotas (`IsolateQuota`), VM execution quota guards, and JSON-RPC session quota mapping (`-32000 Quota Exceeded`).
+- **`IsolateQuota` Struct (`ast.rs`)**: Introduced `IsolateQuota` with `max_instructions`, `max_memory_bytes`, and `execution_timeout_ms`.
+- **VM Quota Enforcement (`machine.rs`)**: Updated VM instruction counter, memory allocation threshold, and watchdog timeout checks to enforce tenant-specific quotas dynamically.
+- **RPC Session Quota Mapping (`rpc.rs`)**: Wired custom `"quota"` request params in `knc_compile`, `knc_execute`, and `knc_yield_resume`, mapping quota violations to JSON-RPC error code `-32000`.
+- **Automated Integration Test Suite**: Created `tests/isolate_quota_tests.rs` verifying execution instruction cap, memory cap, compile node cap, multi-tenant session isolation, and RPC error responses.
+- **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.9.0-isolate`.
+
 ## [v2.8.1-hotfix] - Formatting & CI Fix (2026-07-31)
 - **Formatting**: Formatted `aether_compiler/src/rpc.rs` using `cargo fmt` to satisfy CI quality gates.
 - **Documentation**: Updated `README.md`, `llm.md`, `ROADMAP.md`, and `changelog.md` to `v2.8.1-hotfix`.

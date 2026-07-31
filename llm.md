@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.8.1-hotfix Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.9.0-isolate Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -144,11 +144,10 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
   - **VM Execution Suspension & Resuming**: `VmExecutionState` (`Ready`, `Running`, `Yielded`, `Finished`, `Fault`). `VM::resume(...)` validates `VmExecutionState::Yielded`, restores state to `Running`, and seamlessly continues execution from the exact saved instruction pointer `self.ip`.
 - **Headless JSON-RPC 2.0 Server & Agentic Transport Protocol** (Sprint 310 - v2.8.0-rpc) — Remote agentic execution & RPC transport:
   - **CLI Flag `--rpc-port <PORT>`**: Launches KnotenCore in Headless Server Mode binding a TCP socket on `127.0.0.1:<PORT>` for JSON-RPC 2.0 requests.
-  - **JSON-RPC 2.0 Methods**:
-    - `knc_compile`: Accepts `{ "ast": Node }` or `{ "code": "..." }`, validates AST, optimizes and compiles to bytecode.
-    - `knc_execute`: Compiles and runs AST/bytecode in a VM session (`session_id`), collecting emitted `VmEvent` items and returning results.
-    - `knc_yield_resume`: Resumes a suspended `Yielded` VM session.
-    - `knc_inspect_state`: Inspects VM state, IP, stack size, call frames, globals, and inspector metrics for an active session.
+  - **JSON-RPC 2.0 Methods**: `knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`.
+- **Isolate Multi-Tenant Quotas & JSON-RPC Session Enforcement** (Sprint 311 - v2.9.0-isolate) — Resource protection & multi-tenant isolation:
+  - **`IsolateQuota` Struct**: `max_instructions: u64`, `max_memory_bytes: usize`, `execution_timeout_ms: u64`. Default limits: 1,000,000 opcodes, 16MB RAM, 50ms watchdog.
+  - **RPC Multi-Tenant Quota Enforcement**: Custom `"quota"` params accepted in `knc_compile`, `knc_execute`, `knc_yield_resume`. Quota violations mapped to JSON-RPC error code `-32000` (`Quota Exceeded`).
 
 ---
 

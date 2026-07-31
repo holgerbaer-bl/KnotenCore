@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.8.1-hotfix** · Sprint 310 · Headless JSON-RPC 2.0 Server & Agentic Transport Protocol
+Current engine version: **v2.9.0-isolate** · Sprint 311 · Isolate Multi-Tenant Quotas & JSON-RPC Session Enforcement
 
 ## Done (selected milestones)
 
@@ -32,6 +32,7 @@ Current engine version: **v2.8.1-hotfix** · Sprint 310 · Headless JSON-RPC 2.0
 - ✅ Agentic Event Streaming Hooks & EventEmit Opcode (Sprint 308 - v2.6.0-event)
 - ✅ Async Yield Opcode, Non-blocking VM Suspension & Resuming (Sprint 309 - v2.7.0-async)
 - ✅ Headless JSON-RPC 2.0 Server Interface & Agentic Transport Protocol (Sprint 310 - v2.8.0-rpc)
+- ✅ Isolate Multi-Tenant Resource Quotas & RPC Session Enforcement (Sprint 311 - v2.9.0-isolate)
 
 ## Near-Term
 
