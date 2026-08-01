@@ -8,12 +8,12 @@
 *(Noun) /knoːtən kɔːr/*
 
 1. **Not** a relentless underground German hardcore techno subgenre. 
-2. Eine thread-sichere, deterministische **Execution Runtime** — leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines sowie deterministische, textbasierte Sandbox für KI-generierten Code und autonome Agenten. No browser. No GC.
+2. A thread-safe, deterministic **Execution Runtime** — a lightweight, embeddable runtime for stateless microservices, headless data pipelines, and a deterministic text-based sandbox for AI-generated code and autonomous agents. No browser. No GC.
 
-**Die leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines & KI-Agenten.**
+**The lightweight, embeddable runtime for stateless microservices, headless data pipelines & AI agents.**
 
 ## What is KnotenCore?
-**KnotenCore** ist eine **Headless-First Deterministic Execution Runtime** in Rust. Sie dient als leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines sowie deterministische, textbasierte Sandbox für KI-generierten Code und autonome Agenten. Externe KI-Agenten oder Microservices beschreiben Programme als strukturierte **JSON-AST Knoten** (`.nod` Dateien). Die Engine kompiliert diese direkt in einen AOT-optimierten Bytecode-Stream und führt sie auf einer Register Stack-VM mit bare-metal Performance, Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`), persistentem WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming) und multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`) aus. Schwergewichtige UI-Funktionen (`wgpu`, `winit`, `egui`) sind hinter dem optionalen `ui` Feature-Gate isoliert (`--features ui`). Strict Sandbox-Guards garantieren Instruction-Limits (1.000.000 Opcodes -> `ERR_SANDBOX_TIMEOUT`) und Arbeitsspeicher-Limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
+**KnotenCore** is a **Headless-First Deterministic Execution Runtime** written in Rust. It serves as a lightweight, embeddable runtime for stateless microservices, headless data pipelines, and a deterministic text-based sandbox for AI-generated code and autonomous agents. External AI agents or microservices specify programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized bytecode stream and executes them on a Register Stack-VM with bare-metal performance, Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`), persistent WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming), and multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`). Heavyweight UI/Graphics features (`wgpu`, `winit`, `egui`) are decoupled behind the optional `ui` feature gate (`--features ui`). Strict sandbox guards enforce instruction limits (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), CPU watchdog thresholds (500ms), and memory limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
 
 ---
 
