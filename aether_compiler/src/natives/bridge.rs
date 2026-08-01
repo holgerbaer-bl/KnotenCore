@@ -712,7 +712,17 @@ impl BridgeModule for CoreBridge {
                                 node: "Native::Bridge::file_write".into(),
                             });
                         }
-                        let ok = std::fs::write(path, content).is_ok();
+                        let safe_path =
+                            match crate::executor::ExecutionEngine::validate_fs_path_write(path) {
+                                Ok(p) => p,
+                                Err(e) => {
+                                    return Some(ExecResult::Fault {
+                                        msg: format!("[FFI] Path validation: {}", e),
+                                        node: "Native::Bridge::file_write".into(),
+                                    });
+                                }
+                            };
+                        let ok = std::fs::write(&safe_path, content).is_ok();
                         return Some(ExecResult::Value(RelType::Bool(ok)));
                     }
                     Some(ExecResult::Fault {

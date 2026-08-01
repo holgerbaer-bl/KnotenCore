@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.11.1-docs Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.11.2-audit Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -18,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.11.1-docs** — Headless-first architecture, optional `ui` feature gate (`--features ui`), no-op UI stubs, instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
+**Current Engine Version: v2.11.2-audit** — Headless-first architecture, optional `ui` feature gate (`--features ui`), no-op UI stubs, instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -155,9 +155,11 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
   - **`knc_agent_handshake`**: Returns version metadata (`v2.11.1-docs`), engine capabilities (`jsonrpc`, `websocket`, `isolate_quotas`, `async_yield`, `state_snapshots`), and default quota configuration.
   - **`knc_agent_snapshot`**: Serializes session state (registers, stack, frames, IP, instructions, constants, quota) into portable JSON snapshot payload.
   - **`knc_agent_restore`**: Restores snapshot payload into any session ID on fresh or existing Isolates, enabling seamless execution resuming (`knc_yield_resume`).
-- **Comprehensive Documentation Alignment & Workspace Consolidation** (Sprint 314 - v2.11.1-docs) — Full documentation consolidation:
-  - **Headless-First Paradigma & Optional UI Feature Gate**: Fully aligned `README.md`, `llm.md`, `ROADMAP.md`, `changelog.md`, and `docs/KNOTEN_SPEC.md` confirming Headless-First default execution and isolated `--features ui` graphics layer.
-  - **Protokoll- & CLI-Verifikation**: Synchronized JSON-RPC 2.0 (`--rpc-port`), WebSocket RPC (`--ws-port`), Isolate Quotas (`IsolateQuota`), and Agentic Protocol specifications across the entire documentation set.
+- **Comprehensive Documentation Alignment & Workspace Consolidation** (Sprint 314 - v2.11.1-docs) — Full documentation consolidation.
+- **Security & Architecture Audit Fixes** (v2.11.2-audit) — Path traversal shielding & stability tuning:
+  - **Path Traversal Protection (`io.rs`, `bridge.rs`, `storage.rs`)**: Enforced `validate_fs_path()` and `validate_fs_path_write()` on `IO.WriteFile`, `IO.ReadFile`, `IO.AppendFile`, `IO.FileExists`, and `file_write`. Added path traversal key validation (`/`, `\`, `..`, `\0`) to `store_value()` and `load_value()`.
+  - **Runtime Stability (`ast.rs`, `machine.rs`, `evaluator.rs`)**: Increased default CPU watchdog timeout from 50ms to 500ms for complex agentic workloads.
+  - **Upcoming Milestone**: Feature-Gate Refactoring (`--features ui`) scheduled as core milestone for Sprint 315 (`v2.12.0-core`).
 
 ---
 

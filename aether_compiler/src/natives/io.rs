@@ -1,4 +1,4 @@
-use crate::executor::{AgentPermissions, ExecResult, RelType};
+use crate::executor::{AgentPermissions, ExecResult, ExecutionEngine, RelType};
 use crate::natives::NativeModule;
 
 pub struct IoModule;
@@ -25,7 +25,16 @@ impl NativeModule for IoModule {
                     });
                 }
                 if let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1]) {
-                    match std::fs::write(path, content) {
+                    let safe_path = match ExecutionEngine::validate_fs_path_write(path) {
+                        Ok(p) => p,
+                        Err(e) => {
+                            return Some(ExecResult::Fault {
+                                msg: format!("Security Error: {}", e),
+                                node: "Native::IO.WriteFile".into(),
+                            });
+                        }
+                    };
+                    match std::fs::write(&safe_path, content) {
                         Ok(_) => Some(ExecResult::Value(RelType::Bool(true))),
                         Err(_) => Some(ExecResult::Value(RelType::Bool(false))),
                     }
@@ -50,7 +59,16 @@ impl NativeModule for IoModule {
                     });
                 }
                 if let RelType::Str(path) = &args[0] {
-                    match std::fs::read_to_string(path) {
+                    let safe_path = match ExecutionEngine::validate_fs_path(path) {
+                        Ok(p) => p,
+                        Err(e) => {
+                            return Some(ExecResult::Fault {
+                                msg: format!("Security Error: {}", e),
+                                node: "Native::IO.ReadFile".into(),
+                            });
+                        }
+                    };
+                    match std::fs::read_to_string(&safe_path) {
                         Ok(content) => Some(ExecResult::Value(RelType::Str(content))),
                         Err(_) => Some(ExecResult::Value(RelType::Str("".to_string()))),
                     }
@@ -75,11 +93,20 @@ impl NativeModule for IoModule {
                     });
                 }
                 if let (RelType::Str(path), RelType::Str(content)) = (&args[0], &args[1]) {
+                    let safe_path = match ExecutionEngine::validate_fs_path_write(path) {
+                        Ok(p) => p,
+                        Err(e) => {
+                            return Some(ExecResult::Fault {
+                                msg: format!("Security Error: {}", e),
+                                node: "Native::IO.AppendFile".into(),
+                            });
+                        }
+                    };
                     use std::io::Write;
                     let mut file = match std::fs::OpenOptions::new()
                         .append(true)
                         .create(true)
-                        .open(path)
+                        .open(&safe_path)
                     {
                         Ok(f) => f,
                         Err(_) => return Some(ExecResult::Value(RelType::Bool(false))),
@@ -109,9 +136,11 @@ impl NativeModule for IoModule {
                     });
                 }
                 if let RelType::Str(path) = &args[0] {
-                    Some(ExecResult::Value(RelType::Bool(
-                        std::path::Path::new(path).exists(),
-                    )))
+                    let exists = match ExecutionEngine::validate_fs_path(path) {
+                        Ok(safe_path) => safe_path.exists(),
+                        Err(_) => false,
+                    };
+                    Some(ExecResult::Value(RelType::Bool(exists)))
                 } else {
                     Some(ExecResult::Fault {
                         msg: "IO.FileExists expects a String".to_string(),

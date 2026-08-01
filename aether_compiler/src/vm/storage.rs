@@ -7,6 +7,9 @@ use std::path::Path;
 const STORAGE_DIR: &str = ".knoten_data/storage";
 
 pub fn store_value(key: &str, value: &Value) -> Result<(), String> {
+    if key.contains('/') || key.contains('\\') || key.contains("..") || key.contains('\0') {
+        return Err("Invalid storage key: Path traversal attempt detected".to_string());
+    }
     fs::create_dir_all(STORAGE_DIR).map_err(|e| e.to_string())?;
     let path = format!("{}/{}.json", STORAGE_DIR, key);
     let data = serde_json::to_string_pretty(value).map_err(|e| e.to_string())?;
@@ -15,6 +18,9 @@ pub fn store_value(key: &str, value: &Value) -> Result<(), String> {
 }
 
 pub fn load_value(key: &str) -> Result<Value, String> {
+    if key.contains('/') || key.contains('\\') || key.contains("..") || key.contains('\0') {
+        return Err("Invalid storage key: Path traversal attempt detected".to_string());
+    }
     let path = format!("{}/{}.json", STORAGE_DIR, key);
     if !Path::new(&path).exists() {
         return Ok(Value::Null);

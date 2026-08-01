@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.11.1-docs** · Sprint 314 · Comprehensive Documentation Alignment & Workspace Consolidation
+Current engine version: **v2.11.2-audit** · Security & Architecture Audit Fixes
 
 ## Done (selected milestones)
 
@@ -36,9 +36,11 @@ Current engine version: **v2.11.1-docs** · Sprint 314 · Comprehensive Document
 - ✅ Persistent WebSocket RPC Transport & Realtime Event Broadcaster (Sprint 312 - v2.10.0-ws)
 - ✅ Agentic Execution Protocol, Portable State Snapshots & Restore (Sprint 313 - v2.11.0-agent)
 - ✅ Comprehensive Documentation Alignment & Workspace Consolidation (Sprint 314 - v2.11.1-docs)
+- ✅ Security & Architecture Audit Fixes (v2.11.2-audit)
 
 ## Near-Term
 
+- **Feature-Gate Refactoring (`--features ui`)** (Sprint 315 - v2.12.0-core): Full architectural decoupling of heavy UI/Graphics dependencies.
 - **`ROADMAP.md` auto-update hook**: Sprint changelog entries should diff into the roadmap automatically to keep them in sync.
 
 ## Mid-Term

@@ -519,13 +519,13 @@ impl ExecutionEngine {
                     jit_iters += 1;
                     if jit_iters.is_multiple_of(1000)
                         && self.jit_accumulated_cpu + jit_start.elapsed()
-                            >= std::time::Duration::from_millis(50)
+                            >= std::time::Duration::from_millis(500)
                     {
                         eprintln!(
-                            "[KnotenCore Watchdog] JIT execution timeout exceeded (50ms). Terminating script to prevent CPU freeze."
+                            "[KnotenCore Watchdog] JIT execution timeout exceeded (500ms). Terminating script to prevent CPU freeze."
                         );
                         return ExecResult::Fault {
-                            msg: "Watchdog: Execution timeout exceeded (50ms)".into(),
+                            msg: "Watchdog: Execution timeout exceeded (500ms)".into(),
                             node: "Node::While".into(),
                         };
                     }

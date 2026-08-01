@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.11.2-audit] - Repository Security & Architecture Audit Fixes (2026-08-01)
+Audit Fixes: Resolved security findings in path validation and tuned default runtime stability limits.
+- **Path Traversal & Sandbox Shielding (`io.rs`, `bridge.rs`, `storage.rs`)**:
+  - Enforced `ExecutionEngine::validate_fs_path()` and `validate_fs_path_write()` on `IO.WriteFile`, `IO.ReadFile`, `IO.AppendFile`, `IO.FileExists`, and bridge `"file_write"`.
+  - Added strict key validation in `store_value()` and `load_value()` to reject path traversal tokens (`/`, `\`, `..`, `\0`).
+- **Runtime Stability (`ast.rs`, `evaluator.rs`)**:
+  - Increased default CPU watchdog timeout from 50ms to 500ms in `IsolateQuota::default()` and evaluator loop bounds to prevent false positive terminations during heavy agentic computations.
+- **Architecture Roadmap**:
+  - Formally scheduled Feature-Gate Refactoring (`--features ui`) as core milestone for Sprint 315 (`v2.12.0-core`).
+
 ## [v2.11.1-docs] - Sprint 314: Comprehensive Documentation Alignment & Workspace Consolidation (2026-08-01)
 Sprint 314: Completed full workspace documentation alignment, architecture consolidation, and schema verification.
 - **Headless-First Paradigma & Feature Alignment**: Synchronized `README.md`, `llm.md`, `ROADMAP.md`, `changelog.md`, `AGENT_EXTENSION_MANUAL.md`, and `docs/KNOTEN_SPEC.md` to version `v2.11.1-docs`, explicitly documenting the Headless-First default execution model and optional `--features ui` graphics layer.

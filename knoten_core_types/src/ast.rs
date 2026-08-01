@@ -342,7 +342,7 @@ impl Default for IsolateQuota {
         Self {
             max_instructions: 1_000_000,
             max_memory_bytes: 16 * 1024 * 1024,
-            execution_timeout_ms: 50,
+            execution_timeout_ms: 500,
         }
     }
 }
