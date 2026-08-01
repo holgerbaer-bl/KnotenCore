@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.11.0-agent** · Sprint 313 · Agentic Execution Protocol & State Snapshots
+Current engine version: **v2.11.1-hotfix** · Windows CI Latency Tolerance Hotfix
 
 ## Done (selected milestones)
 

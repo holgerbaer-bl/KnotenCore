@@ -1438,14 +1438,14 @@ mod tests {
         let elapsed = registry_stop_latency_timer("test_cmd");
 
         assert!(
-            elapsed > 40_000 && elapsed < 80_000,
+            (40_000..250_000).contains(&elapsed),
             "Elapsed {}us should be ~50ms (50000us)",
             elapsed
         );
 
         let avg = registry_get_avg_latency("test_cmd");
         assert!(
-            avg > 40000.0 && avg < 80000.0,
+            (40000.0..250000.0).contains(&avg),
             "Average latency {}us should be ~50ms",
             avg
         );

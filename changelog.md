@@ -2,6 +2,9 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.11.1-hotfix] - Fix agent latency tracking test bounds for CI thread sleep scheduling (2026-08-01)
+- **Windows CI Latency Tolerance (`registry.rs`)**: Adjusted upper latency threshold bound in `test_agent_latency_tracking` from `< 80_000` to `< 250_000` microseconds to tolerate thread sleep scheduling jitter on virtualized CI runners.
+
 ## [v2.11.0-agent] - Sprint 313: Agentic Execution Protocol & State Snapshots (2026-07-31)
 Sprint 313: Implemented the Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`) for cross-isolate state persistence and migration.
 - **Agentic Protocol Endpoints (`rpc.rs`)**:
