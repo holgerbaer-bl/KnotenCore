@@ -39,6 +39,37 @@ fn run() {
         return;
     }
 
+    // ── Help Flag ──────────────────────────────────────────────────────
+    if args.iter().any(|arg| arg == "--help" || arg == "-h") || args.len() < 2 {
+        println!("KnotenCore 🦀🤖 (v2.11.1-docs) — Headless-First Deterministic Execution Runtime");
+        println!();
+        println!("Usage:");
+        println!("  run_knc <path_to.nod> [options]");
+        println!("  run_knc build <path_to.nod>");
+        println!();
+        println!("Options:");
+        println!(
+            "  --rpc-port <PORT>        Starts Headless JSON-RPC 2.0 Server on 127.0.0.1:<PORT>"
+        );
+        println!(
+            "  --ws-port <PORT>         Starts Headless WebSocket RPC Server on 127.0.0.1:<PORT>"
+        );
+        println!(
+            "  --headless               Executes AST/bytecode headless (default without --features ui)"
+        );
+        println!("  --check                  Statically checks AST validity without executing");
+        println!("  --no-opt                 Disables compile-time AST optimization passes");
+        println!("  --transpile              Transpiles AST into standalone Rust source");
+        println!("  --allow-read             Enables sandboxed File I/O read permissions");
+        println!("  --allow-write            Enables sandboxed File I/O write permissions");
+        println!("  --allow-net              Enables sandboxed network fetch operations");
+        println!(
+            "  --output-format json     Routes compilation/execution errors to structured JSON on stdout"
+        );
+        println!("  --help, -h               Prints this help message");
+        std::process::exit(0);
+    }
+
     // ── Legacy flags & Permissions ─────────────────────────────────────
     let mut is_check = false;
     let mut no_opt = false;

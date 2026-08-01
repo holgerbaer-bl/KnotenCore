@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.11.1-docs] - Sprint 314: Comprehensive Documentation Alignment & Workspace Consolidation (2026-08-01)
+Sprint 314: Completed full workspace documentation alignment, architecture consolidation, and schema verification.
+- **Headless-First Paradigma & Feature Alignment**: Synchronized `README.md`, `llm.md`, `ROADMAP.md`, `changelog.md`, `AGENT_EXTENSION_MANUAL.md`, and `docs/KNOTEN_SPEC.md` to version `v2.11.1-docs`, explicitly documenting the Headless-First default execution model and optional `--features ui` graphics layer.
+- **Protocol & Interface Specifications**: Thoroughly documented JSON-RPC 2.0 (`--rpc-port`), WebSocket RPC transport (`--ws-port`), Isolate Multi-Tenant Quotas (`IsolateQuota`), and Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`).
+- **Code & Payload Validation**: Verified all AST payload structures, CLI flags, and JSON-RPC method signatures against live engine implementations.
+
 ## [v2.11.1-hotfix] - Fix agent latency tracking test bounds for CI thread sleep scheduling (2026-08-01)
 - **Windows CI Latency Tolerance (`registry.rs`)**: Adjusted upper latency threshold bound in `test_agent_latency_tracking` from `< 80_000` to `< 250_000` microseconds to tolerate thread sleep scheduling jitter on virtualized CI runners.
 

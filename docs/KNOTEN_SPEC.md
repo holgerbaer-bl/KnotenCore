@@ -170,3 +170,31 @@ Users can validate any script without executing it by using the `--check` flag:
 cargo run --bin run_knc -- --check examples/hello_world.json
 ```
 If the script passes all checks, the tool outputs `Syntax OK`. Otherwise, it provides a detailed list of logical and structural errors.
+
+## 7. Headless Server Mode, RPC Transports & Agentic Execution Protocol (v2.11.1-docs)
+
+### 7.1. Headless-First Paradigma & Optional UI Feature Gate
+KnotenCore is a **Headless-First** execution engine. Physical GUI/Graphics dependencies (`wgpu`, `winit`, `egui`, `rodio`) are decoupled behind the optional `--features ui` Cargo compilation flag. When compiled without `--features ui`, KnotenCore operates as a lightweight, zero-GUI headless server & AI sandbox engine.
+
+### 7.2. JSON-RPC 2.0 Server Interface (`--rpc-port <PORT>`)
+Launches a Headless JSON-RPC 2.0 TCP server listening on `127.0.0.1:<PORT>` supporting:
+- `knc_compile`: Compiles JSON-AST into bytecode instructions and constants.
+- `knc_execute`: Executes an AST or raw bytecode payload inside a named session boundary (`session_id`).
+- `knc_yield_resume`: Resumes execution of a suspended (`Yielded`) VM instance.
+- `knc_inspect_state`: Returns live registers, stack depth, call frames, instruction pointer, and event logs.
+
+### 7.3. Isolate Multi-Tenant Resource Quotas (`IsolateQuota`)
+Enforces multi-tenant compute boundaries per session/isolate:
+- `max_instructions`: Maximum VM instruction count (default: 1,000,000).
+- `max_memory_bytes`: Memory & stack allocation limit (default: 16MB).
+- `execution_timeout_ms`: Watchdog execution timeout (default: 5,000ms).
+Quota violations trigger JSON-RPC error code `-32000` (`Quota Exceeded`).
+
+### 7.4. WebSocket RPC & Realtime Event Broadcaster (`--ws-port <PORT>`)
+Establishes a persistent RFC 6455 WebSocket transport. Pushes real-time `VmEvent` text frame notifications (`knc_event`) to connected clients as VM execution state transitions occur (`Yielded`, `Finished`, `Fault`).
+
+### 7.5. Agentic Execution Protocol (`v2.11.1-docs`)
+Provides native cross-isolate session persistence and migration endpoints:
+- `knc_agent_handshake`: Returns engine capabilities, protocol version (`v2.11.1-docs`), and default quota configuration.
+- `knc_agent_snapshot`: Captures full portable VM state (registers, stack, frames, IP, instructions, constants, quota) into a serializable JSON payload.
+- `knc_agent_restore`: Restores snapshot payloads into target sessions across fresh or existing Isolates for seamless execution resuming.

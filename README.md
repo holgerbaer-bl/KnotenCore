@@ -1,6 +1,6 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.11.1-hotfix-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.11.1-docs-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-244%2F244-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
 [![Release](https://img.shields.io/badge/release-alpha-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
@@ -13,7 +13,7 @@
 **Die leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines & KI-Agenten.**
 
 ## What is KnotenCore?
-**KnotenCore** ist eine **Headless-First Deterministic Execution Runtime** in Rust. Sie dient als leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines sowie deterministische, textbasierte Sandbox für KI-generierten Code und autonome Agenten. Externe KI-Agenten oder Microservices beschreiben Programme als strukturierte **JSON-AST Knoten** (`.nod` Dateien). Die Engine kompiliert diese direkt in einen AOT-optimierten Bytecode-Stream und führt sie auf einer Register Stack-VM mit bare-metal Performance, Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`), persistentem WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming) und multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`) aus. Schwergewichtige UI-Funktionen (`wgpu`, `winit`, `egui`) sind hinter dem optionalen `ui` Feature-Gate isoliert. Strict Sandbox-Guards garantieren Instruction-Limits (1.000.000 Opcodes -> `ERR_SANDBOX_TIMEOUT`) und Arbeitsspeicher-Limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
+**KnotenCore** ist eine **Headless-First Deterministic Execution Runtime** in Rust. Sie dient als leichtgewichtige, einbettbare Runtime für zustandslose Microservices, Headless-Daten-Pipelines sowie deterministische, textbasierte Sandbox für KI-generierten Code und autonome Agenten. Externe KI-Agenten oder Microservices beschreiben Programme als strukturierte **JSON-AST Knoten** (`.nod` Dateien). Die Engine kompiliert diese direkt in einen AOT-optimierten Bytecode-Stream und führt sie auf einer Register Stack-VM mit bare-metal Performance, Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`), persistentem WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming) und multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`) aus. Schwergewichtige UI-Funktionen (`wgpu`, `winit`, `egui`) sind hinter dem optionalen `ui` Feature-Gate isoliert (`--features ui`). Strict Sandbox-Guards garantieren Instruction-Limits (1.000.000 Opcodes -> `ERR_SANDBOX_TIMEOUT`) und Arbeitsspeicher-Limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
 
 ---
 
@@ -25,8 +25,9 @@ cargo run --bin run_knc -- <path_to.nod> [options]
 ```
 
 ### Options:
-* `--rpc-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing the JSON-RPC 2.0 interface on `127.0.0.1:<PORT>` (`knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`).
-* `--headless`: Bypasses physical window creation and WGPU graphics context initialization. Runs the compiled AST validation and execution paths headless on the main thread for 1-2 virtual frames, returning exit code `0`. Perfect for display-less environments (CI, remote servers, AI sandboxes).
+* `--rpc-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing the JSON-RPC 2.0 interface on `127.0.0.1:<PORT>` (`knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`, `knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`).
+* `--ws-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing an RFC 6455 persistent WebSocket RPC transport on `127.0.0.1:<PORT>` with real-time `VmEvent` streaming (`knc_event`).
+* `--headless`: Bypasses physical window creation and WGPU graphics context initialization (default when compiled without `--features ui`). Runs compiled AST validation and execution paths headless on the main thread, returning exit code `0`. Perfect for display-less environments (CI, remote servers, AI sandboxes).
 * `--allow-read`: Enables sandboxed File I/O read permissions.
 * `--allow-write`: Enables sandboxed File I/O write permissions.
 * `--allow-net`: Enables sandboxed network fetch operations.

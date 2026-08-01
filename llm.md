@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.11.1-hotfix Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.11.1-docs Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -18,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.3.0-headless-alpha** — Headless-first architecture, optional `ui` feature gate (`wgpu`, `winit`, `egui`), no-op UI stubs, instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
+**Current Engine Version: v2.11.1-docs** — Headless-first architecture, optional `ui` feature gate (`--features ui`), no-op UI stubs, instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -152,9 +152,12 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
   - **CLI Flag `--ws-port <PORT>`**: Launches KnotenCore in Headless Server Mode with RFC 6455 WebSocket RPC interface on `127.0.0.1:<PORT>`.
   - **Realtime Event Streaming**: Pushes real-time `VmEvent` notices (`knc_event`) over WebSocket text frames as execution and state transitions occur (`Yielded`, `Finished`, `Fault`).
 - **Agentic Execution Protocol & State Snapshots** (Sprint 313 - v2.11.0-agent) — Cross-isolate agentic state persistence:
-  - **`knc_agent_handshake`**: Returns version metadata (`v2.11.0-agent`), engine capabilities (`jsonrpc`, `websocket`, `isolate_quotas`, `async_yield`, `state_snapshots`), and default quota configuration.
+  - **`knc_agent_handshake`**: Returns version metadata (`v2.11.1-docs`), engine capabilities (`jsonrpc`, `websocket`, `isolate_quotas`, `async_yield`, `state_snapshots`), and default quota configuration.
   - **`knc_agent_snapshot`**: Serializes session state (registers, stack, frames, IP, instructions, constants, quota) into portable JSON snapshot payload.
   - **`knc_agent_restore`**: Restores snapshot payload into any session ID on fresh or existing Isolates, enabling seamless execution resuming (`knc_yield_resume`).
+- **Comprehensive Documentation Alignment & Workspace Consolidation** (Sprint 314 - v2.11.1-docs) — Full documentation consolidation:
+  - **Headless-First Paradigma & Optional UI Feature Gate**: Fully aligned `README.md`, `llm.md`, `ROADMAP.md`, `changelog.md`, and `docs/KNOTEN_SPEC.md` confirming Headless-First default execution and isolated `--features ui` graphics layer.
+  - **Protokoll- & CLI-Verifikation**: Synchronized JSON-RPC 2.0 (`--rpc-port`), WebSocket RPC (`--ws-port`), Isolate Quotas (`IsolateQuota`), and Agentic Protocol specifications across the entire documentation set.
 
 ---
 

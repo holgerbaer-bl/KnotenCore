@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.11.1-hotfix** · Windows CI Latency Tolerance Hotfix
+Current engine version: **v2.11.1-docs** · Sprint 314 · Comprehensive Documentation Alignment & Workspace Consolidation
 
 ## Done (selected milestones)
 
@@ -35,6 +35,7 @@ Current engine version: **v2.11.1-hotfix** · Windows CI Latency Tolerance Hotfi
 - ✅ Isolate Multi-Tenant Resource Quotas & RPC Session Enforcement (Sprint 311 - v2.9.0-isolate)
 - ✅ Persistent WebSocket RPC Transport & Realtime Event Broadcaster (Sprint 312 - v2.10.0-ws)
 - ✅ Agentic Execution Protocol, Portable State Snapshots & Restore (Sprint 313 - v2.11.0-agent)
+- ✅ Comprehensive Documentation Alignment & Workspace Consolidation (Sprint 314 - v2.11.1-docs)
 
 ## Near-Term
 

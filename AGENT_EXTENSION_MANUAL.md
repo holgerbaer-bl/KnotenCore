@@ -14,10 +14,10 @@ To add a new native operation (e.g. `AudioPlay`, `DrawSprite`), you must update 
 
 | # | File | Role |
 |---|------|------|
-| 1 | `src/ast.rs` | Define the AST node variant |
-| 2 | `src/natives/registry.rs` | Implement the native Rust function |
-| 3 | `src/executor.rs` | Wire the node into the JIT evaluator |
-| 4 | `src/compiler/codegen.rs` | Wire the node into the AOT transpiler |
+| 1 | `knoten_core_types/src/ast.rs` | Define the AST node variant |
+| 2 | `aether_compiler/src/natives/registry.rs` | Implement the native Rust function |
+| 3 | `aether_compiler/src/executor.rs` | Wire the node into the JIT evaluator |
+| 4 | `aether_compiler/src/compiler/codegen.rs` | Wire the node into the AOT transpiler |
 
 ---
 
