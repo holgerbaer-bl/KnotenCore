@@ -347,7 +347,12 @@ impl VMIsolate {
             store_snapshot(swap_id, vm.snapshot());
         }
         match vm.run(&instructions, &constants, &perms, None) {
-            Ok(value) => Ok(value),
+            Ok(value) => {
+                if swap_id >= 0 {
+                    store_snapshot(swap_id, vm.snapshot());
+                }
+                Ok(value)
+            }
             Err(e) => {
                 if swap_id >= 0
                     && let Some(snapshot) = snapshot_isolate(swap_id)
