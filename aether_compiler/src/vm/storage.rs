@@ -215,8 +215,12 @@ fn read_fixed<const N: usize>(bytes: &[u8], pos: &mut usize) -> Result<[u8; N], 
 }
 
 pub fn persist_snapshot_to_disk(slot_id: &str, state: &VMState) -> Result<(), String> {
-    if slot_id.contains('/') || slot_id.contains('\\') || slot_id.contains("..") || slot_id.contains('\0') {
-        return Err("Invalid slot_id: Path traversal attempt detected".to_string());
+    if slot_id.contains('/')
+        || slot_id.contains('\\')
+        || slot_id.contains("..")
+        || slot_id.contains('\0')
+    {
+        return Err("Invalid snapshot slot_id: Path traversal attempt detected".to_string());
     }
     fs::create_dir_all(STORAGE_DIR).map_err(|e| e.to_string())?;
     let bytes = serialize_vm_state(state)?;
@@ -225,7 +229,11 @@ pub fn persist_snapshot_to_disk(slot_id: &str, state: &VMState) -> Result<(), St
 }
 
 pub fn load_snapshot_from_disk(slot_id: &str) -> Option<VMState> {
-    if slot_id.contains('/') || slot_id.contains('\\') || slot_id.contains("..") || slot_id.contains('\0') {
+    if slot_id.contains('/')
+        || slot_id.contains('\\')
+        || slot_id.contains("..")
+        || slot_id.contains('\0')
+    {
         return None;
     }
     let path = format!("{}/{}.snap", STORAGE_DIR, slot_id);
