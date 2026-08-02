@@ -521,6 +521,7 @@ fn test_asset_streaming_fallback_applied() {
 // ── Sprint 209: Dirty-Flag Bandwidth Cache Test ──────────────────
 
 #[test]
+#[cfg(feature = "ui")]
 fn test_render_loop_bandwidth_cache_applied() {
     let mut scene: std::collections::HashMap<usize, knoten_core::natives::scene::SceneEntity> =
         std::collections::HashMap::new();

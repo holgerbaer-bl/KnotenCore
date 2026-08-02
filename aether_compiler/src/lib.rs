@@ -1,5 +1,6 @@
 pub use knoten_core_types::ast;
 pub mod async_bridge;
+#[cfg(feature = "ui")]
 pub mod audio;
 pub mod compiler;
 pub mod dsl_emitter;
@@ -15,4 +16,5 @@ pub mod test_lib;
 pub mod validator;
 pub mod vm;
 pub mod wasm_edge;
+#[cfg(feature = "ui")]
 pub mod window;

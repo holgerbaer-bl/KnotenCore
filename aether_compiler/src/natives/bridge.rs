@@ -319,7 +319,13 @@ impl BridgeModule for CoreBridge {
                                 });
                             }
                         };
+                        #[cfg(feature = "ui")]
                         let ok = crate::natives::ui::ui_init_window(w, h, title);
+                        #[cfg(not(feature = "ui"))]
+                        let ok = {
+                            let _ = (w, h, title);
+                            true
+                        };
                         Some(ExecResult::Value(RelType::Bool(ok)))
                     } else {
                         Some(ExecResult::Fault {
@@ -333,7 +339,12 @@ impl BridgeModule for CoreBridge {
                     if args.len() == 1
                         && let RelType::Int(c) = &args[0]
                     {
+                        #[cfg(feature = "ui")]
                         crate::natives::ui::ui_clear(*c);
+                        #[cfg(not(feature = "ui"))]
+                        {
+                            let _ = c;
+                        }
                         return Some(ExecResult::Value(RelType::Void));
                     }
                     Some(ExecResult::Fault {
@@ -388,7 +399,12 @@ impl BridgeModule for CoreBridge {
                                 });
                             }
                         };
+                        #[cfg(feature = "ui")]
                         crate::natives::ui::ui_draw_rect(x, y, w, h, c);
+                        #[cfg(not(feature = "ui"))]
+                        {
+                            let _ = (x, y, w, h, c);
+                        }
                         Some(ExecResult::Value(RelType::Void))
                     } else {
                         Some(ExecResult::Fault {
@@ -436,7 +452,12 @@ impl BridgeModule for CoreBridge {
                                 });
                             }
                         };
+                        #[cfg(feature = "ui")]
                         crate::natives::ui::ui_draw_text(x, y, text, c);
+                        #[cfg(not(feature = "ui"))]
+                        {
+                            let _ = (x, y, text, c);
+                        }
                         Some(ExecResult::Value(RelType::Void))
                     } else {
                         Some(ExecResult::Fault {
@@ -447,14 +468,23 @@ impl BridgeModule for CoreBridge {
                     }
                 }
                 "ui_present" => {
+                    #[cfg(feature = "ui")]
                     let open = crate::natives::ui::ui_present();
+                    #[cfg(not(feature = "ui"))]
+                    let open = true;
                     Some(ExecResult::Value(RelType::Bool(open)))
                 }
                 "ui_is_key_down" => {
                     if args.len() == 1
                         && let RelType::Str(key) = &args[0]
                     {
+                        #[cfg(feature = "ui")]
                         let down = crate::natives::ui::ui_is_key_down(key.clone());
+                        #[cfg(not(feature = "ui"))]
+                        let down = {
+                            let _ = key;
+                            false
+                        };
                         return Some(ExecResult::Value(RelType::Bool(down)));
                     }
                     Some(ExecResult::Fault {
@@ -463,19 +493,30 @@ impl BridgeModule for CoreBridge {
                     })
                 }
                 "ui_get_key_pressed" => {
+                    #[cfg(feature = "ui")]
                     let key = crate::natives::ui::ui_get_key_pressed();
+                    #[cfg(not(feature = "ui"))]
+                    let key = String::new();
                     Some(ExecResult::Value(RelType::Str(key)))
                 }
                 // Sprint 118: Text input state binding
                 "ui_text_input_get" => {
+                    #[cfg(feature = "ui")]
                     let val = crate::natives::ui::ui_text_input_get();
+                    #[cfg(not(feature = "ui"))]
+                    let val = String::new();
                     Some(ExecResult::Value(RelType::Str(val)))
                 }
                 "ui_text_input_set" => {
                     if args.len() == 1
                         && let RelType::Str(s) = &args[0]
                     {
+                        #[cfg(feature = "ui")]
                         crate::natives::ui::ui_text_input_set(s.clone());
+                        #[cfg(not(feature = "ui"))]
+                        {
+                            let _ = s;
+                        }
                         return Some(ExecResult::Value(RelType::Void));
                     }
                     Some(ExecResult::Fault {
@@ -497,7 +538,12 @@ impl BridgeModule for CoreBridge {
                                 _ => 0.0,
                             })
                             .collect();
+                        #[cfg(feature = "ui")]
                         crate::natives::ui::ui_push_bar_chart(label.clone(), values);
+                        #[cfg(not(feature = "ui"))]
+                        {
+                            let _ = (label, values);
+                        }
                         return Some(ExecResult::Value(RelType::Void));
                     }
                     Some(ExecResult::Fault {
@@ -513,12 +559,17 @@ impl BridgeModule for CoreBridge {
                         && let RelType::Float(min) = &args[2]
                         && let RelType::Float(max) = &args[3]
                     {
+                        #[cfg(feature = "ui")]
                         crate::natives::ui::ui_push_progress_gauge(
                             label.clone(),
                             *value,
                             *min,
                             *max,
                         );
+                        #[cfg(not(feature = "ui"))]
+                        {
+                            let _ = (label, value, min, max);
+                        }
                         return Some(ExecResult::Value(RelType::Void));
                     }
                     Some(ExecResult::Fault {
@@ -1811,7 +1862,7 @@ impl BridgeModule for CoreBridge {
                                 RelType::Int(i) => *i as f32,
                                 _ => 0.0_f32,
                             };
-                            let m = glam::Mat4::from_cols_array_2d(&[
+                            let m = [
                                 [
                                     extract(&matrix_arr[0]),
                                     extract(&matrix_arr[1]),
@@ -1836,8 +1887,8 @@ impl BridgeModule for CoreBridge {
                                     extract(&matrix_arr[14]),
                                     extract(&matrix_arr[15]),
                                 ],
-                            ]);
-                            let v = glam::Vec4::new(
+                            ];
+                            let v = [
                                 extract(&vector_arr[0]),
                                 extract(&vector_arr[1]),
                                 extract(&vector_arr[2]),
@@ -1846,13 +1897,20 @@ impl BridgeModule for CoreBridge {
                                 } else {
                                     1.0
                                 },
-                            );
-                            let result = m * v;
+                            ];
+                            let rx =
+                                m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2] + m[3][0] * v[3];
+                            let ry =
+                                m[0][1] * v[0] + m[1][1] * v[1] + m[2][1] * v[2] + m[3][1] * v[3];
+                            let rz =
+                                m[0][2] * v[0] + m[1][2] * v[1] + m[2][2] * v[2] + m[3][2] * v[3];
+                            let rw =
+                                m[0][3] * v[0] + m[1][3] * v[1] + m[2][3] * v[2] + m[3][3] * v[3];
                             return Some(ExecResult::Value(RelType::Array(vec![
-                                RelType::Float(result.x as f64),
-                                RelType::Float(result.y as f64),
-                                RelType::Float(result.z as f64),
-                                RelType::Float(result.w as f64),
+                                RelType::Float(rx as f64),
+                                RelType::Float(ry as f64),
+                                RelType::Float(rz as f64),
+                                RelType::Float(rw as f64),
                             ])));
                         }
                         return Some(ExecResult::Fault {

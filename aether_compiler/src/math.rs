@@ -9,6 +9,7 @@ impl AABB {
         Self { min, max }
     }
 
+    #[cfg(feature = "ui")]
     pub fn transform(&self, transform: &glam::Mat4) -> Self {
         let mut min = glam::Vec3::splat(f32::INFINITY);
         let mut max = glam::Vec3::splat(f32::NEG_INFINITY);
@@ -39,16 +40,28 @@ impl AABB {
             && self.max[2] >= other.min[2]
     }
 
-    pub fn intersect_ray(&self, ray_origin: glam::Vec3, ray_dir: glam::Vec3) -> Option<f32> {
-        let inv_dir = glam::Vec3::new(1.0 / ray_dir.x, 1.0 / ray_dir.y, 1.0 / ray_dir.z);
-        let t0 = (glam::Vec3::from_array(self.min) - ray_origin) * inv_dir;
-        let t1 = (glam::Vec3::from_array(self.max) - ray_origin) * inv_dir;
+    pub fn intersect_ray_coords(&self, ray_origin: [f32; 3], ray_dir: [f32; 3]) -> Option<f32> {
+        let inv_x = 1.0 / ray_dir[0];
+        let inv_y = 1.0 / ray_dir[1];
+        let inv_z = 1.0 / ray_dir[2];
 
-        let tmin = t0.min(t1);
-        let tmax = t0.max(t1);
+        let t0_x = (self.min[0] - ray_origin[0]) * inv_x;
+        let t1_x = (self.max[0] - ray_origin[0]) * inv_x;
+        let tmin_x = t0_x.min(t1_x);
+        let tmax_x = t0_x.max(t1_x);
 
-        let t_min_val = tmin.max_element();
-        let t_max_val = tmax.min_element();
+        let t0_y = (self.min[1] - ray_origin[1]) * inv_y;
+        let t1_y = (self.max[1] - ray_origin[1]) * inv_y;
+        let tmin_y = t0_y.min(t1_y);
+        let tmax_y = t0_y.max(t1_y);
+
+        let t0_z = (self.min[2] - ray_origin[2]) * inv_z;
+        let t1_z = (self.max[2] - ray_origin[2]) * inv_z;
+        let tmin_z = t0_z.min(t1_z);
+        let tmax_z = t0_z.max(t1_z);
+
+        let t_min_val = tmin_x.max(tmin_y).max(tmin_z);
+        let t_max_val = tmax_x.min(tmax_y).min(tmax_z);
 
         if t_max_val >= t_min_val && t_max_val >= 0.0 {
             if t_min_val < 0.0 {
@@ -59,5 +72,10 @@ impl AABB {
         } else {
             None
         }
+    }
+
+    #[cfg(feature = "ui")]
+    pub fn intersect_ray(&self, ray_origin: glam::Vec3, ray_dir: glam::Vec3) -> Option<f32> {
+        self.intersect_ray_coords(ray_origin.into(), ray_dir.into())
     }
 }

@@ -137,7 +137,7 @@ pub fn registry_spawn_cube(
         entity_id,
         mesh_name,
         texture_id: texture_handle as usize,
-        transform,
+        transform: transform.to_cols_array_2d(),
     });
     entity_id as i64
 }
@@ -189,7 +189,7 @@ pub fn registry_spawn_sphere(
         entity_id,
         mesh_name,
         texture_id: texture_handle as usize,
-        transform,
+        transform: transform.to_cols_array_2d(),
     });
     entity_id as i64
 }
@@ -240,7 +240,7 @@ pub fn registry_spawn_cylinder(
         entity_id,
         mesh_name,
         texture_id: texture_handle as usize,
-        transform,
+        transform: transform.to_cols_array_2d(),
     });
     entity_id as i64
 }
@@ -273,7 +273,7 @@ pub fn registry_update_entity_transform(
     send_render_command(RenderCommand::UpdateEntityTransform {
         window_id: window_handle as usize,
         entity_id: entity_handle as usize,
-        transform: final_transform,
+        transform: final_transform.to_cols_array_2d(),
     });
 }
 

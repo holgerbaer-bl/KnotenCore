@@ -918,13 +918,9 @@ impl VM {
                             {
                                 match crate::executor::ExecutionEngine::validate_fs_path(path) {
                                     Ok(safe_path) => {
-                                        crate::natives::registry::init_audio_state();
-                                        if let Ok(mut lock) =
-                                            crate::natives::registry::AUDIO_STATE.lock()
-                                            && let Some(audio) = lock.as_mut()
-                                        {
-                                            let _ = audio.play_sound(&safe_path.to_string_lossy());
-                                        }
+                                        let _ = crate::natives::registry::registry_play_sound(
+                                            &safe_path.to_string_lossy(),
+                                        );
                                         self.stack.push(RelType::Void);
                                         continue;
                                     }
@@ -944,13 +940,9 @@ impl VM {
                             {
                                 match crate::executor::ExecutionEngine::validate_fs_path(path) {
                                     Ok(safe_path) => {
-                                        crate::natives::registry::init_audio_state();
-                                        if let Ok(mut lock) =
-                                            crate::natives::registry::AUDIO_STATE.lock()
-                                            && let Some(audio) = lock.as_mut()
-                                        {
-                                            let _ = audio.loop_music(&safe_path.to_string_lossy());
-                                        }
+                                        let _ = crate::natives::registry::registry_loop_music(
+                                            &safe_path.to_string_lossy(),
+                                        );
                                         self.stack.push(RelType::Void);
                                         continue;
                                     }
@@ -971,12 +963,7 @@ impl VM {
                                     RelType::Int(i) => *i as f32,
                                     _ => return Err("Fault: registry_set_volume expects (Float/Int) (at Node::ExternCall)".to_string()),
                                 };
-                                crate::natives::registry::init_audio_state();
-                                if let Ok(mut lock) = crate::natives::registry::AUDIO_STATE.lock()
-                                    && let Some(audio) = lock.as_mut()
-                                {
-                                    audio.set_volume(level);
-                                }
+                                crate::natives::registry::registry_set_volume(level);
                                 self.stack.push(RelType::Void);
                                 continue;
                             }
@@ -1474,12 +1461,16 @@ impl VM {
                                 x: x_workgroups,
                                 y: 1,
                                 z: 1,
-                                inputs: if multi_bindings.is_some() {
+                                inputs: if !multi_bindings.is_empty() {
                                     vec![]
                                 } else {
                                     inputs.clone()
                                 },
-                                bindings: multi_bindings,
+                                bindings: if !multi_bindings.is_empty() {
+                                    Some(multi_bindings)
+                                } else {
+                                    None
+                                },
                             },
                         );
                         let result =
@@ -1513,78 +1504,96 @@ impl VM {
                     scale,
                     matrix_handle,
                 } => {
+                    let elem_arr = match self.stack.pop() {
+                        Some(RelType::Array(arr)) => arr,
+                        Some(other) => vec![other],
+                        None => return Err("Fault: SimdExec expects stack operand".to_string()),
+                    };
                     let to_f32 = |idx: &usize| -> Result<f32, String> {
-                        match constants.get(*idx) {
+                        match elem_arr.get(*idx) {
                             Some(RelType::Float(f)) => Ok(*f as f32),
-                            Some(RelType::Int(v)) => Ok(*v as f32),
+                            Some(RelType::Int(i)) => Ok(*i as f32),
                             _ => Err("SimdExec: element must be Float or Int".into()),
                         }
                     };
-                    let load_vec4 = |indices: &[usize; 4]| -> Result<glam::Vec4, String> {
-                        Ok(glam::Vec4::new(
+                    let load_vec4 = |indices: &[usize; 4]| -> Result<[f32; 4], String> {
+                        Ok([
                             to_f32(&indices[0])?,
                             to_f32(&indices[1])?,
                             to_f32(&indices[2])?,
                             to_f32(&indices[3])?,
-                        ))
+                        ])
                     };
                     match op {
                         SimdOp::Scale => {
                             let factor = to_f32(scale)?;
-                            let v = load_vec4(elements_a)? * factor;
+                            let v = load_vec4(elements_a)?;
                             self.stack.push(RelType::Array(vec![
-                                RelType::Float(v.x as f64),
-                                RelType::Float(v.y as f64),
-                                RelType::Float(v.z as f64),
-                                RelType::Float(v.w as f64),
+                                RelType::Float((v[0] * factor) as f64),
+                                RelType::Float((v[1] * factor) as f64),
+                                RelType::Float((v[2] * factor) as f64),
+                                RelType::Float((v[3] * factor) as f64),
                             ]));
                         }
                         SimdOp::Add => {
                             let a = load_vec4(elements_a)?;
                             let b = load_vec4(elements_b)?;
-                            let v = a + b;
                             self.stack.push(RelType::Array(vec![
-                                RelType::Float(v.x as f64),
-                                RelType::Float(v.y as f64),
-                                RelType::Float(v.z as f64),
-                                RelType::Float(v.w as f64),
+                                RelType::Float((a[0] + b[0]) as f64),
+                                RelType::Float((a[1] + b[1]) as f64),
+                                RelType::Float((a[2] + b[2]) as f64),
+                                RelType::Float((a[3] + b[3]) as f64),
                             ]));
                         }
                         SimdOp::Subtract => {
                             let a = load_vec4(elements_a)?;
                             let b = load_vec4(elements_b)?;
-                            let v = a - b;
                             self.stack.push(RelType::Array(vec![
-                                RelType::Float(v.x as f64),
-                                RelType::Float(v.y as f64),
-                                RelType::Float(v.z as f64),
-                                RelType::Float(v.w as f64),
+                                RelType::Float((a[0] - b[0]) as f64),
+                                RelType::Float((a[1] - b[1]) as f64),
+                                RelType::Float((a[2] - b[2]) as f64),
+                                RelType::Float((a[3] - b[3]) as f64),
                             ]));
                         }
                         SimdOp::Dot => {
                             let a = load_vec4(elements_a)?;
                             let b = load_vec4(elements_b)?;
-                            let dot = a.dot(b);
+                            let dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
                             self.stack.push(RelType::Float(dot as f64));
                         }
                         SimdOp::Transform => {
                             let v = load_vec4(elements_a)?;
-                            if let Some(mat) =
+                            if let Some(m) =
                                 crate::natives::registry::registry_get_matrix(*matrix_handle)
                             {
-                                let result = mat * v;
+                                let rx = m[0][0] * v[0]
+                                    + m[1][0] * v[1]
+                                    + m[2][0] * v[2]
+                                    + m[3][0] * v[3];
+                                let ry = m[0][1] * v[0]
+                                    + m[1][1] * v[1]
+                                    + m[2][1] * v[2]
+                                    + m[3][1] * v[3];
+                                let rz = m[0][2] * v[0]
+                                    + m[1][2] * v[1]
+                                    + m[2][2] * v[2]
+                                    + m[3][2] * v[3];
+                                let rw = m[0][3] * v[0]
+                                    + m[1][3] * v[1]
+                                    + m[2][3] * v[2]
+                                    + m[3][3] * v[3];
                                 self.stack.push(RelType::Array(vec![
-                                    RelType::Float(result.x as f64),
-                                    RelType::Float(result.y as f64),
-                                    RelType::Float(result.z as f64),
-                                    RelType::Float(result.w as f64),
+                                    RelType::Float(rx as f64),
+                                    RelType::Float(ry as f64),
+                                    RelType::Float(rz as f64),
+                                    RelType::Float(rw as f64),
                                 ]));
                             } else {
                                 self.stack.push(RelType::Array(vec![
-                                    RelType::Float(v.x as f64),
-                                    RelType::Float(v.y as f64),
-                                    RelType::Float(v.z as f64),
-                                    RelType::Float(v.w as f64),
+                                    RelType::Float(v[0] as f64),
+                                    RelType::Float(v[1] as f64),
+                                    RelType::Float(v[2] as f64),
+                                    RelType::Float(v[3] as f64),
                                 ]));
                             }
                         }
@@ -1759,86 +1768,100 @@ impl VM {
                         .stack
                         .pop()
                         .ok_or_else(|| "Stack underflow in PlayNote (waveform)".to_string())?;
-                    let waveform_idx = match wave_val {
-                        RelType::Int(i) => i,
-                        _ => 0,
-                    };
-                    let waveform = match waveform_idx {
-                        0 => knoten_core_types::ast::Waveform::Sine,
-                        1 => knoten_core_types::ast::Waveform::Sawtooth,
-                        2 => knoten_core_types::ast::Waveform::Square,
-                        3 => knoten_core_types::ast::Waveform::Triangle,
-                        _ => knoten_core_types::ast::Waveform::Sine,
-                    };
-                    let duration = self
-                        .stack
-                        .pop()
-                        .ok_or_else(|| "Stack underflow in PlayNote (duration)".to_string())?;
-                    let freq = self
-                        .stack
-                        .pop()
-                        .ok_or_else(|| "Stack underflow in PlayNote (frequency)".to_string())?;
-                    let channel = self
-                        .stack
-                        .pop()
-                        .ok_or_else(|| "Stack underflow in PlayNote (channel)".to_string())?;
-                    let channel_idx = match channel {
-                        RelType::Int(i) => i as usize,
-                        v => {
-                            eprintln!("[VM Synth] PlayNote: Expected Int channel, got {:?}", v);
-                            0
-                        }
-                    };
-                    let freq_val = match freq {
-                        RelType::Float(f) => f as f32,
-                        RelType::Int(i) => i as f32,
-                        v => {
-                            eprintln!(
-                                "[VM Synth] PlayNote: Expected Float/Int frequency, got {:?}",
-                                v
-                            );
-                            return Ok(RelType::Void);
-                        }
-                    };
-                    let dur_val = match duration {
-                        RelType::Int(i) => i as u64,
-                        v => {
-                            eprintln!("[VM Synth] PlayNote: Expected Int duration, got {:?}", v);
-                            return Ok(RelType::Void);
-                        }
-                    };
-                    let attack_val = match attack_ms {
-                        RelType::Int(i) => i as u64,
-                        _ => 5,
-                    };
-                    let decay_val = match decay_ms {
-                        RelType::Int(i) => i as u64,
-                        _ => 20,
-                    };
-                    let sustain_val = match sustain_level {
-                        RelType::Float(f) => f as f32,
-                        RelType::Int(i) => i as f32,
-                        _ => 0.7,
-                    };
-                    let release_val = match release_ms {
-                        RelType::Int(i) => i as u64,
-                        _ => 100,
-                    };
-                    crate::natives::registry::init_audio_state();
-                    if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
-                        && let Some(ref mut mgr) = *guard
+                    #[cfg(feature = "ui")]
                     {
-                        mgr.play_tone(
-                            channel_idx,
-                            freq_val,
-                            dur_val,
-                            0.3,
-                            waveform,
-                            attack_val,
-                            decay_val,
-                            sustain_val,
-                            release_val,
-                        );
+                        let waveform_idx = match wave_val {
+                            RelType::Int(i) => i,
+                            _ => 0,
+                        };
+                        let waveform = match waveform_idx {
+                            0 => knoten_core_types::ast::Waveform::Sine,
+                            1 => knoten_core_types::ast::Waveform::Sawtooth,
+                            2 => knoten_core_types::ast::Waveform::Square,
+                            3 => knoten_core_types::ast::Waveform::Triangle,
+                            _ => knoten_core_types::ast::Waveform::Sine,
+                        };
+                        let duration = self
+                            .stack
+                            .pop()
+                            .ok_or_else(|| "Stack underflow in PlayNote (duration)".to_string())?;
+                        let freq = self
+                            .stack
+                            .pop()
+                            .ok_or_else(|| "Stack underflow in PlayNote (frequency)".to_string())?;
+                        let channel = self
+                            .stack
+                            .pop()
+                            .ok_or_else(|| "Stack underflow in PlayNote (channel)".to_string())?;
+                        let channel_idx = match channel {
+                            RelType::Int(i) => i as usize,
+                            v => {
+                                eprintln!("[VM Synth] PlayNote: Expected Int channel, got {:?}", v);
+                                0
+                            }
+                        };
+                        let freq_val = match freq {
+                            RelType::Float(f) => f as f32,
+                            RelType::Int(i) => i as f32,
+                            v => {
+                                eprintln!(
+                                    "[VM Synth] PlayNote: Expected Float/Int frequency, got {:?}",
+                                    v
+                                );
+                                return Ok(RelType::Void);
+                            }
+                        };
+                        let dur_val = match duration {
+                            RelType::Int(i) => i as u64,
+                            v => {
+                                eprintln!(
+                                    "[VM Synth] PlayNote: Expected Int duration, got {:?}",
+                                    v
+                                );
+                                return Ok(RelType::Void);
+                            }
+                        };
+                        let attack_val = match attack_ms {
+                            RelType::Int(i) => i as u64,
+                            _ => 5,
+                        };
+                        let decay_val = match decay_ms {
+                            RelType::Int(i) => i as u64,
+                            _ => 20,
+                        };
+                        let sustain_val = match sustain_level {
+                            RelType::Float(f) => f as f32,
+                            RelType::Int(i) => i as f32,
+                            _ => 0.7,
+                        };
+                        let release_val = match release_ms {
+                            RelType::Int(i) => i as u64,
+                            _ => 100,
+                        };
+
+                        crate::natives::registry::init_audio_state();
+                        if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
+                            && let Some(ref mut mgr) = *guard
+                        {
+                            mgr.play_tone(
+                                channel_idx,
+                                freq_val,
+                                dur_val,
+                                0.3,
+                                waveform,
+                                attack_val,
+                                decay_val,
+                                sustain_val,
+                                release_val,
+                            );
+                        }
+                    }
+                    #[cfg(not(feature = "ui"))]
+                    {
+                        let _ = (wave_val, attack_ms, decay_ms, sustain_level, release_ms);
+                        let _ = self.stack.pop();
+                        let _ = self.stack.pop();
+                        let _ = self.stack.pop();
                     }
                     self.stack.push(RelType::Void);
                 }
@@ -1847,16 +1870,23 @@ impl VM {
                         .stack
                         .pop()
                         .ok_or_else(|| "Stack underflow in StopNote (channel)".to_string())?;
-                    let channel_idx = if let RelType::Int(i) = channel {
-                        i as usize
-                    } else {
-                        0
-                    };
-                    crate::natives::registry::init_audio_state();
-                    if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
-                        && let Some(ref mut mgr) = *guard
+                    #[cfg(feature = "ui")]
                     {
-                        mgr.stop_tone(channel_idx);
+                        let channel_idx = if let RelType::Int(i) = channel {
+                            i as usize
+                        } else {
+                            0
+                        };
+                        crate::natives::registry::init_audio_state();
+                        if let Ok(mut guard) = crate::natives::registry::AUDIO_STATE.lock()
+                            && let Some(ref mut mgr) = *guard
+                        {
+                            mgr.stop_tone(channel_idx);
+                        }
+                    }
+                    #[cfg(not(feature = "ui"))]
+                    {
+                        let _ = channel;
                     }
                     self.stack.push(RelType::Void);
                 }
@@ -2579,12 +2609,12 @@ mod tests {
 
     #[test]
     fn test_math_matrix_transpose() {
-        let test_mat = glam::Mat4::from_cols(
-            glam::Vec4::new(1.0, 0.0, 0.0, 4.0),
-            glam::Vec4::new(0.0, 1.0, 0.0, 5.0),
-            glam::Vec4::new(0.0, 0.0, 1.0, 6.0),
-            glam::Vec4::new(0.0, 0.0, 0.0, 1.0),
-        );
+        let test_mat = [
+            [1.0, 0.0, 0.0, 4.0],
+            [0.0, 1.0, 0.0, 5.0],
+            [0.0, 0.0, 1.0, 6.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
         let handle = crate::natives::registry::registry_store_matrix(test_mat);
 
         let mut vm = VM::new();
@@ -2627,25 +2657,25 @@ mod tests {
             .expect("Transposed matrix not found");
 
         assert!(
-            (transposed.col(0).x - 1.0).abs() < 0.001,
+            (transposed[0][0] - 1.0).abs() < 0.001,
             "col 0 x: {}",
-            transposed.col(0).x
+            transposed[0][0]
         );
-        assert!((transposed.col(0).y - 0.0).abs() < 0.001, "col 0 y");
-        assert!((transposed.col(0).z - 0.0).abs() < 0.001, "col 0 z");
-        assert!((transposed.col(0).w - 0.0).abs() < 0.001, "col 0 w");
-        assert!((transposed.col(1).x - 0.0).abs() < 0.001, "col 1 x");
-        assert!((transposed.col(1).y - 1.0).abs() < 0.001, "col 1 y");
-        assert!((transposed.col(1).z - 0.0).abs() < 0.001, "col 1 z");
-        assert!((transposed.col(1).w - 0.0).abs() < 0.001, "col 1 w");
-        assert!((transposed.col(2).x - 0.0).abs() < 0.001, "col 2 x");
-        assert!((transposed.col(2).y - 0.0).abs() < 0.001, "col 2 y");
-        assert!((transposed.col(2).z - 1.0).abs() < 0.001, "col 2 z");
-        assert!((transposed.col(2).w - 0.0).abs() < 0.001, "col 2 w");
-        assert!((transposed.col(3).x - 4.0).abs() < 0.001, "col 3 x");
-        assert!((transposed.col(3).y - 5.0).abs() < 0.001, "col 3 y");
-        assert!((transposed.col(3).z - 6.0).abs() < 0.001, "col 3 z");
-        assert!((transposed.col(3).w - 1.0).abs() < 0.001, "col 3 w");
+        assert!((transposed[0][1] - 0.0).abs() < 0.001, "col 0 y");
+        assert!((transposed[0][2] - 0.0).abs() < 0.001, "col 0 z");
+        assert!((transposed[0][3] - 0.0).abs() < 0.001, "col 0 w");
+        assert!((transposed[1][0] - 0.0).abs() < 0.001, "col 1 x");
+        assert!((transposed[1][1] - 1.0).abs() < 0.001, "col 1 y");
+        assert!((transposed[1][2] - 0.0).abs() < 0.001, "col 1 z");
+        assert!((transposed[1][3] - 0.0).abs() < 0.001, "col 1 w");
+        assert!((transposed[2][0] - 0.0).abs() < 0.001, "col 2 x");
+        assert!((transposed[2][1] - 0.0).abs() < 0.001, "col 2 y");
+        assert!((transposed[2][2] - 1.0).abs() < 0.001, "col 2 z");
+        assert!((transposed[2][3] - 0.0).abs() < 0.001, "col 2 w");
+        assert!((transposed[3][0] - 4.0).abs() < 0.001, "col 3 x");
+        assert!((transposed[3][1] - 5.0).abs() < 0.001, "col 3 y");
+        assert!((transposed[3][2] - 6.0).abs() < 0.001, "col 3 z");
+        assert!((transposed[3][3] - 1.0).abs() < 0.001, "col 3 w");
     }
 
     #[test]
@@ -2720,7 +2750,14 @@ mod tests {
     #[test]
     fn test_gpgpu_matrix_particle_transformation() {
         let angle = std::f32::consts::FRAC_PI_2;
-        let rot_z = glam::Mat4::from_rotation_z(angle);
+        let cos_a = angle.cos();
+        let sin_a = angle.sin();
+        let rot_z = [
+            [cos_a, sin_a, 0.0, 0.0],
+            [-sin_a, cos_a, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
 
         let mut particle: Vec<RelType> = vec![
             RelType::Float(1.0),
@@ -2774,21 +2811,21 @@ mod tests {
         ];
 
         let bindings = split_inputs_to_bindings(&inputs);
-        assert!(bindings.is_some());
-        let sets = bindings.unwrap();
+        assert!(!bindings.is_empty());
+        let sets = bindings;
         assert_eq!(sets.len(), 2, "Should split into 2 binding sets");
 
         let positions = &sets[0];
         assert_eq!(positions.len(), 6, "2 particles x 3 position coords = 6");
         assert!(
             (match &positions[0] {
-                RelType::Float(f) => (*f - 1.0).abs() < 0.001,
+                RelType::Float(f) => (f - 1.0).abs() < 0.001,
                 _ => false,
             })
         );
         assert!(
             (match &positions[4] {
-                RelType::Float(f) => (*f - 5.0).abs() < 0.001,
+                RelType::Float(f) => (f - 5.0).abs() < 0.001,
                 _ => false,
             })
         );
@@ -2797,7 +2834,7 @@ mod tests {
         assert_eq!(velocities.len(), 6, "2 particles x 3 velocity coords = 6");
         assert!(
             (match &velocities[2] {
-                RelType::Float(f) => (*f - 0.3).abs() < 0.001,
+                RelType::Float(f) => (f - 0.3).abs() < 0.001,
                 _ => false,
             })
         );
@@ -2812,7 +2849,7 @@ mod tests {
             RelType::Float(4.0),
         ];
         let bindings = split_inputs_to_bindings(&inputs);
-        assert!(bindings.is_none(), "4 elements not divisible by 6 or 7");
+        assert!(bindings.is_empty(), "4 elements not divisible by 6 or 7");
     }
 
     #[test]
@@ -3174,12 +3211,12 @@ mod tests {
             vy in proptest::num::f32::NORMAL,
             vz in proptest::num::f32::NORMAL,
         ) {
-            let mat = glam::Mat4::from_cols_array(&[
-                m11, m12, m13, m14,
-                m21, m22, m23, m24,
-                m31, m32, m33, m34,
-                m41, m42, m43, m44,
-            ]);
+            let mat = [
+                [m11, m12, m13, m14],
+                [m21, m22, m23, m24],
+                [m31, m32, m33, m34],
+                [m41, m42, m43, m44],
+            ];
             let mut particle = vec![
                 RelType::Float(px as f64),
                 RelType::Float(py as f64),

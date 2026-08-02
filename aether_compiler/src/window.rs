@@ -1280,7 +1280,7 @@ impl KnotenApp {
                         crate::natives::registry::SceneEntity {
                             mesh_name,
                             texture_id,
-                            transform,
+                            transform: glam::Mat4::from_cols_array_2d(&transform),
                             is_dirty: true, // Sprint 209
                         },
                     );
@@ -1302,7 +1302,7 @@ impl KnotenApp {
                 if let Some(state) = self.windows.get_mut(&window_id)
                     && let Some(entity) = state.scene_graph.get_mut(&entity_id)
                 {
-                    entity.transform = transform;
+                    entity.transform = glam::Mat4::from_cols_array_2d(&transform);
                     entity.is_dirty = true; // Sprint 209
                 }
             }

@@ -1,6 +1,6 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.11.2-audit-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.12.0--core-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-244%2F244-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
 [![Release](https://img.shields.io/badge/release-alpha-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
@@ -13,7 +13,7 @@
 **The lightweight, embeddable runtime for stateless microservices, headless data pipelines & AI agents.**
 
 ## What is KnotenCore?
-**KnotenCore** is a **Headless-First Deterministic Execution Runtime** written in Rust. It serves as a lightweight, embeddable runtime for stateless microservices, headless data pipelines, and a deterministic text-based sandbox for AI-generated code and autonomous agents. External AI agents or microservices specify programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized bytecode stream and executes them on a Register Stack-VM with bare-metal performance, Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`), persistent WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming), and multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`). Heavyweight UI/Graphics features (`wgpu`, `winit`, `egui`) are decoupled behind the optional `ui` feature gate (`--features ui`). Strict sandbox guards enforce instruction limits (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), CPU watchdog thresholds (500ms), and memory limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
+**KnotenCore** is a **Headless-First Deterministic Execution Runtime** written in Rust. It serves as a lightweight, embeddable runtime for stateless microservices, headless data pipelines, and a deterministic text-based sandbox for AI-generated code and autonomous agents. External AI agents or microservices specify programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized bytecode stream and executes them on a Register Stack-VM with bare-metal performance, Agentic Execution Protocol (`knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`), persistent WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming), and multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`). Heavyweight UI/Graphics dependencies (`wgpu`, `winit`, `egui`, `rodio`, `cpal`, `image`, `noise`, `glam`, `bytemuck`) are decoupled behind the optional `ui` feature gate (`cargo run --features ui`). By default, KnotenCore builds as a pure lightweight headless runtime. Strict sandbox guards enforce instruction limits (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), CPU watchdog thresholds (500ms), and memory limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
 
 ---
 
@@ -24,10 +24,15 @@ Execute a `.nod` or `.knoten` file using the native compiler and Register Stack-
 cargo run --bin run_knc -- <path_to.nod> [options]
 ```
 
+To enable physical window creation, WGPU 3D rendering, and audio output:
+```bash
+cargo run --features ui --bin run_knc -- <path_to.nod> [options]
+```
+
 ### Options:
 * `--rpc-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing the JSON-RPC 2.0 interface on `127.0.0.1:<PORT>` (`knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`, `knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`).
 * `--ws-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing an RFC 6455 persistent WebSocket RPC transport on `127.0.0.1:<PORT>` with real-time `VmEvent` streaming (`knc_event`).
-* `--headless`: Bypasses physical window creation and WGPU graphics context initialization (default when compiled without `--features ui`). Runs compiled AST validation and execution paths headless on the main thread, returning exit code `0`. Perfect for display-less environments (CI, remote servers, AI sandboxes).
+* `--headless`: Explicitly enforces headless execution mode. In pure headless builds (default `default = []`), physical window creation and WGPU graphics context initialization are bypassed automatically. UI AST nodes execute safely via no-op stubs.
 * `--allow-read`: Enables sandboxed File I/O read permissions.
 * `--allow-write`: Enables sandboxed File I/O write permissions.
 * `--allow-net`: Enables sandboxed network fetch operations.

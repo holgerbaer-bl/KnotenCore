@@ -4,7 +4,8 @@
 //! These functions have no dependencies on handles, windows, or GPU state.
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "ui", derive(bytemuck::Pod, bytemuck::Zeroable))]
 pub struct RegistryVertex {
     pub position: [f32; 3],
     pub normal: [f32; 3],

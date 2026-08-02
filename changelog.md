@@ -2,6 +2,19 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.12.0-core] - Sprint 315: Headless-First Feature-Gate Refactoring & Core Decoupling (2026-08-02)
+Sprint 315: Implemented pure Headless-First architecture and optional `ui` feature gate decoupling across workspace crates.
+- **Cargo Feature-Gate Architecture (`Cargo.toml`)**:
+  - Defined optional `ui` feature in `aether_compiler/Cargo.toml` and root `Cargo.toml`.
+  - Converted graphics/audio dependencies (`wgpu`, `winit`, `egui`, `egui-wgpu`, `egui-winit`, `rodio`, `cpal`, `image`, `hound`, `noise`, `glam`, `bytemuck`) into optional dependencies (`optional = true`), setting `default = []` across all workspace crates.
+- **Conditional Compilation (`lib.rs`, `executor.rs`, `natives/`, `vm/`)**:
+  - Gated physical window, render, and audio modules (`window.rs`, `audio.rs`, `ui.rs`, `scene.rs`, `geometry.rs`, `physics.rs`) with `#[cfg(feature = "ui")]`.
+  - Provided clean headless fallback stubs for `registry` and AST executor execution paths (`Node::UITextInput`, `Node::UISetStyle`, `OpPlayNote`, `OpStopNote`, FFI bridge matrix transforms).
+- **Headless Execution (`run_knc.rs`)**:
+  - Enforced pure main-thread headless execution path without `winit::EventLoop` when compiled without `ui` feature gate.
+- **Quality Gates Compliance**:
+  - Verified 100% test pass rate and zero Clippy warnings across both `--no-default-features` (headless) and `--features ui` build targets.
+
 ## [v2.11.2-audit] - Repository Security & Architecture Audit Fixes (2026-08-01)
 Audit Fixes: Resolved security findings in path validation and tuned default runtime stability limits.
 - **Path Traversal & Sandbox Shielding (`io.rs`, `bridge.rs`, `storage.rs`)**:

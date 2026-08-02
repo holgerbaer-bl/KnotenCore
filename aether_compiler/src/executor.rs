@@ -136,7 +136,8 @@ pub struct StackFrame {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "ui", derive(bytemuck::Pod, bytemuck::Zeroable))]
 pub struct VoxelVertex {
     pub position: [f32; 3],
     pub normal: [f32; 3],
@@ -144,13 +145,15 @@ pub struct VoxelVertex {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "ui", derive(bytemuck::Pod, bytemuck::Zeroable))]
 pub struct VoxelInstance {
     pub instance_pos_and_id: [f32; 4],
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "ui", derive(bytemuck::Pod, bytemuck::Zeroable))]
 pub struct InstanceData {
     pub transform: [[f32; 4]; 4],
     pub color_offset: [f32; 4],
@@ -169,14 +172,16 @@ pub struct PointLightData {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "ui", derive(bytemuck::Pod, bytemuck::Zeroable))]
 pub struct PointLightStruct {
     pub pos: [f32; 4],
     pub color: [f32; 4],
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "ui", derive(bytemuck::Pod, bytemuck::Zeroable))]
 pub struct MeshUniforms {
     pub view_proj: [[f32; 4]; 4],
     pub material: [f32; 4],
@@ -220,7 +225,9 @@ pub struct ExecutionEngine {
     pub voices: Option<Arc<Mutex<[VoiceState; 4]>>>,
     pub stream_samples: Option<Arc<Mutex<Vec<f32>>>>,
     pub stream_pos: Option<Arc<Mutex<usize>>>,
+    #[cfg(feature = "ui")]
     pub audio_stream: Option<cpal::Stream>,
+    #[cfg(feature = "ui")]
     pub audio_stream_handle: Option<(rodio::OutputStream, rodio::OutputStreamHandle)>,
     pub samples: HashMap<i64, std::sync::Arc<[u8]>>,
     // ── Async / Permissions / Actions ────────────────────────────────
@@ -463,7 +470,9 @@ impl ExecutionEngine {
             voices: None,
             stream_samples: None,
             stream_pos: None,
+            #[cfg(feature = "ui")]
             audio_stream: None,
+            #[cfg(feature = "ui")]
             audio_stream_handle: None,
             samples: HashMap::new(),
             async_bridge: Some(crate::async_bridge::AsyncBridge::new()),
@@ -864,13 +873,10 @@ impl ExecutionEngine {
                         let dy = get_f(&dir[1]);
                         let dz = get_f(&dir[2]);
 
-                        let ray_origin = glam::Vec3::new(ox, oy, oz);
-                        let ray_dir = glam::Vec3::new(dx, dy, dz);
-
                         let mut hit_idx: i64 = -1;
                         let mut t_min = f32::MAX;
                         for (idx, aabb) in self.world_aabbs.iter().enumerate() {
-                            if let Some(t) = aabb.intersect_ray(ray_origin, ray_dir)
+                            if let Some(t) = aabb.intersect_ray_coords([ox, oy, oz], [dx, dy, dz])
                                 && t < t_min
                             {
                                 t_min = t;
@@ -893,13 +899,9 @@ impl ExecutionEngine {
                         {
                             match Self::validate_fs_path(path) {
                                 Ok(safe_path) => {
-                                    crate::natives::registry::init_audio_state();
-                                    if let Ok(mut lock) =
-                                        crate::natives::registry::AUDIO_STATE.lock()
-                                        && let Some(audio) = lock.as_mut()
-                                    {
-                                        let _ = audio.play_sound(&safe_path.to_string_lossy());
-                                    }
+                                    let _ = crate::natives::registry::registry_play_sound(
+                                        &safe_path.to_string_lossy(),
+                                    );
                                     return ExecResult::Value(RelType::Void);
                                 }
                                 Err(e) => {
@@ -921,13 +923,9 @@ impl ExecutionEngine {
                         {
                             match Self::validate_fs_path(path) {
                                 Ok(safe_path) => {
-                                    crate::natives::registry::init_audio_state();
-                                    if let Ok(mut lock) =
-                                        crate::natives::registry::AUDIO_STATE.lock()
-                                        && let Some(audio) = lock.as_mut()
-                                    {
-                                        let _ = audio.loop_music(&safe_path.to_string_lossy());
-                                    }
+                                    let _ = crate::natives::registry::registry_loop_music(
+                                        &safe_path.to_string_lossy(),
+                                    );
                                     return ExecResult::Value(RelType::Void);
                                 }
                                 Err(e) => {
@@ -955,12 +953,7 @@ impl ExecutionEngine {
                                     };
                                 }
                             };
-                            crate::natives::registry::init_audio_state();
-                            if let Ok(mut lock) = crate::natives::registry::AUDIO_STATE.lock()
-                                && let Some(audio) = lock.as_mut()
-                            {
-                                audio.set_volume(level);
-                            }
+                            crate::natives::registry::registry_set_volume(level);
                             return ExecResult::Value(RelType::Void);
                         }
                         return ExecResult::Fault {
@@ -1016,17 +1009,20 @@ impl ExecutionEngine {
                 ExecResult::Value(RelType::Void)
             }
             Node::UITextInput(initial) => {
-                // Sprint 118: State-binding pattern — text = UITextInput(text)
-                // Seed the buffer from the script variable on the first call (when buffer is empty).
-                // Thereafter, return whatever is in the shared buffer
-                // (which egui will write into on each frame via ui_text_input_set).
-                if let ExecResult::Value(RelType::Str(seed)) = self.evaluate(initial) {
-                    let current = crate::natives::ui::ui_text_input_get();
-                    if current.is_empty() && !seed.is_empty() {
-                        crate::natives::ui::ui_text_input_set(seed);
+                #[cfg(feature = "ui")]
+                {
+                    if let ExecResult::Value(RelType::Str(seed)) = self.evaluate(initial) {
+                        let current = crate::natives::ui::ui_text_input_get();
+                        if current.is_empty() && !seed.is_empty() {
+                            crate::natives::ui::ui_text_input_set(seed);
+                        }
                     }
+                    ExecResult::Value(RelType::Str(crate::natives::ui::ui_text_input_get()))
                 }
-                ExecResult::Value(RelType::Str(crate::natives::ui::ui_text_input_get()))
+                #[cfg(not(feature = "ui"))]
+                {
+                    self.evaluate(initial)
+                }
             }
             Node::UISetStyle(rounding, spacing, accent, fill, btn_idle, btn_hover) => {
                 let r_val = match self.evaluate(rounding) {

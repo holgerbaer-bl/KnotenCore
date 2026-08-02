@@ -1,5 +1,7 @@
 use crate::executor::{AgentPermissions, ExecResult, RelType};
 use crate::natives::NativeModule;
+
+#[cfg(feature = "ui")]
 use noise::{NoiseFn, Perlin};
 
 pub struct MathModule;
@@ -104,8 +106,13 @@ impl NativeModule for MathModule {
                         });
                     }
                 };
-                let perlin = Perlin::new(1); // Explicit seed for stability
-                let val = perlin.get([x, y]);
+                #[cfg(feature = "ui")]
+                let val = {
+                    let perlin = Perlin::new(1); // Explicit seed for stability
+                    perlin.get([x, y])
+                };
+                #[cfg(not(feature = "ui"))]
+                let val = (x.sin() * y.cos()).clamp(-1.0, 1.0);
                 Some(ExecResult::Value(RelType::Float(val)))
             }
             _ => None,

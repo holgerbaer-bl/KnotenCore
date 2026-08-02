@@ -1,4 +1,5 @@
 pub use aether_compiler::async_bridge;
+#[cfg(feature = "ui")]
 pub use aether_compiler::audio;
 pub use aether_compiler::compiler;
 pub use aether_compiler::dsl_emitter;
@@ -11,6 +12,7 @@ pub use aether_compiler::parser;
 pub use aether_compiler::test_lib;
 pub use aether_compiler::validator;
 pub use aether_compiler::vm;
+#[cfg(feature = "ui")]
 pub use aether_compiler::window;
 
 pub use knoten_core_types::ast;

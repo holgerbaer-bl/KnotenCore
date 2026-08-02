@@ -28,18 +28,116 @@ pub enum KeyCode {
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 // Sprint 184: Re-exports from extracted modules for backward compatibility
+#[cfg(feature = "ui")]
 pub use super::geometry::{
     CachedMesh, RegistryVertex, generate_cube, generate_cylinder, generate_uv_sphere,
 };
+#[cfg(not(feature = "ui"))]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct RegistryVertex {
+    pub position: [f32; 3],
+    pub normal: [f32; 3],
+    pub uv: [f32; 2],
+}
+#[cfg(not(feature = "ui"))]
+pub fn generate_cube() -> (Vec<RegistryVertex>, Vec<u32>) {
+    (Vec::new(), Vec::new())
+}
+#[cfg(not(feature = "ui"))]
+pub fn generate_cylinder(_segs: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
+    (Vec::new(), Vec::new())
+}
+#[cfg(not(feature = "ui"))]
+pub fn generate_uv_sphere(_u: u32, _v: u32) -> (Vec<RegistryVertex>, Vec<u32>) {
+    (Vec::new(), Vec::new())
+}
+
+#[cfg(feature = "ui")]
 pub use super::physics::{
     EntityPhysics, PHYSICS_WORLD, registry_check_collision, registry_get_clicked_entity,
 };
+#[cfg(not(feature = "ui"))]
+pub fn registry_check_collision(_id1: i64, _id2: i64) -> bool {
+    false
+}
+#[cfg(not(feature = "ui"))]
+pub fn registry_get_clicked_entity(_window_handle: i64) -> i64 {
+    -1
+}
+
+#[cfg(feature = "ui")]
 pub use super::scene::{
     RegistryWindowState, SceneEntity, SceneLight, registry_destroy_entity, registry_set_camera,
     registry_set_camera_for_window, registry_spawn_cube, registry_spawn_cylinder,
     registry_spawn_light, registry_spawn_sphere, registry_update_entity_transform,
     registry_update_light_position,
 };
+#[cfg(not(feature = "ui"))]
+pub fn registry_destroy_entity(_window_handle: i64, _id: i64) {}
+#[cfg(not(feature = "ui"))]
+pub fn registry_set_camera(_fov: f32, _x: f32, _y: f32, _z: f32) {}
+#[cfg(not(feature = "ui"))]
+pub fn registry_set_camera_for_window(_handle: i64, _fov: f32, _x: f32, _y: f32, _z: f32) {}
+#[cfg(not(feature = "ui"))]
+#[allow(clippy::too_many_arguments)]
+pub fn registry_spawn_cube(
+    _handle: i64,
+    _tex: i64,
+    _w: f32,
+    _h: f32,
+    _d: f32,
+    _x: f32,
+    _y: f32,
+    _z: f32,
+) -> i64 {
+    1
+}
+#[cfg(not(feature = "ui"))]
+#[allow(clippy::too_many_arguments)]
+pub fn registry_spawn_cylinder(
+    _handle: i64,
+    _tex: i64,
+    _r: f32,
+    _h: f32,
+    _s: i32,
+    _x: f32,
+    _y: f32,
+    _z: f32,
+) -> i64 {
+    1
+}
+#[cfg(not(feature = "ui"))]
+#[allow(clippy::too_many_arguments)]
+pub fn registry_spawn_sphere(
+    _handle: i64,
+    _tex: i64,
+    _r: f32,
+    _rings: i32,
+    _sectors: i32,
+    _x: f32,
+    _y: f32,
+    _z: f32,
+) -> i64 {
+    1
+}
+#[cfg(not(feature = "ui"))]
+#[allow(clippy::too_many_arguments)]
+pub fn registry_spawn_light(
+    _handle: i64,
+    _x: f32,
+    _y: f32,
+    _z: f32,
+    _r: f32,
+    _g: f32,
+    _b: f32,
+    _intensity: f32,
+) -> i64 {
+    1
+}
+#[cfg(not(feature = "ui"))]
+pub fn registry_update_entity_transform(_window_handle: i64, _id: i64, _x: f32, _y: f32, _z: f32) {}
+#[cfg(not(feature = "ui"))]
+pub fn registry_update_light_position(_window_handle: i64, _id: i64, _x: f32, _y: f32, _z: f32) {}
 
 pub static GLOBAL_KEYS: [AtomicBool; 256] = [const { AtomicBool::new(false) }; 256];
 
@@ -74,12 +172,12 @@ pub enum RenderCommand {
         entity_id: usize,
         mesh_name: String,
         texture_id: usize,
-        transform: glam::Mat4,
+        transform: [[f32; 4]; 4],
     },
     UpdateEntityTransform {
         window_id: usize,
         entity_id: usize,
-        transform: glam::Mat4,
+        transform: [[f32; 4]; 4],
     },
     /// Sprint 86: send a camera view-projection matrix to a specific window.
     SetCamera {
@@ -188,8 +286,10 @@ pub fn exit_event_loop() {
 #[cfg(feature = "ui")]
 static RENDER_TX: Mutex<Option<winit::event_loop::EventLoopProxy<RenderCommand>>> =
     Mutex::new(None);
+#[cfg(feature = "ui")]
 pub static AUDIO_STATE: Mutex<Option<crate::audio::AudioManager>> = Mutex::new(None);
 
+#[cfg(feature = "ui")]
 pub fn init_audio_state() {
     let mut guard = AUDIO_STATE.lock().unwrap_or_else(|e| e.into_inner());
     if guard.is_none()
@@ -199,6 +299,10 @@ pub fn init_audio_state() {
     }
 }
 
+#[cfg(not(feature = "ui"))]
+pub fn init_audio_state() {}
+
+#[cfg(feature = "ui")]
 pub fn registry_play_boot_tone() {
     init_audio_state();
     if let Ok(mut guard) = AUDIO_STATE.lock()
@@ -218,6 +322,10 @@ pub fn registry_play_boot_tone() {
     }
 }
 
+#[cfg(not(feature = "ui"))]
+pub fn registry_play_boot_tone() {}
+
+#[cfg(feature = "ui")]
 pub fn registry_play_tone_panned(
     channel: i64,
     freq: f64,
@@ -255,6 +363,18 @@ pub fn registry_play_tone_panned(
     Ok(())
 }
 
+#[cfg(not(feature = "ui"))]
+pub fn registry_play_tone_panned(
+    _channel: i64,
+    _freq: f64,
+    _duration_ms: i64,
+    _waveform_idx: i64,
+    _pan: f64,
+) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(feature = "ui")]
 pub fn registry_play_sound(path: &str) -> Result<(), String> {
     init_audio_state();
     if let Ok(mut guard) = AUDIO_STATE.lock()
@@ -266,6 +386,12 @@ pub fn registry_play_sound(path: &str) -> Result<(), String> {
     Err("Audio engine not initialized".into())
 }
 
+#[cfg(not(feature = "ui"))]
+pub fn registry_play_sound(_path: &str) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(feature = "ui")]
 pub fn registry_loop_music(path: &str) -> Result<(), String> {
     init_audio_state();
     if let Ok(mut guard) = AUDIO_STATE.lock()
@@ -276,6 +402,24 @@ pub fn registry_loop_music(path: &str) -> Result<(), String> {
     }
     Err("Audio engine not initialized".into())
 }
+
+#[cfg(not(feature = "ui"))]
+pub fn registry_loop_music(_path: &str) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(feature = "ui")]
+pub fn registry_set_volume(volume: f32) {
+    init_audio_state();
+    if let Ok(mut guard) = AUDIO_STATE.lock()
+        && let Some(ref mut mgr) = *guard
+    {
+        mgr.set_volume(volume);
+    }
+}
+
+#[cfg(not(feature = "ui"))]
+pub fn registry_set_volume(_volume: f32) {}
 
 #[cfg(feature = "ui")]
 pub fn set_render_channel(tx: winit::event_loop::EventLoopProxy<RenderCommand>) {
@@ -321,13 +465,29 @@ pub fn registry_ui_set(window_handle: i64, nodes: Vec<knoten_core_types::ast::No
 /// Sprint 162: Poll (and clear) the clicked state for a UI button.
 /// Returns `true` once per click event; clears the flag after reading.
 pub fn registry_ui_poll_button(label: String) -> bool {
-    crate::natives::ui::ui_button_poll(&label)
+    #[cfg(feature = "ui")]
+    {
+        crate::natives::ui::ui_button_poll(&label)
+    }
+    #[cfg(not(feature = "ui"))]
+    {
+        let _ = label;
+        false
+    }
 }
 
 /// Sprint 162: Read the current text from a keyed UITextInput widget.
 /// `key` is the seed string used when the UITextInput was first defined.
 pub fn registry_ui_read_text(key: String) -> String {
-    crate::natives::ui::ui_text_read(&key)
+    #[cfg(feature = "ui")]
+    {
+        crate::natives::ui::ui_text_read(&key)
+    }
+    #[cfg(not(feature = "ui"))]
+    {
+        let _ = key;
+        String::new()
+    }
 }
 
 // Proxy for a Window to be used by the background executor.
@@ -358,10 +518,10 @@ pub fn compute_sender_for(shader_id: usize) -> Sender<Vec<f32>> {
 }
 
 // Sprint 233: Native SIMD matrix storage for transpose/transform operations
-static MATRIX_REGISTRY: OnceLock<Mutex<HashMap<i64, glam::Mat4>>> = OnceLock::new();
+static MATRIX_REGISTRY: OnceLock<Mutex<HashMap<i64, [[f32; 4]; 4]>>> = OnceLock::new();
 static MATRIX_ID_COUNTER: AtomicI64 = AtomicI64::new(1);
 
-pub fn registry_store_matrix(mat: glam::Mat4) -> i64 {
+pub fn registry_store_matrix(mat: [[f32; 4]; 4]) -> i64 {
     let id = MATRIX_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
     let registry = MATRIX_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()));
     registry
@@ -371,7 +531,7 @@ pub fn registry_store_matrix(mat: glam::Mat4) -> i64 {
     id
 }
 
-pub fn registry_get_matrix(handle: i64) -> Option<glam::Mat4> {
+pub fn registry_get_matrix(handle: i64) -> Option<[[f32; 4]; 4]> {
     MATRIX_REGISTRY.get().and_then(|r| {
         r.lock()
             .unwrap_or_else(|e| e.into_inner())
@@ -382,7 +542,12 @@ pub fn registry_get_matrix(handle: i64) -> Option<glam::Mat4> {
 
 pub fn registry_transpose_matrix(handle: i64) -> Option<i64> {
     let mat = registry_get_matrix(handle)?;
-    let transposed = mat.transpose();
+    let mut transposed = [[0.0; 4]; 4];
+    for r in 0..4 {
+        for c in 0..4 {
+            transposed[r][c] = mat[c][r];
+        }
+    }
     Some(registry_store_matrix(transposed))
 }
 
@@ -1299,6 +1464,7 @@ pub fn registry_is_mouse_down() -> bool {
     pressed
 }
 
+#[cfg(feature = "ui")]
 pub fn registry_get_mouse_ray(window_handle: i64) -> Vec<crate::executor::RelType> {
     use glam::{Mat4, Vec3};
     if window_handle < 0 {
@@ -1345,6 +1511,11 @@ pub fn registry_get_mouse_ray(window_handle: i64) -> Vec<crate::executor::RelTyp
     ]
 }
 
+#[cfg(not(feature = "ui"))]
+pub fn registry_get_mouse_ray(_window_handle: i64) -> Vec<crate::executor::RelType> {
+    vec![]
+}
+
 pub fn registry_get_last_char() -> i64 {
     let mut last = 0;
     with_registry(|registry| {
@@ -1370,6 +1541,7 @@ pub fn registry_force_panic() {
 }
 
 // Sprint 208: Asynchronous texture loading — I/O offloaded to background thread
+#[cfg(feature = "ui")]
 pub fn registry_load_texture(path: &str) -> i64 {
     let safe_path = match crate::executor::ExecutionEngine::validate_fs_path(path) {
         Ok(p) => p,
@@ -1404,6 +1576,14 @@ pub fn registry_load_texture(path: &str) -> i64 {
     });
 
     id
+}
+
+#[cfg(not(feature = "ui"))]
+pub fn registry_load_texture(path: &str) -> i64 {
+    if crate::executor::ExecutionEngine::validate_fs_path(path).is_err() {
+        return 0;
+    }
+    TEXTURE_ID_COUNTER.fetch_add(1, Ordering::Relaxed) as i64
 }
 
 #[cfg(test)]
