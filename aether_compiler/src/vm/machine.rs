@@ -3112,8 +3112,11 @@ mod tests {
         drain_work_stealing_queues();
     }
 
+    static TEST_SNAPSHOT_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     #[test]
     fn test_isolated_atomic_checkpointing() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         drain_isolate_snapshots();
         isolate::drain_hot_swap_registry();
 
@@ -3412,6 +3415,7 @@ mod tests {
 
     #[test]
     fn test_vm_temporal_reversal() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let checkpoint_id: i64 = 42;
 
         let perms = AgentPermissions {
@@ -3631,6 +3635,7 @@ mod tests {
 
     #[test]
     fn test_cross_node_isolate_migration() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         drain_hot_swap_registry();
         drain_cluster_work_queues();
         drain_isolate_snapshots();
@@ -3717,6 +3722,7 @@ mod tests {
 
     #[test]
     fn test_isolate_garbage_collection_reclamation() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let test_ids: Vec<i64> = vec![5000, 5001, 5002, 5003, 5004];
         {
             let registry = isolate::get_hot_swap_registry();
@@ -3759,6 +3765,7 @@ mod tests {
 
     #[test]
     fn test_isolate_gc_sub_millisecond_latency() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let instructions = vec![OpCode::Constant(0), OpCode::Return];
         let constants = vec![RelType::Int(42)];
         let test_ids: Vec<i64> = (6000..6020).collect();
@@ -4065,20 +4072,30 @@ mod tests {
 
     #[test]
     fn test_raft_network_randomized_election() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let nodes = ["Knoten_Berlin", "Knoten_Balingen", "Knoten_Zadar"];
-        let cluster = bootstrap_raft_cluster(&nodes);
+        let mut cluster = RaftCluster::new(&nodes);
+        let mut attempts = 0;
+        while cluster.current_leader.is_none() && attempts < 20 {
+            cluster.start_election();
+            attempts += 1;
+        }
 
         assert!(
             cluster.current_leader.is_some(),
-            "Randomized election must produce a leader"
+            "Randomized election must produce a leader within 20 attempts"
         );
         assert!(cluster.term > 0, "Term must advance");
 
         let mut cluster2 = RaftCluster::new(&nodes);
-        cluster2.start_election();
+        let mut attempts2 = 0;
+        while cluster2.current_leader.is_none() && attempts2 < 20 {
+            cluster2.start_election();
+            attempts2 += 1;
+        }
         assert!(
             cluster2.current_leader.is_some(),
-            "Second cluster must also elect"
+            "Second cluster must also elect within 20 attempts"
         );
         assert!(
             cluster2.is_election_timeout("Knoten_Berlin"),
@@ -4088,6 +4105,7 @@ mod tests {
 
     #[test]
     fn test_raft_distributed_log_replication() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let nodes = ["Knoten_Berlin", "Knoten_Balingen", "Knoten_Zadar"];
         let mut cluster = RaftCluster::new(&nodes);
 

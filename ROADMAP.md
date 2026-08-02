@@ -1,12 +1,12 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.12.0-core** · Headless-First Feature-Gate Refactoring & Core Decoupling
+Current engine version: **v2.12.0** · Official Release: Headless-First Agentic Runtime & RPC Engine
 
 ## Done (selected milestones)
 
 - ✅ Stack-VM with AOT compiler + JIT evaluator
 - ✅ Full sandbox (FS, network whitelist, symlink blocking, watchdog, 1M opcode cap, 16MB memory guard)
-- ✅ Headless-First Feature-Gate Refactoring & Core Decoupling (`--features ui`, Sprint 315 - v2.12.0-core)
+- ✅ Headless-First Feature-Gate Refactoring & Core Decoupling (`--features ui`, v2.12.0)
 - ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)
@@ -41,7 +41,6 @@ Current engine version: **v2.12.0-core** · Headless-First Feature-Gate Refactor
 
 ## Near-Term
 
-- **Feature-Gate Refactoring (`--features ui`)** (Sprint 315 - v2.12.0-core): Full architectural decoupling of heavy UI/Graphics dependencies.
 - **`ROADMAP.md` auto-update hook**: Sprint changelog entries should diff into the roadmap automatically to keep them in sync.
 
 ## Mid-Term

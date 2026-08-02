@@ -171,7 +171,7 @@ cargo run --bin run_knc -- --check examples/hello_world.json
 ```
 If the script passes all checks, the tool outputs `Syntax OK`. Otherwise, it provides a detailed list of logical and structural errors.
 
-## 7. Headless Server Mode, RPC Transports & Agentic Execution Protocol (v2.12.0-core)
+## 7. Headless Server Mode, RPC Transports & Agentic Execution Protocol (v2.12.0)
 
 ### 7.1. Headless-First Paradigma & Optional UI Feature Gate
 KnotenCore is a **Headless-First** execution engine. Physical GUI/Graphics dependencies (`wgpu`, `winit`, `egui`, `rodio`) are decoupled behind the optional `--features ui` Cargo compilation flag. When compiled without `--features ui`, KnotenCore operates as a lightweight, zero-GUI headless server & AI sandbox engine.

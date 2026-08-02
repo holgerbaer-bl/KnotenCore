@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.12.0-core Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.12.0 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — Sprint 315
+## 🎯 AI-Readiness Benchmark — Release v2.12.0
 
 KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
 generating `.nod` programs, your output can be tested against 20 standardised tasks.
@@ -18,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.12.0-core** — Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), no-op UI stubs in headless mode, instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
+**Current Engine Version: v2.12.0** — Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), no-op UI stubs in headless mode, instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -159,7 +159,7 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **Security & Architecture Audit Fixes** (v2.11.2-audit) — Path traversal shielding & stability tuning:
   - **Path Traversal Protection (`io.rs`, `bridge.rs`, `storage.rs`)**: Enforced `validate_fs_path()` and `validate_fs_path_write()` on `IO.WriteFile`, `IO.ReadFile`, `IO.AppendFile`, `IO.FileExists`, and `file_write`. Added path traversal key validation (`/`, `\`, `..`, `\0`) to `store_value()` and `load_value()`.
   - **Runtime Stability (`ast.rs`, `machine.rs`, `evaluator.rs`)**: Increased default CPU watchdog timeout from 50ms to 500ms for complex agentic workloads.
-  - **Upcoming Milestone**: Feature-Gate Refactoring (`--features ui`) scheduled as core milestone for Sprint 315 (`v2.12.0-core`).
+  - **Release v2.12.0**: Feature-Gate Refactoring (`--features ui`) integrated into official release (`v2.12.0`).
 
 ---
 

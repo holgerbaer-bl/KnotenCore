@@ -2,18 +2,21 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
-## [v2.12.0-core] - Sprint 315: Headless-First Feature-Gate Refactoring & Core Decoupling (2026-08-02)
-Sprint 315: Implemented pure Headless-First architecture and optional `ui` feature gate decoupling across workspace crates.
-- **Cargo Feature-Gate Architecture (`Cargo.toml`)**:
+## [v2.12.0] - Official Release: Headless-First Agentic Runtime & RPC Engine (2026-08-02)
+Official Release v2.12.0: Major architectural milestone delivering pure Headless-First Execution, optional UI feature gating, multi-tenant isolate quotas, JSON-RPC 2.0 & WebSocket transports, agentic execution protocol, and hardened security sandbox shielding.
+- **Headless-First & Feature-Gate Architecture (`Cargo.toml`, `--features ui`)**:
   - Defined optional `ui` feature in `aether_compiler/Cargo.toml` and root `Cargo.toml`.
-  - Converted graphics/audio dependencies (`wgpu`, `winit`, `egui`, `egui-wgpu`, `egui-winit`, `rodio`, `cpal`, `image`, `hound`, `noise`, `glam`, `bytemuck`) into optional dependencies (`optional = true`), setting `default = []` across all workspace crates.
-- **Conditional Compilation (`lib.rs`, `executor.rs`, `natives/`, `vm/`)**:
-  - Gated physical window, render, and audio modules (`window.rs`, `audio.rs`, `ui.rs`, `scene.rs`, `geometry.rs`, `physics.rs`) with `#[cfg(feature = "ui")]`.
-  - Provided clean headless fallback stubs for `registry` and AST executor execution paths (`Node::UITextInput`, `Node::UISetStyle`, `OpPlayNote`, `OpStopNote`, FFI bridge matrix transforms).
-- **Headless Execution (`run_knc.rs`)**:
-  - Enforced pure main-thread headless execution path without `winit::EventLoop` when compiled without `ui` feature gate.
-- **Quality Gates Compliance**:
-  - Verified 100% test pass rate and zero Clippy warnings across both `--no-default-features` (headless) and `--features ui` build targets.
+  - Converted heavyweight graphics/audio dependencies (`wgpu`, `winit`, `egui`, `egui-wgpu`, `egui-winit`, `rodio`, `cpal`, `image`, `hound`, `noise`, `glam`, `bytemuck`) into optional dependencies (`optional = true`) with default `default = []`.
+  - KnotenCore builds by default as a pure, lightweight Headless Execution Engine. Physical window/render/audio modules execute via clean no-op stubs when built without `ui`.
+- **Multi-Tenant Isolate Quotas & Limits (`IsolateQuota`)**:
+  - Enforced per-session instruction quotas, 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`), and 500ms CPU watchdog timeout protection.
+- **JSON-RPC 2.0 & WebSocket Transports (`rpc.rs`, `ws.rs`)**:
+  - `--rpc-port <PORT>`: Exposes JSON-RPC 2.0 interface (`knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`).
+  - `--ws-port <PORT>`: Persistent WebSocket RPC transport with real-time `VmEvent` streaming (`knc_event`).
+- **Agentic Execution Protocol & State Snapshots (`knc_agent_*`)**:
+  - Full support for `knc_agent_handshake`, `knc_agent_snapshot`, and `knc_agent_restore` for cross-isolate state persistence and migration.
+- **Security Sandbox Hardening (`io.rs`, `bridge.rs`, `storage.rs`)**:
+  - Path traversal validation via `validate_fs_path()` and `validate_fs_path_write()` across I/O opcodes, FFI bridge, and VFS snapshot storage.
 
 ## [v2.11.2-audit] - Repository Security & Architecture Audit Fixes (2026-08-01)
 Audit Fixes: Resolved security findings in path validation and tuned default runtime stability limits.
