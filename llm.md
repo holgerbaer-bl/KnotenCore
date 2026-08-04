@@ -190,9 +190,9 @@ Unauthorized access returns `ExecResult::Fault` — **never panics**.
 
 ---
 
-## Sprint 316: Agentic Mesh Protocol & Inter-Node Teleportation (v2.13.0-mesh)
+## Sprint 316: Agentic Mesh Protocol & Inter-Node Teleportation (v2.13.0)
 
-Sprint 316 adds direct Peer-to-Peer Agentic Mesh RPC routing, Node Discovery, Peer Registration, and atomic Isolate State Teleportation between KnotenCore instances (`v2.13.0-mesh`).
+Sprint 316 adds direct Peer-to-Peer Agentic Mesh RPC routing, Node Discovery, Peer Registration, and atomic Isolate State Teleportation between KnotenCore instances (`v2.13.0`).
 
 ### 1. Peer Discovery (`knc_mesh_discover`)
 Queries the target KnotenCore instance's identity, version, capabilities, and authentication requirements.
@@ -205,7 +205,7 @@ Queries the target KnotenCore instance's identity, version, capabilities, and au
   "jsonrpc": "2.0",
   "result": {
     "status": "ok",
-    "protocol_version": "v2.13.0-mesh",
+    "protocol_version": "v2.13.0",
     "node_id": "knc-node-alpha",
     "address": "127.0.0.1:8080",
     "capabilities": ["mesh_discover", "mesh_peers", "agent_teleport"],

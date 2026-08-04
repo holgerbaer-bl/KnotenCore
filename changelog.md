@@ -2,16 +2,18 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
-## [v2.13.0-mesh] - Sprint 316: Agentic Mesh Protocol & Inter-Node Teleportation (2026-08-04)
-Sprint 316: Implemented the Peer-to-Peer Agentic Mesh Protocol, Peer Discovery, Topology Registry, and Inter-Node Isolate State Teleportation.
-- **Agentic Mesh RPC Methods (`rpc.rs`)**:
-  - `knc_mesh_discover`: Queries peer node identity, version (`v2.13.0-mesh`), capabilities, and authentication status.
-  - `knc_mesh_peers`: Manages mesh topology peer registration and active peer listing.
-  - `knc_agent_teleport`: Serializes and transmits an isolate session's `VmExecutionState` and `VMState` directly to a target KnotenCore RPC/WS server and restores it atomically.
-- **Node-to-Node Authentication (`mesh_auth_token`)**:
-  - Enforces simple Token Authentication for inter-node state teleportation and peer discovery requests.
-- **Automated Mesh Testsuite (`tests/agentic_mesh_tests.rs`)**:
-  - Validates discovery, peer registry, token authentication, and direct inter-node snapshot teleportation across simulated RPC server instances.
+## [v2.13.0] - Official Release: P2P Agentic Mesh Protocol & Inter-Node Teleportation (2026-08-04)
+Official Release v2.13.0: Major networking and distribution milestone introducing the Peer-to-Peer Agentic Mesh Protocol, automatic Node Discovery, active Topology Management, and authenticated Inter-Node State Teleportation.
+- **P2P Agentic Mesh Protocol (`rpc.rs`, `docs/KNOTEN_SPEC.md`)**:
+  - `knc_mesh_discover`: Queries peer node identity (`node_id`), network address (`node_address`), engine protocol version (`v2.13.0`), capabilities, and authentication requirements (`auth_required`).
+  - `knc_mesh_peers`: Discovers, registers, and lists active peer nodes within the mesh topology.
+- **Authenticated Inter-Node Teleportation (`knc_agent_teleport`)**:
+  - Transmits full portable VM isolate snapshots (`VmExecutionState`, `VMState`, instructions, constants, quotas) directly across nodes via TCP network dispatch (`send_rpc_to_node`).
+  - Atomically restores execution state on target nodes inside named session boundaries (`target_session_id`).
+- **Mesh Security & Auth Tokens (`mesh_auth_token`)**:
+  - Enforces `mesh_auth_token` authorization across all Mesh RPC endpoints, returning error code `-32001` (`Unauthorized`) for invalid or missing tokens.
+- **Automated Integration Testsuite (`tests/agentic_mesh_tests.rs`)**:
+  - Comprehensive multi-node testsuite verifying discovery, peer topology registration, token authentication, and inter-node snapshot teleportation.
 
 ## [v2.12.0] - Official Release: Headless-First Agentic Runtime & RPC Engine (2026-08-02)
 Official Release v2.12.0: Major architectural milestone delivering pure Headless-First Execution, optional UI feature gating, multi-tenant isolate quotas, JSON-RPC 2.0 & WebSocket transports, agentic execution protocol, and hardened security sandbox shielding.

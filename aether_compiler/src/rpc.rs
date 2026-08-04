@@ -422,7 +422,7 @@ impl RpcServer {
         let default_quota = IsolateQuota::default();
         let resp_val = serde_json::json!({
             "status": "ok",
-            "protocol_version": "v2.13.0-mesh",
+            "protocol_version": "v2.13.0",
             "engine": "KnotenCore",
             "capabilities": {
                 "jsonrpc": true,
@@ -569,7 +569,7 @@ impl RpcServer {
 
         let resp_val = serde_json::json!({
             "status": "ok",
-            "protocol_version": "v2.13.0-mesh",
+            "protocol_version": "v2.13.0",
             "node_id": self.node_id,
             "address": self.node_address,
             "capabilities": ["mesh_discover", "mesh_peers", "agent_teleport"],
