@@ -202,7 +202,7 @@ Provides native cross-isolate session persistence and migration endpoints:
 
 ### 7.6. Agentic Mesh Protocol & Inter-Node Teleportation (`v2.13.0`)
 Enables Peer-to-Peer node discovery, topology management, and atomic inter-node state teleportation:
-- `knc_mesh_discover`: Returns node ID, address, capabilities, protocol version (`v2.14.0`), and `auth_required`.
+- `knc_mesh_discover`: Returns node ID, address, capabilities, protocol version (`v2.14.1-audit`), and `auth_required`.
 - `knc_mesh_peers`: Discovers and registers peer nodes in the active mesh topology, supports `action = "prune"` to evict unreachable nodes.
 - `knc_agent_teleport`: Serializes and transmits an isolate session snapshot across nodes via RPC/WS, atomically restoring execution state on destination nodes using `mesh_auth_token` authentication.
 
@@ -214,3 +214,11 @@ Introduces active peer heartbeats, round-trip latency tracking, and automatic to
   - `Active`: Peer responded to ping within `stale_timeout_secs` (default 5s).
   - `Stale`: Peer unresponsive for `> stale_timeout_secs` but `< eviction_timeout_secs` (default 15s).
   - `Evicted`: Peer unresponsive for `>= eviction_timeout_secs`. Automatically pruned from routing table.
+
+### 7.8. Security Hardening & HMAC Mesh Authentication (`v2.14.1-audit`)
+Enforces multi-layered security shields across native I/O, VM execution, storage, and P2P mesh transport:
+- **Path Traversal Shielding**: Native I/O (`IO.WriteFile`, `IO.ReadFile`, `IO.AppendFile`, `IO.FileExists`) and bridge file writers strictly enforce root workspace boundary checks (`validate_fs_path_write`). Storage keys reject path delimiters (`/`, `\`, `..`, `\0`).
+- **HMAC-SHA256 Signatures**: Supports cryptographic signature verification (`mesh_auth_signature` / `signature`) in `check_mesh_auth()` evaluated via constant-time string comparison (`constant_time_eq`).
+- **Resource & Topology Caps**: Restores strict memory/depth limits on snapshots (`MAX_STACK_DEPTH = 4096`, `MAX_GLOBALS = 10000`, `MAX_FRAMES = 256`) and caps mesh peer topology capacity (`MAX_PEERS_LIMIT = 256`).
+- **Non-Blocking Channel Gossip**: Parallelizes gossip checks via `crossbeam_channel::unbounded()` threads preventing sequential socket blocking.
+

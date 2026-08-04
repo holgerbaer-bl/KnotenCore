@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.14.0** · Sprint 317: Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing
+Current engine version: **v2.14.1-audit** · Sprint 318: Deep Security & Stability Audit Fixes (Path Traversal, HMAC Auth, Deadlock Shielding)
 
 ## Done (selected milestones)
 
@@ -9,6 +9,7 @@ Current engine version: **v2.14.0** · Sprint 317: Mesh Peer Gossip Protocol, He
 - ✅ Headless-First Feature-Gate Refactoring & Core Decoupling (`--features ui`, v2.12.0)
 - ✅ Agentic Mesh Protocol & Inter-Node Snapshot Teleportation (`knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, v2.13.0)
 - ✅ Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing Eviction (Sprint 317 - v2.14.0)
+- ✅ Deep Security & Stability Audit Fixes (Sprint 318 - v2.14.1-audit)
 - ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)

@@ -338,25 +338,17 @@ impl VM {
                     && effective_cpu + start.elapsed()
                         >= std::time::Duration::from_millis(self.quota.execution_timeout_ms)
                 {
-                    if instr_count >= 1_000 {
-                        start = Instant::now();
-                    } else {
-                        eprintln!(
-                            "[KnotenCore Watchdog] Execution timeout exceeded ({}ms). Terminating script to prevent CPU freeze.",
-                            self.quota.execution_timeout_ms
-                        );
-                        inspector::push_vm_crash_marker(
-                            self.ip,
-                            self.stack.len(),
-                            "WATCHDOG_TIMEOUT",
-                        );
-                        let msg = format!(
-                            "Watchdog: Execution timeout exceeded ({}ms)",
-                            self.quota.execution_timeout_ms
-                        );
-                        self.execution_state = VmExecutionState::Fault(msg.clone());
-                        return Err(msg);
-                    }
+                    eprintln!(
+                        "[KnotenCore Watchdog] Execution timeout exceeded ({}ms). Terminating script to prevent CPU freeze.",
+                        self.quota.execution_timeout_ms
+                    );
+                    inspector::push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
+                    let msg = format!(
+                        "Watchdog: Execution timeout exceeded ({}ms)",
+                        self.quota.execution_timeout_ms
+                    );
+                    self.execution_state = VmExecutionState::Fault(msg.clone());
+                    return Err(msg);
                 }
             }
 

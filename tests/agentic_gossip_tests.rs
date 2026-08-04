@@ -198,3 +198,35 @@ fn test_mesh_peers_prune_rpc_action() {
     assert_eq!(remaining_peers.len(), 1);
     assert_eq!(remaining_peers[0]["node_id"], "good-node");
 }
+
+#[test]
+fn test_mesh_ping_rejects_invalid_token() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-auth-alpha",
+        "127.0.0.1:9095",
+        Some("super-secret-token".to_string()),
+    );
+
+    // Request with missing / invalid token
+    let bad_ping = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_ping",
+        "params": {
+            "sender_node_id": "attacker-node",
+            "sender_address": "127.0.0.1:9999",
+            "mesh_auth_token": "wrong-token"
+        },
+        "id": 1
+    });
+
+    let resp_str = server.dispatch_request(&bad_ping.to_string());
+    let resp: serde_json::Value = serde_json::from_str(&resp_str).unwrap();
+
+    assert!(resp.get("error").is_some());
+    assert_eq!(resp["error"]["code"], -32001);
+
+    // Verify attacker node was NOT registered in topology
+    let peers = server.peers.lock().unwrap();
+    assert!(!peers.contains_key("attacker-node"));
+}

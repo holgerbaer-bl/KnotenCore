@@ -20,7 +20,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.14.0";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.14.1-audit";
 
 /// JSON-RPC 2.0 Request Payload
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -265,7 +265,7 @@ impl RpcServer {
             );
         };
 
-        let mut sessions = self.sessions.lock().unwrap();
+        let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         let session = sessions.entry(session_id.clone()).or_default();
 
         if let Some(q) = params
@@ -331,7 +331,7 @@ impl RpcServer {
             .unwrap_or("default")
             .to_string();
 
-        let mut sessions = self.sessions.lock().unwrap();
+        let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         let session = match sessions.get_mut(&session_id) {
             Some(s) => s,
             None => {
@@ -401,7 +401,7 @@ impl RpcServer {
             .unwrap_or("default")
             .to_string();
 
-        let sessions = self.sessions.lock().unwrap();
+        let sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         let session = match sessions.get(&session_id) {
             Some(s) => s,
             None => {
@@ -455,7 +455,7 @@ impl RpcServer {
             .unwrap_or("default")
             .to_string();
 
-        let sessions = self.sessions.lock().unwrap();
+        let sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         let session = match sessions.get(&session_id) {
             Some(s) => s,
             None => {
@@ -541,7 +541,45 @@ impl RpcServer {
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .unwrap_or_default();
 
-        let mut sessions = self.sessions.lock().unwrap();
+        const MAX_STACK_DEPTH: usize = 4096;
+        const MAX_GLOBALS: usize = 10000;
+        const MAX_FRAMES: usize = 256;
+
+        if vm_state.stack.len() > MAX_STACK_DEPTH {
+            return JsonRpcResponse::error(
+                id,
+                -32602,
+                format!(
+                    "Snapshot stack depth ({}) exceeds MAX_STACK_DEPTH ({})",
+                    vm_state.stack.len(),
+                    MAX_STACK_DEPTH
+                ),
+            );
+        }
+        if vm_state.globals.len() > MAX_GLOBALS {
+            return JsonRpcResponse::error(
+                id,
+                -32602,
+                format!(
+                    "Snapshot globals count ({}) exceeds MAX_GLOBALS ({})",
+                    vm_state.globals.len(),
+                    MAX_GLOBALS
+                ),
+            );
+        }
+        if vm_state.frames.len() > MAX_FRAMES {
+            return JsonRpcResponse::error(
+                id,
+                -32602,
+                format!(
+                    "Snapshot call frames count ({}) exceeds MAX_FRAMES ({})",
+                    vm_state.frames.len(),
+                    MAX_FRAMES
+                ),
+            );
+        }
+
+        let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         let session = sessions.entry(session_id.clone()).or_default();
 
         session.vm.rollback(vm_state);
@@ -562,11 +600,41 @@ impl RpcServer {
 
     fn check_mesh_auth(&self, params: &Value) -> Result<(), String> {
         if let Some(expected_token) = &self.mesh_auth_token {
+            if let Some(sig) = params
+                .get("mesh_auth_signature")
+                .or_else(|| params.get("signature"))
+                .and_then(|v| v.as_str())
+            {
+                let timestamp_or_nonce = params
+                    .get("timestamp")
+                    .map(|v| v.to_string())
+                    .or_else(|| {
+                        params
+                            .get("nonce")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string())
+                    })
+                    .unwrap_or_default();
+                let sender = params
+                    .get("sender_node_id")
+                    .or_else(|| params.get("node_id"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+
+                let message = format!("{}:{}", timestamp_or_nonce, sender);
+                let expected_sig = hmac_sha256(expected_token.as_bytes(), message.as_bytes());
+
+                if constant_time_eq(sig.as_bytes(), expected_sig.as_bytes()) {
+                    return Ok(());
+                }
+                return Err("Unauthorized: Invalid mesh_auth_signature".to_string());
+            }
+
             let token = params
                 .get("mesh_auth_token")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            if token != expected_token {
+            if !constant_time_eq(token.as_bytes(), expected_token.as_bytes()) {
                 return Err("Unauthorized: Invalid or missing mesh_auth_token".to_string());
             }
         }
@@ -600,7 +668,7 @@ impl RpcServer {
             .and_then(|v| v.as_str())
             .unwrap_or("list");
 
-        let mut peers = self.peers.lock().unwrap();
+        let mut peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
 
         if action == "prune" {
             let before = peers.len();
@@ -618,6 +686,13 @@ impl RpcServer {
         if action == "register" || action == "add" {
             if let Some(peer_val) = params.get("peer") {
                 if let Ok(mut peer) = serde_json::from_value::<MeshPeer>(peer_val.clone()) {
+                    if !peers.contains_key(&peer.node_id) && peers.len() >= 256 {
+                        return JsonRpcResponse::error(
+                            id,
+                            -32000,
+                            "Peer capacity limit exceeded (max 256 peers)",
+                        );
+                    }
                     let now = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap_or_default()
@@ -682,7 +757,7 @@ impl RpcServer {
             .as_secs();
 
         if let Some(sender_id) = params.get("sender_node_id").and_then(|v| v.as_str()) {
-            let mut peers = self.peers.lock().unwrap();
+            let mut peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(peer) = peers.get_mut(sender_id) {
                 peer.last_seen = now;
                 peer.status = "Active".to_string();
@@ -691,6 +766,13 @@ impl RpcServer {
                 }
             } else if let Some(sender_addr) = params.get("sender_address").and_then(|v| v.as_str())
             {
+                if peers.len() >= 256 {
+                    return JsonRpcResponse::error(
+                        id,
+                        -32000,
+                        "Peer capacity limit exceeded (max 256 peers)",
+                    );
+                }
                 peers.insert(
                     sender_id.to_string(),
                     MeshPeer {
@@ -904,7 +986,7 @@ impl RpcServer {
             .and_then(|v| v.as_str().map(|s| s.to_string()))
         {
             session_id = Some(s.clone());
-            let sessions = self.sessions.lock().unwrap();
+            let sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(session) = sessions.get(&s) {
                 events = session.events.clone();
             }
@@ -1042,55 +1124,77 @@ impl MeshGossipWorker {
             .as_secs();
 
         let peers_snapshot: Vec<MeshPeer> = {
-            let peers = self.server.peers.lock().unwrap();
+            let peers = self.server.peers.lock().unwrap_or_else(|e| e.into_inner());
             peers.values().cloned().collect()
         };
 
-        let mut active = 0;
-        let mut stale = 0;
-        let mut evicted = 0;
+        if peers_snapshot.is_empty() {
+            return (0, 0, 0);
+        }
+
+        let timestamp = now;
+        let signature = self.server.mesh_auth_token.as_ref().map(|secret| {
+            hmac_sha256(
+                secret.as_bytes(),
+                format!("{}:{}", timestamp, self.server.node_id).as_bytes(),
+            )
+        });
+
+        let req_payload = serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_mesh_ping",
+            "params": {
+                "sender_node_id": self.server.node_id,
+                "sender_address": self.server.node_address,
+                "timestamp": timestamp,
+                "mesh_auth_signature": signature
+            },
+            "id": 1
+        })
+        .to_string();
+
+        let (tx, rx) = crossbeam_channel::unbounded();
 
         for peer in peers_snapshot {
-            let start = std::time::Instant::now();
-            let req_payload = serde_json::json!({
-                "jsonrpc": "2.0",
-                "method": "knc_mesh_ping",
-                "params": {
-                    "sender_node_id": self.server.node_id,
-                    "sender_address": self.server.node_address,
-                    "mesh_auth_token": self.server.mesh_auth_token,
-                    "timestamp": now
-                },
-                "id": 1
-            });
+            let server = self.server.clone();
+            let timeout_ms = self.config.ping_timeout_ms;
+            let tx = tx.clone();
+            let payload = req_payload.clone();
 
-            let ping_res = self.server.send_rpc_to_node_with_timeout(
-                &peer.address,
-                &req_payload.to_string(),
-                self.config.ping_timeout_ms,
-            );
-
-            let elapsed_since_last_seen = now.saturating_sub(peer.last_seen);
-            let mut peers = self.server.peers.lock().unwrap();
-
-            if let Some(target_peer) = peers.get_mut(&peer.node_id) {
+            std::thread::spawn(move || {
+                let start = std::time::Instant::now();
+                let ping_res =
+                    server.send_rpc_to_node_with_timeout(&peer.address, &payload, timeout_ms);
+                let latency = start.elapsed().as_millis() as u64;
                 let is_success = ping_res
                     .ok()
                     .and_then(|s| serde_json::from_str::<JsonRpcResponse>(&s).ok())
                     .map(|v| v.error.is_none() && v.result.is_some())
                     .unwrap_or(false);
 
+                let _ = tx.send((peer, is_success, latency));
+            });
+        }
+
+        drop(tx);
+
+        let mut active = 0;
+        let mut stale = 0;
+        let mut evicted = 0;
+
+        let recv_timeout = std::time::Duration::from_millis(self.config.ping_timeout_ms + 500);
+
+        while let Ok((peer, is_success, latency)) = rx.recv_timeout(recv_timeout) {
+            let elapsed_since_last_seen = now.saturating_sub(peer.last_seen);
+            let mut peers = self.server.peers.lock().unwrap_or_else(|e| e.into_inner());
+
+            if let Some(target_peer) = peers.get_mut(&peer.node_id) {
                 if is_success {
-                    let latency = start.elapsed().as_millis() as u64;
                     target_peer.last_seen = now;
                     target_peer.latency_ms = latency;
                     target_peer.status = "Active".to_string();
                     active += 1;
-                    continue;
-                }
-
-                // Ping failed or unresponsive: evaluate auto-healing status thresholds
-                if elapsed_since_last_seen >= self.config.eviction_timeout_secs {
+                } else if elapsed_since_last_seen >= self.config.eviction_timeout_secs {
                     target_peer.status = "Evicted".to_string();
                     evicted += 1;
                 } else if elapsed_since_last_seen >= self.config.stale_timeout_secs {
@@ -1107,7 +1211,7 @@ impl MeshGossipWorker {
 
     /// Evaluates peer timeouts without network calls (useful for simulated time or deterministic testing).
     pub fn evaluate_timeouts(&self, simulated_now: u64) -> (usize, usize, usize) {
-        let mut peers = self.server.peers.lock().unwrap();
+        let mut peers = self.server.peers.lock().unwrap_or_else(|e| e.into_inner());
         let mut active = 0;
         let mut stale = 0;
         let mut evicted = 0;
@@ -1131,22 +1235,26 @@ impl MeshGossipWorker {
 
     /// Evicts (removes) all peers currently marked as "Evicted" from the routing table.
     pub fn prune_evicted(&self) -> usize {
-        let mut peers = self.server.peers.lock().unwrap();
+        let mut peers = self.server.peers.lock().unwrap_or_else(|e| e.into_inner());
         let before = peers.len();
         peers.retain(|_, peer| peer.status != "Evicted");
         before - peers.len()
     }
 }
 
-/// Spawns a background thread running the MeshGossipWorker loop.
+/// Spawns a background thread running the MeshGossipWorker loop with shutdown signal support.
 pub fn start_gossip_worker(
     server: Arc<RpcServer>,
     config: MeshGossipConfig,
+    shutdown_signal: Arc<std::sync::atomic::AtomicBool>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let worker = MeshGossipWorker::new(server, config.clone());
-        loop {
+        while !shutdown_signal.load(std::sync::atomic::Ordering::Relaxed) {
             std::thread::sleep(std::time::Duration::from_secs(config.gossip_interval_secs));
+            if shutdown_signal.load(std::sync::atomic::Ordering::Relaxed) {
+                break;
+            }
             worker.run_gossip_cycle();
             worker.prune_evicted();
         }
@@ -1316,4 +1424,145 @@ pub fn write_ws_frame<W: std::io::Write>(writer: &mut W, text: &str) -> std::io:
     frame.extend_from_slice(bytes);
     writer.write_all(&frame)?;
     writer.flush()
+}
+
+pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut res = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) {
+        res |= x ^ y;
+    }
+    res == 0
+}
+
+pub fn hex_encode(data: &[u8]) -> String {
+    let mut s = String::with_capacity(data.len() * 2);
+    for &b in data {
+        s.push_str(&format!("{:02x}", b));
+    }
+    s
+}
+
+#[allow(clippy::needless_range_loop)]
+pub fn sha256_digest(data: &[u8]) -> [u8; 32] {
+    let mut h: [u32; 8] = [
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+        0x5be0cd19,
+    ];
+
+    const K: [u32; 64] = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef4a3f7,
+        0xc67178f2,
+    ];
+
+    let mut msg = data.to_vec();
+    let bit_len = (data.len() as u64) * 8;
+    msg.push(0x80);
+    while (msg.len() % 64) != 56 {
+        msg.push(0x00);
+    }
+    msg.extend_from_slice(&bit_len.to_be_bytes());
+
+    for chunk in msg.chunks(64) {
+        let mut w = [0u32; 64];
+        for i in 0..16 {
+            w[i] = u32::from_be_bytes([
+                chunk[i * 4],
+                chunk[i * 4 + 1],
+                chunk[i * 4 + 2],
+                chunk[i * 4 + 3],
+            ]);
+        }
+        for i in 16..64 {
+            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
+            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16]
+                .wrapping_add(s0)
+                .wrapping_add(w[i - 7])
+                .wrapping_add(s1);
+        }
+
+        let mut a = h[0];
+        let mut b = h[1];
+        let mut c = h[2];
+        let mut d = h[3];
+        let mut e = h[4];
+        let mut f = h[5];
+        let mut g = h[6];
+        let mut h_var = h[7];
+
+        for i in 0..64 {
+            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let ch = (e & f) ^ ((!e) & g);
+            let temp1 = h_var
+                .wrapping_add(s1)
+                .wrapping_add(ch)
+                .wrapping_add(K[i])
+                .wrapping_add(w[i]);
+            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let maj = (a & b) ^ (a & c) ^ (b & c);
+            let temp2 = s0.wrapping_add(maj);
+
+            h_var = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp1);
+            d = c;
+            c = b;
+            b = a;
+            a = temp1.wrapping_add(temp2);
+        }
+
+        h[0] = h[0].wrapping_add(a);
+        h[1] = h[1].wrapping_add(b);
+        h[2] = h[2].wrapping_add(c);
+        h[3] = h[3].wrapping_add(d);
+        h[4] = h[4].wrapping_add(e);
+        h[5] = h[5].wrapping_add(f);
+        h[6] = h[6].wrapping_add(g);
+        h[7] = h[7].wrapping_add(h_var);
+    }
+
+    let mut out = [0u8; 32];
+    for i in 0..8 {
+        out[i * 4..(i + 1) * 4].copy_from_slice(&h[i].to_be_bytes());
+    }
+    out
+}
+
+pub fn hmac_sha256(key: &[u8], message: &[u8]) -> String {
+    let mut k = [0u8; 64];
+    if key.len() > 64 {
+        let hash = sha256_digest(key);
+        k[..32].copy_from_slice(&hash);
+    } else {
+        k[..key.len()].copy_from_slice(key);
+    }
+
+    let mut ipad = [0x36u8; 64];
+    let mut opad = [0x5cu8; 64];
+    for i in 0..64 {
+        ipad[i] ^= k[i];
+        opad[i] ^= k[i];
+    }
+
+    let mut inner = ipad.to_vec();
+    inner.extend_from_slice(message);
+    let inner_hash = sha256_digest(&inner);
+
+    let mut outer = opad.to_vec();
+    outer.extend_from_slice(&inner_hash);
+    let outer_hash = sha256_digest(&outer);
+
+    hex_encode(&outer_hash)
 }
