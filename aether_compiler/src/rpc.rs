@@ -20,6 +20,8 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
+pub const KNC_PROTOCOL_VERSION: &str = "v2.14.0-gossip";
+
 /// JSON-RPC 2.0 Request Payload
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonRpcRequest {
@@ -83,6 +85,10 @@ pub struct RpcSession {
     pub events: Vec<VmEvent>,
 }
 
+fn default_peer_status() -> String {
+    "Active".to_string()
+}
+
 /// Mesh Peer Topology Information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MeshPeer {
@@ -91,6 +97,10 @@ pub struct MeshPeer {
     pub capabilities: Vec<String>,
     #[serde(default)]
     pub last_seen: u64,
+    #[serde(default)]
+    pub latency_ms: u64,
+    #[serde(default = "default_peer_status")]
+    pub status: String,
 }
 
 /// JSON-RPC 2.0 Server Handler
@@ -152,6 +162,7 @@ impl RpcServer {
             "knc_agent_restore" => self.handle_agent_restore(req.id, req.params),
             "knc_mesh_discover" => self.handle_mesh_discover(req.id, req.params),
             "knc_mesh_peers" => self.handle_mesh_peers(req.id, req.params),
+            "knc_mesh_ping" => self.handle_mesh_ping(req.id, req.params),
             "knc_agent_teleport" => self.handle_agent_teleport(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
@@ -422,7 +433,7 @@ impl RpcServer {
         let default_quota = IsolateQuota::default();
         let resp_val = serde_json::json!({
             "status": "ok",
-            "protocol_version": "v2.13.0",
+            "protocol_version": KNC_PROTOCOL_VERSION,
             "engine": "KnotenCore",
             "capabilities": {
                 "jsonrpc": true,
@@ -569,10 +580,10 @@ impl RpcServer {
 
         let resp_val = serde_json::json!({
             "status": "ok",
-            "protocol_version": "v2.13.0",
+            "protocol_version": KNC_PROTOCOL_VERSION,
             "node_id": self.node_id,
             "address": self.node_address,
-            "capabilities": ["mesh_discover", "mesh_peers", "agent_teleport"],
+            "capabilities": ["mesh_discover", "mesh_peers", "mesh_ping", "mesh_gossip", "agent_teleport"],
             "auth_required": self.mesh_auth_token.is_some()
         });
 
@@ -591,9 +602,32 @@ impl RpcServer {
 
         let mut peers = self.peers.lock().unwrap();
 
+        if action == "prune" {
+            let before = peers.len();
+            peers.retain(|_, peer| peer.status != "Evicted");
+            let pruned_count = before - peers.len();
+            let peer_list: Vec<MeshPeer> = peers.values().cloned().collect();
+            let resp_val = serde_json::json!({
+                "status": "ok",
+                "pruned_count": pruned_count,
+                "peers": peer_list
+            });
+            return JsonRpcResponse::success(id, resp_val);
+        }
+
         if action == "register" || action == "add" {
             if let Some(peer_val) = params.get("peer") {
-                if let Ok(peer) = serde_json::from_value::<MeshPeer>(peer_val.clone()) {
+                if let Ok(mut peer) = serde_json::from_value::<MeshPeer>(peer_val.clone()) {
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs();
+                    if peer.last_seen == 0 {
+                        peer.last_seen = now;
+                    }
+                    if peer.status.is_empty() {
+                        peer.status = "Active".to_string();
+                    }
                     peers.insert(peer.node_id.clone(), peer.clone());
                     let resp_val = serde_json::json!({
                         "status": "ok",
@@ -616,10 +650,77 @@ impl RpcServer {
             }
         }
 
-        let peer_list: Vec<MeshPeer> = peers.values().cloned().collect();
+        let status_filter = params.get("status_filter").and_then(|v| v.as_str());
+        let peer_list: Vec<MeshPeer> = peers
+            .values()
+            .filter(|p| {
+                if let Some(st) = status_filter {
+                    p.status == st
+                } else {
+                    true
+                }
+            })
+            .cloned()
+            .collect();
+
         let resp_val = serde_json::json!({
             "status": "ok",
             "peers": peer_list
+        });
+
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    fn handle_mesh_ping(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        if let Some(sender_id) = params.get("sender_node_id").and_then(|v| v.as_str()) {
+            let mut peers = self.peers.lock().unwrap();
+            if let Some(peer) = peers.get_mut(sender_id) {
+                peer.last_seen = now;
+                peer.status = "Active".to_string();
+                if let Some(lat) = params.get("latency_ms").and_then(|v| v.as_u64()) {
+                    peer.latency_ms = lat;
+                }
+            } else if let Some(sender_addr) = params.get("sender_address").and_then(|v| v.as_str())
+            {
+                peers.insert(
+                    sender_id.to_string(),
+                    MeshPeer {
+                        node_id: sender_id.to_string(),
+                        address: sender_addr.to_string(),
+                        capabilities: vec![
+                            "mesh_discover".to_string(),
+                            "mesh_peers".to_string(),
+                            "mesh_ping".to_string(),
+                            "mesh_gossip".to_string(),
+                            "agent_teleport".to_string(),
+                        ],
+                        last_seen: now,
+                        latency_ms: params
+                            .get("latency_ms")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0),
+                        status: "Active".to_string(),
+                    },
+                );
+            }
+        }
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "pong": true,
+            "responder_node_id": self.node_id,
+            "responder_address": self.node_address,
+            "timestamp": now,
+            "latency_ms": params.get("latency_ms").unwrap_or(&serde_json::json!(0))
         });
 
         JsonRpcResponse::success(id, resp_val)
@@ -703,10 +804,31 @@ impl RpcServer {
         JsonRpcResponse::success(id, resp_val)
     }
 
-    fn send_rpc_to_node(&self, address: &str, payload: &str) -> Result<String, String> {
-        let mut stream = TcpStream::connect(address)
-            .map_err(|e| format!("Failed to connect to node {}: {}", address, e))?;
+    pub fn send_rpc_to_node(&self, address: &str, payload: &str) -> Result<String, String> {
+        self.send_rpc_to_node_with_timeout(address, payload, 5000)
+    }
 
+    pub fn send_rpc_to_node_with_timeout(
+        &self,
+        address: &str,
+        payload: &str,
+        timeout_ms: u64,
+    ) -> Result<String, String> {
+        let socket_addr: std::net::SocketAddr = address
+            .parse()
+            .map_err(|e| format!("Invalid address '{}': {}", address, e))?;
+        let stream =
+            TcpStream::connect_timeout(&socket_addr, std::time::Duration::from_millis(timeout_ms))
+                .map_err(|e| format!("Failed to connect to node {}: {}", address, e))?;
+
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_millis(timeout_ms)))
+            .ok();
+        stream
+            .set_write_timeout(Some(std::time::Duration::from_millis(timeout_ms)))
+            .ok();
+
+        let mut stream = stream;
         let request_bytes = format!("{}\n", payload);
         stream
             .write_all(request_bytes.as_bytes())
@@ -878,6 +1000,157 @@ impl RpcServer {
             }
         }
     }
+}
+
+/// Configuration for Mesh Gossip Protocol and Auto-Healing Eviction
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeshGossipConfig {
+    pub gossip_interval_secs: u64,
+    pub stale_timeout_secs: u64,
+    pub eviction_timeout_secs: u64,
+    pub ping_timeout_ms: u64,
+}
+
+impl Default for MeshGossipConfig {
+    fn default() -> Self {
+        Self {
+            gossip_interval_secs: 2,
+            stale_timeout_secs: 5,
+            eviction_timeout_secs: 15,
+            ping_timeout_ms: 1000,
+        }
+    }
+}
+
+/// Mesh Gossip Worker for periodic heartbeats, latency measurement, and auto-healing eviction
+pub struct MeshGossipWorker {
+    pub server: Arc<RpcServer>,
+    pub config: MeshGossipConfig,
+}
+
+impl MeshGossipWorker {
+    pub fn new(server: Arc<RpcServer>, config: MeshGossipConfig) -> Self {
+        Self { server, config }
+    }
+
+    /// Performs one gossip cycle across all registered peers in the topology.
+    /// Returns a tuple `(active_count, stale_count, evicted_count)`.
+    pub fn run_gossip_cycle(&self) -> (usize, usize, usize) {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let peers_snapshot: Vec<MeshPeer> = {
+            let peers = self.server.peers.lock().unwrap();
+            peers.values().cloned().collect()
+        };
+
+        let mut active = 0;
+        let mut stale = 0;
+        let mut evicted = 0;
+
+        for peer in peers_snapshot {
+            let start = std::time::Instant::now();
+            let req_payload = serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "knc_mesh_ping",
+                "params": {
+                    "sender_node_id": self.server.node_id,
+                    "sender_address": self.server.node_address,
+                    "mesh_auth_token": self.server.mesh_auth_token,
+                    "timestamp": now
+                },
+                "id": 1
+            });
+
+            let ping_res = self.server.send_rpc_to_node_with_timeout(
+                &peer.address,
+                &req_payload.to_string(),
+                self.config.ping_timeout_ms,
+            );
+
+            let elapsed_since_last_seen = now.saturating_sub(peer.last_seen);
+            let mut peers = self.server.peers.lock().unwrap();
+
+            if let Some(target_peer) = peers.get_mut(&peer.node_id) {
+                let is_success = ping_res
+                    .ok()
+                    .and_then(|s| serde_json::from_str::<JsonRpcResponse>(&s).ok())
+                    .map(|v| v.error.is_none() && v.result.is_some())
+                    .unwrap_or(false);
+
+                if is_success {
+                    let latency = start.elapsed().as_millis() as u64;
+                    target_peer.last_seen = now;
+                    target_peer.latency_ms = latency;
+                    target_peer.status = "Active".to_string();
+                    active += 1;
+                    continue;
+                }
+
+                // Ping failed or unresponsive: evaluate auto-healing status thresholds
+                if elapsed_since_last_seen >= self.config.eviction_timeout_secs {
+                    target_peer.status = "Evicted".to_string();
+                    evicted += 1;
+                } else if elapsed_since_last_seen >= self.config.stale_timeout_secs {
+                    target_peer.status = "Stale".to_string();
+                    stale += 1;
+                } else {
+                    active += 1;
+                }
+            }
+        }
+
+        (active, stale, evicted)
+    }
+
+    /// Evaluates peer timeouts without network calls (useful for simulated time or deterministic testing).
+    pub fn evaluate_timeouts(&self, simulated_now: u64) -> (usize, usize, usize) {
+        let mut peers = self.server.peers.lock().unwrap();
+        let mut active = 0;
+        let mut stale = 0;
+        let mut evicted = 0;
+
+        for peer in peers.values_mut() {
+            let elapsed = simulated_now.saturating_sub(peer.last_seen);
+            if elapsed >= self.config.eviction_timeout_secs {
+                peer.status = "Evicted".to_string();
+                evicted += 1;
+            } else if elapsed >= self.config.stale_timeout_secs {
+                peer.status = "Stale".to_string();
+                stale += 1;
+            } else {
+                peer.status = "Active".to_string();
+                active += 1;
+            }
+        }
+
+        (active, stale, evicted)
+    }
+
+    /// Evicts (removes) all peers currently marked as "Evicted" from the routing table.
+    pub fn prune_evicted(&self) -> usize {
+        let mut peers = self.server.peers.lock().unwrap();
+        let before = peers.len();
+        peers.retain(|_, peer| peer.status != "Evicted");
+        before - peers.len()
+    }
+}
+
+/// Spawns a background thread running the MeshGossipWorker loop.
+pub fn start_gossip_worker(
+    server: Arc<RpcServer>,
+    config: MeshGossipConfig,
+) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let worker = MeshGossipWorker::new(server, config.clone());
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(config.gossip_interval_secs));
+            worker.run_gossip_cycle();
+            worker.prune_evicted();
+        }
+    })
 }
 
 #[allow(clippy::needless_range_loop)]

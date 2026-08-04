@@ -2,6 +2,19 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.14.0-gossip] - Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing (2026-08-04)
+Sprint 317 introduces periodic peer gossip heartbeats (`knc_mesh_ping`), latency monitoring (`latency_ms`), status lifecycle tracking (`Active`, `Stale`, `Evicted`), and automated auto-healing eviction (`MeshGossipWorker`) to the Agentic Mesh Protocol.
+- **Heartbeat & Latency RPC (`knc_mesh_ping`)**:
+  - Exposes `knc_mesh_ping` RPC endpoint returning `pong: true`, responder node ID, responder address, timestamp, and round-trip latency (`latency_ms`).
+  - Auto-registers sending nodes into local topology with `"Active"` status and refreshed timestamps.
+- **Gossip Worker & Auto-Healing Engine (`MeshGossipWorker`, `MeshGossipConfig`)**:
+  - Periodically pings registered mesh peers over TCP with timeout protection (`send_rpc_to_node_with_timeout`).
+  - Measures live network RTT and updates `latency_ms` and `last_seen` timestamps.
+  - Automatically transitions inactive peers to `"Stale"` (`> stale_timeout_secs`) and `"Evicted"` (`>= eviction_timeout_secs`).
+  - Prunes evicted nodes automatically or via RPC `{"action": "prune"}` on `knc_mesh_peers`.
+- **Automated Quality Gates (`tests/agentic_gossip_tests.rs`)**:
+  - Created testsuite verifying heartbeats, latency tracking, timeout evaluation, and auto-healing eviction in simulated cluster topologies.
+
 ## [v2.13.0] - Official Release: P2P Agentic Mesh Protocol & Inter-Node Teleportation (2026-08-04)
 Official Release v2.13.0: Major networking and distribution milestone introducing the Peer-to-Peer Agentic Mesh Protocol, automatic Node Discovery, active Topology Management, and authenticated Inter-Node State Teleportation.
 - **P2P Agentic Mesh Protocol (`rpc.rs`, `docs/KNOTEN_SPEC.md`)**:

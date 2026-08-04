@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.13.0** · Official Release: Agentic Mesh Protocol & Inter-Node Teleportation
+Current engine version: **v2.14.0-gossip** · Sprint 317: Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing
 
 ## Done (selected milestones)
 
@@ -8,6 +8,7 @@ Current engine version: **v2.13.0** · Official Release: Agentic Mesh Protocol &
 - ✅ Full sandbox (FS, network whitelist, symlink blocking, watchdog, 1M opcode cap, 16MB memory guard)
 - ✅ Headless-First Feature-Gate Refactoring & Core Decoupling (`--features ui`, v2.12.0)
 - ✅ Agentic Mesh Protocol & Inter-Node Snapshot Teleportation (`knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, v2.13.0)
+- ✅ Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing Eviction (Sprint 317 - v2.14.0-gossip)
 - ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)

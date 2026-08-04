@@ -268,6 +268,51 @@ Serializes a source session's `VmExecutionState` and `VMState` and transmits it 
 
 ---
 
+## Sprint 317: Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing (v2.14.0-gossip)
+
+Sprint 317 introduces periodic peer gossip heartbeats (`knc_mesh_ping`), latency monitoring (`latency_ms`), status lifecycle tracking (`Active`, `Stale`, `Evicted`), and automated auto-healing eviction (`MeshGossipWorker`) to the Agentic Mesh Protocol (`v2.14.0-gossip`).
+
+### 1. Heartbeat & Latency RPC (`knc_mesh_ping`)
+Periodically sent by `MeshGossipWorker` to registered peers to refresh `last_seen` timestamps, measure TCP round-trip latency (`latency_ms`), and auto-register sending nodes.
+
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_mesh_ping",
+  "params": {
+    "sender_node_id": "knc-node-alpha",
+    "sender_address": "127.0.0.1:8080",
+    "mesh_auth_token": "secret-token",
+    "timestamp": 1775000000
+  },
+  "id": 1
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "pong": true,
+    "responder_node_id": "knc-node-beta",
+    "responder_address": "127.0.0.1:8081",
+    "timestamp": 1775000000,
+    "latency_ms": 4
+  },
+  "id": 1
+}
+```
+
+### 2. Auto-Healing Eviction Strategy
+`MeshGossipWorker` periodically polls registered mesh peers and enforces configurable health thresholds:
+- **`Active`**: Peer responded to recent ping within `stale_timeout_secs` (default: 5s).
+- **`Stale`**: Peer failed to respond or has not been seen for `> stale_timeout_secs` but `< eviction_timeout_secs` (default: 15s). Peer remains in routing table with degraded status.
+- **`Evicted`**: Peer has not been seen for `>= eviction_timeout_secs`. Automatically marked for removal and pruned from the mesh topology via `prune_evicted()` or `{"action": "prune"}` RPC.
+```
+
+---
+
 ## Structured Fault Format
 
 Every failure returns:
