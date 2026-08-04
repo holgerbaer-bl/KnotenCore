@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v1.0)
+# KnotenCore JSON AST Specification (v2.14.1)
 
 KnotenCore is a native abstract syntax tree (AST) programming language for AI systems. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -202,7 +202,7 @@ Provides native cross-isolate session persistence and migration endpoints:
 
 ### 7.6. Agentic Mesh Protocol & Inter-Node Teleportation (`v2.13.0`)
 Enables Peer-to-Peer node discovery, topology management, and atomic inter-node state teleportation:
-- `knc_mesh_discover`: Returns node ID, address, capabilities, protocol version (`v2.14.1-audit`), and `auth_required`.
+- `knc_mesh_discover`: Returns node ID, address, capabilities, protocol version (`v2.14.1`), and `auth_required`.
 - `knc_mesh_peers`: Discovers and registers peer nodes in the active mesh topology, supports `action = "prune"` to evict unreachable nodes.
 - `knc_agent_teleport`: Serializes and transmits an isolate session snapshot across nodes via RPC/WS, atomically restoring execution state on destination nodes using `mesh_auth_token` authentication.
 
@@ -215,7 +215,7 @@ Introduces active peer heartbeats, round-trip latency tracking, and automatic to
   - `Stale`: Peer unresponsive for `> stale_timeout_secs` but `< eviction_timeout_secs` (default 15s).
   - `Evicted`: Peer unresponsive for `>= eviction_timeout_secs`. Automatically pruned from routing table.
 
-### 7.8. Security Hardening & HMAC Mesh Authentication (`v2.14.1-audit`)
+### 7.8. Security Hardening & HMAC Mesh Authentication (`v2.14.1`)
 Enforces multi-layered security shields across native I/O, VM execution, storage, and P2P mesh transport:
 - **Path Traversal Shielding**: Native I/O (`IO.WriteFile`, `IO.ReadFile`, `IO.AppendFile`, `IO.FileExists`) and bridge file writers strictly enforce root workspace boundary checks (`validate_fs_path_write`). Storage keys reject path delimiters (`/`, `\`, `..`, `\0`).
 - **HMAC-SHA256 Signatures**: Supports cryptographic signature verification (`mesh_auth_signature` / `signature`) in `check_mesh_auth()` evaluated via constant-time string comparison (`constant_time_eq`).
