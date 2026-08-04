@@ -202,11 +202,11 @@ Provides native cross-isolate session persistence and migration endpoints:
 
 ### 7.6. Agentic Mesh Protocol & Inter-Node Teleportation (`v2.13.0`)
 Enables Peer-to-Peer node discovery, topology management, and atomic inter-node state teleportation:
-- `knc_mesh_discover`: Returns node ID, address, capabilities, protocol version (`v2.14.0-gossip`), and `auth_required`.
+- `knc_mesh_discover`: Returns node ID, address, capabilities, protocol version (`v2.14.0`), and `auth_required`.
 - `knc_mesh_peers`: Discovers and registers peer nodes in the active mesh topology, supports `action = "prune"` to evict unreachable nodes.
 - `knc_agent_teleport`: Serializes and transmits an isolate session snapshot across nodes via RPC/WS, atomically restoring execution state on destination nodes using `mesh_auth_token` authentication.
 
-### 7.7. Mesh Peer Gossip Protocol & Auto-Healing Eviction (`v2.14.0-gossip`)
+### 7.7. Mesh Peer Gossip Protocol & Auto-Healing Eviction (`v2.14.0`)
 Introduces active peer heartbeats, round-trip latency tracking, and automatic topology healing:
 - `knc_mesh_ping`: Periodic RPC ping/pong exchange returning responder node info, timestamp, and RTT `latency_ms`. Auto-registers sending nodes into local topology.
 - `MeshGossipWorker`: Background heartbeat loop periodically checking peer node health.

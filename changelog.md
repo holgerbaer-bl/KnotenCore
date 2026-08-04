@@ -2,7 +2,7 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
-## [v2.14.0-gossip] - Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing (2026-08-04)
+## [v2.14.0] - Official Release: Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing (2026-08-04)
 Sprint 317 introduces periodic peer gossip heartbeats (`knc_mesh_ping`), latency monitoring (`latency_ms`), status lifecycle tracking (`Active`, `Stale`, `Evicted`), and automated auto-healing eviction (`MeshGossipWorker`) to the Agentic Mesh Protocol.
 - **Heartbeat & Latency RPC (`knc_mesh_ping`)**:
   - Exposes `knc_mesh_ping` RPC endpoint returning `pong: true`, responder node ID, responder address, timestamp, and round-trip latency (`latency_ms`).

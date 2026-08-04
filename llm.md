@@ -268,9 +268,9 @@ Serializes a source session's `VmExecutionState` and `VMState` and transmits it 
 
 ---
 
-## Sprint 317: Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing (v2.14.0-gossip)
+## Sprint 317: Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing (v2.14.0)
 
-Sprint 317 introduces periodic peer gossip heartbeats (`knc_mesh_ping`), latency monitoring (`latency_ms`), status lifecycle tracking (`Active`, `Stale`, `Evicted`), and automated auto-healing eviction (`MeshGossipWorker`) to the Agentic Mesh Protocol (`v2.14.0-gossip`).
+Sprint 317 introduces periodic peer gossip heartbeats (`knc_mesh_ping`), latency monitoring (`latency_ms`), status lifecycle tracking (`Active`, `Stale`, `Evicted`), and automated auto-healing eviction (`MeshGossipWorker`) to the Agentic Mesh Protocol (`v2.14.0`).
 
 ### 1. Heartbeat & Latency RPC (`knc_mesh_ping`)
 Periodically sent by `MeshGossipWorker` to registered peers to refresh `last_seen` timestamps, measure TCP round-trip latency (`latency_ms`), and auto-register sending nodes.
