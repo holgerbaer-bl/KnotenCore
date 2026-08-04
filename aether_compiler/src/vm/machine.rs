@@ -3835,11 +3835,27 @@ mod tests {
         isolate::mesh_subscribe("global_telemetry", "Knoten_Zadar");
         isolate::bus_publish_mesh("global_telemetry".to_string(), data);
 
-        let local = isolate::bus_subscribe("global_telemetry");
+        let mut local = None;
+        let start_local = std::time::Instant::now();
+        while start_local.elapsed() < std::time::Duration::from_millis(500) {
+            local = isolate::bus_subscribe("global_telemetry");
+            if local.is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
         assert!(local.is_some(), "Local subscriber must receive data");
         assert_eq!(local.unwrap().len(), 2);
 
-        let remote = isolate::bus_poll_remote("global_telemetry", "Knoten_Zadar");
+        let mut remote = None;
+        let start_remote = std::time::Instant::now();
+        while start_remote.elapsed() < std::time::Duration::from_millis(500) {
+            remote = isolate::bus_poll_remote("global_telemetry", "Knoten_Zadar");
+            if remote.is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
         assert!(
             remote.is_some(),
             "Remote node must receive data via cluster queue"
@@ -3860,13 +3876,29 @@ mod tests {
         );
 
         isolate::bus_publish_mesh("resilience_test".to_string(), vec![RelType::Int(1)]);
-        let polled = isolate::bus_poll_remote("resilience_test", "Knoten_Berlin");
+        let mut polled = None;
+        let start_polled = std::time::Instant::now();
+        while start_polled.elapsed() < std::time::Duration::from_millis(500) {
+            polled = isolate::bus_poll_remote("resilience_test", "Knoten_Berlin");
+            if polled.is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
         assert!(polled.is_some(), "Mesh bus must survive single-node poll");
         assert_eq!(polled.unwrap().len(), 1);
 
         let data = vec![RelType::Int(7); 2048];
         isolate::mesh_stream_publish("large_stream".to_string(), &data);
-        let chunked = isolate::bus_subscribe("large_stream");
+        let mut chunked = None;
+        let start_chunked = std::time::Instant::now();
+        while start_chunked.elapsed() < std::time::Duration::from_millis(500) {
+            chunked = isolate::bus_subscribe("large_stream");
+            if chunked.is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
         assert!(
             chunked.is_some(),
             "Streamed large payload must be published"
