@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.12.0 Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.13.0 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — Release v2.12.0
+## 🎯 AI-Readiness Benchmark — Release v2.13.0
 
 KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
 generating `.nod` programs, your output can be tested against 20 standardised tasks.
@@ -18,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.12.0** — Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), no-op UI stubs in headless mode, instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
+**Current Engine Version: v2.13.0** — Agentic Mesh Protocol & Inter-Node Teleportation (`knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`), Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -187,6 +187,84 @@ After adding a node, also update `aether_compiler/src/validator.rs`, `aether_com
 | `--allow-net` | `Fetch`, `net_fetch` |
 
 Unauthorized access returns `ExecResult::Fault` — **never panics**.
+
+---
+
+## Sprint 316: Agentic Mesh Protocol & Inter-Node Teleportation (v2.13.0-mesh)
+
+Sprint 316 adds direct Peer-to-Peer Agentic Mesh RPC routing, Node Discovery, Peer Registration, and atomic Isolate State Teleportation between KnotenCore instances (`v2.13.0-mesh`).
+
+### 1. Peer Discovery (`knc_mesh_discover`)
+Queries the target KnotenCore instance's identity, version, capabilities, and authentication requirements.
+```json
+// Request
+{ "jsonrpc": "2.0", "method": "knc_mesh_discover", "params": {}, "id": 1 }
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "protocol_version": "v2.13.0-mesh",
+    "node_id": "knc-node-alpha",
+    "address": "127.0.0.1:8080",
+    "capabilities": ["mesh_discover", "mesh_peers", "agent_teleport"],
+    "auth_required": true
+  },
+  "id": 1
+}
+```
+
+### 2. Peer Topology Registry (`knc_mesh_peers`)
+Queries active registered peer nodes or registers a new peer into the local mesh topology.
+```json
+// Request (List Peers)
+{ "jsonrpc": "2.0", "method": "knc_mesh_peers", "params": { "action": "list" }, "id": 2 }
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "peers": [
+      { "node_id": "knc-node-beta", "address": "127.0.0.1:8081", "capabilities": ["agent_teleport"] }
+    ]
+  },
+  "id": 2
+}
+```
+
+### 3. Inter-Node Snapshot Teleportation (`knc_agent_teleport`)
+Serializes a source session's `VmExecutionState` and `VMState` and transmits it directly via RPC to a target KnotenCore node, atomically restoring and initializing the isolate on the destination.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_agent_teleport",
+  "params": {
+    "target_session_id": "migrated-agent-42",
+    "mesh_auth_token": "secret-mesh-token",
+    "snapshot": {
+      "execution_state": "Ready",
+      "vm_state": { "ip": 12, "stack": [42.0], ... },
+      "instructions": [...],
+      "constants": [...]
+    }
+  },
+  "id": 3
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "session_id": "migrated-agent-42",
+    "teleported": true
+  },
+  "id": 3
+}
+```
 
 ---
 

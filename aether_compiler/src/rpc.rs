@@ -83,17 +83,44 @@ pub struct RpcSession {
     pub events: Vec<VmEvent>,
 }
 
+/// Mesh Peer Topology Information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeshPeer {
+    pub node_id: String,
+    pub address: String,
+    pub capabilities: Vec<String>,
+    #[serde(default)]
+    pub last_seen: u64,
+}
+
 /// JSON-RPC 2.0 Server Handler
 pub struct RpcServer {
     pub permissions: AgentPermissions,
     pub sessions: Arc<Mutex<HashMap<String, RpcSession>>>,
+    pub node_id: String,
+    pub node_address: String,
+    pub mesh_auth_token: Option<String>,
+    pub peers: Arc<Mutex<HashMap<String, MeshPeer>>>,
 }
 
 impl RpcServer {
     pub fn new(permissions: AgentPermissions) -> Self {
+        Self::with_mesh(permissions, "knc-node-local", "127.0.0.1:0", None)
+    }
+
+    pub fn with_mesh(
+        permissions: AgentPermissions,
+        node_id: impl Into<String>,
+        node_address: impl Into<String>,
+        mesh_auth_token: Option<String>,
+    ) -> Self {
         Self {
             permissions,
             sessions: Arc::new(Mutex::new(HashMap::new())),
+            node_id: node_id.into(),
+            node_address: node_address.into(),
+            mesh_auth_token,
+            peers: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -123,6 +150,9 @@ impl RpcServer {
             "knc_agent_handshake" => self.handle_agent_handshake(req.id, req.params),
             "knc_agent_snapshot" => self.handle_agent_snapshot(req.id, req.params),
             "knc_agent_restore" => self.handle_agent_restore(req.id, req.params),
+            "knc_mesh_discover" => self.handle_mesh_discover(req.id, req.params),
+            "knc_mesh_peers" => self.handle_mesh_peers(req.id, req.params),
+            "knc_agent_teleport" => self.handle_agent_teleport(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -392,14 +422,15 @@ impl RpcServer {
         let default_quota = IsolateQuota::default();
         let resp_val = serde_json::json!({
             "status": "ok",
-            "protocol_version": "v2.11.0-agent",
+            "protocol_version": "v2.13.0-mesh",
             "engine": "KnotenCore",
             "capabilities": {
                 "jsonrpc": true,
                 "websocket": true,
                 "isolate_quotas": true,
                 "async_yield": true,
-                "state_snapshots": true
+                "state_snapshots": true,
+                "mesh_protocol": true
             },
             "default_quota": default_quota
         });
@@ -518,6 +549,181 @@ impl RpcServer {
         JsonRpcResponse::success(id, resp_val)
     }
 
+    fn check_mesh_auth(&self, params: &Value) -> Result<(), String> {
+        if let Some(expected_token) = &self.mesh_auth_token {
+            let token = params
+                .get("mesh_auth_token")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if token != expected_token {
+                return Err("Unauthorized: Invalid or missing mesh_auth_token".to_string());
+            }
+        }
+        Ok(())
+    }
+
+    fn handle_mesh_discover(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "protocol_version": "v2.13.0-mesh",
+            "node_id": self.node_id,
+            "address": self.node_address,
+            "capabilities": ["mesh_discover", "mesh_peers", "agent_teleport"],
+            "auth_required": self.mesh_auth_token.is_some()
+        });
+
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    fn handle_mesh_peers(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let action = params
+            .get("action")
+            .and_then(|v| v.as_str())
+            .unwrap_or("list");
+
+        let mut peers = self.peers.lock().unwrap();
+
+        if action == "register" || action == "add" {
+            if let Some(peer_val) = params.get("peer") {
+                if let Ok(peer) = serde_json::from_value::<MeshPeer>(peer_val.clone()) {
+                    peers.insert(peer.node_id.clone(), peer.clone());
+                    let resp_val = serde_json::json!({
+                        "status": "ok",
+                        "registered_peer": peer
+                    });
+                    return JsonRpcResponse::success(id, resp_val);
+                } else {
+                    return JsonRpcResponse::error(
+                        id,
+                        -32602,
+                        "Invalid 'peer' parameter structure",
+                    );
+                }
+            } else {
+                return JsonRpcResponse::error(
+                    id,
+                    -32602,
+                    "Missing 'peer' parameter for registration",
+                );
+            }
+        }
+
+        let peer_list: Vec<MeshPeer> = peers.values().cloned().collect();
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "peers": peer_list
+        });
+
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    fn handle_agent_teleport(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let target_session_id = params
+            .get("target_session_id")
+            .or_else(|| params.get("session_id"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("teleported_session")
+            .to_string();
+
+        if let Some(target_addr) = params
+            .get("target_node_address")
+            .and_then(|v| v.as_str())
+            .filter(|addr| !addr.is_empty() && *addr != self.node_address)
+        {
+            let req_payload = serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "knc_agent_teleport",
+                "params": {
+                    "target_session_id": target_session_id,
+                    "mesh_auth_token": params.get("mesh_auth_token"),
+                    "snapshot": params.get("snapshot")
+                },
+                "id": id.clone().unwrap_or(serde_json::json!(1))
+            });
+
+            return match self.send_rpc_to_node(target_addr, &req_payload.to_string()) {
+                Ok(resp_str) => {
+                    if let Ok(resp_json) = serde_json::from_str::<JsonRpcResponse>(&resp_str) {
+                        resp_json
+                    } else {
+                        JsonRpcResponse::error(
+                            id,
+                            -32603,
+                            format!("Invalid response from target node {}", target_addr),
+                        )
+                    }
+                }
+                Err(e) => JsonRpcResponse::error(
+                    id,
+                    -32603,
+                    format!("Teleport transport failure to {}: {}", target_addr, e),
+                ),
+            };
+        }
+
+        let snapshot_val = match params.get("snapshot") {
+            Some(v) => v,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    -32602,
+                    "Missing 'snapshot' parameter in teleport request",
+                );
+            }
+        };
+
+        let restore_params = serde_json::json!({
+            "session_id": target_session_id,
+            "snapshot": snapshot_val
+        });
+
+        let restore_resp = self.handle_agent_restore(id.clone(), restore_params);
+        if restore_resp.error.is_some() {
+            return restore_resp;
+        }
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "session_id": target_session_id,
+            "teleported": true
+        });
+
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    fn send_rpc_to_node(&self, address: &str, payload: &str) -> Result<String, String> {
+        let mut stream = TcpStream::connect(address)
+            .map_err(|e| format!("Failed to connect to node {}: {}", address, e))?;
+
+        let request_bytes = format!("{}\n", payload);
+        stream
+            .write_all(request_bytes.as_bytes())
+            .map_err(|e| format!("Failed to write to node {}: {}", address, e))?;
+        stream
+            .flush()
+            .map_err(|e| format!("Failed to flush stream to node {}: {}", address, e))?;
+
+        let mut reader = BufReader::new(stream);
+        let mut response_line = String::new();
+        reader
+            .read_line(&mut response_line)
+            .map_err(|e| format!("Failed to read response from node {}: {}", address, e))?;
+
+        Ok(response_line.trim().to_string())
+    }
+
     fn extract_ast_node(&self, params: &Value) -> Result<Node, String> {
         if let Some(ast_val) = params.get("ast") {
             serde_json::from_value::<Node>(ast_val.clone())
@@ -595,10 +801,18 @@ impl RpcServer {
         for stream in listener.incoming().flatten() {
             let permissions = self.permissions.clone();
             let sessions = self.sessions.clone();
+            let node_id = self.node_id.clone();
+            let node_address = self.node_address.clone();
+            let mesh_auth_token = self.mesh_auth_token.clone();
+            let peers = self.peers.clone();
             std::thread::spawn(move || {
                 let server = RpcServer {
                     permissions,
                     sessions,
+                    node_id,
+                    node_address,
+                    mesh_auth_token,
+                    peers,
                 };
                 server.handle_ws_connection(stream);
             });

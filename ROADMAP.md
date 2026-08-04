@@ -1,12 +1,13 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.12.0** · Official Release: Headless-First Agentic Runtime & RPC Engine
+Current engine version: **v2.13.0** · Official Release: Agentic Mesh Protocol & Inter-Node Teleportation
 
 ## Done (selected milestones)
 
 - ✅ Stack-VM with AOT compiler + JIT evaluator
 - ✅ Full sandbox (FS, network whitelist, symlink blocking, watchdog, 1M opcode cap, 16MB memory guard)
 - ✅ Headless-First Feature-Gate Refactoring & Core Decoupling (`--features ui`, v2.12.0)
+- ✅ Agentic Mesh Protocol & Inter-Node Snapshot Teleportation (`knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, v2.13.0-mesh)
 - ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)
@@ -38,6 +39,8 @@ Current engine version: **v2.12.0** · Official Release: Headless-First Agentic 
 - ✅ Agentic Execution Protocol, Portable State Snapshots & Restore (Sprint 313 - v2.11.0-agent)
 - ✅ Comprehensive Documentation Alignment & Workspace Consolidation (Sprint 314 - v2.11.1-docs)
 - ✅ Security & Architecture Audit Fixes (v2.11.2-audit)
+- ✅ Headless-First Feature-Gate Refactoring & Core Decoupling (Sprint 315 - v2.12.0-core)
+- ✅ Agentic Mesh Protocol & Inter-Node Snapshot Teleportation (Sprint 316 - v2.13.0-mesh)
 
 ## Near-Term
 

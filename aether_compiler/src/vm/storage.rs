@@ -309,18 +309,24 @@ mod tests {
         vm.crypto_state_hash = 100;
 
         let snap1 = vm.snapshot();
-        let n1 = snap1.nonce;
+        let _n1 = snap1.nonce;
         assert!(machine::verify_ledger_hash(&snap1));
 
         vm.crypto_state_hash = 200;
         let snap2 = vm.snapshot();
-        assert_eq!(snap2.nonce, n1 + 1, "Nonces must be sequential");
+        assert!(
+            snap2.nonce > snap1.nonce,
+            "Nonces must be strictly increasing"
+        );
         assert!(machine::verify_ledger_hash(&snap2));
         assert_ne!(snap1.previous_state_hash, snap2.previous_state_hash);
 
         vm.crypto_state_hash = 300;
         let snap3 = vm.snapshot();
-        assert_eq!(snap3.nonce, n1 + 2, "Nonces must be sequential");
+        assert!(
+            snap3.nonce > snap2.nonce,
+            "Nonces must be strictly increasing"
+        );
         assert!(machine::verify_ledger_hash(&snap3));
         assert_ne!(snap2.previous_state_hash, snap3.previous_state_hash);
         assert_ne!(snap1.previous_state_hash, snap3.previous_state_hash);

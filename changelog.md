@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.13.0-mesh] - Sprint 316: Agentic Mesh Protocol & Inter-Node Teleportation (2026-08-04)
+Sprint 316: Implemented the Peer-to-Peer Agentic Mesh Protocol, Peer Discovery, Topology Registry, and Inter-Node Isolate State Teleportation.
+- **Agentic Mesh RPC Methods (`rpc.rs`)**:
+  - `knc_mesh_discover`: Queries peer node identity, version (`v2.13.0-mesh`), capabilities, and authentication status.
+  - `knc_mesh_peers`: Manages mesh topology peer registration and active peer listing.
+  - `knc_agent_teleport`: Serializes and transmits an isolate session's `VmExecutionState` and `VMState` directly to a target KnotenCore RPC/WS server and restores it atomically.
+- **Node-to-Node Authentication (`mesh_auth_token`)**:
+  - Enforces simple Token Authentication for inter-node state teleportation and peer discovery requests.
+- **Automated Mesh Testsuite (`tests/agentic_mesh_tests.rs`)**:
+  - Validates discovery, peer registry, token authentication, and direct inter-node snapshot teleportation across simulated RPC server instances.
+
 ## [v2.12.0] - Official Release: Headless-First Agentic Runtime & RPC Engine (2026-08-02)
 Official Release v2.12.0: Major architectural milestone delivering pure Headless-First Execution, optional UI feature gating, multi-tenant isolate quotas, JSON-RPC 2.0 & WebSocket transports, agentic execution protocol, and hardened security sandbox shielding.
 - **Headless-First & Feature-Gate Architecture (`Cargo.toml`, `--features ui`)**:
