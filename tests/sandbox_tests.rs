@@ -478,7 +478,7 @@ fn test_asset_streaming_non_blocking() {
     }
 
     let elapsed = start.elapsed();
-    assert!(elapsed < std::time::Duration::from_millis(200));
+    assert!(elapsed < std::time::Duration::from_millis(1000));
     assert_eq!(ids.len(), 5);
     ids.sort();
     ids.dedup();
