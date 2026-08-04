@@ -2,6 +2,20 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.15.0-task] - Sprint 319: Distributed Task Queue & Mesh Work-Stealing Engine (2026-08-04)
+Introduces a fully thread-safe, priority-ordered distributed task queue with cooperative work-stealing for the mesh topology. External agents and peer nodes can submit, monitor, cancel, and steal JSON-AST tasks via four new JSON-RPC 2.0 methods.
+- **`knc_task_submit`** (new): Accepts any valid JSON-AST `Node` as a task. Assigns a unique monotonic `task_id` and places it in the global work pool with configurable priority (`0`=highest, `255`=lowest). Returns immediately — non-blocking.
+- **`knc_task_status`** (new): Poll a task by `task_id`. Returns current lifecycle state (`Queued → Running → Completed | Cancelled | Failed`) and the execution result once available.
+- **`knc_task_cancel`** (new): Request cancellation of a `Queued` task. Idempotent — returns `cancelled: false` for `Running`/`Completed`/`Failed` tasks without error.
+- **`knc_task_steal`** (new, mesh-auth-gated): Work-stealing entry point. A free mesh peer requests up to `max_tasks` unassigned tasks ordered by priority. All claimed tasks are atomically transitioned to `Running` and assigned to the requesting `worker_node_id`.
+- **`TaskDispatcher`** (new struct in `rpc.rs`): Thread-safe work pool backed by `Mutex<HashMap>` + `AtomicU64` counter. Public API: `submit`, `status`, `cancel`, `mark_running`, `complete`, `fail`, `steal`, `stats`. Full lifecycle management without unsafe code.
+- **`TaskStatus`** enum (new): `Queued | Running | Completed | Cancelled | Failed` — serializable via serde.
+- **`TaskEntry`** struct (new): Carries `task_id`, `ast`, `priority`, `status`, `worker_node_id`, and `result`.
+- **`knc_agent_handshake` update**: Capabilities response now includes `task_queue: true` and `work_stealing: true`.
+- **`KNC_PROTOCOL_VERSION`**: Bumped from `v2.14.1-audit` → `v2.15.0-task`.
+- **`tests/agentic_task_tests.rs`** (new): 18 deterministic unit and integration tests covering task submission, status polling, cancellation, work-stealing priority ordering, auth enforcement, and `TaskDispatcher` direct-unit testing.
+- **Quality Gates**: `cargo fmt --check` ✅, `cargo clippy --workspace --no-default-features --all-targets -D warnings` ✅, `cargo clippy --workspace --features ui --all-targets -D warnings` ✅.
+
 ## [v2.14.1] - Official Release: Deep Security Audit & HMAC Mesh Hardening (2026-08-04)
 Sprint 318 delivers comprehensive security hardening and stability defenses across native I/O, VM execution engine, storage, and P2P agentic mesh transport. This is the first KnotenCore release with cryptographic HMAC-SHA256 mesh authentication and a fully hardened multi-layered sandbox shield.
 - **Critical Security Fixes (Path Traversal & Sandbox Shielding)**:

@@ -2,10 +2,16 @@
 //
 // Exposes KnotenCore AST compilation, VM execution, yield/resume suspension,
 // event streaming hooks, and state inspection via JSON-RPC 2.0.
+//
+// Sprint 319: Distributed Task Queue & Mesh Work-Stealing Engine
+//
+// Adds TaskDispatcher with knc_task_submit / knc_task_status / knc_task_cancel
+// and a cooperative work-stealing protocol (knc_task_steal) for mesh peers.
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
+use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
@@ -20,7 +26,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.14.1-audit";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.15.0-task";
 
 /// JSON-RPC 2.0 Request Payload
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,6 +117,8 @@ pub struct RpcServer {
     pub node_address: String,
     pub mesh_auth_token: Option<String>,
     pub peers: Arc<Mutex<HashMap<String, MeshPeer>>>,
+    /// Sprint 319: Distributed Task Queue — shared across all handler calls
+    pub task_dispatcher: Arc<TaskDispatcher>,
 }
 
 impl RpcServer {
@@ -131,6 +139,7 @@ impl RpcServer {
             node_address: node_address.into(),
             mesh_auth_token,
             peers: Arc::new(Mutex::new(HashMap::new())),
+            task_dispatcher: Arc::new(TaskDispatcher::new()),
         }
     }
 
@@ -164,6 +173,11 @@ impl RpcServer {
             "knc_mesh_peers" => self.handle_mesh_peers(req.id, req.params),
             "knc_mesh_ping" => self.handle_mesh_ping(req.id, req.params),
             "knc_agent_teleport" => self.handle_agent_teleport(req.id, req.params),
+            // Sprint 319: Distributed Task Queue & Work-Stealing
+            "knc_task_submit" => self.handle_task_submit(req.id, req.params),
+            "knc_task_status" => self.handle_task_status(req.id, req.params),
+            "knc_task_cancel" => self.handle_task_cancel(req.id, req.params),
+            "knc_task_steal" => self.handle_task_steal(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -441,11 +455,118 @@ impl RpcServer {
                 "isolate_quotas": true,
                 "async_yield": true,
                 "state_snapshots": true,
-                "mesh_protocol": true
+                "mesh_protocol": true,
+                "task_queue": true,
+                "work_stealing": true
             },
             "default_quota": default_quota
         });
         JsonRpcResponse::success(id, resp_val)
+    }
+
+    // -------------------------------------------------------------------------
+    // Sprint 319: Distributed Task Queue handlers
+    // -------------------------------------------------------------------------
+
+    /// `knc_task_submit` — submit a JSON-AST as a steerable task.
+    ///
+    /// Params: `{ "ast": <Node>, "priority": <u8 opt> }`
+    /// Returns: `{ "task_id": "<uuid>", "status": "Queued" }`
+    fn handle_task_submit(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        let node = match self.extract_ast_node(&params) {
+            Ok(n) => n,
+            Err(e) => return JsonRpcResponse::error(id, -32602, e),
+        };
+        let priority = params
+            .get("priority")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(128) as u8;
+        let task_id = self.task_dispatcher.submit(node, priority);
+        let resp = serde_json::json!({
+            "status": "ok",
+            "task_id": task_id,
+            "task_status": "Queued"
+        });
+        JsonRpcResponse::success(id, resp)
+    }
+
+    /// `knc_task_status` — poll the status and result of a task.
+    ///
+    /// Params: `{ "task_id": "<uuid>" }`
+    /// Returns: `{ "task_id": "...", "task_status": "Queued|Running|Completed|Cancelled|Failed",
+    ///             "result": <value or null> }`
+    fn handle_task_status(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        let task_id = match params.get("task_id").and_then(|v| v.as_str()) {
+            Some(t) => t.to_string(),
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'task_id' parameter"),
+        };
+        match self.task_dispatcher.status(&task_id) {
+            Some(entry) => {
+                let resp = serde_json::json!({
+                    "status": "ok",
+                    "task_id": task_id,
+                    "task_status": format!("{:?}", entry.status),
+                    "result": entry.result
+                });
+                JsonRpcResponse::success(id, resp)
+            }
+            None => JsonRpcResponse::error(id, -32602, format!("Task '{}' not found", task_id)),
+        }
+    }
+
+    /// `knc_task_cancel` — request cancellation of a queued or running task.
+    ///
+    /// Params: `{ "task_id": "<uuid>" }`
+    /// Returns: `{ "task_id": "...", "cancelled": true|false }`
+    fn handle_task_cancel(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        let task_id = match params.get("task_id").and_then(|v| v.as_str()) {
+            Some(t) => t.to_string(),
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'task_id' parameter"),
+        };
+        let cancelled = self.task_dispatcher.cancel(&task_id);
+        let resp = serde_json::json!({
+            "status": "ok",
+            "task_id": task_id,
+            "cancelled": cancelled
+        });
+        JsonRpcResponse::success(id, resp)
+    }
+
+    /// `knc_task_steal` — work-stealing: a free mesh peer requests up to N unassigned tasks.
+    ///
+    /// Params: `{ "max_tasks": <u64 opt>, "worker_node_id": "<str>" }`
+    /// Returns: `{ "stolen": [ { "task_id": "...", "ast": <Node>, "priority": <u8> }, ... ] }`
+    fn handle_task_steal(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+        let max_tasks = params
+            .get("max_tasks")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(4) as usize;
+        let worker_id = params
+            .get("worker_node_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        let stolen = self.task_dispatcher.steal(max_tasks, &worker_id);
+        let stolen_json: Vec<Value> = stolen
+            .into_iter()
+            .map(|t| {
+                serde_json::json!({
+                    "task_id": t.task_id,
+                    "ast": t.ast,
+                    "priority": t.priority
+                })
+            })
+            .collect();
+
+        let resp = serde_json::json!({
+            "status": "ok",
+            "stolen": stolen_json
+        });
+        JsonRpcResponse::success(id, resp)
     }
 
     fn handle_agent_snapshot(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
@@ -1009,6 +1130,7 @@ impl RpcServer {
             let node_address = self.node_address.clone();
             let mesh_auth_token = self.mesh_auth_token.clone();
             let peers = self.peers.clone();
+            let task_dispatcher = self.task_dispatcher.clone();
             std::thread::spawn(move || {
                 let server = RpcServer {
                     permissions,
@@ -1017,6 +1139,7 @@ impl RpcServer {
                     node_address,
                     mesh_auth_token,
                     peers,
+                    task_dispatcher,
                 };
                 server.handle_ws_connection(stream);
             });
@@ -1565,4 +1688,191 @@ pub fn hmac_sha256(key: &[u8], message: &[u8]) -> String {
     let outer_hash = sha256_digest(&outer);
 
     hex_encode(&outer_hash)
+}
+
+// =============================================================================
+// Sprint 319: Distributed Task Queue & Mesh Work-Stealing Engine
+// =============================================================================
+
+/// Lifecycle state of a dispatched task.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum TaskStatus {
+    /// Submitted, not yet picked up by any worker.
+    Queued,
+    /// Actively being executed by a worker node.
+    Running,
+    /// Finished successfully; `result` is populated.
+    Completed,
+    /// Cancelled by the submitter before or during execution.
+    Cancelled,
+    /// The worker returned an error; `result` contains the fault message.
+    Failed,
+}
+
+/// A single entry in the distributed work pool.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskEntry {
+    /// Globally unique task identifier (monotonic u64 formatted as decimal string).
+    pub task_id: String,
+    /// The JSON-AST program to execute.
+    pub ast: Node,
+    /// Lower value = higher priority; 0 is highest, 255 is lowest.
+    pub priority: u8,
+    /// Current lifecycle state.
+    pub status: TaskStatus,
+    /// Node ID that picked up this task via work-stealing, if any.
+    pub worker_node_id: Option<String>,
+    /// Serialised execution result or fault string once complete.
+    pub result: Option<Value>,
+}
+
+/// Thread-safe distributed task queue with cooperative work-stealing.
+///
+/// Internally backed by a `Mutex<HashMap>` keyed by `task_id`.  All operations
+/// are O(n) in the worst case but task pools in a mesh are expected to be small
+/// (hundreds, not millions of concurrent tasks).
+pub struct TaskDispatcher {
+    tasks: Mutex<HashMap<String, TaskEntry>>,
+    counter: AtomicU64,
+}
+
+impl Default for TaskDispatcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TaskDispatcher {
+    /// Create an empty dispatcher.
+    pub fn new() -> Self {
+        Self {
+            tasks: Mutex::new(HashMap::new()),
+            counter: AtomicU64::new(1),
+        }
+    }
+
+    /// Submit a new task.  Returns the assigned `task_id`.
+    pub fn submit(&self, ast: Node, priority: u8) -> String {
+        let id_num = self.counter.fetch_add(1, AtomicOrdering::Relaxed);
+        let task_id = id_num.to_string();
+        let entry = TaskEntry {
+            task_id: task_id.clone(),
+            ast,
+            priority,
+            status: TaskStatus::Queued,
+            worker_node_id: None,
+            result: None,
+        };
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        tasks.insert(task_id.clone(), entry);
+        task_id
+    }
+
+    /// Return a snapshot of a task entry, or `None` if unknown.
+    pub fn status(&self, task_id: &str) -> Option<TaskEntry> {
+        let tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        tasks.get(task_id).cloned()
+    }
+
+    /// Attempt to cancel a task.  Only `Queued` tasks can be cancelled.
+    /// Returns `true` if the task was transitioned to `Cancelled`.
+    pub fn cancel(&self, task_id: &str) -> bool {
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(entry) = tasks.get_mut(task_id)
+            && entry.status == TaskStatus::Queued
+        {
+            entry.status = TaskStatus::Cancelled;
+            return true;
+        }
+        false
+    }
+
+    /// Mark a task as `Running` and record which worker claimed it.
+    /// Returns `false` if the task is not in `Queued` state.
+    pub fn mark_running(&self, task_id: &str, worker_node_id: &str) -> bool {
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(entry) = tasks.get_mut(task_id)
+            && entry.status == TaskStatus::Queued
+        {
+            entry.status = TaskStatus::Running;
+            entry.worker_node_id = Some(worker_node_id.to_string());
+            return true;
+        }
+        false
+    }
+
+    /// Record a successful result for a task.
+    pub fn complete(&self, task_id: &str, result: Value) {
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(entry) = tasks.get_mut(task_id) {
+            entry.status = TaskStatus::Completed;
+            entry.result = Some(result);
+        }
+    }
+
+    /// Record a failure result for a task.
+    pub fn fail(&self, task_id: &str, error_msg: &str) {
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(entry) = tasks.get_mut(task_id) {
+            entry.status = TaskStatus::Failed;
+            entry.result = Some(Value::String(error_msg.to_string()));
+        }
+    }
+
+    /// Work-stealing: atomically claims up to `max_tasks` `Queued` tasks for
+    /// `worker_node_id`, ordered by ascending priority (lowest value first).
+    /// Returns clones of the claimed entries so the caller can execute them.
+    pub fn steal(&self, max_tasks: usize, worker_node_id: &str) -> Vec<TaskEntry> {
+        if max_tasks == 0 {
+            return Vec::new();
+        }
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+
+        // Collect queued task IDs sorted by priority.
+        let mut queued_ids: Vec<(u8, String)> = tasks
+            .values()
+            .filter(|e| e.status == TaskStatus::Queued)
+            .map(|e| (e.priority, e.task_id.clone()))
+            .collect();
+        queued_ids.sort_by_key(|(p, _)| *p);
+        queued_ids.truncate(max_tasks);
+
+        let mut stolen = Vec::with_capacity(queued_ids.len());
+        for (_, id) in &queued_ids {
+            if let Some(entry) = tasks.get_mut(id) {
+                entry.status = TaskStatus::Running;
+                entry.worker_node_id = Some(worker_node_id.to_string());
+                stolen.push(entry.clone());
+            }
+        }
+        stolen
+    }
+
+    /// Return the total number of tasks in each state as a JSON object.
+    /// Useful for monitoring and load-balancing decisions.
+    pub fn stats(&self) -> Value {
+        let tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        let mut queued = 0u64;
+        let mut running = 0u64;
+        let mut completed = 0u64;
+        let mut cancelled = 0u64;
+        let mut failed = 0u64;
+        for e in tasks.values() {
+            match e.status {
+                TaskStatus::Queued => queued += 1,
+                TaskStatus::Running => running += 1,
+                TaskStatus::Completed => completed += 1,
+                TaskStatus::Cancelled => cancelled += 1,
+                TaskStatus::Failed => failed += 1,
+            }
+        }
+        serde_json::json!({
+            "queued": queued,
+            "running": running,
+            "completed": completed,
+            "cancelled": cancelled,
+            "failed": failed,
+            "total": tasks.len()
+        })
+    }
 }

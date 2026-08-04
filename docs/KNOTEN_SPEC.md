@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.14.1)
+# KnotenCore JSON AST Specification (v2.15.0-task)
 
 KnotenCore is a native abstract syntax tree (AST) programming language for AI systems. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -221,4 +221,13 @@ Enforces multi-layered security shields across native I/O, VM execution, storage
 - **HMAC-SHA256 Signatures**: Supports cryptographic signature verification (`mesh_auth_signature` / `signature`) in `check_mesh_auth()` evaluated via constant-time string comparison (`constant_time_eq`).
 - **Resource & Topology Caps**: Restores strict memory/depth limits on snapshots (`MAX_STACK_DEPTH = 4096`, `MAX_GLOBALS = 10000`, `MAX_FRAMES = 256`) and caps mesh peer topology capacity (`MAX_PEERS_LIMIT = 256`).
 - **Non-Blocking Channel Gossip**: Parallelizes gossip checks via `crossbeam_channel::unbounded()` threads preventing sequential socket blocking.
+
+### 7.9. Distributed Task Queue & Mesh Work-Stealing Engine (`v2.15.0-task`)
+Introduces priority-ordered task queueing and cooperative work-stealing across the mesh topology:
+- `knc_task_submit`: Submits a JSON-AST `Node` with priority (`0`=highest, `255`=lowest). Returns assigned `task_id` and initial status `Queued`.
+- `knc_task_status`: Polls lifecycle state (`Queued → Running → Completed | Cancelled | Failed`) and returns execution result or error string once complete.
+- `knc_task_cancel`: Requests cancellation of a `Queued` task. Returns `cancelled: true` if state transitioned.
+- `knc_task_steal`: Mesh-auth-gated work-stealing RPC allowing an idle worker node to claim up to `max_tasks` `Queued` tasks from a peer, ordered by priority.
+- `TaskDispatcher`: Thread-safe work pool backed by `Mutex<HashMap>` + `AtomicU64` counter.
+
 

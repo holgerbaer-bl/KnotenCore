@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.14.1 Official Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.15.0-task Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — Release v2.14.1
+## 🎯 AI-Readiness Benchmark — Release v2.15.0-task
 
 KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
 generating `.nod` programs, your output can be tested against 20 standardised tasks.
@@ -18,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.14.1** — Deep Security Audit & HMAC Mesh Hardening: HMAC-SHA256 mesh authentication (`check_mesh_auth`), constant-time token comparison, `MAX_PEERS_LIMIT = 256`, `MAX_STACK_DEPTH = 4096`, parallelized gossip cycle, Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
+**Current Engine Version: v2.15.0-task** — Distributed Task Queue & Mesh Work-Stealing Engine: Thread-safe, priority-ordered task queue (`TaskDispatcher`), JSON-RPC methods (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`), cooperative work-stealing protocol between mesh peers, HMAC-SHA256 mesh authentication (`check_mesh_auth`), constant-time token comparison, `MAX_PEERS_LIMIT = 256`, `MAX_STACK_DEPTH = 4096`, parallelized gossip cycle, Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -309,6 +309,117 @@ Periodically sent by `MeshGossipWorker` to registered peers to refresh `last_see
 - **`Active`**: Peer responded to recent ping within `stale_timeout_secs` (default: 5s).
 - **`Stale`**: Peer failed to respond or has not been seen for `> stale_timeout_secs` but `< eviction_timeout_secs` (default: 15s). Peer remains in routing table with degraded status.
 - **`Evicted`**: Peer has not been seen for `>= eviction_timeout_secs`. Automatically marked for removal and pruned from the mesh topology via `prune_evicted()` or `{"action": "prune"}` RPC.
+
+---
+
+## Sprint 319: Distributed Task Queue & Mesh Work-Stealing Engine (v2.15.0-task)
+
+Sprint 319 introduces a thread-safe, priority-ordered distributed task queue (`TaskDispatcher`) and a cooperative work-stealing protocol (`knc_task_steal`) across the mesh topology.
+
+### 1. Task Submission (`knc_task_submit`)
+Submits any valid JSON-AST `Node` to the local work pool. Returns a unique task ID and initial state `Queued`.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_task_submit",
+  "params": {
+    "ast": { "IntLiteral": 42 },
+    "priority": 0
+  },
+  "id": 1
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "task_id": "1",
+    "task_status": "Queued"
+  },
+  "id": 1
+}
+```
+
+### 2. Task Status Polling (`knc_task_status`)
+Polls the current lifecycle state (`Queued → Running → Completed | Cancelled | Failed`) and retrieves the execution result once available.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_task_status",
+  "params": { "task_id": "1" },
+  "id": 2
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "task_id": "1",
+    "task_status": "Completed",
+    "result": { "value": 42 }
+  },
+  "id": 2
+}
+```
+
+### 3. Task Cancellation (`knc_task_cancel`)
+Requests cancellation of a `Queued` task. Returns `cancelled: true` if transitioned, `cancelled: false` if task is missing or already `Running`/`Completed`.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_task_cancel",
+  "params": { "task_id": "1" },
+  "id": 3
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "task_id": "1",
+    "cancelled": true
+  },
+  "id": 3
+}
+```
+
+### 4. Work-Stealing Protocol (`knc_task_steal`)
+Mesh-auth-gated RPC allowing an idle worker node to request unassigned `Queued` tasks from a peer node, sorted by priority (lowest integer value = highest priority).
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_task_steal",
+  "params": {
+    "max_tasks": 4,
+    "worker_node_id": "worker-peer-alpha",
+    "mesh_auth_signature": "hmac-sha256-signature",
+    "timestamp": 1775000000
+  },
+  "id": 4
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "stolen": [
+      {
+        "task_id": "1",
+        "ast": { "IntLiteral": 42 },
+        "priority": 0
+      }
+    ]
+  },
+  "id": 4
+}
 ```
 
 ---

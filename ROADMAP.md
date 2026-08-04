@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.14.1** · Sprint 318: Deep Security Audit & HMAC Mesh Hardening (official release)
+Current engine version: **v2.15.0-task** · Sprint 319: Distributed Task Queue & Mesh Work-Stealing Engine
 
 ## Done (selected milestones)
 
@@ -10,6 +10,7 @@ Current engine version: **v2.14.1** · Sprint 318: Deep Security Audit & HMAC Me
 - ✅ Agentic Mesh Protocol & Inter-Node Snapshot Teleportation (`knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, v2.13.0)
 - ✅ Mesh Peer Gossip Protocol, Heartbeats & Auto-Healing Eviction (Sprint 317 - v2.14.0)
 - ✅ Deep Security Audit & HMAC Mesh Hardening — official release (Sprint 318 - v2.14.1)
+- ✅ Distributed Task Queue & Mesh Work-Stealing Engine (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`, Sprint 319 - v2.15.0-task)
 - ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)
