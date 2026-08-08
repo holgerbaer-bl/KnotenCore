@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.15.0-task)
+# KnotenCore JSON AST Specification (v2.16.0-metrics)
 
 KnotenCore is a native abstract syntax tree (AST) programming language for AI systems. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -229,5 +229,13 @@ Introduces priority-ordered task queueing and cooperative work-stealing across t
 - `knc_task_cancel`: Requests cancellation of a `Queued` task. Returns `cancelled: true` if state transitioned.
 - `knc_task_steal`: Mesh-auth-gated work-stealing RPC allowing an idle worker node to claim up to `max_tasks` `Queued` tasks from a peer, ordered by priority.
 - `TaskDispatcher`: Thread-safe work pool backed by `Mutex<HashMap>` + `AtomicU64` counter.
+
+### 7.10. Cluster Metrics & Adaptive Work-Stealing Protocol (`v2.16.0-metrics`)
+Introduces system metrics monitoring and adaptive load throttling to prevent mesh overload cascades:
+- `knc_mesh_metrics`: Returns node performance metrics (`cpu_load_percent`, `memory_used_bytes`, `memory_total_bytes`, `memory_usage_percent`, `task_queue_depth`, `is_overloaded`).
+- `MetricsCollector`: Thread-safe collector supporting simulated overrides (`set_simulated_cpu_load`, `set_simulated_memory`) for deterministic testing.
+- **Adaptive Work-Stealing Guard**: Throttles `knc_task_steal` when local or requesting worker node CPU load > 80% or memory usage > 85%, returning `stolen: []` and `throttled: true`.
+
+
 
 

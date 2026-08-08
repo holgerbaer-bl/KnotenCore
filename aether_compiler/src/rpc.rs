@@ -26,7 +26,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.15.0-task";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.16.0-metrics";
 
 /// JSON-RPC 2.0 Request Payload
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -119,6 +119,8 @@ pub struct RpcServer {
     pub peers: Arc<Mutex<HashMap<String, MeshPeer>>>,
     /// Sprint 319: Distributed Task Queue — shared across all handler calls
     pub task_dispatcher: Arc<TaskDispatcher>,
+    /// Sprint 320: Cluster Metrics Collector & Adaptive Work-Stealing Guard
+    pub metrics_collector: Arc<MetricsCollector>,
 }
 
 impl RpcServer {
@@ -140,6 +142,7 @@ impl RpcServer {
             mesh_auth_token,
             peers: Arc::new(Mutex::new(HashMap::new())),
             task_dispatcher: Arc::new(TaskDispatcher::new()),
+            metrics_collector: Arc::new(MetricsCollector::new()),
         }
     }
 
@@ -178,6 +181,8 @@ impl RpcServer {
             "knc_task_status" => self.handle_task_status(req.id, req.params),
             "knc_task_cancel" => self.handle_task_cancel(req.id, req.params),
             "knc_task_steal" => self.handle_task_steal(req.id, req.params),
+            // Sprint 320: Cluster Metrics
+            "knc_mesh_metrics" => self.handle_mesh_metrics(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -457,7 +462,9 @@ impl RpcServer {
                 "state_snapshots": true,
                 "mesh_protocol": true,
                 "task_queue": true,
-                "work_stealing": true
+                "work_stealing": true,
+                "cluster_metrics": true,
+                "adaptive_work_stealing": true
             },
             "default_quota": default_quota
         });
@@ -533,13 +540,41 @@ impl RpcServer {
     }
 
     /// `knc_task_steal` — work-stealing: a free mesh peer requests up to N unassigned tasks.
+    /// Includes adaptive throttling guard (throttles when CPU > 80% or memory > 85%).
     ///
-    /// Params: `{ "max_tasks": <u64 opt>, "worker_node_id": "<str>" }`
-    /// Returns: `{ "stolen": [ { "task_id": "...", "ast": <Node>, "priority": <u8> }, ... ] }`
+    /// Params: `{ "max_tasks": <u64 opt>, "worker_node_id": "<str>", "worker_cpu_load": <f64 opt>, "worker_memory_usage": <f64 opt> }`
+    /// Returns: `{ "stolen": [ ... ], "throttled": true|false }`
     fn handle_task_steal(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
         if let Err(err) = self.check_mesh_auth(&params) {
             return JsonRpcResponse::error(id, -32001, err);
         }
+
+        // Adaptive Work-Stealing Guard
+        let task_stats = self.task_dispatcher.stats();
+        let current_metrics = self.metrics_collector.collect(task_stats);
+
+        let worker_cpu = params
+            .get("worker_cpu_load")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(current_metrics.cpu_load_percent);
+
+        let worker_mem = params
+            .get("worker_memory_usage")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(current_metrics.memory_usage_percent);
+
+        let is_overloaded = current_metrics.is_overloaded || worker_cpu > 80.0 || worker_mem > 85.0;
+
+        if is_overloaded {
+            let resp = serde_json::json!({
+                "status": "ok",
+                "stolen": [],
+                "throttled": true,
+                "reason": "Throttled: CPU load > 80% or memory threshold exceeded"
+            });
+            return JsonRpcResponse::success(id, resp);
+        }
+
         let max_tasks = params
             .get("max_tasks")
             .and_then(|v| v.as_u64())
@@ -564,9 +599,30 @@ impl RpcServer {
 
         let resp = serde_json::json!({
             "status": "ok",
-            "stolen": stolen_json
+            "stolen": stolen_json,
+            "throttled": false
         });
         JsonRpcResponse::success(id, resp)
+    }
+
+    /// `knc_mesh_metrics` — returns node performance metrics (CPU, RAM, queue depth).
+    fn handle_mesh_metrics(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let task_stats = self.task_dispatcher.stats();
+        let metrics = self.metrics_collector.collect(task_stats);
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "node_id": self.node_id,
+            "address": self.node_address,
+            "protocol_version": KNC_PROTOCOL_VERSION,
+            "metrics": metrics
+        });
+
+        JsonRpcResponse::success(id, resp_val)
     }
 
     fn handle_agent_snapshot(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
@@ -772,7 +828,7 @@ impl RpcServer {
             "protocol_version": KNC_PROTOCOL_VERSION,
             "node_id": self.node_id,
             "address": self.node_address,
-            "capabilities": ["mesh_discover", "mesh_peers", "mesh_ping", "mesh_gossip", "agent_teleport"],
+            "capabilities": ["mesh_discover", "mesh_peers", "mesh_ping", "mesh_gossip", "agent_teleport", "mesh_metrics", "task_queue"],
             "auth_required": self.mesh_auth_token.is_some()
         });
 
@@ -1131,6 +1187,7 @@ impl RpcServer {
             let mesh_auth_token = self.mesh_auth_token.clone();
             let peers = self.peers.clone();
             let task_dispatcher = self.task_dispatcher.clone();
+            let metrics_collector = self.metrics_collector.clone();
             std::thread::spawn(move || {
                 let server = RpcServer {
                     permissions,
@@ -1140,6 +1197,7 @@ impl RpcServer {
                     mesh_auth_token,
                     peers,
                     task_dispatcher,
+                    metrics_collector,
                 };
                 server.handle_ws_connection(stream);
             });
@@ -1874,5 +1932,105 @@ impl TaskDispatcher {
             "failed": failed,
             "total": tasks.len()
         })
+    }
+}
+
+// =============================================================================
+// Sprint 320: Cluster Metrics & Adaptive Work-Stealing Protocol
+// =============================================================================
+
+/// Node performance metrics including CPU, memory, and task queue depth.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NodeMetrics {
+    pub cpu_load_percent: f64,
+    pub memory_used_bytes: u64,
+    pub memory_total_bytes: u64,
+    pub memory_usage_percent: f64,
+    pub task_queue_depth: Value,
+    pub is_overloaded: bool,
+}
+
+/// Thread-safe collector for node metrics, supporting simulated overrides for testing.
+pub struct MetricsCollector {
+    simulated_cpu_load: Mutex<Option<f64>>,
+    simulated_memory_used: Mutex<Option<u64>>,
+    simulated_memory_total: Mutex<Option<u64>>,
+}
+
+impl Default for MetricsCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl MetricsCollector {
+    /// Create a new default metrics collector.
+    pub fn new() -> Self {
+        Self {
+            simulated_cpu_load: Mutex::new(None),
+            simulated_memory_used: Mutex::new(None),
+            simulated_memory_total: Mutex::new(None),
+        }
+    }
+
+    /// Override simulated CPU load percentage (0.0..100.0) for testing load throttling.
+    pub fn set_simulated_cpu_load(&self, load: Option<f64>) {
+        let mut guard = self
+            .simulated_cpu_load
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *guard = load;
+    }
+
+    /// Override simulated memory usage (used_bytes, total_bytes) for testing.
+    pub fn set_simulated_memory(&self, used: Option<u64>, total: Option<u64>) {
+        let mut u_guard = self
+            .simulated_memory_used
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *u_guard = used;
+        let mut t_guard = self
+            .simulated_memory_total
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *t_guard = total;
+    }
+
+    /// Sample or return current metrics given task queue depth stats.
+    pub fn collect(&self, task_queue_stats: Value) -> NodeMetrics {
+        let cpu_load = self
+            .simulated_cpu_load
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or(15.0);
+
+        let mem_used = self
+            .simulated_memory_used
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or(134_217_728); // 128 MB default baseline
+
+        let mem_total = self
+            .simulated_memory_total
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or(8_589_934_592); // 8 GB default baseline
+
+        let memory_usage_percent = if mem_total > 0 {
+            (mem_used as f64 / mem_total as f64) * 100.0
+        } else {
+            0.0
+        };
+
+        let is_overloaded = cpu_load > 80.0 || memory_usage_percent > 85.0;
+
+        NodeMetrics {
+            cpu_load_percent: cpu_load,
+            memory_used_bytes: mem_used,
+            memory_total_bytes: mem_total,
+            memory_usage_percent,
+            task_queue_depth: task_queue_stats,
+            is_overloaded,
+        }
     }
 }

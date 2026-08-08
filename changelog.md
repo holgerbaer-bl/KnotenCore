@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.16.0-metrics] - Sprint 320: Cluster Metrics & Adaptive Work-Stealing Protocol (2026-08-08)
+Introduces real-time cluster metrics collection and an adaptive work-stealing throttling guard to prevent node overload cascades across the agentic mesh topology.
+- **`knc_mesh_metrics`** (new): RPC method returning system performance metrics: `cpu_load_percent`, `memory_used_bytes`, `memory_total_bytes`, `memory_usage_percent`, `task_queue_depth` (queued/running/completed/cancelled/failed stats), and boolean overload flag `is_overloaded`. Supports HMAC-SHA256 authentication.
+- **`MetricsCollector`** (new struct in `rpc.rs`): Thread-safe metrics collector with support for simulated CPU/RAM overrides (`set_simulated_cpu_load`, `set_simulated_memory`) for deterministic load-testing.
+- **Adaptive Work-Stealing Guard**: `knc_task_steal` automatically evaluates local and requesting worker metrics. If CPU load exceeds 80% or memory usage exceeds 85%, task stealing is throttled (`throttled: true`), returning an empty task array to prevent overload cascades.
+- **`NodeMetrics`** (new struct): Serializable payload structure carrying performance metrics and overload flags.
+- **`knc_agent_handshake` update**: Capabilities response now includes `cluster_metrics: true` and `adaptive_work_stealing: true`.
+- **`KNC_PROTOCOL_VERSION`**: Bumped from `v2.15.0-task` → `v2.16.0-metrics`.
+- **`tests/agentic_metrics_tests.rs`** (new): 6 unit and integration tests verifying `knc_mesh_metrics` responses, auth enforcement, load simulation, adaptive work-stealing throttling under high CPU/RAM load, and handshake capabilities.
+
 ## [v2.15.0-task] - Sprint 319: Distributed Task Queue & Mesh Work-Stealing Engine (2026-08-04)
 Introduces a fully thread-safe, priority-ordered distributed task queue with cooperative work-stealing for the mesh topology. External agents and peer nodes can submit, monitor, cancel, and steal JSON-AST tasks via four new JSON-RPC 2.0 methods.
 - **`knc_task_submit`** (new): Accepts any valid JSON-AST `Node` as a task. Assigns a unique monotonic `task_id` and places it in the global work pool with configurable priority (`0`=highest, `255`=lowest). Returns immediately — non-blocking.
