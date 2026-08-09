@@ -1,6 +1,6 @@
-# KnotenCore JSON AST Specification (v2.17.0-store)
+# KnotenCore JSON AST Specification (v2.17.0)
 
-KnotenCore is a native abstract syntax tree (AST) programming language for AI systems. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
+KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
 This specification documents the exact JSON structural layout of the valid KnotenCore abstract syntax tree. The execution environment deserializes this layout directly into executable logic.
 

@@ -1,6 +1,8 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.17.0-store** · Sprint 321: Distributed CRDT Key-Value Storage & State Sync
+*A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
+
+Current engine version: **v2.17.0** · Official Release: Distributed CRDT Key-Value Storage & Peer State Sync
 
 ## Done (selected milestones)
 

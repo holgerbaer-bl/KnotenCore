@@ -1,19 +1,19 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.17.0--store-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.17.0-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-276%2F276-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-alpha-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Release](https://img.shields.io/badge/release-v2.17.0-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
 1. **Not** a relentless underground German hardcore techno subgenre. 
-2. A thread-safe, deterministic **Execution Runtime** — a lightweight, embeddable runtime for stateless microservices, headless data pipelines, and a deterministic text-based sandbox for AI-generated code and autonomous agents. No browser. No GC.
+2. A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-**The lightweight, embeddable runtime for stateless microservices, headless data pipelines & AI agents.**
+**A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.**
 
 ## What is KnotenCore?
-**KnotenCore** is a **Headless-First Deterministic Execution Runtime** written in Rust. It serves as a lightweight, embeddable runtime for stateless microservices, headless data pipelines, and a deterministic text-based sandbox for AI-generated code and autonomous agents. External AI agents or microservices specify programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized bytecode stream and executes them on a Register Stack-VM with bare-metal performance, Distributed CRDT Key-Value Storage & Peer State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Distributed Task Queue (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing), persistent WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming), and multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`). Heavyweight UI/Graphics dependencies (`wgpu`, `winit`, `egui`, `rodio`, `cpal`, `image`, `noise`, `glam`, `bytemuck`) are decoupled behind the optional `ui` feature gate (`cargo run --features ui`). By default, KnotenCore builds as a pure lightweight headless runtime. Strict sandbox guards enforce instruction limits (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), CPU watchdog thresholds (500ms), and memory limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
+**KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. External AI agents or microservices specify programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized bytecode stream and executes them on a Register Stack-VM with bare-metal performance, Distributed CRDT Key-Value Storage & Peer State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Distributed Task Queue (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing), persistent WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming), and multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`). Heavyweight UI/Graphics dependencies (`wgpu`, `winit`, `egui`, `rodio`, `cpal`, `image`, `noise`, `glam`, `bytemuck`) are decoupled behind the optional `ui` feature gate (`cargo run --features ui`). By default, KnotenCore builds as a pure lightweight headless runtime. Strict sandbox guards enforce instruction limits (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), CPU watchdog thresholds (500ms), and memory limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
 
 ---
 
