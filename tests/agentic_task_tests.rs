@@ -462,6 +462,6 @@ fn test_handshake_advertises_task_queue_and_work_stealing() {
     assert_eq!(caps["work_stealing"].as_bool(), Some(true));
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.16.0-metrics"
+        "v2.17.0-store"
     );
 }
