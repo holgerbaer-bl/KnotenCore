@@ -2,14 +2,15 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-## [v2.18.0-swarm] - Sprint 323: Swarm Governance, Raft Leader Election & Node Roles (2026-08-09)
-Sprint 323 introduces decentralized Swarm Governance, Raft-based Leader Election, and Dynamic Node Roles (`Leader`, `Worker`, `Storage`, `Observer`):
+## [v2.18.0] - Official Release: Swarm Governance, Raft Leader Election & Grounded Documentation (2026-08-09)
+Official Release v2.18.0 delivers Swarm Governance, Raft-based Leader Election, Dynamic Node Roles (`Leader`, `Worker`, `Storage`, `Observer`), and Grounded Transparency across all documentation gates:
 - **Swarm Governance Engine**: `SwarmGovernance` struct providing thread-safe Raft leader election, term tracking (`AtomicU64`), voting (`voted_for`), and node role management.
 - **Raft Leader Election (`knc_swarm_elect`)**: Triggers or polls Raft leader election across the cluster topology. Supports candidate targeting, term increments, and forced leadership claim. Auth-protected via `mesh_auth_token`.
 - **Dynamic Node Roles (`knc_swarm_roles`)**: Maps and reports cluster node roles (`Leader`, `Worker`, `Storage`, `Observer`) across local and peer mesh topology.
 - **Swarm Quorum Consensus (`knc_swarm_quorum`)**: Evaluates active mesh nodes to enforce quorum threshold consensus (`(active_nodes / 2) + 1` or explicit threshold) prior to critical cluster operations. Auth-protected via `mesh_auth_token`.
+- **Grounded Documentation & Transparency**: Adapted `audit.md` to `# KnotenCore Claims Verification (AI-Assisted)` with explicit AI-assisted verification context, replaced generic pass badges with verified code references (`Codestelle verifiziert`), updated benchmark headers in `README.md` and `llm.md` to `20/20 auf internem Test-Set (v2.18.0)`, and added transparent disclaimer context regarding internal single-agent benchmarking.
 - **`knc_agent_handshake` update**: Capabilities response now includes `swarm_governance: true`, `raft_leader_election: true`, and `node_roles: true`.
-- **`KNC_PROTOCOL_VERSION`**: Updated to `"v2.18.0-swarm"`.
+- **`KNC_PROTOCOL_VERSION`**: Official release version `v2.18.0`.
 
 ## [v2.17.1] - Official Release: Security Hardened CRDT Store & Task Queue (2026-08-09)
 Official Release v2.17.1 rectifies 1 CRITICAL, 2 HIGH, 3 MEDIUM, and 2 LOW findings from the external security audit:

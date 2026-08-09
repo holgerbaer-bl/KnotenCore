@@ -1,9 +1,9 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.18.0--swarm-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.18.0-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-281%2F281-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.18.0--swarm-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Release](https://img.shields.io/badge/release-v2.18.0-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -13,7 +13,14 @@
 **A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.**
 
 ## What is KnotenCore?
-**KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. External AI agents or microservices specify programs as structured **JSON-AST nodes** (`.nod` files). The engine compiles these directly into an AOT-optimized bytecode stream and executes them on a Register Stack-VM with bare-metal performance, Distributed CRDT Key-Value Storage & Peer State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Distributed Task Queue (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing), persistent WebSocket RPC Transport (`--ws-port <PORT>`, Realtime Event Streaming), and multi-tenant Isolate Quotas (`IsolateQuota`, `-32000 Quota Exceeded`). Heavyweight UI/Graphics dependencies (`wgpu`, `winit`, `egui`, `rodio`, `cpal`, `image`, `noise`, `glam`, `bytemuck`) are decoupled behind the optional `ui` feature gate (`cargo run --features ui`). By default, KnotenCore builds as a pure lightweight headless runtime. Strict sandbox guards enforce instruction limits (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), CPU watchdog thresholds (500ms), and memory limits (16MB -> `ERR_MEMORY_LIMIT_EXCEEDED`).
+**KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
+
+### Key Features:
+- **Swarm Governance & Raft Leader Election**: Decentralized Raft consensus, term tracking, dynamic node roles (`Leader`, `Worker`, `Storage`, `Observer`), and quorum voting (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`).
+- **Distributed CRDT Storage & Peer State Sync**: In-memory Last-Write-Wins (LWW) CRDT key-value store (`knc_store_put`, `knc_store_get`, `knc_store_sync`).
+- **Distributed Task Queue & Adaptive Work-Stealing**: Cluster task dispatching (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`) and CPU load-adaptive work-stealing (`knc_task_steal`, `knc_mesh_metrics`).
+- **P2P Mesh Protocol & Teleportation**: Zero-broker peer discovery, gossip auto-healing, and live isolate state migration (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`).
+- **Headless-First Architecture**: Lightweight headless execution by default, with optional UI/rendering features (`--features ui`).
 
 ---
 
@@ -30,7 +37,7 @@ cargo run --features ui --bin run_knc -- <path_to.nod> [options]
 ```
 
 ### Options:
-* `--rpc-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing the JSON-RPC 2.0 interface on `127.0.0.1:<PORT>` (`knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`, `knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, `knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`, `knc_mesh_metrics`, `knc_store_put`, `knc_store_get`, `knc_store_sync`).
+* `--rpc-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing the JSON-RPC 2.0 interface on `127.0.0.1:<PORT>` (`knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`, `knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, `knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`, `knc_mesh_metrics`, `knc_store_put`, `knc_store_get`, `knc_store_sync`, `knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`).
 * `--ws-port <PORT>`: Starts KnotenCore in Headless Server Mode exposing an RFC 6455 persistent WebSocket RPC transport on `127.0.0.1:<PORT>` with real-time `VmEvent` streaming (`knc_event`).
 * `--headless`: Explicitly enforces headless execution mode. In pure headless builds (default `default = []`), physical window creation and WGPU graphics context initialization are bypassed automatically. UI AST nodes execute safely via no-op stubs.
 * `--allow-read`: Enables sandboxed File I/O read permissions.
@@ -59,11 +66,9 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 
 ---
 
-## 🎯 AI-Readiness Benchmark — AG Baseline: 20/20 (100%)
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.18.0)
 
-KnotenCore is the **first DSL project with a public, reproducible AI-Readiness Score** — measuring how reliably external LLMs generate correct `.nod` programs without human correction. The AG agent used **only `llm.md` + `node_types.json` + `native_functions.json`** as context (no Rust source).
-
-**Sprint 304 status:** 244/244 tests passing · v2.2.0-stable · True distributed Raft consensus · WASM-ready · 6 architectural layers complete.
+> Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 
 ---
 

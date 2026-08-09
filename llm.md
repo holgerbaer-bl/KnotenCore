@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.18.0-swarm Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.18.0 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,9 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — Release v2.18.0-swarm
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.18.0)
+
+> Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 
 KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
 generating `.nod` programs, your output can be tested against 20 standardised tasks.
@@ -18,7 +20,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.18.0-swarm** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Swarm Governance, Raft Leader Election & Node Roles (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` topology with Leader, Worker, Storage, Observer), Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing).
+**Current Engine Version: v2.18.0** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Swarm Governance, Raft Leader Election & Node Roles (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` topology with Leader, Worker, Storage, Observer), Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing).
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---

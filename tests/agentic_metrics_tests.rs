@@ -77,7 +77,7 @@ fn test_mesh_metrics_returns_node_metrics() {
     );
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.18.0-swarm"
+        "v2.18.0"
     );
 
     let metrics = result_field(&resp, "metrics");
@@ -252,6 +252,6 @@ fn test_handshake_advertises_metrics_and_adaptive_stealing() {
     assert!(caps["adaptive_work_stealing"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.18.0-swarm"
+        "v2.18.0"
     );
 }

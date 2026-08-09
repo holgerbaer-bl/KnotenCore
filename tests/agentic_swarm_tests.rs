@@ -3,7 +3,6 @@
 // Verifies Raft leader election, cluster node roles, quorum consensus voting,
 // auth protection, and agentic handshake capabilities.
 
-
 use serde_json::Value;
 
 use aether_compiler::executor::AgentPermissions;
@@ -234,6 +233,6 @@ fn test_handshake_advertises_swarm_governance() {
     assert!(caps["node_roles"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.18.0-swarm"
+        "v2.18.0"
     );
 }
