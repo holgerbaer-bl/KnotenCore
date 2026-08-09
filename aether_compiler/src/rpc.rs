@@ -1325,7 +1325,11 @@ impl RpcServer {
     }
 
     fn handle_connection(&self, mut stream: TcpStream) {
-        let mut reader = BufReader::new(stream.try_clone().unwrap());
+        let cloned_stream = match stream.try_clone() {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let mut reader = BufReader::new(cloned_stream);
         let mut line = String::new();
 
         while reader.read_line(&mut line).unwrap_or(0) > 0 {
@@ -1395,7 +1399,11 @@ impl RpcServer {
     }
 
     pub fn handle_ws_connection(&self, mut stream: TcpStream) {
-        let mut buf_reader = BufReader::new(stream.try_clone().unwrap());
+        let cloned_stream = match stream.try_clone() {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let mut buf_reader = BufReader::new(cloned_stream);
         let mut key = String::new();
 
         loop {
