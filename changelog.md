@@ -2,16 +2,16 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-## [v2.17.1-audit] - Sprint 322: Security Audit Rectification & Deep Hardening (2026-08-09)
-Sprint 322 rectifies 1 CRITICAL, 2 HIGH, 3 MEDIUM, and 2 LOW findings from the external security audit:
+## [v2.17.1] - Official Release: Security Hardened CRDT Store & Task Queue (2026-08-09)
+Official Release v2.17.1 rectifies 1 CRITICAL, 2 HIGH, 3 MEDIUM, and 2 LOW findings from the external security audit:
 - **CRIT-01 (CRDT LWW-Poisoning)**: Enforces `MAX_CLOCK_DRIFT_SECS = 300` in `knc_store_put`, `MeshKvStore::put`, and `MeshKvStore::sync`. Timestamps >5 minutes in the future are strictly rejected.
 - **HIGH-01 (Task Queue OOM-DoS)**: Enforces `MAX_TASK_QUEUE_DEPTH = 10_000` in `TaskDispatcher::submit` and implements `TaskDispatcher::gc_completed()` for automatic purging of terminated tasks. Adds `check_mesh_auth` guard to `knc_task_submit`.
 - **HIGH-02 (knc_store_get Unauth Read)**: Enforces `check_mesh_auth` guard in `knc_store_get` when `mesh_auth_token` is configured.
-- **MED-01 (Metrics Collector Test-Only Backdoor)**: Secures `set_simulated_cpu_load` and `set_simulated_memory` with `#[cfg(test)]`.
+- **MED-01 (Metrics Collector Test-Only Backdoor)**: Secures `set_simulated_cpu_load` and `set_simulated_memory` with `#[cfg(any(test, debug_assertions))]`.
 - **MED-02 (HMAC Replay Protection)**: Validates in `check_mesh_auth` that signed request timestamps are within 60 seconds of local time (`MAX_REPLAY_WINDOW_SECS = 60`).
 - **MED-03 & LOW-01 (Store Bounds)**: Enforces `MAX_SYNC_ENTRIES = 10_000` in `knc_store_sync`, `MAX_VALUE_SIZE_BYTES = 65_536` (64KB limit per value), and `MAX_STORE_KEYS = 100_000` in `MeshKvStore`.
 - **LOW-02 (Task Cancel & Status Auth)**: Enforces `check_mesh_auth` guard in `knc_task_cancel` and `knc_task_status`.
-- **`KNC_PROTOCOL_VERSION`**: Bumped to `v2.17.1-audit`.
+- **`KNC_PROTOCOL_VERSION`**: Official release version `v2.17.1`.
 
 ## [v2.17.0] - Official Release: Distributed CRDT Key-Value Storage & Peer State Sync (2026-08-09)
 Official Release v2.17.0 introduces a thread-safe, in-memory Distributed CRDT Key-Value Store (`MeshKvStore`) using Last-Write-Wins (LWW) CRDT registers (`CrdtEntry`) and full Peer State Sync across the agentic mesh topology.

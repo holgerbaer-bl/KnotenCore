@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.17.1-audit)
+# KnotenCore JSON AST Specification (v2.17.1)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -243,7 +243,7 @@ Introduces a thread-safe CRDT key-value store using Last-Write-Wins (LWW) regist
 - `knc_store_sync`: Merges an array of incoming CRDT entries from a peer node and returns the full combined snapshot. Auth-protected via `mesh_auth_token`.
 - `MeshKvStore`: Thread-safe `Mutex<HashMap<String, CrdtEntry>>` supporting atomic LWW merging and tiebreaking.
 
-### 7.12. Security Audit Rectification & Deep Hardening (`v2.17.1-audit`)
+### 7.12. Security Audit Rectification & Deep Hardening (`v2.17.1`)
 Resolves audit findings across CRDT storage, task queue management, and HMAC authentication:
 - **CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`)**: Rejects store entries with timestamps >5 minutes in the future (CRIT-01).
 - **Task Queue Bounds & GC (`MAX_TASK_QUEUE_DEPTH = 10_000`)**: Enforces queue capacity cap and automatic purging of terminated tasks (`gc_completed()`) to prevent OOM-DoS (HIGH-01).
