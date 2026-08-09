@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.17.0)
+# KnotenCore JSON AST Specification (v2.17.1-audit)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -242,6 +242,15 @@ Introduces a thread-safe CRDT key-value store using Last-Write-Wins (LWW) regist
 - `knc_store_get`: Reads the CRDT entry (`CrdtEntry`) for a given key.
 - `knc_store_sync`: Merges an array of incoming CRDT entries from a peer node and returns the full combined snapshot. Auth-protected via `mesh_auth_token`.
 - `MeshKvStore`: Thread-safe `Mutex<HashMap<String, CrdtEntry>>` supporting atomic LWW merging and tiebreaking.
+
+### 7.12. Security Audit Rectification & Deep Hardening (`v2.17.1-audit`)
+Resolves audit findings across CRDT storage, task queue management, and HMAC authentication:
+- **CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`)**: Rejects store entries with timestamps >5 minutes in the future (CRIT-01).
+- **Task Queue Bounds & GC (`MAX_TASK_QUEUE_DEPTH = 10_000`)**: Enforces queue capacity cap and automatic purging of terminated tasks (`gc_completed()`) to prevent OOM-DoS (HIGH-01).
+- **Auth Enforcement**: Enforces `check_mesh_auth` across `knc_task_submit`, `knc_task_status`, `knc_task_cancel`, and `knc_store_get` (HIGH-01, HIGH-02, LOW-02).
+- **HMAC Replay Protection (`MAX_REPLAY_WINDOW_SECS = 60`)**: Validates request timestamps in signed HMAC requests within a 60s sliding window (MED-02).
+- **Store & Sync Bounds**: Caps `knc_store_sync` batch size (`MAX_SYNC_ENTRIES = 10_000`), value serialization size (`MAX_VALUE_SIZE_BYTES = 65_536`), and unique key storage (`MAX_STORE_KEYS = 100_000`) (MED-03, LOW-01).
+- **Metrics Backdoor Safeguard**: Restricts metrics simulation methods (`set_simulated_cpu_load`, `set_simulated_memory`) to `#[cfg(test)]` (MED-01).
 
 
 

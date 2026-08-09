@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.17.0 Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.17.1-audit Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — Release v2.17.0
+## 🎯 AI-Readiness Benchmark — Release v2.17.1-audit
 
 KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
 generating `.nod` programs, your output can be tested against 20 standardised tasks.
@@ -18,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.17.0** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Distributed CRDT Key-Value Storage & Peer State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Distributed Task Queue (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing), HMAC-SHA256 mesh authentication (`check_mesh_auth`), constant-time token comparison, `MAX_PEERS_LIMIT = 256`, `MAX_STACK_DEPTH = 4096`, parallelized gossip cycle, Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
+**Current Engine Version: v2.17.1-audit** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing), HMAC-SHA256 mesh authentication (`check_mesh_auth`), constant-time token comparison, `MAX_PEERS_LIMIT = 256`, `MAX_STACK_DEPTH = 4096`, parallelized gossip cycle, Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -536,6 +536,32 @@ Exchanges and merges an array of CRDT entries with a peer node using LWW conflic
   "id": 3
 }
 ```
+
+---
+
+## Sprint 322: Security Audit Rectification & Deep Hardening (v2.17.1-audit)
+
+Sprint 322 resolves 1 CRITICAL, 2 HIGH, 3 MEDIUM, and 2 LOW findings from the external security audit:
+
+### 1. CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`)
+- Prevents LWW-Poisoning by rejecting any entry whose timestamp is more than 300 seconds (5 minutes) in the future.
+- Applied in `knc_store_put`, `MeshKvStore::put`, and `MeshKvStore::sync`.
+
+### 2. Task Queue Bounds & Garbage Collection (`MAX_TASK_QUEUE_DEPTH = 10_000`)
+- Protects against OOM-DoS by enforcing a strict capacity limit of 10,000 tasks in `TaskDispatcher::submit`.
+- `TaskDispatcher::gc_completed()` automatically purges terminated (`Completed`, `Cancelled`, `Failed`) tasks when queue pressure is detected.
+
+### 3. Mesh Auth Enforcement
+- `check_mesh_auth` is now enforced across all task and store RPC endpoints: `knc_task_submit`, `knc_task_status`, `knc_task_cancel`, and `knc_store_get`.
+
+### 4. HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`)
+- Request timestamps in signed HMAC requests must be within a 60-second sliding window (`now - 60 <= timestamp <= now + 300`).
+
+### 5. Store & Sync Resource Bounds
+- `MAX_SYNC_ENTRIES = 10_000`: `knc_store_sync` rejects batches with more than 10,000 entries.
+- `MAX_VALUE_SIZE_BYTES = 65_536`: Rejects store entries with JSON values exceeding 64KB.
+- `MAX_STORE_KEYS = 100_000`: Caps maximum unique keys stored in `MeshKvStore`.
+- Test-only simulation methods (`set_simulated_cpu_load`, `set_simulated_memory`) secured with `#[cfg(test)]`.
 
 ---
 

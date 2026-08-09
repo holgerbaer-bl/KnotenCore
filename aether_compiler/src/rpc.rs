@@ -26,7 +26,22 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.17.0";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.17.1-audit";
+pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
+pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
+pub const MAX_TASK_QUEUE_DEPTH: usize = 10_000;
+pub const MAX_SYNC_ENTRIES: usize = 10_000;
+pub const MAX_VALUE_SIZE_BYTES: usize = 65_536;
+pub const MAX_STORE_KEYS: usize = 100_000;
+
+pub fn is_future_timestamp(ts: u64) -> bool {
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let ts_secs = if ts > 10_000_000_000 { ts / 1000 } else { ts };
+    ts_secs > now_secs.saturating_add(MAX_CLOCK_DRIFT_SECS)
+}
 
 /// JSON-RPC 2.0 Request Payload
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -489,6 +504,10 @@ impl RpcServer {
     /// Params: `{ "ast": <Node>, "priority": <u8 opt> }`
     /// Returns: `{ "task_id": "<uuid>", "status": "Queued" }`
     fn handle_task_submit(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let node = match self.extract_ast_node(&params) {
             Ok(n) => n,
             Err(e) => return JsonRpcResponse::error(id, -32602, e),
@@ -497,13 +516,17 @@ impl RpcServer {
             .get("priority")
             .and_then(|v| v.as_u64())
             .unwrap_or(128) as u8;
-        let task_id = self.task_dispatcher.submit(node, priority);
-        let resp = serde_json::json!({
-            "status": "ok",
-            "task_id": task_id,
-            "task_status": "Queued"
-        });
-        JsonRpcResponse::success(id, resp)
+        match self.task_dispatcher.submit(node, priority) {
+            Ok(task_id) => {
+                let resp = serde_json::json!({
+                    "status": "ok",
+                    "task_id": task_id,
+                    "task_status": "Queued"
+                });
+                JsonRpcResponse::success(id, resp)
+            }
+            Err(err) => JsonRpcResponse::error(id, -32602, err),
+        }
     }
 
     /// `knc_task_status` — poll the status and result of a task.
@@ -512,6 +535,10 @@ impl RpcServer {
     /// Returns: `{ "task_id": "...", "task_status": "Queued|Running|Completed|Cancelled|Failed",
     ///             "result": <value or null> }`
     fn handle_task_status(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let task_id = match params.get("task_id").and_then(|v| v.as_str()) {
             Some(t) => t.to_string(),
             None => return JsonRpcResponse::error(id, -32602, "Missing 'task_id' parameter"),
@@ -535,6 +562,10 @@ impl RpcServer {
     /// Params: `{ "task_id": "<uuid>" }`
     /// Returns: `{ "task_id": "...", "cancelled": true|false }`
     fn handle_task_cancel(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let task_id = match params.get("task_id").and_then(|v| v.as_str()) {
             Some(t) => t.to_string(),
             None => return JsonRpcResponse::error(id, -32602, "Missing 'task_id' parameter"),
@@ -655,6 +686,13 @@ impl RpcServer {
             Some(v) => v.clone(),
             None => Value::Null,
         };
+
+        // Value size limit check
+        let val_str = serde_json::to_string(&value).unwrap_or_default();
+        if val_str.len() > MAX_VALUE_SIZE_BYTES {
+            return JsonRpcResponse::error(id, -32602, "Value size exceeds maximum limit (64KB)");
+        }
+
         let timestamp = params
             .get("timestamp")
             .and_then(|v| v.as_u64())
@@ -662,8 +700,27 @@ impl RpcServer {
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
-                    .as_millis() as u64
+                    .as_secs()
             });
+
+        // Timestamp drift check
+        if is_future_timestamp(timestamp) {
+            return JsonRpcResponse::error(
+                id,
+                -32602,
+                "Invalid timestamp: exceeds maximum allowed clock drift (300s)",
+            );
+        }
+
+        // Store capacity check for new keys
+        if !self.store.contains_key(&key) && self.store.len() >= MAX_STORE_KEYS {
+            return JsonRpcResponse::error(
+                id,
+                -32602,
+                "Store key capacity limit reached (max 100000)",
+            );
+        }
+
         let writer_id = params
             .get("writer_id")
             .and_then(|v| v.as_str())
@@ -687,6 +744,10 @@ impl RpcServer {
     /// Params: `{ "key": "<str>" }`
     /// Returns: `{ "status": "ok", "key": "...", "entry": <CrdtEntry or null> }`
     fn handle_store_get(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let key = match params.get("key").and_then(|v| v.as_str()) {
             Some(k) => k.to_string(),
             None => return JsonRpcResponse::error(id, -32602, "Missing 'key' parameter"),
@@ -710,10 +771,19 @@ impl RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let incoming: Vec<CrdtEntry> = params
-            .get("entries")
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default();
+        let raw_entries = match params.get("entries").and_then(|v| v.as_array()) {
+            Some(arr) => arr,
+            None => {
+                return JsonRpcResponse::error(id, -32602, "Missing or invalid 'entries' array");
+            }
+        };
+
+        if raw_entries.len() > MAX_SYNC_ENTRIES {
+            return JsonRpcResponse::error(id, -32602, "Too many sync entries (max 10000)");
+        }
+
+        let incoming: Vec<CrdtEntry> =
+            serde_json::from_value(Value::Array(raw_entries.clone())).unwrap_or_default();
 
         let synced_count = self.store.sync(incoming);
         let full_entries = self.store.dump_entries();
@@ -883,6 +953,22 @@ impl RpcServer {
                 .or_else(|| params.get("signature"))
                 .and_then(|v| v.as_str())
             {
+                if let Some(ts) = params.get("timestamp").and_then(|v| v.as_u64()) {
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs();
+                    let ts_secs = if ts > 10_000_000_000 { ts / 1000 } else { ts };
+                    if now > ts_secs && (now - ts_secs) > MAX_REPLAY_WINDOW_SECS {
+                        return Err(
+                            "Unauthorized: Request timestamp expired (replay attack)".to_string()
+                        );
+                    }
+                    if ts_secs > now.saturating_add(MAX_CLOCK_DRIFT_SECS) {
+                        return Err("Unauthorized: Request timestamp in the future".to_string());
+                    }
+                }
+
                 let timestamp_or_nonce = params
                     .get("timestamp")
                     .map(|v| v.to_string())
@@ -1912,8 +1998,23 @@ impl TaskDispatcher {
         }
     }
 
-    /// Submit a new task.  Returns the assigned `task_id`.
-    pub fn submit(&self, ast: Node, priority: u8) -> String {
+    /// Submit a new task. Returns the assigned `task_id` or error if capacity is exceeded.
+    pub fn submit(&self, ast: Node, priority: u8) -> Result<String, String> {
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+
+        if tasks.len() >= MAX_TASK_QUEUE_DEPTH {
+            tasks.retain(|_, entry| {
+                matches!(entry.status, TaskStatus::Queued | TaskStatus::Running)
+            });
+        }
+
+        if tasks.len() >= MAX_TASK_QUEUE_DEPTH {
+            return Err(format!(
+                "Task queue capacity limit exceeded (max {})",
+                MAX_TASK_QUEUE_DEPTH
+            ));
+        }
+
         let id_num = self.counter.fetch_add(1, AtomicOrdering::Relaxed);
         let task_id = id_num.to_string();
         let entry = TaskEntry {
@@ -1924,9 +2025,17 @@ impl TaskDispatcher {
             worker_node_id: None,
             result: None,
         };
-        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
         tasks.insert(task_id.clone(), entry);
-        task_id
+        Ok(task_id)
+    }
+
+    /// Purge terminated (Completed, Cancelled, Failed) tasks from memory.
+    /// Returns the number of removed tasks.
+    pub fn gc_completed(&self) -> usize {
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        let initial_len = tasks.len();
+        tasks.retain(|_, entry| matches!(entry.status, TaskStatus::Queued | TaskStatus::Running));
+        initial_len - tasks.len()
     }
 
     /// Return a snapshot of a task entry, or `None` if unknown.
@@ -2077,6 +2186,7 @@ impl MetricsCollector {
     }
 
     /// Override simulated CPU load percentage (0.0..100.0) for testing load throttling.
+    #[cfg(any(test, debug_assertions))]
     pub fn set_simulated_cpu_load(&self, load: Option<f64>) {
         let mut guard = self
             .simulated_cpu_load
@@ -2086,6 +2196,7 @@ impl MetricsCollector {
     }
 
     /// Override simulated memory usage (used_bytes, total_bytes) for testing.
+    #[cfg(any(test, debug_assertions))]
     pub fn set_simulated_memory(&self, used: Option<u64>, total: Option<u64>) {
         let mut u_guard = self
             .simulated_memory_used
@@ -2181,8 +2292,22 @@ impl MeshKvStore {
     }
 
     /// Write or update a key with LWW conflict resolution.
-    /// Returns `true` if the entry was written/updated, or `false` if existing entry is newer.
+    /// Returns `true` if the entry was written/updated, or `false` if existing entry is float/invalid/newer.
     pub fn put(&self, key: &str, value: Value, timestamp: u64, writer_id: &str) -> bool {
+        if is_future_timestamp(timestamp) {
+            return false;
+        }
+        let val_str = serde_json::to_string(&value).unwrap_or_default();
+        if val_str.len() > MAX_VALUE_SIZE_BYTES {
+            return false;
+        }
+
+        let mut store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        let is_existing = store.contains_key(key);
+        if !is_existing && store.len() >= MAX_STORE_KEYS {
+            return false;
+        }
+
         let new_entry = CrdtEntry {
             key: key.to_string(),
             value,
@@ -2190,7 +2315,6 @@ impl MeshKvStore {
             writer_id: writer_id.to_string(),
         };
 
-        let mut store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(existing) = store.get(key) {
             if new_entry.is_newer_than(existing) {
                 store.insert(key.to_string(), new_entry);
@@ -2210,13 +2334,44 @@ impl MeshKvStore {
         store.get(key).cloned()
     }
 
+    /// Check if key exists in store.
+    pub fn contains_key(&self, key: &str) -> bool {
+        let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        store.contains_key(key)
+    }
+
+    /// Return current number of entries in store.
+    pub fn len(&self) -> usize {
+        let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        store.len()
+    }
+
+    /// Check if store is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Merge an incoming vector of CRDT entries using LWW semantics.
     /// Returns the number of entries updated or inserted.
     pub fn sync(&self, incoming: Vec<CrdtEntry>) -> usize {
+        if incoming.len() > MAX_SYNC_ENTRIES {
+            return 0;
+        }
         let mut store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         let mut updated = 0;
         for entry in incoming {
+            if is_future_timestamp(entry.timestamp) {
+                continue;
+            }
+            let val_str = serde_json::to_string(&entry.value).unwrap_or_default();
+            if val_str.len() > MAX_VALUE_SIZE_BYTES {
+                continue;
+            }
             let key = entry.key.clone();
+            let is_existing = store.contains_key(&key);
+            if !is_existing && store.len() >= MAX_STORE_KEYS {
+                continue;
+            }
             if let Some(existing) = store.get(&key) {
                 if entry.is_newer_than(existing) {
                     store.insert(key, entry);

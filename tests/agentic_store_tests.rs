@@ -277,6 +277,83 @@ fn test_handshake_advertises_crdt_store_capabilities() {
     assert!(caps["peer_state_sync"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.17.0"
+        "v2.17.1-audit"
     );
+}
+
+#[test]
+fn test_store_rejects_future_u64_max_timestamp() {
+    let server = make_server("timestamp-node");
+    let req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_put",
+        "params": {
+            "key": "poison_key",
+            "value": "poison_val",
+            "timestamp": u64::MAX,
+            "writer_id": "attacker"
+        },
+        "id": 1
+    })
+    .to_string();
+
+    let raw = server.dispatch_request(&req);
+    let resp = parse_response(&raw);
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, -32602);
+}
+
+#[test]
+fn test_store_rejects_unauth_get() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "authed-node",
+        "127.0.0.1:0",
+        Some("secret-key".to_string()),
+    );
+    let req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_get",
+        "params": { "key": "secret" },
+        "id": 1
+    })
+    .to_string();
+
+    let raw = server.dispatch_request(&req);
+    let resp = parse_response(&raw);
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, -32001);
+}
+
+#[test]
+fn test_mesh_auth_replay_attack_protection() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "replay-node",
+        "127.0.0.1:0",
+        Some("secret-token".to_string()),
+    );
+
+    let old_ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        - 120;
+
+    let req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_get",
+        "params": {
+            "key": "secret",
+            "timestamp": old_ts,
+            "signature": "dummy_sig"
+        },
+        "id": 1
+    })
+    .to_string();
+
+    let raw = server.dispatch_request(&req);
+    let resp = parse_response(&raw);
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, -32001);
 }

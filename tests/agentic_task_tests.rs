@@ -232,7 +232,7 @@ fn test_task_cancel_unknown_task_returns_not_cancelled() {
 #[test]
 fn test_cancel_already_running_task_is_idempotent() {
     let dispatcher = TaskDispatcher::new();
-    let task_id = dispatcher.submit(Node::IntLiteral(5), 128);
+    let task_id = dispatcher.submit(Node::IntLiteral(5), 128).unwrap();
 
     // Simulate the task being picked up
     assert!(dispatcher.mark_running(&task_id, "worker-1"));
@@ -323,9 +323,9 @@ fn test_work_steal_respects_priority_order() {
     let dispatcher = Arc::new(TaskDispatcher::new());
 
     // Submit tasks with varying priority (lower = higher urgency)
-    let id_low = dispatcher.submit(Node::IntLiteral(1), 255); // lowest priority
-    let id_high = dispatcher.submit(Node::IntLiteral(2), 0); // highest priority
-    let id_mid = dispatcher.submit(Node::IntLiteral(3), 128); // medium priority
+    let id_low = dispatcher.submit(Node::IntLiteral(1), 255).unwrap(); // lowest priority
+    let id_high = dispatcher.submit(Node::IntLiteral(2), 0).unwrap(); // highest priority
+    let id_mid = dispatcher.submit(Node::IntLiteral(3), 128).unwrap(); // medium priority
 
     let stolen = dispatcher.steal(2, "priority-worker");
     assert_eq!(stolen.len(), 2);
@@ -376,7 +376,7 @@ fn test_work_steal_auth_required_on_authed_server() {
 #[test]
 fn test_dispatcher_submit_and_status() {
     let d = TaskDispatcher::new();
-    let id = d.submit(Node::BoolLiteral(true), 0);
+    let id = d.submit(Node::BoolLiteral(true), 0).unwrap();
     let entry = d.status(&id).unwrap();
     assert_eq!(entry.status, TaskStatus::Queued);
     assert_eq!(entry.priority, 0);
@@ -386,7 +386,7 @@ fn test_dispatcher_submit_and_status() {
 #[test]
 fn test_dispatcher_complete_sets_result() {
     let d = TaskDispatcher::new();
-    let id = d.submit(Node::IntLiteral(42), 128);
+    let id = d.submit(Node::IntLiteral(42), 128).unwrap();
     d.mark_running(&id, "test-worker");
     d.complete(&id, serde_json::json!({"value": 42}));
 
@@ -398,7 +398,7 @@ fn test_dispatcher_complete_sets_result() {
 #[test]
 fn test_dispatcher_fail_sets_error_message() {
     let d = TaskDispatcher::new();
-    let id = d.submit(Node::IntLiteral(0), 128);
+    let id = d.submit(Node::IntLiteral(0), 128).unwrap();
     d.mark_running(&id, "fault-worker");
     d.fail(&id, "Division by zero");
 
@@ -411,10 +411,10 @@ fn test_dispatcher_fail_sets_error_message() {
 fn test_dispatcher_stats_counts_correctly() {
     let d = TaskDispatcher::new();
 
-    let id1 = d.submit(Node::IntLiteral(1), 0);
-    let id2 = d.submit(Node::IntLiteral(2), 0);
-    let id3 = d.submit(Node::IntLiteral(3), 0);
-    let _id4 = d.submit(Node::IntLiteral(4), 0);
+    let id1 = d.submit(Node::IntLiteral(1), 0).unwrap();
+    let id2 = d.submit(Node::IntLiteral(2), 0).unwrap();
+    let id3 = d.submit(Node::IntLiteral(3), 0).unwrap();
+    let _id4 = d.submit(Node::IntLiteral(4), 0).unwrap();
 
     d.cancel(&id1);
     d.mark_running(&id2, "w");
@@ -434,7 +434,7 @@ fn test_dispatcher_stats_counts_correctly() {
 #[test]
 fn test_dispatcher_steal_max_zero_returns_empty() {
     let d = TaskDispatcher::new();
-    d.submit(Node::IntLiteral(1), 0);
+    d.submit(Node::IntLiteral(1), 0).unwrap();
     let stolen = d.steal(0, "w");
     assert!(stolen.is_empty());
 }
@@ -462,6 +462,60 @@ fn test_handshake_advertises_task_queue_and_work_stealing() {
     assert_eq!(caps["work_stealing"].as_bool(), Some(true));
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.17.0"
+        "v2.17.1-audit"
     );
+}
+
+#[test]
+fn test_task_queue_limit_rejection() {
+    let dispatcher = TaskDispatcher::new();
+    for i in 0..10_000 {
+        dispatcher.submit(Node::IntLiteral(i), 128).unwrap();
+    }
+    let res = dispatcher.submit(Node::IntLiteral(10001), 128);
+    assert!(res.is_err());
+    assert!(res.unwrap_err().contains("capacity limit exceeded"));
+}
+
+#[test]
+fn test_task_submit_cancel_status_auth_enforcement() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "task-auth-node",
+        "127.0.0.1:0",
+        Some("task-secret".to_string()),
+    );
+
+    let req_submit = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_task_submit",
+        "params": { "ast": { "IntLiteral": 42 } },
+        "id": 1
+    })
+    .to_string();
+    let resp = parse_response(&server.dispatch_request(&req_submit));
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, -32001);
+
+    let req_status = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_task_status",
+        "params": { "task_id": "1" },
+        "id": 2
+    })
+    .to_string();
+    let resp = parse_response(&server.dispatch_request(&req_status));
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, -32001);
+
+    let req_cancel = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_task_cancel",
+        "params": { "task_id": "1" },
+        "id": 3
+    })
+    .to_string();
+    let resp = parse_response(&server.dispatch_request(&req_cancel));
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, -32001);
 }
