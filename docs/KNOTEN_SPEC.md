@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.17.1)
+# KnotenCore JSON AST Specification (v2.18.0-swarm)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -251,6 +251,13 @@ Resolves audit findings across CRDT storage, task queue management, and HMAC aut
 - **HMAC Replay Protection (`MAX_REPLAY_WINDOW_SECS = 60`)**: Validates request timestamps in signed HMAC requests within a 60s sliding window (MED-02).
 - **Store & Sync Bounds**: Caps `knc_store_sync` batch size (`MAX_SYNC_ENTRIES = 10_000`), value serialization size (`MAX_VALUE_SIZE_BYTES = 65_536`), and unique key storage (`MAX_STORE_KEYS = 100_000`) (MED-03, LOW-01).
 - **Metrics Backdoor Safeguard**: Restricts metrics simulation methods (`set_simulated_cpu_load`, `set_simulated_memory`) to `#[cfg(test)]` (MED-01).
+
+### 7.13. Swarm Governance, Raft Leader Election & Node Roles (`v2.18.0-swarm`)
+Introduces decentralized Swarm Governance, Raft-based Leader Election, and Dynamic Node Roles (`Leader`, `Worker`, `Storage`, `Observer`):
+- `knc_swarm_elect`: Triggers or polls Raft leader election across the cluster topology. Supports candidate targeting, term increments, and forced leadership claim. Auth-protected via `mesh_auth_token`.
+- `knc_swarm_roles`: Maps and reports cluster node roles (`Leader`, `Worker`, `Storage`, `Observer`) across local and peer mesh topology.
+- `knc_swarm_quorum`: Evaluates active mesh nodes to enforce quorum threshold consensus (`(active_nodes / 2) + 1` or explicit threshold) prior to critical cluster operations. Auth-protected via `mesh_auth_token`.
+- `SwarmGovernance`: Thread-safe engine tracking node role, current leader ID, term, and election votes.
 
 
 

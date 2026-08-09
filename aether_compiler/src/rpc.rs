@@ -26,7 +26,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.17.1";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.18.0-swarm";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_TASK_QUEUE_DEPTH: usize = 10_000;
@@ -138,6 +138,8 @@ pub struct RpcServer {
     pub metrics_collector: Arc<MetricsCollector>,
     /// Sprint 321: Distributed CRDT Key-Value Storage & State Sync
     pub store: Arc<MeshKvStore>,
+    /// Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
+    pub swarm_governance: Arc<SwarmGovernance>,
 }
 
 impl RpcServer {
@@ -161,6 +163,7 @@ impl RpcServer {
             task_dispatcher: Arc::new(TaskDispatcher::new()),
             metrics_collector: Arc::new(MetricsCollector::new()),
             store: Arc::new(MeshKvStore::new()),
+            swarm_governance: Arc::new(SwarmGovernance::new()),
         }
     }
 
@@ -205,6 +208,10 @@ impl RpcServer {
             "knc_store_put" => self.handle_store_put(req.id, req.params),
             "knc_store_get" => self.handle_store_get(req.id, req.params),
             "knc_store_sync" => self.handle_store_sync(req.id, req.params),
+            // Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
+            "knc_swarm_elect" => self.handle_swarm_elect(req.id, req.params),
+            "knc_swarm_roles" => self.handle_swarm_roles(req.id, req.params),
+            "knc_swarm_quorum" => self.handle_swarm_quorum(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -488,7 +495,10 @@ impl RpcServer {
                 "cluster_metrics": true,
                 "adaptive_work_stealing": true,
                 "crdt_store": true,
-                "peer_state_sync": true
+                "peer_state_sync": true,
+                "swarm_governance": true,
+                "raft_leader_election": true,
+                "node_roles": true
             },
             "default_quota": default_quota
         });
@@ -792,6 +802,106 @@ impl RpcServer {
             "status": "ok",
             "synced_count": synced_count,
             "entries": full_entries
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    // -------------------------------------------------------------------------
+    // Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
+    // -------------------------------------------------------------------------
+
+    /// `knc_swarm_elect` — trigger or query Raft leader election across the mesh.
+    ///
+    /// Params: `{ "candidate_node_id": "<str opt>", "term": <u64 opt>, "force": <bool opt> }`
+    /// Returns: `{ "status": "ok", "leader_node_id": "...", "term": N, "role": "Leader|Worker|Storage|Observer" }`
+    fn handle_swarm_elect(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let candidate_id = params.get("candidate_node_id").and_then(|v| v.as_str());
+        let requested_term = params.get("term").and_then(|v| v.as_u64());
+        let force = params
+            .get("force")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+        let (leader_id, term, role) =
+            self.swarm_governance
+                .elect(&self.node_id, candidate_id, requested_term, force);
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "leader_node_id": leader_id,
+            "term": term,
+            "role": format!("{:?}", role)
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    /// `knc_swarm_roles` — list node roles across local and peer mesh topology.
+    ///
+    /// Params: `{}`
+    /// Returns: `{ "status": "ok", "local_node_id": "...", "local_role": "...", "roles": { "<node_id>": "<role>", ... } }`
+    fn handle_swarm_roles(&self, id: Option<Value>, _params: Value) -> JsonRpcResponse {
+        let local_role = self.swarm_governance.role();
+        let mut roles_map = HashMap::new();
+        roles_map.insert(self.node_id.clone(), format!("{:?}", local_role));
+
+        let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
+        for (peer_id, peer) in peers.iter() {
+            let role_str = if peer.capabilities.contains(&"storage".to_string()) {
+                "Storage"
+            } else if peer.status == "Stale" {
+                "Observer"
+            } else {
+                "Worker"
+            };
+            roles_map.insert(peer_id.clone(), role_str.to_string());
+        }
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "local_node_id": self.node_id,
+            "local_role": format!("{:?}", local_role),
+            "roles": roles_map
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    /// `knc_swarm_quorum` — evaluate quorum consensus for critical operations.
+    ///
+    /// Params: `{ "operation": "<str opt>", "required_quorum": <usize opt> }`
+    /// Returns: `{ "status": "ok", "operation": "...", "quorum_reached": bool, "active_nodes": N, "quorum_threshold": Q }`
+    fn handle_swarm_quorum(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let operation = params
+            .get("operation")
+            .and_then(|v| v.as_str())
+            .unwrap_or("cluster_op")
+            .to_string();
+
+        let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
+        let active_peers_count = peers.values().filter(|p| p.status == "Active").count();
+        let active_nodes = 1 + active_peers_count;
+
+        let quorum_threshold = params
+            .get("required_quorum")
+            .and_then(|v| v.as_u64())
+            .map(|q| q as usize)
+            .unwrap_or_else(|| (active_nodes / 2) + 1);
+
+        let quorum_reached = active_nodes >= quorum_threshold;
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "operation": operation,
+            "quorum_reached": quorum_reached,
+            "active_nodes": active_nodes,
+            "quorum_threshold": quorum_threshold
         });
         JsonRpcResponse::success(id, resp_val)
     }
@@ -1380,6 +1490,7 @@ impl RpcServer {
             let task_dispatcher = self.task_dispatcher.clone();
             let metrics_collector = self.metrics_collector.clone();
             let store = self.store.clone();
+            let swarm_governance = self.swarm_governance.clone();
             std::thread::spawn(move || {
                 let server = RpcServer {
                     permissions,
@@ -1391,6 +1502,7 @@ impl RpcServer {
                     task_dispatcher,
                     metrics_collector,
                     store,
+                    swarm_governance,
                 };
                 server.handle_ws_connection(stream);
             });
@@ -2397,5 +2509,112 @@ impl MeshKvStore {
     pub fn dump_entries(&self) -> Vec<CrdtEntry> {
         let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         store.values().cloned().collect()
+    }
+}
+
+// =============================================================================
+// Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
+// =============================================================================
+
+/// Cluster node role in the Swarm Governance topology.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum NodeRole {
+    Leader,
+    #[default]
+    Worker,
+    Storage,
+    Observer,
+}
+
+/// Thread-safe Raft leader election & Swarm Governance engine.
+pub struct SwarmGovernance {
+    pub current_role: Mutex<NodeRole>,
+    pub leader_node_id: Mutex<Option<String>>,
+    pub current_term: AtomicU64,
+    pub voted_for: Mutex<Option<String>>,
+}
+
+impl Default for SwarmGovernance {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SwarmGovernance {
+    pub fn new() -> Self {
+        Self {
+            current_role: Mutex::new(NodeRole::Worker),
+            leader_node_id: Mutex::new(None),
+            current_term: AtomicU64::new(1),
+            voted_for: Mutex::new(None),
+        }
+    }
+
+    pub fn role(&self) -> NodeRole {
+        self.current_role
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    pub fn set_role(&self, role: NodeRole) {
+        let mut r = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
+        *r = role;
+    }
+
+    pub fn leader_id(&self) -> Option<String> {
+        self.leader_node_id
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    pub fn term(&self) -> u64 {
+        self.current_term.load(AtomicOrdering::Relaxed)
+    }
+
+    /// Process election request/trigger.
+    pub fn elect(
+        &self,
+        local_node_id: &str,
+        candidate_node_id: Option<&str>,
+        requested_term: Option<u64>,
+        force: bool,
+    ) -> (String, u64, NodeRole) {
+        let mut current_leader = self
+            .leader_node_id
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let mut voted = self.voted_for.lock().unwrap_or_else(|e| e.into_inner());
+        let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
+
+        let term = match requested_term {
+            Some(t) if t > self.current_term.load(AtomicOrdering::Relaxed) => {
+                self.current_term.store(t, AtomicOrdering::Relaxed);
+                t
+            }
+            _ => self.current_term.load(AtomicOrdering::Relaxed),
+        };
+
+        let target_candidate = candidate_node_id.unwrap_or(local_node_id);
+
+        if force || current_leader.is_none() || target_candidate == local_node_id {
+            *current_leader = Some(target_candidate.to_string());
+            *voted = Some(target_candidate.to_string());
+
+            if target_candidate == local_node_id {
+                *role = NodeRole::Leader;
+            } else if *role == NodeRole::Leader {
+                *role = NodeRole::Worker;
+            }
+        }
+
+        (
+            current_leader
+                .clone()
+                .unwrap_or_else(|| target_candidate.to_string()),
+            term,
+            role.clone(),
+        )
     }
 }

@@ -2,7 +2,7 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.17.1** · Official Release: Security Hardened CRDT Store & Task Queue
+Current engine version: **v2.18.0-swarm** · Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
 
 ## Done (selected milestones)
 
@@ -16,6 +16,7 @@ Current engine version: **v2.17.1** · Official Release: Security Hardened CRDT 
 - ✅ Cluster Metrics & Adaptive Work-Stealing Protocol (`knc_mesh_metrics`, overload guard CPU >80%, Sprint 320 - v2.16.0-metrics)
 - ✅ Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync`, LWW-Set, Sprint 321 - v2.17.0-store)
 - ✅ Security Audit Rectification & Deep Hardening — official release (CRDT Timestamp Drift Guard, Task Queue Limits & GC, Replay Window Validation, Store & Sync Bounds, v2.17.1)
+- ✅ Swarm Governance, Raft Leader Election & Node Roles (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` Leader/Worker/Storage/Observer topology, Sprint 323 - v2.18.0-swarm)
 - ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)

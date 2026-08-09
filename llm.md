@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.17.1 Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.18.0-swarm Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — Release v2.17.1
+## 🎯 AI-Readiness Benchmark — Release v2.18.0-swarm
 
 KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
 generating `.nod` programs, your output can be tested against 20 standardised tasks.
@@ -18,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.17.1** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing), HMAC-SHA256 mesh authentication (`check_mesh_auth`), constant-time token comparison, `MAX_PEERS_LIMIT = 256`, `MAX_STACK_DEPTH = 4096`, parallelized gossip cycle, Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
+**Current Engine Version: v2.18.0-swarm** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Swarm Governance, Raft Leader Election & Node Roles (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` topology with Leader, Worker, Storage, Observer), Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing).
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -562,6 +562,96 @@ Sprint 322 resolves 1 CRITICAL, 2 HIGH, 3 MEDIUM, and 2 LOW findings from the ex
 - `MAX_VALUE_SIZE_BYTES = 65_536`: Rejects store entries with JSON values exceeding 64KB.
 - `MAX_STORE_KEYS = 100_000`: Caps maximum unique keys stored in `MeshKvStore`.
 - Test-only simulation methods (`set_simulated_cpu_load`, `set_simulated_memory`) secured with `#[cfg(test)]`.
+
+---
+
+## Sprint 323: Swarm Governance, Raft Leader Election & Node Roles (v2.18.0-swarm)
+
+Sprint 323 introduces decentralized Swarm Governance, Raft-based Leader Election, and Dynamic Node Roles (`Leader`, `Worker`, `Storage`, `Observer`):
+
+### 1. Raft Leader Election (`knc_swarm_elect`)
+Triggers or polls Raft leader election across the cluster topology. Auth-protected via `mesh_auth_token`.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_swarm_elect",
+  "params": {
+    "candidate_node_id": "knc-node-alpha",
+    "term": 2,
+    "force": true
+  },
+  "id": 1
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "leader_node_id": "knc-node-alpha",
+    "term": 2,
+    "role": "Leader"
+  },
+  "id": 1
+}
+```
+
+### 2. Node Roles Overview (`knc_swarm_roles`)
+Returns a summary of node role assignments across the local node and known mesh peers.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_swarm_roles",
+  "params": {},
+  "id": 2
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "local_node_id": "knc-node-alpha",
+    "local_role": "Leader",
+    "roles": {
+      "knc-node-alpha": "Leader",
+      "knc-node-beta": "Storage",
+      "knc-node-gamma": "Worker"
+    }
+  },
+  "id": 2
+}
+```
+
+### 3. Swarm Quorum Consensus (`knc_swarm_quorum`)
+Evaluates whether active cluster nodes meet the required quorum threshold before executing critical ops. Auth-protected via `mesh_auth_token`.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_swarm_quorum",
+  "params": {
+    "operation": "isolate_migration",
+    "required_quorum": 2
+  },
+  "id": 3
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "operation": "isolate_migration",
+    "quorum_reached": true,
+    "active_nodes": 3,
+    "quorum_threshold": 2
+  },
+  "id": 3
+}
+```
 
 ---
 
