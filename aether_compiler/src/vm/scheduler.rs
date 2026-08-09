@@ -113,7 +113,7 @@ pub fn try_steal_wasm_work(thief_id: i64) -> Option<(OpCode, Vec<RelType>)> {
     None
 }
 
-// Sprint 299: Distributed Raft Consensus & Autonomous Failover
+// Sprint 299: In-Memory Pseudo-Random Test Harness / Scheduler Simulator (No TCP Sockets)
 #[derive(Debug, Clone, PartialEq)]
 pub enum RaftState {
     Leader,
@@ -121,6 +121,7 @@ pub enum RaftState {
     Candidate,
 }
 
+/// In-Memory Pseudo-Random Test Harness / Scheduler Simulator (No TCP Sockets).
 pub struct RaftCluster {
     pub nodes: Vec<String>,
     pub current_leader: Option<String>,
@@ -151,6 +152,7 @@ impl RaftCluster {
         }
     }
 
+    /// In-Memory Pseudo-Random Test Harness / Scheduler Simulator election logic (No TCP Sockets).
     pub fn start_election(&mut self) {
         self.term += 1;
         self.votes.clear();

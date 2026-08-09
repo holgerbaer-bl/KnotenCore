@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.18.2-raft] - Sprint 326: Scheduler RaftCluster Grounding & Inspector Hardening (2026-08-09)
+Sprint 326 grounds the scheduler test simulator and hardens the WGPU inspector panel:
+- **Scheduler Grounding**: Explicitly documented `RaftCluster` and `start_election()` in `aether_compiler/src/vm/scheduler.rs` as an In-Memory Pseudo-Random Test Harness / Scheduler Simulator without TCP sockets.
+- **Inspector Field Hardening**: Renamed `VMInspectorData::raft_cluster_status` to `scheduler_harness_status` and set its default string to `"n/a (local test harness)"`.
+- **Roadmap & Historical Changelog Footnotes**: Updated `ROADMAP.md` milestone to `In-memory Raft consensus simulator & scheduler harness (Sprint 301)` and added a clarifying footnote to Sprint 302 in `changelog.md`.
+
 ## [v2.18.1] - Official Release: Wire Capability Renaming & Systemic Terminology Sweep (2026-08-09)
 Official Release v2.18.1 delivers wire protocol capability renaming, a systemic codebase terminology sweep, and synchronized versioning:
 - **Wire Protocol Capability Renaming**: Renamed `knc_agent_handshake` capability key from `"raft_leader_election": true` to `"swarm_leadership": true`.
@@ -298,7 +304,7 @@ Sprint 303: Structural refactoring of the god-file `machine.rs` (was 142 KB / 37
 - **Web Reference**: All references point to `https://knotencore.de/`.
 
 ## [v2.1.0] - Sprint 302: True Distributed P2P Raft & Version Sync (2026-06-01)
-Sprint 302: True Distributed P2P Raft & Version Sync. Synchronized root Cargo.toml to version 2.1.0. Implemented socket log replication and decentralized heartbeat timers inside src/vm/scheduler.rs.
+Sprint 302: True Distributed P2P Raft & Version Sync. Synchronized root Cargo.toml to version 2.1.0. Implemented socket log replication and decentralized heartbeat timers inside src/vm/scheduler.rs. *(Klarstellung Sprint 326: RaftCluster fungiert als lokaler In-Memory Scheduler-Test-Harness / Simulator ohne physische TCP-Sockets).*
 - **Version Sync**: Root `Cargo.toml` bumped from 1.1.0 → 2.1.0. All sub-crates and WGPU dashboard badge aligned.
 - **Randomized Election Timers**: `RaftCluster` now uses `rand`-based election timeouts (150–300ms) per node, breaking deterministic leader selection in favor of true distributed consensus.
 - **Network Log Replication**: `replicate_log_entry(entry, peers)` simulates TCP socket replication by pushing ledger entries to all peer cluster queues. `commit_ledger_entry` now requires quorum acknowledgment (> n/2) before marking a state as committed.

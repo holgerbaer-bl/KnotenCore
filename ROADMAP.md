@@ -2,7 +2,7 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.18.1** · Official Release: Wire Capability Renaming & Systemic Terminology Sweep
+Current engine version: **v2.18.2-raft** · Sprint 326: Scheduler RaftCluster Grounding & Inspector Hardening
 
 ## Done (selected milestones)
 
@@ -30,7 +30,7 @@ Current engine version: **v2.18.1** · Official Release: Wire Capability Renamin
 - ✅ Multi-threaded VM Isolates + work-stealing scheduler
 - ✅ Cross-node isolate migration (binary snapshot → network → resume)
 - ✅ P2P Mesh-Bus distributed pub/sub
-- ✅ Swarm Governance consensus (local role management, leadership claim, failover)
+- ✅ In-memory Raft consensus simulator & scheduler harness (Sprint 301)
 - ✅ WASM-bindgen CI gates
 - ✅ C-ABI facade + Python/Node.js bindings
 - ✅ Language Server (tower-lsp) with real-time diagnostics

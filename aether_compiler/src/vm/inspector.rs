@@ -61,7 +61,7 @@ pub struct VMInspectorData {
     pub ledger_nonce: u64,
     pub global_count: usize,
     pub active_isolates: usize,
-    pub raft_cluster_status: String,
+    pub scheduler_harness_status: String,
 }
 
 /// Global live inspection state — written every instruction when `VM::is_inspectable`.
@@ -154,6 +154,6 @@ pub fn build_inspector_data(
         ledger_nonce: get_ledger_nonce(),
         global_count: globals_len,
         active_isolates,
-        raft_cluster_status: "v2.1.0 Stable".to_string(),
+        scheduler_harness_status: "n/a (local test harness)".to_string(),
     }
 }

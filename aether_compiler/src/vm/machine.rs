@@ -4007,8 +4007,8 @@ mod tests {
         vm.crypto_state_hash = 0xDEAD;
         let data = vm.inspect();
         assert_eq!(
-            data.raft_cluster_status, "v2.1.0 Stable",
-            "Dashboard must show v2.1.0 Stable badge"
+            data.scheduler_harness_status, "n/a (local test harness)",
+            "Dashboard must show local test harness status"
         );
         assert!(
             data.crypto_state_hash > 0,
