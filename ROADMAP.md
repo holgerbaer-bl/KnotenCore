@@ -2,7 +2,7 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.18.2-raft** · Sprint 326: Scheduler RaftCluster Grounding & Inspector Hardening
+Current engine version: **v2.18.2** · Official Release: Grounded Swarm Governance & Scheduler Simulator Hardening
 
 ## Done (selected milestones)
 

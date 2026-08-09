@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.18.2] - Official Release: Grounded Swarm Governance & Scheduler Simulator Hardening (2026-08-09)
+Official Release v2.18.2 delivers grounded Swarm Governance terminology, scheduler harness clarification, and inspector telemetry hardening:
+- **Local Swarm Leadership Primitives**: Wire protocol capability `swarm_leadership` exposes Phase 1 local node state management and leadership claim primitives.
+- **RaftCluster Scheduler Simulator Grounding**: Explicitly documented `RaftCluster` in `aether_compiler/src/vm/scheduler.rs` as an in-memory pseudo-random scheduler test harness without physical TCP sockets.
+- **Inspector Telemetry Hardening**: Renamed `VMInspectorData::raft_cluster_status` to `scheduler_harness_status` set to `"n/a (local test harness)"` for complete transparency in telemetry tools.
+- **Grounding Transparency & Roadmap Sync**: Updated historical changelog notes and `ROADMAP.md` entries, synchronizing version `v2.18.2` across all documentation and testing gates.
+
 ## [v2.18.2-raft] - Sprint 326: Scheduler RaftCluster Grounding & Inspector Hardening (2026-08-09)
 Sprint 326 grounds the scheduler test simulator and hardens the WGPU inspector panel:
 - **Scheduler Grounding**: Explicitly documented `RaftCluster` and `start_election()` in `aether_compiler/src/vm/scheduler.rs` as an In-Memory Pseudo-Random Test Harness / Scheduler Simulator without TCP sockets.
