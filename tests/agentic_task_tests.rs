@@ -349,8 +349,20 @@ fn test_work_steal_respects_priority_order() {
 fn test_work_steal_auth_required_on_authed_server() {
     let server = make_authed_server("secret-mesh-key");
 
-    // Submit a task first (submit has no auth guard)
-    submit_int_task(&server, 0);
+    // Submit a task with auth token
+    let submit_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_task_submit",
+        "params": {
+            "ast": { "IntLiteral": 0 },
+            "mesh_auth_token": "secret-mesh-key"
+        },
+        "id": 1
+    })
+    .to_string();
+    let raw_sub = server.dispatch_request(&submit_req);
+    let resp_sub = parse_response(&raw_sub);
+    assert!(resp_sub.error.is_none());
 
     // Steal without auth token → must be rejected
     let steal_req = serde_json::json!({
