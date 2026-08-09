@@ -232,10 +232,10 @@ fn test_handshake_advertises_swarm_governance() {
 
     let caps = result_field(&resp, "capabilities");
     assert!(caps["swarm_governance"].as_bool().unwrap());
-    assert!(caps["raft_leader_election"].as_bool().unwrap());
+    assert!(caps["swarm_leadership"].as_bool().unwrap());
     assert!(caps["node_roles"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.18.1-swarm"
+        "v2.18.1"
     );
 }

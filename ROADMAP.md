@@ -2,7 +2,7 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.18.1-swarm** · Sprint 324: Swarm Governance Terminology Refinement & Grounding
+Current engine version: **v2.18.1** · Official Release: Wire Capability Renaming & Systemic Terminology Sweep
 
 ## Done (selected milestones)
 
@@ -16,8 +16,9 @@ Current engine version: **v2.18.1-swarm** · Sprint 324: Swarm Governance Termin
 - ✅ Cluster Metrics & Adaptive Work-Stealing Protocol (`knc_mesh_metrics`, overload guard CPU >80%, Sprint 320 - v2.16.0-metrics)
 - ✅ Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync`, LWW-Set, Sprint 321 - v2.17.0-store)
 - ✅ Security Audit Rectification & Deep Hardening — official release (CRDT Timestamp Drift Guard, Task Queue Limits & GC, Replay Window Validation, Store & Sync Bounds, v2.17.1)
-- ✅ Swarm Governance, Raft Leader Election & Grounded Documentation — official release (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` Leader/Worker/Storage/Observer topology, v2.18.0)
+- ✅ Swarm Governance & Grounded Documentation — official release (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` Leader/Worker/Storage/Observer topology, v2.18.0)
 - ✅ Swarm Governance Terminology Refinement & Grounding (Local Swarm Role Management & Leadership Claim Primitives Phase 1, `knc_swarm_elect` local state management, Sprint 324 - v2.18.1-swarm)
+- ✅ Wire Capability Renaming & Systemic Terminology Sweep — official release (`swarm_leadership` capability, systemic sweep, v2.18.1)
 - ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)
@@ -29,7 +30,7 @@ Current engine version: **v2.18.1-swarm** · Sprint 324: Swarm Governance Termin
 - ✅ Multi-threaded VM Isolates + work-stealing scheduler
 - ✅ Cross-node isolate migration (binary snapshot → network → resume)
 - ✅ P2P Mesh-Bus distributed pub/sub
-- ✅ Raft consensus (leader election, quorum commit, failover)
+- ✅ Swarm Governance consensus (local role management, leadership claim, failover)
 - ✅ WASM-bindgen CI gates
 - ✅ C-ABI facade + Python/Node.js bindings
 - ✅ Language Server (tower-lsp) with real-time diagnostics

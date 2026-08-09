@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.18.1] - Official Release: Wire Capability Renaming & Systemic Terminology Sweep (2026-08-09)
+Official Release v2.18.1 delivers wire protocol capability renaming, a systemic codebase terminology sweep, and synchronized versioning:
+- **Wire Protocol Capability Renaming**: Renamed `knc_agent_handshake` capability key from `"raft_leader_election": true` to `"swarm_leadership": true`.
+- **Systemic Repository Sweep**: Purged all remaining misleading Raft references across `aether_compiler/src/rpc.rs`, `README.md`, `llm.md`, `ROADMAP.md`, and integration test suites, unifying terminology around `Swarm Governance` and `Local Swarm Leadership Primitives`.
+- **Workspace & Protocol Version Alignment**: Synchronized root `Cargo.toml` (`version = "2.18.1"`), `aether_compiler/src/rpc.rs` (`KNC_PROTOCOL_VERSION = "v2.18.1"`), `README.md` (Option 1 badges), `llm.md`, `ROADMAP.md`, `docs/KNOTEN_SPEC.md`, and test assertions across all integration test suites.
+
 ## [v2.18.1-swarm] - Sprint 324: Swarm Governance Terminology Refinement & Grounding (2026-08-09)
 Sprint 324 refines and grounds the Swarm Governance terminology across all code, tests, and documentation gates:
 - **Terminology Refinement**: Replaced imprecise "Raft Leader Election" framing with `"Local Swarm Role Management & Leadership Claim Primitives (Phase 1)"`.

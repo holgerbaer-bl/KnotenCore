@@ -1,9 +1,9 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.18.1--swarm-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.18.1-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-281%2F281-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.18.1--swarm-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Release](https://img.shields.io/badge/release-v2.18.1-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -113,10 +113,10 @@ KnotenCore features a dual JIT/AOT engine architecture. On a computationally dem
 * **Schema Synchronization (v1.7.6):** Synchronized front-end AST JSON schemas with core VM engine capabilities. Formally integrated native declarations for GPGPU pipelines, asynchronous multi-node isolate spawning, and real-time audio synthesis.
 * **WGPU Live Inspector (v1.7.7):** Integrated an interactive live GUI debugger panel leveraging egui. Real-time visualization of VM stack depths, call frames, registers, and cryptographic ledger states during execution.
 * **P2P Mesh-Bus Routing (v1.7.8):** Expanded the virtual shared-memory bus architecture into a fully decentralized peer-to-peer routing fabric. Enables multi-node isolate communication via zero-broker distributed pub-sub topologies.
-* **Distributed Raft Consensus (v1.7.9):** Integrated a lightweight, decentralized consensus layer mapped directly to the cryptographic state ledger. Enables autonomous cluster leader election and sub-millisecond isolate failover migration upon node partitioning.
-* **Production Release (v2.0.0):** KnotenCore reaches full production stability. Hardened the distributed Raft consensus layer and exposed a locked, stable WGPU telemetry dashboard for enterprise edge runtimes.
+* **Distributed Swarm Governance Consensus (v1.7.9):** Integrated a lightweight, decentralized consensus layer mapped directly to the cryptographic state ledger. Enables autonomous cluster leader election and sub-millisecond isolate failover migration upon node partitioning.
+* **Production Release (v2.0.0):** KnotenCore reaches full production stability. Hardened the distributed Swarm Governance consensus layer and exposed a locked, stable WGPU telemetry dashboard for enterprise edge runtimes.
 * **Compiler Realignment (v2.1.0):** Fully implemented missing graphical and mathematical AST nodes (Transform2D, DrawRect, Sin, Cos). Fixed WGPU pipeline binding mismatches and recalibrated the runtime loop watchdog.
-* **True Distributed Raft (v2.1.0):** Fully synchronized Cargo workspace versions. Extended the scheduler with real socket-based P2P log replication and randomized network election timers. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+* **True Distributed Swarm Consensus (v2.1.0):** Fully synchronized Cargo workspace versions. Extended the scheduler with real socket-based P2P log replication and randomized network election timers. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
 
 ---
 

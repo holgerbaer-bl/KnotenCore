@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.18.1-swarm Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.18.1 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.18.1-swarm)
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.18.1)
 
 > Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 
@@ -20,7 +20,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.18.1-swarm** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1) (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` topology with Leader, Worker, Storage, Observer), Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing).
+**Current Engine Version: v2.18.1** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1) (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` topology with Leader, Worker, Storage, Observer), Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing).
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -125,10 +125,10 @@ JSON-AST (.nod)  →  Parser  →  AST (Node enum)
 - **AST Pipeline Alignment** (Sprint 296) — Aligns node_types.json schemas with VM opcodes. Exposes native AST nodes for standalone compute shaders, isolated actor spawning, and raw chiptune streaming handles without FFI overhead.
 - **GUI Telemetry & Inspection** (Sprint 297) — Embeds egui rendering pipelines over active WGPU surfaces to map real-time execution states and cryptographic ledger continuity roots.
 - **Distributed Pub-Sub Fabric** (Sprint 298) — Connects abstract bus handles across physical cluster boundaries, mapping transactional stream packets via lock-free peer-to-peer mesh pipelines.
-- **Raft Cluster Consensus** (Sprint 299) — Enforces transactional cluster state agreements within scheduler.rs, verifying ledger continuity logs to authorize autonomous cross-node isolate handoffs.
+- **Swarm Governance & Cluster Consensus** (Sprint 299) — Enforces transactional cluster state agreements within scheduler.rs, verifying ledger continuity logs to authorize autonomous cross-node isolate handoffs.
 - **Production Stability Calibration** (Sprint 300) — Freezes the normative JSON-AST schema specifications and locks down the multi-node isolate scheduler pipeline for public open-source orchestration.
 - **Backend Compilation Sync** (Sprint 301) — Bridges the gap between frontend schema definitions and actual bytecode execution, natively supporting 2D transformation pipelines and non-blocking time throttling.
-- **Network Consensus Protocol** (Sprint 302) — Replaced the local deterministic scheduler stub with a true network-layer Raft protocol backing decentralized multi-node state replication.
+- **Network Consensus Protocol** (Sprint 302) — Replaced the local deterministic scheduler stub with a true network-layer Swarm Governance protocol backing decentralized multi-node state replication.
 - **egui Visual Styling** (Sprint 304) — `UISetStyle(rounding, spacing, accent_rgba, fill_rgba, btn_idle?, btn_hover?)` compiles to `OpCode::UISetStyle` and dispatches `RenderCommand::UpdateStyle` to the render thread. Six parameters; optional 5th/6th buttons override the system accent.
 - **Headless Core & Agentic DX** (Sprint 306) — Three headless-first engine features:
   - **Native Cast Opcodes** — `OpCode::ToInt` / `OpCode::ToFloat` enable type-safe stack-level conversions: `Float→Int` (truncating), `Int→Float` (lossless), `Str→Int/Float` (parsing), `Bool→Int/Float`. Both compile from `Node::ToInt(expr)` / `Node::ToFloat(expr)`. Error on un-parseable strings.

@@ -26,7 +26,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.18.1-swarm";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.18.1";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_TASK_QUEUE_DEPTH: usize = 10_000;
@@ -138,7 +138,7 @@ pub struct RpcServer {
     pub metrics_collector: Arc<MetricsCollector>,
     /// Sprint 321: Distributed CRDT Key-Value Storage & State Sync
     pub store: Arc<MeshKvStore>,
-    /// Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
+    /// Sprint 323/325: Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)
     pub swarm_governance: Arc<SwarmGovernance>,
 }
 
@@ -208,7 +208,7 @@ impl RpcServer {
             "knc_store_put" => self.handle_store_put(req.id, req.params),
             "knc_store_get" => self.handle_store_get(req.id, req.params),
             "knc_store_sync" => self.handle_store_sync(req.id, req.params),
-            // Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
+            // Sprint 323/325: Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)
             "knc_swarm_elect" => self.handle_swarm_elect(req.id, req.params),
             "knc_swarm_roles" => self.handle_swarm_roles(req.id, req.params),
             "knc_swarm_quorum" => self.handle_swarm_quorum(req.id, req.params),
@@ -497,7 +497,7 @@ impl RpcServer {
                 "crdt_store": true,
                 "peer_state_sync": true,
                 "swarm_governance": true,
-                "raft_leader_election": true,
+                "swarm_leadership": true,
                 "node_roles": true
             },
             "default_quota": default_quota
