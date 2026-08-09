@@ -1,6 +1,6 @@
 # KnotenCore Roadmap
 
-Current engine version: **v2.16.0-metrics** · Sprint 320: Cluster Metrics & Adaptive Work-Stealing Protocol
+Current engine version: **v2.17.0-store** · Sprint 321: Distributed CRDT Key-Value Storage & State Sync
 
 ## Done (selected milestones)
 
@@ -12,6 +12,7 @@ Current engine version: **v2.16.0-metrics** · Sprint 320: Cluster Metrics & Ada
 - ✅ Deep Security Audit & HMAC Mesh Hardening — official release (Sprint 318 - v2.14.1)
 - ✅ Distributed Task Queue & Mesh Work-Stealing Engine (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`, Sprint 319 - v2.15.0-task)
 - ✅ Cluster Metrics & Adaptive Work-Stealing Protocol (`knc_mesh_metrics`, overload guard CPU >80%, Sprint 320 - v2.16.0-metrics)
+- ✅ Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync`, LWW-Set, Sprint 321 - v2.17.0-store)
 - ✅ Headless engine transition with optional `ui` feature gate (WGPU / Winit / Egui)
 - ✅ WGPU retained-mode scene graph + egui UI
 - ✅ Polyphonic audio synth (Sine/Sawtooth/Square/Triangle + ADSR)

@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.15.0-task Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.17.0-store Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — Release v2.15.0-task
+## 🎯 AI-Readiness Benchmark — Release v2.17.0-store
 
 KnotenCore has a **public, reproducible AI-Readiness Benchmark**. If you are an external LLM agent
 generating `.nod` programs, your output can be tested against 20 standardised tasks.
@@ -18,7 +18,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.15.0-task** — Distributed Task Queue & Mesh Work-Stealing Engine: Thread-safe, priority-ordered task queue (`TaskDispatcher`), JSON-RPC methods (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`), cooperative work-stealing protocol between mesh peers, HMAC-SHA256 mesh authentication (`check_mesh_auth`), constant-time token comparison, `MAX_PEERS_LIMIT = 256`, `MAX_STACK_DEPTH = 4096`, parallelized gossip cycle, Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
+**Current Engine Version: v2.17.0-store** — Distributed CRDT Key-Value Storage & State Sync: Thread-safe LWW-Register CRDT store (`MeshKvStore`), RPC endpoints (`knc_store_put`, `knc_store_get`, `knc_store_sync`), Last-Write-Wins conflict resolution, cluster metrics & adaptive work-stealing throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), HMAC-SHA256 mesh authentication (`check_mesh_auth`), constant-time token comparison, `MAX_PEERS_LIMIT = 256`, `MAX_STACK_DEPTH = 4096`, parallelized gossip cycle, Headless-first architecture, optional `ui` feature gate (`cargo run --features ui`), pure default headless execution (`default = []`), instruction limit guard (1,000,000 opcodes -> `ERR_SANDBOX_TIMEOUT`), 500ms watchdog CPU timeout, and 16MB memory threshold (`ERR_MEMORY_LIMIT_EXCEEDED`).  
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
@@ -419,6 +419,121 @@ Mesh-auth-gated RPC allowing an idle worker node to request unassigned `Queued` 
     ]
   },
   "id": 4
+}
+```
+
+---
+
+## Sprint 321: Distributed CRDT Key-Value Storage & State Sync (v2.17.0-store)
+
+Sprint 321 introduces a thread-safe distributed key-value store (`MeshKvStore`) using Last-Write-Wins (LWW) CRDT registers (`CrdtEntry`) and state synchronization across the agentic mesh.
+
+### 1. Store Put (`knc_store_put`)
+Writes or updates a key-value entry. Resolves conflicts using Last-Write-Wins (LWW) semantics (newer timestamp wins; tiebreaker on writer ID). Auth-protected via `mesh_auth_token`.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_store_put",
+  "params": {
+    "key": "cluster_leader",
+    "value": "knc-node-alpha",
+    "timestamp": 1775000000,
+    "writer_id": "knc-node-alpha",
+    "mesh_auth_signature": "hmac-sha256-signature"
+  },
+  "id": 1
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "key": "cluster_leader",
+    "updated": true,
+    "entry": {
+      "key": "cluster_leader",
+      "value": "knc-node-alpha",
+      "timestamp": 1775000000,
+      "writer_id": "knc-node-alpha"
+    }
+  },
+  "id": 1
+}
+```
+
+### 2. Store Get (`knc_store_get`)
+Reads the CRDT entry for a given key. Returns `null` if the key is unknown.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_store_get",
+  "params": { "key": "cluster_leader" },
+  "id": 2
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "key": "cluster_leader",
+    "entry": {
+      "key": "cluster_leader",
+      "value": "knc-node-alpha",
+      "timestamp": 1775000000,
+      "writer_id": "knc-node-alpha"
+    }
+  },
+  "id": 2
+}
+```
+
+### 3. State Synchronization (`knc_store_sync`)
+Exchanges and merges an array of CRDT entries with a peer node using LWW conflict resolution. Auth-protected via `mesh_auth_token`.
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "method": "knc_store_sync",
+  "params": {
+    "entries": [
+      {
+        "key": "sensor_reading",
+        "value": 42.5,
+        "timestamp": 1775000050,
+        "writer_id": "knc-node-beta"
+      }
+    ],
+    "mesh_auth_signature": "hmac-sha256-signature"
+  },
+  "id": 3
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "ok",
+    "synced_count": 1,
+    "entries": [
+      {
+        "key": "cluster_leader",
+        "value": "knc-node-alpha",
+        "timestamp": 1775000000,
+        "writer_id": "knc-node-alpha"
+      },
+      {
+        "key": "sensor_reading",
+        "value": 42.5,
+        "timestamp": 1775000050,
+        "writer_id": "knc-node-beta"
+      }
+    ]
+  },
+  "id": 3
 }
 ```
 

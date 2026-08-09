@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.16.0-metrics)
+# KnotenCore JSON AST Specification (v2.17.0-store)
 
 KnotenCore is a native abstract syntax tree (AST) programming language for AI systems. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -235,6 +235,14 @@ Introduces system metrics monitoring and adaptive load throttling to prevent mes
 - `knc_mesh_metrics`: Returns node performance metrics (`cpu_load_percent`, `memory_used_bytes`, `memory_total_bytes`, `memory_usage_percent`, `task_queue_depth`, `is_overloaded`).
 - `MetricsCollector`: Thread-safe collector supporting simulated overrides (`set_simulated_cpu_load`, `set_simulated_memory`) for deterministic testing.
 - **Adaptive Work-Stealing Guard**: Throttles `knc_task_steal` when local or requesting worker node CPU load > 80% or memory usage > 85%, returning `stolen: []` and `throttled: true`.
+
+### 7.11. Distributed CRDT Key-Value Storage & State Sync (`v2.17.0-store`)
+Introduces a thread-safe CRDT key-value store using Last-Write-Wins (LWW) registers for atomic state synchronization across mesh nodes:
+- `knc_store_put`: Writes or updates a key-value entry using LWW conflict resolution. Auth-protected via `mesh_auth_token`.
+- `knc_store_get`: Reads the CRDT entry (`CrdtEntry`) for a given key.
+- `knc_store_sync`: Merges an array of incoming CRDT entries from a peer node and returns the full combined snapshot. Auth-protected via `mesh_auth_token`.
+- `MeshKvStore`: Thread-safe `Mutex<HashMap<String, CrdtEntry>>` supporting atomic LWW merging and tiebreaking.
+
 
 
 

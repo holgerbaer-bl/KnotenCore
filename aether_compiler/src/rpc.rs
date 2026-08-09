@@ -26,7 +26,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.16.0-metrics";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.17.0-store";
 
 /// JSON-RPC 2.0 Request Payload
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,6 +121,8 @@ pub struct RpcServer {
     pub task_dispatcher: Arc<TaskDispatcher>,
     /// Sprint 320: Cluster Metrics Collector & Adaptive Work-Stealing Guard
     pub metrics_collector: Arc<MetricsCollector>,
+    /// Sprint 321: Distributed CRDT Key-Value Storage & State Sync
+    pub store: Arc<MeshKvStore>,
 }
 
 impl RpcServer {
@@ -143,6 +145,7 @@ impl RpcServer {
             peers: Arc::new(Mutex::new(HashMap::new())),
             task_dispatcher: Arc::new(TaskDispatcher::new()),
             metrics_collector: Arc::new(MetricsCollector::new()),
+            store: Arc::new(MeshKvStore::new()),
         }
     }
 
@@ -183,6 +186,10 @@ impl RpcServer {
             "knc_task_steal" => self.handle_task_steal(req.id, req.params),
             // Sprint 320: Cluster Metrics
             "knc_mesh_metrics" => self.handle_mesh_metrics(req.id, req.params),
+            // Sprint 321: Distributed CRDT KV-Storage & State Sync
+            "knc_store_put" => self.handle_store_put(req.id, req.params),
+            "knc_store_get" => self.handle_store_get(req.id, req.params),
+            "knc_store_sync" => self.handle_store_sync(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -464,7 +471,9 @@ impl RpcServer {
                 "task_queue": true,
                 "work_stealing": true,
                 "cluster_metrics": true,
-                "adaptive_work_stealing": true
+                "adaptive_work_stealing": true,
+                "crdt_store": true,
+                "peer_state_sync": true
             },
             "default_quota": default_quota
         });
@@ -622,6 +631,98 @@ impl RpcServer {
             "metrics": metrics
         });
 
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    // -------------------------------------------------------------------------
+    // Sprint 321: Distributed CRDT Key-Value Storage & State Sync
+    // -------------------------------------------------------------------------
+
+    /// `knc_store_put` — write or update a CRDT LWW key-value entry.
+    ///
+    /// Params: `{ "key": "<str>", "value": <Value>, "timestamp": <u64 opt>, "writer_id": "<str opt>" }`
+    /// Returns: `{ "status": "ok", "key": "...", "updated": true|false, "entry": <CrdtEntry> }`
+    fn handle_store_put(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let key = match params.get("key").and_then(|v| v.as_str()) {
+            Some(k) => k.to_string(),
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'key' parameter"),
+        };
+        let value = match params.get("value") {
+            Some(v) => v.clone(),
+            None => Value::Null,
+        };
+        let timestamp = params
+            .get("timestamp")
+            .and_then(|v| v.as_u64())
+            .unwrap_or_else(|| {
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64
+            });
+        let writer_id = params
+            .get("writer_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&self.node_id)
+            .to_string();
+
+        let updated = self.store.put(&key, value, timestamp, &writer_id);
+        let entry = self.store.get(&key);
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "key": key,
+            "updated": updated,
+            "entry": entry
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    /// `knc_store_get` — read the CRDT LWW entry for a key.
+    ///
+    /// Params: `{ "key": "<str>" }`
+    /// Returns: `{ "status": "ok", "key": "...", "entry": <CrdtEntry or null> }`
+    fn handle_store_get(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        let key = match params.get("key").and_then(|v| v.as_str()) {
+            Some(k) => k.to_string(),
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'key' parameter"),
+        };
+
+        let entry = self.store.get(&key);
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "key": key,
+            "entry": entry
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    /// `knc_store_sync` — merge incoming CRDT entries from a peer and return full snapshot.
+    ///
+    /// Params: `{ "entries": [ { "key": "...", "value": ..., "timestamp": ..., "writer_id": ... }, ... ] }`
+    /// Returns: `{ "status": "ok", "synced_count": N, "entries": [ ... ] }`
+    fn handle_store_sync(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let incoming: Vec<CrdtEntry> = params
+            .get("entries")
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+            .unwrap_or_default();
+
+        let synced_count = self.store.sync(incoming);
+        let full_entries = self.store.dump_entries();
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "synced_count": synced_count,
+            "entries": full_entries
+        });
         JsonRpcResponse::success(id, resp_val)
     }
 
@@ -828,7 +929,7 @@ impl RpcServer {
             "protocol_version": KNC_PROTOCOL_VERSION,
             "node_id": self.node_id,
             "address": self.node_address,
-            "capabilities": ["mesh_discover", "mesh_peers", "mesh_ping", "mesh_gossip", "agent_teleport", "mesh_metrics", "task_queue"],
+            "capabilities": ["mesh_discover", "mesh_peers", "mesh_ping", "mesh_gossip", "agent_teleport", "mesh_metrics", "task_queue", "crdt_store"],
             "auth_required": self.mesh_auth_token.is_some()
         });
 
@@ -1188,6 +1289,7 @@ impl RpcServer {
             let peers = self.peers.clone();
             let task_dispatcher = self.task_dispatcher.clone();
             let metrics_collector = self.metrics_collector.clone();
+            let store = self.store.clone();
             std::thread::spawn(move || {
                 let server = RpcServer {
                     permissions,
@@ -1198,6 +1300,7 @@ impl RpcServer {
                     peers,
                     task_dispatcher,
                     metrics_collector,
+                    store,
                 };
                 server.handle_ws_connection(stream);
             });
@@ -2032,5 +2135,104 @@ impl MetricsCollector {
             task_queue_depth: task_queue_stats,
             is_overloaded,
         }
+    }
+}
+
+// =============================================================================
+// Sprint 321: Distributed CRDT Key-Value Storage & State Sync
+// =============================================================================
+
+/// A single CRDT LWW (Last-Write-Wins) Key-Value Entry.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CrdtEntry {
+    pub key: String,
+    pub value: Value,
+    pub timestamp: u64,
+    pub writer_id: String,
+}
+
+impl CrdtEntry {
+    /// Returns true if `self` is strictly newer or wins the LWW tiebreaker over `other`.
+    pub fn is_newer_than(&self, other: &CrdtEntry) -> bool {
+        if self.timestamp != other.timestamp {
+            self.timestamp > other.timestamp
+        } else {
+            self.writer_id > other.writer_id
+        }
+    }
+}
+
+/// Thread-safe distributed CRDT Key-Value Store using LWW (Last-Write-Wins) register semantics.
+pub struct MeshKvStore {
+    entries: Mutex<HashMap<String, CrdtEntry>>,
+}
+
+impl Default for MeshKvStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl MeshKvStore {
+    pub fn new() -> Self {
+        Self {
+            entries: Mutex::new(HashMap::new()),
+        }
+    }
+
+    /// Write or update a key with LWW conflict resolution.
+    /// Returns `true` if the entry was written/updated, or `false` if existing entry is newer.
+    pub fn put(&self, key: &str, value: Value, timestamp: u64, writer_id: &str) -> bool {
+        let new_entry = CrdtEntry {
+            key: key.to_string(),
+            value,
+            timestamp,
+            writer_id: writer_id.to_string(),
+        };
+
+        let mut store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(existing) = store.get(key) {
+            if new_entry.is_newer_than(existing) {
+                store.insert(key.to_string(), new_entry);
+                true
+            } else {
+                false
+            }
+        } else {
+            store.insert(key.to_string(), new_entry);
+            true
+        }
+    }
+
+    /// Read CRDT entry for a key.
+    pub fn get(&self, key: &str) -> Option<CrdtEntry> {
+        let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        store.get(key).cloned()
+    }
+
+    /// Merge an incoming vector of CRDT entries using LWW semantics.
+    /// Returns the number of entries updated or inserted.
+    pub fn sync(&self, incoming: Vec<CrdtEntry>) -> usize {
+        let mut store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        let mut updated = 0;
+        for entry in incoming {
+            let key = entry.key.clone();
+            if let Some(existing) = store.get(&key) {
+                if entry.is_newer_than(existing) {
+                    store.insert(key, entry);
+                    updated += 1;
+                }
+            } else {
+                store.insert(key, entry);
+                updated += 1;
+            }
+        }
+        updated
+    }
+
+    /// Export a full snapshot vector of stored CRDT entries.
+    pub fn dump_entries(&self) -> Vec<CrdtEntry> {
+        let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        store.values().cloned().collect()
     }
 }

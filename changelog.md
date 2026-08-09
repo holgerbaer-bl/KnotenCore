@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, general-purpose hybrid language (JIT/AOT) with native WGPU rendering and deterministic ARC memory management.
 
+## [v2.17.0-store] - Sprint 321: Distributed CRDT Key-Value Storage & State Sync (2026-08-09)
+Introduces a thread-safe distributed key-value store (`MeshKvStore`) using Last-Write-Wins (LWW) CRDT registers (`CrdtEntry`) and state synchronization across the agentic mesh topology.
+- **`knc_store_put`** (new, auth-gated): Write or update a key-value entry using Last-Write-Wins (LWW) conflict resolution. Returns boolean `updated` flag and stored `entry`.
+- **`knc_store_get`** (new): Query stored CRDT entry for a key. Returns `CrdtEntry` or `null` if key is unknown.
+- **`knc_store_sync`** (new, auth-gated): Exchange and merge an array of CRDT entries from a peer node using LWW conflict resolution. Returns full merged snapshot.
+- **`MeshKvStore`** (new struct in `rpc.rs`): Thread-safe `Mutex<HashMap<String, CrdtEntry>>` providing atomic `put`, `get`, `sync`, and `dump_entries`.
+- **`CrdtEntry`** (new struct): Serializable payload with `key`, `value`, `timestamp`, and `writer_id`. Implements deterministic LWW tiebreaker (`timestamp > timestamp || (timestamp == timestamp && writer_id > writer_id)`).
+- **`knc_agent_handshake` update**: Capabilities response now includes `crdt_store: true` and `peer_state_sync: true`.
+- **`KNC_PROTOCOL_VERSION`**: Bumped from `v2.16.0-metrics` → `v2.17.0-store`.
+- **`tests/agentic_store_tests.rs`** (new): 7 unit and integration tests verifying store operations, CRDT LWW conflict resolution, tiebreaking, auth token guards, multi-node peer state synchronization, and handshake capabilities.
+
 ## [v2.16.0-metrics] - Sprint 320: Cluster Metrics & Adaptive Work-Stealing Protocol (2026-08-08)
 Introduces real-time cluster metrics collection and an adaptive work-stealing throttling guard to prevent node overload cascades across the agentic mesh topology.
 - **`knc_mesh_metrics`** (new): RPC method returning system performance metrics: `cpu_load_percent`, `memory_used_bytes`, `memory_total_bytes`, `memory_usage_percent`, `task_queue_depth` (queued/running/completed/cancelled/failed stats), and boolean overload flag `is_overloaded`. Supports HMAC-SHA256 authentication.
