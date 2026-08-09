@@ -1,9 +1,9 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.18.0-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.18.1--swarm-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-281%2F281-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.18.0-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Release](https://img.shields.io/badge/release-v2.18.1--swarm-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -16,7 +16,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
-- **Swarm Governance & Raft Leader Election**: Decentralized Raft consensus, term tracking, dynamic node roles (`Leader`, `Worker`, `Storage`, `Observer`), and quorum voting (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`).
+- **Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)**: Term tracking, dynamic node roles (`Leader`, `Worker`, `Storage`, `Observer`), and quorum voting (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`). *Hinweis: `knc_swarm_elect` verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1). Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.*
 - **Distributed CRDT Storage & Peer State Sync**: In-memory Last-Write-Wins (LWW) CRDT key-value store (`knc_store_put`, `knc_store_get`, `knc_store_sync`).
 - **Distributed Task Queue & Adaptive Work-Stealing**: Cluster task dispatching (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`) and CPU load-adaptive work-stealing (`knc_task_steal`, `knc_mesh_metrics`).
 - **P2P Mesh Protocol & Teleportation**: Zero-broker peer discovery, gossip auto-healing, and live isolate state migration (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`).

@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.18.1-swarm] - Sprint 324: Swarm Governance Terminology Refinement & Grounding (2026-08-09)
+Sprint 324 refines and grounds the Swarm Governance terminology across all code, tests, and documentation gates:
+- **Terminology Refinement**: Replaced imprecise "Raft Leader Election" framing with `"Local Swarm Role Management & Leadership Claim Primitives (Phase 1)"`.
+- **Explicit Grounding Note**: Documented across `README.md`, `llm.md`, `ROADMAP.md`, `docs/KNOTEN_SPEC.md`, `aether_compiler/src/rpc.rs`, and `tests/agentic_swarm_tests.rs`: *"knc_swarm_elect verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1). Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant."*
+- **Code & Test Comments**: Updated module and function doc comments in `rpc.rs` and `agentic_swarm_tests.rs` to explicitly designate `knc_swarm_elect` as a local state manager and leadership claim primitive.
+- **`KNC_PROTOCOL_VERSION`**: Updated to `"v2.18.1-swarm"`.
+
 ## [v2.18.0] - Official Release: Swarm Governance, Raft Leader Election & Grounded Documentation (2026-08-09)
 Official Release v2.18.0 delivers Swarm Governance, Raft-based Leader Election, Dynamic Node Roles (`Leader`, `Worker`, `Storage`, `Observer`), and Grounded Transparency across all documentation gates:
 - **Swarm Governance Engine**: `SwarmGovernance` struct providing thread-safe Raft leader election, term tracking (`AtomicU64`), voting (`voted_for`), and node role management.

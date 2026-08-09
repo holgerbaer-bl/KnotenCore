@@ -26,7 +26,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.18.0";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.18.1-swarm";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_TASK_QUEUE_DEPTH: usize = 10_000;
@@ -807,10 +807,13 @@ impl RpcServer {
     }
 
     // -------------------------------------------------------------------------
-    // Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
+    // Sprint 323/324: Local Swarm Role Management & Leadership Claim Primitives (Phase 1)
     // -------------------------------------------------------------------------
 
-    /// `knc_swarm_elect` — trigger or query Raft leader election across the mesh.
+    /// `knc_swarm_elect` — Local Swarm Role Management & Leadership Claim Primitives (Phase 1).
+    ///
+    /// Hinweis: `knc_swarm_elect` verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1).
+    /// Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.
     ///
     /// Params: `{ "candidate_node_id": "<str opt>", "term": <u64 opt>, "force": <bool opt> }`
     /// Returns: `{ "status": "ok", "leader_node_id": "...", "term": N, "role": "Leader|Worker|Storage|Observer" }`
@@ -2513,7 +2516,7 @@ impl MeshKvStore {
 }
 
 // =============================================================================
-// Sprint 323: Swarm Governance, Raft Leader Election & Node Roles
+// Sprint 323/324: Local Swarm Role Management & Leadership Claim Primitives (Phase 1)
 // =============================================================================
 
 /// Cluster node role in the Swarm Governance topology.
@@ -2526,7 +2529,10 @@ pub enum NodeRole {
     Observer,
 }
 
-/// Thread-safe Raft leader election & Swarm Governance engine.
+/// Local Swarm Role Management & Leadership Claim Primitives (Phase 1).
+///
+/// `knc_swarm_elect` verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1).
+/// Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.
 pub struct SwarmGovernance {
     pub current_role: Mutex<NodeRole>,
     pub leader_node_id: Mutex<Option<String>>,

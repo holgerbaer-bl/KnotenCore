@@ -1,7 +1,10 @@
-// Sprint 323: Swarm Governance, Raft Leader Election & Node Roles Tests
+// Sprint 323/324: Local Swarm Role Management & Leadership Claim Primitives (Phase 1) Tests
 //
-// Verifies Raft leader election, cluster node roles, quorum consensus voting,
-// auth protection, and agentic handshake capabilities.
+// Verifies Local Swarm Role Management & Leadership Claim Primitives (Phase 1), cluster node roles,
+// quorum consensus voting, auth protection, and agentic handshake capabilities.
+//
+// Hinweis: knc_swarm_elect verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1).
+// Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.
 
 use serde_json::Value;
 
@@ -233,6 +236,6 @@ fn test_handshake_advertises_swarm_governance() {
     assert!(caps["node_roles"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.18.0"
+        "v2.18.1-swarm"
     );
 }
