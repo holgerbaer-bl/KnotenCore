@@ -45,6 +45,7 @@ dependencies = [
  "pollster",
  "proptest",
  "rand 0.10.1",
+ "ring",
  "rodio",
  "serde",
  "serde_json",
