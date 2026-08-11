@@ -3830,6 +3830,7 @@ mod tests {
 
     #[test]
     fn test_p2p_mesh_bus_distributed_routing() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let data = vec![RelType::Int(42), RelType::Float(3.15)];
 
         isolate::mesh_subscribe("global_telemetry", "Knoten_Zadar");
@@ -3869,12 +3870,18 @@ mod tests {
 
     #[test]
     fn test_p2p_mesh_bus_network_partition_resilience() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        isolate::bus_drain();
+        isolate::drain_mesh_routing_table();
+        drain_cluster_work_queues();
+
         let result = isolate::bus_poll_remote("nonexistent_topic", "offline_node");
         assert!(
             result.is_none(),
             "Polling empty/offline queue must return None gracefully"
         );
 
+        isolate::mesh_subscribe("resilience_test", "Knoten_Berlin");
         isolate::bus_publish_mesh("resilience_test".to_string(), vec![RelType::Int(1)]);
         let mut polled = None;
         let start_polled = std::time::Instant::now();
