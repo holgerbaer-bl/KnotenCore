@@ -2,11 +2,9 @@
 // Sprint 327: Zero-Trust Mesh Phase 1 — Ed25519 Cryptographic Module (ring)
 // =============================================================================
 
-use ring::digest::{digest, SHA512};
+use ring::digest::{SHA512, digest};
 use ring::rand::SystemRandom;
-use ring::signature::{
-    Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey, ED25519,
-};
+use ring::signature::{ED25519, Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey};
 
 pub fn sha512_digest(data: &[u8]) -> [u8; 64] {
     let d = digest(&SHA512, data);
@@ -34,8 +32,8 @@ impl Ed25519KeyPair {
     /// Generates an in-memory Ed25519 keypair securely. Private keys are never stored on disk.
     pub fn generate() -> Self {
         let rng = SystemRandom::new();
-        let pkcs8_doc = RingKeyPair::generate_pkcs8(&rng)
-            .expect("Failed to generate Ed25519 keypair");
+        let pkcs8_doc =
+            RingKeyPair::generate_pkcs8(&rng).expect("Failed to generate Ed25519 keypair");
         let ring_pair = RingKeyPair::from_pkcs8(pkcs8_doc.as_ref())
             .expect("Failed to parse generated Ed25519 keypair");
 
@@ -59,8 +57,7 @@ impl Ed25519KeyPair {
     }
 
     pub fn sign(&self, message: &[u8]) -> [u8; 64] {
-        let ring_pair = RingKeyPair::from_pkcs8(&self.pkcs8_bytes)
-            .expect("Valid PKCS#8 keypair");
+        let ring_pair = RingKeyPair::from_pkcs8(&self.pkcs8_bytes).expect("Valid PKCS#8 keypair");
         let sig = ring_pair.sign(message);
         let mut sig_arr = [0u8; 64];
         sig_arr.copy_from_slice(sig.as_ref());
@@ -121,8 +118,7 @@ fn hex_decode(s: &str) -> Result<Vec<u8>, String> {
     (0..s.len())
         .step_by(2)
         .map(|i| {
-            u8::from_str_radix(&s[i..i + 2], 16)
-                .map_err(|_| "Invalid hex character".to_string())
+            u8::from_str_radix(&s[i..i + 2], 16).map_err(|_| "Invalid hex character".to_string())
         })
         .collect()
 }
