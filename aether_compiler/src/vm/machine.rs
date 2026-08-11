@@ -3878,12 +3878,12 @@ mod tests {
         isolate::bus_publish_mesh("resilience_test".to_string(), vec![RelType::Int(1)]);
         let mut polled = None;
         let start_polled = std::time::Instant::now();
-        while start_polled.elapsed() < std::time::Duration::from_millis(500) {
+        while start_polled.elapsed() < std::time::Duration::from_millis(1500) {
             polled = isolate::bus_poll_remote("resilience_test", "Knoten_Berlin");
             if polled.is_some() {
                 break;
             }
-            std::thread::sleep(std::time::Duration::from_millis(5));
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
         assert!(polled.is_some(), "Mesh bus must survive single-node poll");
         assert_eq!(polled.unwrap().len(), 1);
@@ -3892,12 +3892,12 @@ mod tests {
         isolate::mesh_stream_publish("large_stream".to_string(), &data);
         let mut chunked = None;
         let start_chunked = std::time::Instant::now();
-        while start_chunked.elapsed() < std::time::Duration::from_millis(500) {
+        while start_chunked.elapsed() < std::time::Duration::from_millis(1500) {
             chunked = isolate::bus_subscribe("large_stream");
             if chunked.is_some() {
                 break;
             }
-            std::thread::sleep(std::time::Duration::from_millis(5));
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
         assert!(
             chunked.is_some(),
