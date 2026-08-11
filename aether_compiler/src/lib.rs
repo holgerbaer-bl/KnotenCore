@@ -3,6 +3,7 @@ pub mod async_bridge;
 #[cfg(feature = "ui")]
 pub mod audio;
 pub mod compiler;
+pub mod crypto_ed25519;
 pub mod dsl_emitter;
 pub mod evaluator;
 pub mod executor;

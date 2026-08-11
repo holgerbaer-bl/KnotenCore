@@ -8,10 +8,10 @@
 // Adds TaskDispatcher with knc_task_submit / knc_task_status / knc_task_cancel
 // and a cooperative work-stealing protocol (knc_task_steal) for mesh peers.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
@@ -20,15 +20,17 @@ use serde_json::Value;
 use knoten_core_types::ast::{IsolateQuota, Node};
 use knoten_core_types::opcode::OpCode;
 
+use crate::crypto_ed25519::{Ed25519KeyPair, Ed25519PublicKey};
 use crate::executor::{AgentPermissions, RelType};
 use crate::optimizer::optimize;
 use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.18.2";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.19.0-zerotrust";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
+pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
 pub const MAX_TASK_QUEUE_DEPTH: usize = 10_000;
 pub const MAX_SYNC_ENTRIES: usize = 10_000;
 pub const MAX_VALUE_SIZE_BYTES: usize = 65_536;
@@ -140,6 +142,11 @@ pub struct RpcServer {
     pub store: Arc<MeshKvStore>,
     /// Sprint 323/325: Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)
     pub swarm_governance: Arc<SwarmGovernance>,
+    /// Sprint 327: Zero-Trust Mesh Phase 1 — Cryptographic Envelope Signing & Replay Protection
+    pub ed25519_keypair: Ed25519KeyPair,
+    pub verified_peer_keys: Arc<Mutex<HashMap<String, String>>>,
+    pub used_nonces: Arc<Mutex<HashSet<String>>>,
+    pub zero_trust_mode: Arc<AtomicBool>,
 }
 
 impl RpcServer {
@@ -164,7 +171,31 @@ impl RpcServer {
             metrics_collector: Arc::new(MetricsCollector::new()),
             store: Arc::new(MeshKvStore::new()),
             swarm_governance: Arc::new(SwarmGovernance::new()),
+            ed25519_keypair: Ed25519KeyPair::generate(),
+            verified_peer_keys: Arc::new(Mutex::new(HashMap::new())),
+            used_nonces: Arc::new(Mutex::new(HashSet::new())),
+            zero_trust_mode: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    pub fn enable_zero_trust(&self) {
+        self.zero_trust_mode.store(true, AtomicOrdering::SeqCst);
+    }
+
+    pub fn is_zero_trust(&self) -> bool {
+        self.zero_trust_mode.load(AtomicOrdering::SeqCst)
+    }
+
+    pub fn public_key_hex(&self) -> String {
+        self.ed25519_keypair.public_key_hex()
+    }
+
+    pub fn sign_envelope(&self, nonce: &str, timestamp: u64) -> (String, String) {
+        let msg = format!("{}:{}:{}", timestamp, nonce, self.node_id);
+        (
+            self.public_key_hex(),
+            self.ed25519_keypair.sign_hex(msg.as_bytes()),
+        )
     }
 
     pub fn dispatch_request(&self, request_raw: &str) -> String {
@@ -212,6 +243,8 @@ impl RpcServer {
             "knc_swarm_elect" => self.handle_swarm_elect(req.id, req.params),
             "knc_swarm_roles" => self.handle_swarm_roles(req.id, req.params),
             "knc_swarm_quorum" => self.handle_swarm_quorum(req.id, req.params),
+            // Sprint 327: Zero-Trust Mesh Phase 1 — Cryptographic Envelope Verification
+            "knc_mesh_verify_peer" => self.handle_mesh_verify_peer(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -477,7 +510,11 @@ impl RpcServer {
         JsonRpcResponse::success(id, resp_val)
     }
 
-    fn handle_agent_handshake(&self, id: Option<Value>, _params: Value) -> JsonRpcResponse {
+    fn handle_agent_handshake(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let default_quota = IsolateQuota::default();
         let resp_val = serde_json::json!({
             "status": "ok",
@@ -498,9 +535,12 @@ impl RpcServer {
                 "peer_state_sync": true,
                 "swarm_governance": true,
                 "swarm_leadership": true,
-                "node_roles": true
+                "node_roles": true,
+                "zero_trust_mesh": true
             },
-            "default_quota": default_quota
+            "default_quota": default_quota,
+            "local_public_key": self.public_key_hex(),
+            "zero_trust_mode": self.is_zero_trust()
         });
         JsonRpcResponse::success(id, resp_val)
     }
@@ -846,7 +886,11 @@ impl RpcServer {
     ///
     /// Params: `{}`
     /// Returns: `{ "status": "ok", "local_node_id": "...", "local_role": "...", "roles": { "<node_id>": "<role>", ... } }`
-    fn handle_swarm_roles(&self, id: Option<Value>, _params: Value) -> JsonRpcResponse {
+    fn handle_swarm_roles(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let local_role = self.swarm_governance.role();
         let mut roles_map = HashMap::new();
         roles_map.insert(self.node_id.clone(), format!("{:?}", local_role));
@@ -1060,6 +1104,110 @@ impl RpcServer {
     }
 
     fn check_mesh_auth(&self, params: &Value) -> Result<(), String> {
+        let is_zt = self.is_zero_trust()
+            || params
+                .get("zero_trust")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
+            || params.get("zero_trust_envelope").is_some();
+
+        let envelope = params.get("zero_trust_envelope");
+        let pubkey_str = envelope
+            .and_then(|e| e.get("public_key"))
+            .or_else(|| params.get("public_key"))
+            .and_then(|v| v.as_str());
+        let sig_str = envelope
+            .and_then(|e| e.get("signature").or_else(|| e.get("ed25519_signature")))
+            .or_else(|| params.get("signature"))
+            .or_else(|| params.get("ed25519_signature"))
+            .and_then(|v| v.as_str());
+
+        if is_zt && (pubkey_str.is_none() || sig_str.is_none()) {
+            return Err(
+                "Unauthorized: Unsigned payload or legacy HMAC token rejected in zero-trust mode"
+                    .to_string(),
+            );
+        }
+
+        if let (Some(pubkey_hex), Some(sig_hex)) = (pubkey_str, sig_str) {
+            let ts = envelope
+                .and_then(|e| e.get("timestamp"))
+                .or_else(|| params.get("timestamp"))
+                .and_then(|v| v.as_u64());
+
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+
+            if let Some(ts_val) = ts {
+                let ts_secs = if ts_val > 10_000_000_000 {
+                    ts_val / 1000
+                } else {
+                    ts_val
+                };
+                let diff = now.abs_diff(ts_secs);
+                if diff > MAX_ZERO_TRUST_WINDOW_SECS {
+                    return Err(
+                        "Unauthorized: Request timestamp expired or invalid (replay protection window: 30s)"
+                            .to_string(),
+                    );
+                }
+            } else {
+                return Err("Unauthorized: Missing timestamp in zero-trust envelope".to_string());
+            }
+
+            let nonce_str = envelope
+                .and_then(|e| e.get("nonce"))
+                .or_else(|| params.get("nonce"))
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+
+            if nonce_str.is_empty() {
+                return Err("Unauthorized: Missing nonce in zero-trust envelope".to_string());
+            }
+
+            let mut used = self.used_nonces.lock().unwrap_or_else(|e| e.into_inner());
+            let nonce_entry = format!("{}:{}", pubkey_hex, nonce_str);
+            if used.contains(&nonce_entry) {
+                return Err("Unauthorized: Replayed nonce detected".to_string());
+            }
+            used.insert(nonce_entry);
+
+            let sender = envelope
+                .and_then(|e| e.get("sender_node_id"))
+                .or_else(|| params.get("sender_node_id"))
+                .or_else(|| params.get("node_id"))
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+
+            let ts_val = ts.unwrap_or(0);
+            let ts_secs = if ts_val > 10_000_000_000 {
+                ts_val / 1000
+            } else {
+                ts_val
+            };
+            let msg = format!("{}:{}:{}", ts_secs, nonce_str, sender);
+
+            let pubkey = Ed25519PublicKey::from_hex(pubkey_hex)
+                .map_err(|e| format!("Unauthorized: Bad public key hex: {}", e))?;
+
+            if !pubkey.verify_hex(msg.as_bytes(), sig_hex) {
+                return Err(
+                    "Unauthorized: Invalid Ed25519 signature in zero-trust envelope".to_string(),
+                );
+            }
+
+            if !sender.is_empty() {
+                let mut verified_keys = self
+                    .verified_peer_keys
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                verified_keys.insert(sender.to_string(), pubkey_hex.to_string());
+            }
+            return Ok(());
+        }
+
         if let Some(expected_token) = &self.mesh_auth_token {
             if let Some(sig) = params
                 .get("mesh_auth_signature")
@@ -1116,6 +1264,49 @@ impl RpcServer {
             }
         }
         Ok(())
+    }
+
+    /// `knc_mesh_verify_peer` — mutual exchange and verification of public Ed25519 keys between mesh nodes.
+    fn handle_mesh_verify_peer(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let peer_id = params
+            .get("peer_node_id")
+            .or_else(|| params.get("sender_node_id"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+
+        let peer_pubkey = params
+            .get("public_key")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+
+        if peer_id.is_empty() || peer_pubkey.is_empty() {
+            return JsonRpcResponse::error(
+                id,
+                -32602,
+                "Missing 'peer_node_id' or 'public_key' parameter",
+            );
+        }
+
+        let mut verified_keys = self
+            .verified_peer_keys
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        verified_keys.insert(peer_id.to_string(), peer_pubkey.to_string());
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "verified": true,
+            "peer_node_id": peer_id,
+            "peer_public_key": peer_pubkey,
+            "local_node_id": self.node_id,
+            "local_public_key": self.public_key_hex()
+        });
+
+        JsonRpcResponse::success(id, resp_val)
     }
 
     fn handle_mesh_discover(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
@@ -1494,6 +1685,10 @@ impl RpcServer {
             let metrics_collector = self.metrics_collector.clone();
             let store = self.store.clone();
             let swarm_governance = self.swarm_governance.clone();
+            let ed25519_keypair = self.ed25519_keypair.clone();
+            let verified_peer_keys = self.verified_peer_keys.clone();
+            let used_nonces = self.used_nonces.clone();
+            let zero_trust_mode = self.zero_trust_mode.clone();
             std::thread::spawn(move || {
                 let server = RpcServer {
                     permissions,
@@ -1506,6 +1701,10 @@ impl RpcServer {
                     metrics_collector,
                     store,
                     swarm_governance,
+                    ed25519_keypair,
+                    verified_peer_keys,
+                    used_nonces,
+                    zero_trust_mode,
                 };
                 server.handle_ws_connection(stream);
             });

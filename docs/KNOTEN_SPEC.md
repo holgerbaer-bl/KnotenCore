@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.18.2)
+# KnotenCore JSON AST Specification (v2.19.0-zerotrust)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -258,6 +258,15 @@ Introduces Swarm Governance (Local Swarm Role Management & Leadership Claim Prim
 - `knc_swarm_roles`: Maps and reports cluster node roles (`Leader`, `Worker`, `Storage`, `Observer`) across local and peer mesh topology.
 - `knc_swarm_quorum`: Evaluates active mesh nodes to enforce quorum threshold consensus (`(active_nodes / 2) + 1` or explicit threshold) prior to critical cluster operations. Auth-protected via `mesh_auth_token`.
 - `SwarmGovernance`: Thread-safe engine tracking node role, current leader ID, term, and election votes.
+
+### 7.14. Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Replay Protection (`v2.19.0-zerotrust`)
+Introduces Zero-Trust cryptographic envelope signing, anti-downgrade guards, and sliding replay protection:
+- `knc_mesh_verify_peer`: Endpunkt für den gegenseitigen Austausch und die Verifikation von öffentlichen Ed25519-Schlüsseln zwischen Mesh-Knoten.
+- **In-Memory Key Management**: Ed25519-Schlüsselpaare werden ausschließlich in-memory generiert und gehalten. Keine Speicherung von Private Keys auf Festplatte oder in Repositories.
+- **Anti-Downgrade Protection**: Unsignierte Mesh-Payloads und reine legacy HMAC-Tokens werden im Zero-Trust-Modus strikt abgewiesen.
+- **Replay Protection**: Maximale Zeitstempel-Abweichung von 30 Sekunden (`MAX_ZERO_TRUST_WINDOW_SECS = 30`) und Nonce-Duplikatssperre.
+- *Transparenz-Hinweis: Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.*
+
 
 
 

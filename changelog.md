@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.19.0-zerotrust] - Sprint 327: Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Anti-Downgrade Hardening (2026-08-11)
+Sprint 327 implements Zero-Trust Mesh Phase 1 with cryptographic Ed25519 envelope signing, anti-downgrade guards, and replay attack defense:
+- **In-Memory Ed25519 Key Management**: Pure Rust Ed25519 keypair generation kept strictly in-memory without plain-text secret key persistence.
+- **Cryptographic Envelope Signing**: Enforces envelope signature verification over `{timestamp}:{nonce}:{sender_node_id}` across all mesh RPC traffic.
+- **Anti-Downgrade Protection**: Rejects unencrypted or plain legacy HMAC tokens when Zero-Trust mode is active.
+- **Replay Protection**: Enforces a strict 30-second sliding timestamp window (`MAX_ZERO_TRUST_WINDOW_SECS = 30`) and tracks nonce reuse in memory.
+- **Peer Key Verification Endpoint**: Implemented `knc_mesh_verify_peer` for mutual exchange and verification of public Ed25519 keys between mesh nodes.
+- **Transparency Grounding**: Documented Phase 1 scope explicitly: *"Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit."*
+
 ## [v2.18.2] - Official Release: Grounded Swarm Governance & Scheduler Simulator Hardening (2026-08-09)
 Official Release v2.18.2 delivers grounded Swarm Governance terminology, scheduler harness clarification, and inspector telemetry hardening:
 - **Local Swarm Leadership Primitives**: Wire protocol capability `swarm_leadership` exposes Phase 1 local node state management and leadership claim primitives.
