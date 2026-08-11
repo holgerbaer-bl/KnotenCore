@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.19.0] - Official Release: Zero-Trust Mesh Phase 1 & Cryptographic Envelope Signing (2026-08-11)
+Official Release v2.19.0 consolidates Zero-Trust Mesh Phase 1, industrial cryptographic signing, anti-downgrade enforcement, and synchronized versioning:
+- **Zero-Trust Mesh Phase 1**: Full cryptographic Ed25519 envelope signing, replay protection (30s sliding window), anti-downgrade enforcement, and peer verification endpoint `knc_mesh_verify_peer`.
+- **Industrial Cryptographic Integration (`ring`)**: Integrated production-grade `ring` (`v0.17`) backend for Ed25519 keypair signing and NIST-compliant SHA-512 digest computation.
+- **CI Test Suite Hardening**: Fixed P2P mesh bus timing race condition and static memory test isolation via `TEST_SNAPSHOT_LOCK`.
+- **Transparency Grounding**: Documented Phase 1 scope explicitly: *"Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit."*
+
 ## [v2.19.0-zerotrust] - Sprint 327: Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Anti-Downgrade Hardening (2026-08-11)
 Sprint 327 implements Zero-Trust Mesh Phase 1 with cryptographic Ed25519 envelope signing, anti-downgrade guards, and replay attack defense:
 - **In-Memory Ed25519 Key Management**: Pure Rust Ed25519 keypair generation kept strictly in-memory without plain-text secret key persistence.

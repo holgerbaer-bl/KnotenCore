@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.19.0-zerotrust Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.19.0 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.19.0-zerotrust)
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.19.0)
 
 > Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 
@@ -20,7 +20,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.19.0-zerotrust** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Replay Protection (`knc_mesh_verify_peer`, Ed25519 in-memory keypair signing, 30s sliding replay window, anti-downgrade protection). *Transparenz-Hinweis: Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.* Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1) (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` topology with Leader, Worker, Storage, Observer), Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing).
+**Current Engine Version: v2.19.0** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Replay Protection (`knc_mesh_verify_peer`, Ed25519 in-memory keypair signing, 30s sliding replay window, anti-downgrade protection). *Transparenz-Hinweis: Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.* Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1) (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `NodeRole` topology with Leader, Worker, Storage, Observer), Security Audit Rectification & Deep Hardening: CRDT Timestamp Drift Protection (`MAX_CLOCK_DRIFT_SECS = 300`), Task Queue Limits (`MAX_TASK_QUEUE_DEPTH = 10_000`) & GC (`gc_completed`), HMAC Replay Window Validation (`MAX_REPLAY_WINDOW_SECS = 60`), Store & Sync Entry Bounds (`MAX_SYNC_ENTRIES = 10_000`, `MAX_VALUE_SIZE_BYTES = 65_536`, `MAX_STORE_KEYS = 100_000`), Auth enforcement across all task & store handlers (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_store_get`), Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync` with LWW conflict resolution), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal` with CPU >80% overload guard), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`, Mesh Gossip & Auto-Healing).
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
