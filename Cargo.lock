@@ -1748,7 +1748,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "knoten_core"
-version = "2.20.0"
+version = "2.20.1"
 dependencies = [
  "aether_compiler",
  "bytemuck",

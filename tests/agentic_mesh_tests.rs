@@ -62,7 +62,7 @@ fn test_mesh_discover_and_peers() {
     assert_eq!(res.get("status").unwrap(), "ok");
     assert_eq!(res.get("node_id").unwrap(), "node-alpha");
     assert_eq!(res.get("address").unwrap(), "127.0.0.1:9090");
-    assert_eq!(res.get("protocol_version").unwrap(), "v2.20.0-trust");
+    assert_eq!(res.get("protocol_version").unwrap(), "v2.20.1-security");
 
     // 2. Register Peer
     let req_reg = serde_json::json!({
@@ -149,7 +149,8 @@ fn test_inter_node_state_teleportation() {
         "method": "knc_execute",
         "params": {
             "session_id": "session-origin",
-            "ast": ast_add
+            "ast": ast_add,
+            "mesh_auth_token": "mesh-auth-xyz"
         },
         "id": 1
     })
@@ -164,7 +165,8 @@ fn test_inter_node_state_teleportation() {
         "jsonrpc": "2.0",
         "method": "knc_agent_snapshot",
         "params": {
-            "session_id": "session-origin"
+            "session_id": "session-origin",
+            "mesh_auth_token": "mesh-auth-xyz"
         },
         "id": 2
     })

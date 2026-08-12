@@ -27,7 +27,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.20.0-trust";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.20.1-security";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -365,6 +365,10 @@ impl RpcServer {
     }
 
     fn handle_compile(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let node: Node = match self.extract_ast_node(&params) {
             Ok(n) => n,
             Err(err) => return JsonRpcResponse::error(id, -32602, err),
@@ -412,6 +416,10 @@ impl RpcServer {
     }
 
     fn handle_execute(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let session_id = params
             .get("session_id")
             .and_then(|v| v.as_str())
@@ -517,6 +525,10 @@ impl RpcServer {
     }
 
     fn handle_yield_resume(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let session_id = params
             .get("session_id")
             .and_then(|v| v.as_str())
@@ -587,6 +599,10 @@ impl RpcServer {
     }
 
     fn handle_inspect_state(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let session_id = params
             .get("session_id")
             .and_then(|v| v.as_str())
@@ -1067,6 +1083,10 @@ impl RpcServer {
     }
 
     fn handle_agent_snapshot(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let session_id = params
             .get("session_id")
             .and_then(|v| v.as_str())
@@ -1105,6 +1125,10 @@ impl RpcServer {
     }
 
     fn handle_agent_restore(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let session_id = params
             .get("session_id")
             .and_then(|v| v.as_str())

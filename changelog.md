@@ -2,7 +2,12 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-## [v2.20.0-trust] - Sprint 328: Zero-Trust Mesh Phase 2: Ed25519 Key Rotation & Peer Revocation (2026-08-12)
+## [v2.20.1-security] - Security Hotfix: Comprehensive RPC Auth Bypass Mitigation & Snapshot/Restore Hardening (2026-08-12)
+Security Hotfix v2.20.1-security resolves a critical RPC authentication bypass vulnerability across all RPC routing endpoints:
+- **Comprehensive RPC Auth Audit & Enforcement**: Verified that `check_mesh_auth` is enforced across ALL 25 JSON-RPC methods (`knc_*`) in `aether_compiler/src/rpc.rs`.
+- **Snapshot & Restore Hardening**: Fixed missing authentication checks in `handle_agent_snapshot` and `handle_agent_restore`, ensuring unauthenticated callers cannot exfiltrate or overwrite isolate VM states.
+- **Execution & Inspection Hardening**: Added `check_mesh_auth` enforcement to `handle_compile`, `handle_execute`, `handle_yield_resume`, and `handle_inspect_state`.
+- **Regression Test Coverage**: Added tests in `tests/zero_trust_mesh_tests.rs` verifying that unsigned snapshot and restore requests are rejected with `-32001 Unauthorized`, while validly signed Ed25519 envelopes succeed.
 Sprint 328 implements Zero-Trust Mesh Phase 2 with dynamic Ed25519 key rotation, bounded LRU nonce cache eviction, and instant peer key revocation (CRL):
 - **In-Memory Key Rotation (`knc_mesh_rotate_key`)**: Enables volatile Ed25519 keypair re-keying in-memory without interrupting active mesh streams or sessions.
 - **Keyless Session Migration**: Active VM sessions remain valid across key rotations, enabling seamless key migration.

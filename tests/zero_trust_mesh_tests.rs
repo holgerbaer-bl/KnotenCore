@@ -208,3 +208,96 @@ fn test_zero_trust_replay_attack_prevention() {
             .contains("timestamp expired or invalid")
     );
 }
+
+#[test]
+fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-snapshot-test",
+        "127.0.0.1:9095",
+        Some("secret-token".to_string()),
+    );
+    server.enable_zero_trust();
+
+    // 1. Unsigned knc_agent_snapshot MUST be rejected
+    let unauth_snap_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_agent_snapshot",
+        "params": {
+            "session_id": "default"
+        },
+        "id": 1
+    });
+
+    let resp_snap = parse_response(&server.dispatch_request(&unauth_snap_req.to_string()));
+    assert!(resp_snap["error"].is_object());
+    assert_eq!(resp_snap["error"]["code"], -32001);
+
+    // 2. Unsigned knc_agent_restore MUST be rejected
+    let unauth_restore_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_agent_restore",
+        "params": {
+            "session_id": "default",
+            "snapshot": {}
+        },
+        "id": 2
+    });
+
+    let resp_restore = parse_response(&server.dispatch_request(&unauth_restore_req.to_string()));
+    assert!(resp_restore["error"].is_object());
+    assert_eq!(resp_restore["error"]["code"], -32001);
+
+    // 3. Validly signed Ed25519 envelope for knc_agent_snapshot MUST pass auth check
+    let (pubkey, sig) = server.sign_envelope("nonce-snap-auth", 1700000000);
+    let auth_snap_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_agent_snapshot",
+        "params": {
+            "session_id": "default",
+            "zero_trust_envelope": {
+                "public_key": pubkey,
+                "signature": sig,
+                "timestamp": 1700000000u64,
+                "nonce": "nonce-snap-auth",
+                "sender_node_id": "node-snapshot-test"
+            }
+        },
+        "id": 3
+    });
+
+    let resp_auth_snap = parse_response(&server.dispatch_request(&auth_snap_req.to_string()));
+    // Session default is created during initialization or returned as ok
+    assert!(resp_auth_snap["result"].is_object() || resp_auth_snap["error"]["code"] == -32602);
+    assert_ne!(resp_auth_snap["error"]["code"], -32001);
+
+    // 4. Validly signed Ed25519 envelope for knc_agent_restore MUST pass auth check
+    let (pubkey2, sig2) = server.sign_envelope("nonce-restore-auth", 1700000001);
+    let auth_restore_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_agent_restore",
+        "params": {
+            "session_id": "default",
+            "snapshot": {
+                "session_id": "default",
+                "vm_state": {
+                    "ip": 0,
+                    "stack": [],
+                    "globals": {},
+                    "frames": []
+                }
+            },
+            "zero_trust_envelope": {
+                "public_key": pubkey2,
+                "signature": sig2,
+                "timestamp": 1700000001u64,
+                "nonce": "nonce-restore-auth",
+                "sender_node_id": "node-snapshot-test"
+            }
+        },
+        "id": 4
+    });
+
+    let resp_auth_restore = parse_response(&server.dispatch_request(&auth_restore_req.to_string()));
+    assert_eq!(resp_auth_restore["result"]["status"], "ok");
+}

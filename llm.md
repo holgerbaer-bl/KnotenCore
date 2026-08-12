@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.20.0-trust Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.20.1-security Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.20.0-trust)
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.20.1-security)
 
 > Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 
@@ -20,7 +20,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.20.0-trust** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Zero-Trust Mesh Phase 2: Ed25519 Key Rotation & Peer Revocation (`knc_mesh_rotate_key` for in-memory volatile re-keying without stream interruption, keyless session migration, bounded LRU nonce cache `MAX_NONCE_CACHE_CAPACITY = 10_000` with automatic 30s TTL eviction, `knc_mesh_revoke_peer` peer revocation list/CRL blacklisting), Zero-Trust Mesh Phase 1 (`knc_mesh_verify_peer`, Ed25519 envelope signing, 30s sliding replay window, anti-downgrade protection). *Transparenz-Hinweis: Die kryptografische Mesh-Signierung und Key-Rotation befinden sich in Phase 2 (lokale Ed25519-Verifikation & Peer-Sperrlisten). Sie ersetzen keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.* Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1) (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`), Security Audit Rectification & Deep Hardening, Distributed CRDT Key-Value Storage & State Sync (`knc_store_put`, `knc_store_get`, `knc_store_sync`), Cluster Metrics & Adaptive Work-Stealing Throttling (`knc_mesh_metrics`, `knc_task_steal`), Agentic Execution & Mesh Protocol (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`).
+**Current Engine Version: v2.20.1-security** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Security Hotfix: Comprehensive RPC Auth Bypass Mitigation & Snapshot/Restore Hardening (`check_mesh_auth` enforced across ALL 25 JSON-RPC endpoints, including `knc_agent_snapshot`, `knc_agent_restore`, `knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`), Zero-Trust Mesh Phase 2 (`knc_mesh_rotate_key`, `knc_mesh_revoke_peer`, Nonce LRU Eviction), Zero-Trust Mesh Phase 1 (`knc_mesh_verify_peer`, Ed25519 envelope signing, 30s sliding replay window, anti-downgrade protection). *Transparenz-Hinweis: Die kryptografische Mesh-Signierung und Key-Rotation befinden sich in Phase 2 (lokale Ed25519-Verifikation & Peer-Sperrlisten). Sie ersetzen keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.* Swarm Governance, Security Audit Rectification & Deep Hardening, Distributed CRDT Key-Value Storage & State Sync, Cluster Metrics & Adaptive Work-Stealing, Agentic Execution & Mesh Protocol.
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
