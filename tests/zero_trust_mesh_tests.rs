@@ -248,8 +248,33 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
     assert!(resp_restore["error"].is_object());
     assert_eq!(resp_restore["error"]["code"], -32001);
 
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    // 2.5 Initialize session 'default' via knc_execute
+    let (exec_pub, exec_sig) = server.sign_envelope("nonce-exec-init", now);
+    let exec_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_execute",
+        "params": {
+            "session_id": "default",
+            "code": { "type": "IntLiteral", "value": 42 },
+            "zero_trust_envelope": {
+                "public_key": exec_pub,
+                "signature": exec_sig,
+                "timestamp": now,
+                "nonce": "nonce-exec-init",
+                "sender_node_id": "node-snapshot-test"
+            }
+        },
+        "id": 100
+    });
+    let _ = parse_response(&server.dispatch_request(&exec_req.to_string()));
+
     // 3. Validly signed Ed25519 envelope for knc_agent_snapshot MUST pass auth check
-    let (pubkey, sig) = server.sign_envelope("nonce-snap-auth", 1700000000);
+    let (pubkey, sig) = server.sign_envelope("nonce-snap-auth", now + 1);
     let auth_snap_req = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "knc_agent_snapshot",
@@ -258,7 +283,7 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
             "zero_trust_envelope": {
                 "public_key": pubkey,
                 "signature": sig,
-                "timestamp": 1700000000u64,
+                "timestamp": now + 1,
                 "nonce": "nonce-snap-auth",
                 "sender_node_id": "node-snapshot-test"
             }
@@ -267,30 +292,21 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
     });
 
     let resp_auth_snap = parse_response(&server.dispatch_request(&auth_snap_req.to_string()));
-    // Session default is created during initialization or returned as ok
-    assert!(resp_auth_snap["result"].is_object() || resp_auth_snap["error"]["code"] == -32602);
-    assert_ne!(resp_auth_snap["error"]["code"], -32001);
+    assert_eq!(resp_auth_snap["result"]["status"], "ok");
+    let snapshot_payload = resp_auth_snap["result"]["snapshot"].clone();
 
     // 4. Validly signed Ed25519 envelope for knc_agent_restore MUST pass auth check
-    let (pubkey2, sig2) = server.sign_envelope("nonce-restore-auth", 1700000001);
+    let (pubkey2, sig2) = server.sign_envelope("nonce-restore-auth", now + 2);
     let auth_restore_req = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "knc_agent_restore",
         "params": {
             "session_id": "default",
-            "snapshot": {
-                "session_id": "default",
-                "vm_state": {
-                    "ip": 0,
-                    "stack": [],
-                    "globals": {},
-                    "frames": []
-                }
-            },
+            "snapshot": snapshot_payload,
             "zero_trust_envelope": {
                 "public_key": pubkey2,
                 "signature": sig2,
-                "timestamp": 1700000001u64,
+                "timestamp": now + 2,
                 "nonce": "nonce-restore-auth",
                 "sender_node_id": "node-snapshot-test"
             }
