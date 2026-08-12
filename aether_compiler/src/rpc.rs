@@ -1732,10 +1732,19 @@ impl RpcServer {
             }
         };
 
-        let restore_params = serde_json::json!({
+        let mut restore_params = serde_json::json!({
             "session_id": target_session_id,
             "snapshot": snapshot_val
         });
+        if let Some(token) = params.get("mesh_auth_token") {
+            restore_params["mesh_auth_token"] = token.clone();
+        }
+        if let Some(sig) = params.get("mesh_auth_signature") {
+            restore_params["mesh_auth_signature"] = sig.clone();
+        }
+        if let Some(zt) = params.get("zero_trust_envelope") {
+            restore_params["zero_trust_envelope"] = zt.clone();
+        }
 
         let restore_resp = self.handle_agent_restore(id.clone(), restore_params);
         if restore_resp.error.is_some() {
