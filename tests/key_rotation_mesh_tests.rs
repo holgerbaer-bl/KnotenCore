@@ -6,6 +6,14 @@ use aether_compiler::crypto_ed25519::Ed25519KeyPair;
 use aether_compiler::executor::AgentPermissions;
 use aether_compiler::rpc::{MAX_NONCE_CACHE_CAPACITY, NonceCache, RpcServer};
 use serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+fn current_ts() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
 
 #[test]
 fn test_zero_trust_key_rotation_handshake() {
@@ -18,9 +26,10 @@ fn test_zero_trust_key_rotation_handshake() {
     server.enable_zero_trust();
 
     let initial_pubkey = server.public_key_hex();
+    let now = current_ts();
 
     // 1. Dispatch knc_mesh_rotate_key
-    let (pubkey_hex, sig_hex) = server.sign_envelope("nonce-rot-1", 1700000000);
+    let (pubkey_hex, sig_hex) = server.sign_envelope("nonce-rot-1", now);
     let req = json!({
         "jsonrpc": "2.0",
         "method": "knc_mesh_rotate_key",
@@ -28,7 +37,7 @@ fn test_zero_trust_key_rotation_handshake() {
             "zero_trust_envelope": {
                 "public_key": pubkey_hex,
                 "signature": sig_hex,
-                "timestamp": 1700000000u64,
+                "timestamp": now,
                 "nonce": "nonce-rot-1",
                 "sender_node_id": "node-key-rotation-test"
             }
@@ -48,7 +57,7 @@ fn test_zero_trust_key_rotation_handshake() {
     assert_eq!(server.public_key_hex(), new_pubkey);
 
     // 2. Sign envelope using new key and verify request succeeds
-    let (new_pub_envelope, new_sig) = server.sign_envelope("nonce-rot-2", 1700000001);
+    let (new_pub_envelope, new_sig) = server.sign_envelope("nonce-rot-2", now);
     assert_eq!(new_pub_envelope, new_pubkey);
 
     let req2 = json!({
@@ -58,7 +67,7 @@ fn test_zero_trust_key_rotation_handshake() {
             "zero_trust_envelope": {
                 "public_key": new_pub_envelope,
                 "signature": new_sig,
-                "timestamp": 1700000001u64,
+                "timestamp": now,
                 "nonce": "nonce-rot-2",
                 "sender_node_id": "node-key-rotation-test"
             }
@@ -94,12 +103,10 @@ fn test_zero_trust_peer_revocation_list_crl() {
 
     let peer_keypair = Ed25519KeyPair::generate();
     let peer_pubkey = peer_keypair.public_key_hex();
+    let now = current_ts();
 
     // 1. Verify handshake from valid peer succeeds
-    let msg = format!(
-        "{}:{}:{}",
-        1700000000u64, "nonce-peer-1", "peer-compromised"
-    );
+    let msg = format!("{}:{}:{}", now, "nonce-peer-1", "peer-compromised");
     let sig_hex = peer_keypair.sign_hex(msg.as_bytes());
 
     let req_hs = json!({
@@ -109,7 +116,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
             "zero_trust_envelope": {
                 "public_key": peer_pubkey,
                 "signature": sig_hex,
-                "timestamp": 1700000000u64,
+                "timestamp": now,
                 "nonce": "nonce-peer-1",
                 "sender_node_id": "peer-compromised"
             }
@@ -122,7 +129,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
     assert_eq!(resp_hs["result"]["status"], "ok");
 
     // 2. Revoke peer public key via knc_mesh_revoke_peer
-    let (self_pub, self_sig) = server.sign_envelope("nonce-revoke-1", 1700000001);
+    let (self_pub, self_sig) = server.sign_envelope("nonce-revoke-1", now);
     let req_revoke = json!({
         "jsonrpc": "2.0",
         "method": "knc_mesh_revoke_peer",
@@ -131,7 +138,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
             "zero_trust_envelope": {
                 "public_key": self_pub,
                 "signature": self_sig,
-                "timestamp": 1700000001u64,
+                "timestamp": now,
                 "nonce": "nonce-revoke-1",
                 "sender_node_id": "node-crl-test"
             }
@@ -151,10 +158,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
     assert!(server.is_peer_key_revoked(&peer_pubkey));
 
     // 3. Subsequent request from revoked peer must be rejected
-    let msg2 = format!(
-        "{}:{}:{}",
-        1700000002u64, "nonce-peer-2", "peer-compromised"
-    );
+    let msg2 = format!("{}:{}:{}", now, "nonce-peer-2", "peer-compromised");
     let sig2_hex = peer_keypair.sign_hex(msg2.as_bytes());
 
     let req_blocked = json!({
@@ -164,7 +168,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
             "zero_trust_envelope": {
                 "public_key": peer_pubkey,
                 "signature": sig2_hex,
-                "timestamp": 1700000002u64,
+                "timestamp": now,
                 "nonce": "nonce-peer-2",
                 "sender_node_id": "peer-compromised"
             }
@@ -188,10 +192,7 @@ fn test_zero_trust_nonce_lru_eviction() {
     let mut cache = NonceCache::new();
     assert!(cache.is_empty());
 
-    let now_ts = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
+    let now_ts = current_ts();
 
     // 1. Normal insertion and replay detection
     assert!(cache.insert("key1:nonce1".to_string(), now_ts));
