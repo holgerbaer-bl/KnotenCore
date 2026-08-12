@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.20.0-trust] - Sprint 328: Zero-Trust Mesh Phase 2: Ed25519 Key Rotation & Peer Revocation (2026-08-12)
+Sprint 328 implements Zero-Trust Mesh Phase 2 with dynamic Ed25519 key rotation, bounded LRU nonce cache eviction, and instant peer key revocation (CRL):
+- **In-Memory Key Rotation (`knc_mesh_rotate_key`)**: Enables volatile Ed25519 keypair re-keying in-memory without interrupting active mesh streams or sessions.
+- **Keyless Session Migration**: Active VM sessions remain valid across key rotations, enabling seamless key migration.
+- **Bounded Nonce LRU Eviction (`NonceCache`)**: Replaced unbounded nonce sets with a bounded LRU cache (`MAX_NONCE_CACHE_CAPACITY = 10_000`) with automatic 30s TTL eviction.
+- **Peer Revocation List (CRL / `knc_mesh_revoke_peer`)**: Implemented instant blacklisting of compromised peer public keys, immediately blocking unauthorized mesh RPC traffic.
+- **Integration Test Suite**: Added `tests/key_rotation_mesh_tests.rs` verifying re-keying handshakes, LRU nonce eviction, and CRL blacklisting.
+
 ## [v2.19.0] - Official Release: Zero-Trust Mesh Phase 1 & Cryptographic Envelope Signing (2026-08-11)
 Official Release v2.19.0 consolidates Zero-Trust Mesh Phase 1, industrial cryptographic signing, anti-downgrade enforcement, and synchronized versioning:
 - **Zero-Trust Mesh Phase 1**: Full cryptographic Ed25519 envelope signing, replay protection (30s sliding window), anti-downgrade enforcement, and peer verification endpoint `knc_mesh_verify_peer`.

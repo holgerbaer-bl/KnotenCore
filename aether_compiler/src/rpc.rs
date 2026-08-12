@@ -27,7 +27,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.19.0";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.20.0-trust";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -35,6 +35,7 @@ pub const MAX_TASK_QUEUE_DEPTH: usize = 10_000;
 pub const MAX_SYNC_ENTRIES: usize = 10_000;
 pub const MAX_VALUE_SIZE_BYTES: usize = 65_536;
 pub const MAX_STORE_KEYS: usize = 100_000;
+pub const MAX_NONCE_CACHE_CAPACITY: usize = 10_000;
 
 pub fn is_future_timestamp(ts: u64) -> bool {
     let now_secs = std::time::SystemTime::now()
@@ -99,6 +100,63 @@ impl JsonRpcResponse {
     }
 }
 
+/// Sprint 328: Bounded Nonce Cache with LRU eviction and automatic TTL cleanup
+#[derive(Debug, Clone, Default)]
+pub struct NonceCache {
+    set: HashSet<String>,
+    queue: std::collections::VecDeque<(String, u64)>,
+}
+
+impl NonceCache {
+    pub fn new() -> Self {
+        Self {
+            set: HashSet::new(),
+            queue: std::collections::VecDeque::new(),
+        }
+    }
+
+    pub fn insert(&mut self, nonce_entry: String, timestamp: u64) -> bool {
+        if self.set.contains(&nonce_entry) {
+            return false;
+        }
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        // Evict expired entries older than 30s or when exceeding capacity limit
+        while let Some((_, ts)) = self.queue.front() {
+            let ts_secs = if *ts > 10_000_000_000 { ts / 1000 } else { *ts };
+            if now.saturating_sub(ts_secs) > MAX_ZERO_TRUST_WINDOW_SECS
+                || self.set.len() >= MAX_NONCE_CACHE_CAPACITY
+            {
+                if let Some((evicted, _)) = self.queue.pop_front() {
+                    self.set.remove(&evicted);
+                }
+            } else {
+                break;
+            }
+        }
+
+        self.set.insert(nonce_entry.clone());
+        self.queue.push_back((nonce_entry, timestamp));
+        true
+    }
+
+    pub fn contains(&self, nonce_entry: &str) -> bool {
+        self.set.contains(nonce_entry)
+    }
+
+    pub fn len(&self) -> usize {
+        self.set.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.set.is_empty()
+    }
+}
+
 /// Thread-safe RPC Session State
 #[derive(Default)]
 pub struct RpcSession {
@@ -142,10 +200,11 @@ pub struct RpcServer {
     pub store: Arc<MeshKvStore>,
     /// Sprint 323/325: Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)
     pub swarm_governance: Arc<SwarmGovernance>,
-    /// Sprint 327: Zero-Trust Mesh Phase 1 — Cryptographic Envelope Signing & Replay Protection
-    pub ed25519_keypair: Ed25519KeyPair,
+    /// Sprint 327/328: Zero-Trust Mesh Phase 1 & 2 — Cryptographic Envelope Signing, Key Rotation & Revocation
+    pub ed25519_keypair: Arc<Mutex<Ed25519KeyPair>>,
     pub verified_peer_keys: Arc<Mutex<HashMap<String, String>>>,
-    pub used_nonces: Arc<Mutex<HashSet<String>>>,
+    pub revoked_peer_keys: Arc<Mutex<HashSet<String>>>,
+    pub used_nonces: Arc<Mutex<NonceCache>>,
     pub zero_trust_mode: Arc<AtomicBool>,
 }
 
@@ -171,9 +230,10 @@ impl RpcServer {
             metrics_collector: Arc::new(MetricsCollector::new()),
             store: Arc::new(MeshKvStore::new()),
             swarm_governance: Arc::new(SwarmGovernance::new()),
-            ed25519_keypair: Ed25519KeyPair::generate(),
+            ed25519_keypair: Arc::new(Mutex::new(Ed25519KeyPair::generate())),
             verified_peer_keys: Arc::new(Mutex::new(HashMap::new())),
-            used_nonces: Arc::new(Mutex::new(HashSet::new())),
+            revoked_peer_keys: Arc::new(Mutex::new(HashSet::new())),
+            used_nonces: Arc::new(Mutex::new(NonceCache::new())),
             zero_trust_mode: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -187,15 +247,64 @@ impl RpcServer {
     }
 
     pub fn public_key_hex(&self) -> String {
-        self.ed25519_keypair.public_key_hex()
+        self.ed25519_keypair
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .public_key_hex()
     }
 
     pub fn sign_envelope(&self, nonce: &str, timestamp: u64) -> (String, String) {
+        let keypair = self
+            .ed25519_keypair
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let pubkey_hex = keypair.public_key_hex();
         let msg = format!("{}:{}:{}", timestamp, nonce, self.node_id);
-        (
-            self.public_key_hex(),
-            self.ed25519_keypair.sign_hex(msg.as_bytes()),
-        )
+        let sig_hex = keypair.sign_hex(msg.as_bytes());
+        (pubkey_hex, sig_hex)
+    }
+
+    pub fn rotate_key(&self) -> (String, String) {
+        let mut keypair = self
+            .ed25519_keypair
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let old_pub = keypair.public_key_hex();
+        let new_keypair = Ed25519KeyPair::generate();
+        let new_pub = new_keypair.public_key_hex();
+        *keypair = new_keypair;
+        (old_pub, new_pub)
+    }
+
+    pub fn revoke_peer_key(&self, peer_pubkey: &str) {
+        let normalized = peer_pubkey.trim().to_lowercase();
+        let mut revoked = self
+            .revoked_peer_keys
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        revoked.insert(normalized.clone());
+
+        let mut verified = self
+            .verified_peer_keys
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        verified.retain(|_, v| v.trim().to_lowercase() != normalized);
+
+        let mut peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
+        for peer in peers.values_mut() {
+            if peer.capabilities.contains(&normalized) || peer.node_id == normalized {
+                peer.status = "Revoked".to_string();
+            }
+        }
+    }
+
+    pub fn is_peer_key_revoked(&self, peer_pubkey: &str) -> bool {
+        let normalized = peer_pubkey.trim().to_lowercase();
+        let revoked = self
+            .revoked_peer_keys
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        revoked.contains(&normalized)
     }
 
     pub fn dispatch_request(&self, request_raw: &str) -> String {
@@ -243,8 +352,10 @@ impl RpcServer {
             "knc_swarm_elect" => self.handle_swarm_elect(req.id, req.params),
             "knc_swarm_roles" => self.handle_swarm_roles(req.id, req.params),
             "knc_swarm_quorum" => self.handle_swarm_quorum(req.id, req.params),
-            // Sprint 327: Zero-Trust Mesh Phase 1 — Cryptographic Envelope Verification
+            // Sprint 327/328: Zero-Trust Mesh Phase 1 & 2 — Envelope Verification, Key Rotation & Revocation
             "knc_mesh_verify_peer" => self.handle_mesh_verify_peer(req.id, req.params),
+            "knc_mesh_rotate_key" => self.handle_mesh_rotate_key(req.id, req.params),
+            "knc_mesh_revoke_peer" => self.handle_mesh_revoke_peer(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -536,7 +647,9 @@ impl RpcServer {
                 "swarm_governance": true,
                 "swarm_leadership": true,
                 "node_roles": true,
-                "zero_trust_mesh": true
+                "zero_trust_mesh": true,
+                "key_rotation": true,
+                "peer_revocation": true
             },
             "default_quota": default_quota,
             "local_public_key": self.public_key_hex(),
@@ -1130,6 +1243,11 @@ impl RpcServer {
         }
 
         if let (Some(pubkey_hex), Some(sig_hex)) = (pubkey_str, sig_str) {
+            let normalized_pubkey = pubkey_hex.trim().to_lowercase();
+            if self.is_peer_key_revoked(&normalized_pubkey) {
+                return Err("Unauthorized: Peer public key has been revoked".to_string());
+            }
+
             let ts = envelope
                 .and_then(|e| e.get("timestamp"))
                 .or_else(|| params.get("timestamp"))
@@ -1167,12 +1285,18 @@ impl RpcServer {
                 return Err("Unauthorized: Missing nonce in zero-trust envelope".to_string());
             }
 
-            let mut used = self.used_nonces.lock().unwrap_or_else(|e| e.into_inner());
-            let nonce_entry = format!("{}:{}", pubkey_hex, nonce_str);
-            if used.contains(&nonce_entry) {
+            let ts_val = ts.unwrap_or(0);
+            let ts_secs = if ts_val > 10_000_000_000 {
+                ts_val / 1000
+            } else {
+                ts_val
+            };
+
+            let mut nonce_cache = self.used_nonces.lock().unwrap_or_else(|e| e.into_inner());
+            let nonce_entry = format!("{}:{}", normalized_pubkey, nonce_str);
+            if !nonce_cache.insert(nonce_entry, ts_secs) {
                 return Err("Unauthorized: Replayed nonce detected".to_string());
             }
-            used.insert(nonce_entry);
 
             let sender = envelope
                 .and_then(|e| e.get("sender_node_id"))
@@ -1181,12 +1305,6 @@ impl RpcServer {
                 .and_then(|v| v.as_str())
                 .unwrap_or_default();
 
-            let ts_val = ts.unwrap_or(0);
-            let ts_secs = if ts_val > 10_000_000_000 {
-                ts_val / 1000
-            } else {
-                ts_val
-            };
             let msg = format!("{}:{}:{}", ts_secs, nonce_str, sender);
 
             let pubkey = Ed25519PublicKey::from_hex(pubkey_hex)
@@ -1203,7 +1321,7 @@ impl RpcServer {
                     .verified_peer_keys
                     .lock()
                     .unwrap_or_else(|e| e.into_inner());
-                verified_keys.insert(sender.to_string(), pubkey_hex.to_string());
+                verified_keys.insert(sender.to_string(), normalized_pubkey);
             }
             return Ok(());
         }
@@ -1291,6 +1409,14 @@ impl RpcServer {
             );
         }
 
+        if self.is_peer_key_revoked(peer_pubkey) {
+            return JsonRpcResponse::error(
+                id,
+                -32001,
+                "Unauthorized: Peer public key has been revoked",
+            );
+        }
+
         let mut verified_keys = self
             .verified_peer_keys
             .lock()
@@ -1304,6 +1430,53 @@ impl RpcServer {
             "peer_public_key": peer_pubkey,
             "local_node_id": self.node_id,
             "local_public_key": self.public_key_hex()
+        });
+
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    /// `knc_mesh_rotate_key` — In-memory Re-Keying for volatile Ed25519 keypairs without interrupting active mesh streams
+    fn handle_mesh_rotate_key(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let (old_key, new_key) = self.rotate_key();
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "old_public_key": old_key,
+            "new_public_key": new_key,
+            "node_id": self.node_id
+        });
+
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    /// `knc_mesh_revoke_peer` — Immediately revokes/blacklists a compromised peer public key across the mesh routing table
+    fn handle_mesh_revoke_peer(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let peer_pubkey = params
+            .get("peer_pubkey")
+            .or_else(|| params.get("public_key"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_lowercase();
+
+        if peer_pubkey.is_empty() {
+            return JsonRpcResponse::error(id, -32602, "Missing parameter 'peer_pubkey'");
+        }
+
+        self.revoke_peer_key(&peer_pubkey);
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "revoked": true,
+            "revoked_peer_key": peer_pubkey,
+            "node_id": self.node_id
         });
 
         JsonRpcResponse::success(id, resp_val)
@@ -1687,6 +1860,7 @@ impl RpcServer {
             let swarm_governance = self.swarm_governance.clone();
             let ed25519_keypair = self.ed25519_keypair.clone();
             let verified_peer_keys = self.verified_peer_keys.clone();
+            let revoked_peer_keys = self.revoked_peer_keys.clone();
             let used_nonces = self.used_nonces.clone();
             let zero_trust_mode = self.zero_trust_mode.clone();
             std::thread::spawn(move || {
@@ -1703,6 +1877,7 @@ impl RpcServer {
                     swarm_governance,
                     ed25519_keypair,
                     verified_peer_keys,
+                    revoked_peer_keys,
                     used_nonces,
                     zero_trust_mode,
                 };

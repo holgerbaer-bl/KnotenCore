@@ -1,9 +1,9 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.19.0-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.20.0--trust-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-287%2F287-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.19.0-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-290%2F290-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.20.0--trust-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -16,7 +16,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
-- **Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Replay Protection**: In-memory Ed25519 keypair generation, cryptographic envelope signing (`{timestamp}:{nonce}:{sender_node_id}`), anti-downgrade protection (rejecting unsigned payloads / legacy HMAC tokens when zero-trust is active), 30s sliding replay protection window, and peer key verification (`knc_mesh_verify_peer`). *Hinweis: Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.*
+- **Zero-Trust Mesh Phase 2: Key Rotation, Nonce LRU Eviction & Peer Revocation**: Volatile in-memory Ed25519 keypair re-keying (`knc_mesh_rotate_key`) without interrupting active streams, keyless session migration, bounded LRU nonce cache (`MAX_NONCE_CACHE_CAPACITY = 10_000`) with automatic TTL eviction, and instant peer revocation lists (`knc_mesh_revoke_peer`). *Hinweis: Die kryptografische Mesh-Signierung und Key-Rotation befinden sich in Phase 2 (lokale Ed25519-Verifikation & Peer-Sperrlisten). Sie ersetzen keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.*
 - **Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)**: Term tracking, dynamic node roles (`Leader`, `Worker`, `Storage`, `Observer`), and quorum voting (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`). *Hinweis: `knc_swarm_elect` verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1). Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.*
 - **Distributed CRDT Storage & Peer State Sync**: In-memory Last-Write-Wins (LWW) CRDT key-value store (`knc_store_put`, `knc_store_get`, `knc_store_sync`).
 - **Distributed Task Queue & Adaptive Work-Stealing**: Cluster task dispatching (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`) and CPU load-adaptive work-stealing (`knc_task_steal`, `knc_mesh_metrics`).

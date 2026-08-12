@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.19.0** · Sprint 327: Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Anti-Downgrade Hardening
+Current engine version: **v2.20.0-trust** · Sprint 328: Zero-Trust Mesh Phase 2: Ed25519 Key Rotation & Peer Revocation
 
 ## Done (selected milestones)
 
+- ✅ Zero-Trust Mesh Phase 2: Ed25519 Key Rotation, Nonce LRU Eviction & Peer Revocation (`knc_mesh_rotate_key`, `knc_mesh_revoke_peer`, `NonceCache` LRU eviction, keyless session migration, Sprint 328 - v2.20.0-trust)
 - ✅ Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Replay Protection (`knc_mesh_verify_peer`, Ed25519 envelope signing, 30s sliding replay window, anti-downgrade guard, Sprint 327 - v2.19.0)
 
 - ✅ Stack-VM with AOT compiler + JIT evaluator
