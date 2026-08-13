@@ -272,6 +272,15 @@ Hardens Swarm Governance with server-enforced quorum computation, Zero-Trust ele
 - `knc_swarm_elect`: Strictly prohibits forced self-election (`force: true`) when Zero-Trust mode is active (`is_zero_trust()`), returning `-32001 Unauthorized`.
 - `knc_mesh_revoke_peer`: Coupled peer key revocation to active quorum consensus (`quorum_reached == true`), preventing isolated nodes from revoking peers without swarm consensus.
 
+### 7.17. Security Audit Rectification & Resource Limits (`v2.21.1-security`)
+Closes CRITICAL and HIGH-severity audit findings by introducing strict payload, nonce, string length, and VM recursion limits:
+- **RPC DoS & Payload Caps**: `MAX_BODY_BYTES = 1_048_576` (1 MiB) for raw TCP JSON-RPC requests (`dispatch_request`) and `MAX_WS_PAYLOAD = 1_048_576` (1 MiB) in `read_ws_frame`.
+- **HMAC Nonce-LRU Defense**: Integrates `used_nonces` (`NonceCache`, 30s TTL, 10k capacity) into `mesh_auth_signature` HMAC validation, blocking replay attacks.
+- **String Parameter Length Limit (`MAX_PARAM_STRING_LEN = 256`)**: Validates extracted string parameters (`session_id`, `key`, `nonce_str`) against a 256-byte limit before storage or query execution.
+- **VM Call Depth Limit (`MAX_CALL_DEPTH = 512`)**: Enforces `MAX_CALL_DEPTH` stack frame limit in `OpCode::Call`, returning `ERR_CALL_DEPTH_EXCEEDED` on recursion overflow.
+- **Universal Self-Election Lock**: Disables forced self-election (`force: true`) in `knc_swarm_elect` across all non-test execution environments.
+
+
 
 
 

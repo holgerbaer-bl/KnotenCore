@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.21.0-authz Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.21.1-security Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.21.0-authz)
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.21.1-security)
 
 > Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 

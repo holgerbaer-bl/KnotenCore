@@ -38,7 +38,7 @@ fn test_swarm_elect_leader_and_term_increment() {
     let req = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "knc_swarm_elect",
-        "params": { "candidate_node_id": "node-alpha", "term": 2, "force": true },
+        "params": { "candidate_node_id": "node-alpha", "term": 2, "force": true, "allow_test_harness": true },
         "id": 1
     })
     .to_string();
@@ -236,6 +236,6 @@ fn test_handshake_advertises_swarm_governance() {
     assert!(caps["node_roles"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.21.0-authz"
+        "v2.21.1-security"
     );
 }

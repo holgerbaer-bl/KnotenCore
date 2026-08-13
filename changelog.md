@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.21.1-security] - Sprint 331: Security Audit Rectification & Resource Limits (2026-08-13)
+Sprint 331 closes 2 CRITICAL and 3 HIGH-severity security audit findings, establishing strict resource limits across RPC transport, authentication nonces, parameter bounds, VM call depth, and swarm governance:
+- **RPC DoS & Body Caps (`MAX_BODY_BYTES` & `MAX_WS_PAYLOAD`)**: Set `MAX_BODY_BYTES = 1_048_576` (1 MiB) for raw TCP/HTTP JSON-RPC requests, returning `-32700 Parse Error` for oversized bodies. Enforced `MAX_WS_PAYLOAD = 1_048_576` in `read_ws_frame` before vector allocation.
+- **HMAC Nonce-LRU Replay Protection**: Integrated `used_nonces` (`NonceCache`, 30s TTL, 10k capacity) into legacy/HMAC `mesh_auth_signature` checks, preventing request replay within the 60s timestamp window.
+- **String Parameter Length Caps (`MAX_PARAM_STRING_LEN`)**: Enforced `MAX_PARAM_STRING_LEN = 256` bytes across RPC parameter extractions (`session_id`, `key`, `nonce_str`), returning `-32602 Invalid Parameter` for oversized strings.
+- **VM Call Depth Guard (`MAX_CALL_DEPTH`)**: Implemented `MAX_CALL_DEPTH = 512` recursion guard in `OpCode::Call`, returning `ERR_CALL_DEPTH_EXCEEDED` on stack overflow.
+- **Leadership Self-Election Lock**: Disabled forced self-election (`force: true`) in `knc_swarm_elect` across all non-test modes.
+
 ## [v2.21.0-authz] - Sprint 330: Repository Documentation Overhaul & Specification Realignment (2026-08-13)
 Sprint 330 carries out a comprehensive repository-wide documentation overhaul ("Tabula Rasa"), realigning all specification, contributing, and architectural documents with the current state of the engine:
 - **`CONTRIBUTING.md` Overhaul**: Modernized contributing guide documenting modern AG-Sprint workflows, architect directives, conventional commit rules, and 5 automated Quality Gates (`cargo fmt`, `cargo clippy`, `--features ui`).

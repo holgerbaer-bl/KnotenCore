@@ -47,6 +47,8 @@ pub use inspector::get_vm_inspection_snapshot;
 pub use inspector::verify_ledger_hash;
 // VM_SLEEP_ACCUMULATED_MS kept as pub(crate) in inspector; accessed via inspector:: directly
 
+pub const MAX_CALL_DEPTH: usize = 512;
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct CallFrame {
     pub ip: usize,
@@ -665,6 +667,12 @@ impl VM {
                     self.stack.push(val);
                 }
                 OpCode::Call(target_ip, arg_count) => {
+                    if self.frames.len() >= MAX_CALL_DEPTH {
+                        return Err(format!(
+                            "Call depth exceeded maximum limit of {} frames (ERR_CALL_DEPTH_EXCEEDED)",
+                            MAX_CALL_DEPTH
+                        ));
+                    }
                     self.frames.push(CallFrame {
                         ip: self.ip,
                         base_pointer: self.base_pointer,

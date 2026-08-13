@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.21.0-authz** · Repository Documentation Overhaul & Specification Realignment
+Current engine version: **v2.21.1-security** · Security Audit Rectification & Resource Limits
 
 ## Done (selected milestones)
 
+- ✅ Security Audit Rectification & Resource Limits (`MAX_BODY_BYTES` & `MAX_WS_PAYLOAD` 1 MiB caps, HMAC Nonce-LRU replay defense, `MAX_PARAM_STRING_LEN` 256B cap, `MAX_CALL_DEPTH` 512 frame guard, self-election locks, Sprint 331 - v2.21.1-security)
 - ✅ Repository Documentation Overhaul & Specification Realignment (Tabula Rasa overhaul of `CONTRIBUTING.md`, `README.md`, `llm.md`, `ROADMAP.md`, `docs/KNOTEN_SPEC.md`, Sprint 330 - v2.21.0-authz)
 - ✅ Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation (`(active_nodes / 2) + 1` quorum enforcement in `knc_swarm_quorum`, strict prohibition of `force: true` self-election in Zero-Trust mode, quorum-consensus gated peer revocation in `knc_mesh_revoke_peer`, Sprint 329 - v2.21.0-authz)
 - ✅ Comprehensive RPC Auth Bypass Mitigation & Snapshot/Restore Hardening (`check_mesh_auth` enforced across ALL 25 JSON-RPC endpoints, Hotfix - v2.20.1-security)
