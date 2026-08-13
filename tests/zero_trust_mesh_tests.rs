@@ -253,14 +253,18 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
         .unwrap()
         .as_secs();
 
-    // 2.5 Initialize session 'default' via knc_execute
+    // 2.5 Initialize session 'default' via knc_execute with valid AST Node
+    let ast_add = aether_compiler::ast::Node::Add(
+        Box::new(aether_compiler::ast::Node::IntLiteral(40)),
+        Box::new(aether_compiler::ast::Node::IntLiteral(2)),
+    );
     let (exec_pub, exec_sig) = server.sign_envelope("nonce-exec-init", now);
     let exec_req = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "knc_execute",
         "params": {
             "session_id": "default",
-            "code": { "type": "IntLiteral", "value": 42 },
+            "ast": ast_add,
             "zero_trust_envelope": {
                 "public_key": exec_pub,
                 "signature": exec_sig,
@@ -271,7 +275,8 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
         },
         "id": 100
     });
-    let _ = parse_response(&server.dispatch_request(&exec_req.to_string()));
+    let resp_exec = parse_response(&server.dispatch_request(&exec_req.to_string()));
+    assert_eq!(resp_exec["result"]["status"], "ok");
 
     // 3. Validly signed Ed25519 envelope for knc_agent_snapshot MUST pass auth check
     let (pubkey, sig) = server.sign_envelope("nonce-snap-auth", now + 1);
