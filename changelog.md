@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.21.0-authz] - Sprint 330: Repository Documentation Overhaul & Specification Realignment (2026-08-13)
+Sprint 330 carries out a comprehensive repository-wide documentation overhaul ("Tabula Rasa"), realigning all specification, contributing, and architectural documents with the current state of the engine:
+- **`CONTRIBUTING.md` Overhaul**: Modernized contributing guide documenting modern AG-Sprint workflows, architect directives, conventional commit rules, and 5 automated Quality Gates (`cargo fmt`, `cargo clippy`, `--features ui`).
+- **`README.md` & `llm.md` Synchronization**: Preserved Option 1 layout strictly in `README.md`, updated release version badges to `v2.21.0-authz`, refreshed AI-Readiness benchmark headers, and updated routing instructions.
+- **Specification Realignment (`docs/KNOTEN_SPEC.md`)**: Updated JSON AST specification with sections 7.15 and 7.16 documenting Zero-Trust Phase 2 (Key Rotation, Nonce LRU Eviction, Peer Revocation) and Sprint 329 (Server-Enforced Quorum & Quorum-Gated Peer Revocation).
+- **Roadmap & Audit Sync**: Synchronized milestone records in `ROADMAP.md` and updated documentation links across all repository subdirectories.
+
 ## [v2.21.0-authz] - Sprint 329: Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation (2026-08-13)
 Sprint 329 hardens Swarm Governance foundations with server-enforced quorum computation, Zero-Trust election restrictions, and quorum-gated peer revocation:
 - **Server-Enforced Quorum Thresholds (`handle_swarm_quorum`)**: Quorum threshold calculation `(active_nodes / 2) + 1` is strictly server-enforced, rejecting or overriding any client-supplied `required_quorum` values below the server-computed minimum.

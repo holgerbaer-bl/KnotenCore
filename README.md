@@ -69,7 +69,7 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.18.0)
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.21.0-authz)
 
 > Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 

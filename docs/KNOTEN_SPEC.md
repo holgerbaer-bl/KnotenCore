@@ -259,13 +259,19 @@ Introduces Swarm Governance (Local Swarm Role Management & Leadership Claim Prim
 - `knc_swarm_quorum`: Evaluates active mesh nodes to enforce quorum threshold consensus (`(active_nodes / 2) + 1` or explicit threshold) prior to critical cluster operations. Auth-protected via `mesh_auth_token`.
 - `SwarmGovernance`: Thread-safe engine tracking node role, current leader ID, term, and election votes.
 
-### 7.14. Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Replay Protection (`v2.19.0-zerotrust`)
-Introduces Zero-Trust cryptographic envelope signing, anti-downgrade guards, and sliding replay protection:
-- `knc_mesh_verify_peer`: Endpunkt für den gegenseitigen Austausch und die Verifikation von öffentlichen Ed25519-Schlüsseln zwischen Mesh-Knoten.
-- **In-Memory Key Management**: Ed25519-Schlüsselpaare werden ausschließlich in-memory generiert und gehalten. Keine Speicherung von Private Keys auf Festplatte oder in Repositories.
-- **Anti-Downgrade Protection**: Unsignierte Mesh-Payloads und reine legacy HMAC-Tokens werden im Zero-Trust-Modus strikt abgewiesen.
-- **Replay Protection**: Maximale Zeitstempel-Abweichung von 30 Sekunden (`MAX_ZERO_TRUST_WINDOW_SECS = 30`) und Nonce-Duplikatssperre.
-- *Transparenz-Hinweis: Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.*
+### 7.15. Zero-Trust Mesh Phase 2: Ed25519 Key Rotation, Nonce LRU Eviction & Peer Revocation (`v2.20.0-trust` / `v2.20.1-security`)
+Introduces in-memory key rotation, bounded LRU nonce caching, instant peer key revocation, and exhaustive RPC auth enforcement:
+- `knc_mesh_rotate_key`: Enables volatile Ed25519 keypair re-keying in-memory without interrupting active mesh streams or sessions.
+- `knc_mesh_revoke_peer`: Instantly blacklists compromised peer public keys across the mesh routing table (`PeerRevocationList`).
+- **Nonce Cache Eviction (`NonceCache`)**: Bounded LRU cache (`MAX_NONCE_CACHE_CAPACITY = 10_000`) with automatic 30s TTL eviction.
+- **Exhaustive RPC Auth Enforcement (`check_mesh_auth`)**: Enforced across ALL 25 JSON-RPC methods (`knc_*`) in `rpc.rs`, ensuring unauthenticated callers cannot snapshot/restore VM state or compile/execute AST payloads.
+
+### 7.16. Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation (`v2.21.0-authz`)
+Hardens Swarm Governance with server-enforced quorum computation, Zero-Trust election hardening, and quorum-gated peer revocation:
+- `knc_swarm_quorum`: Server-enforced quorum threshold calculation `(total_nodes / 2) + 1` (`total_nodes = 1 + peers.len()`). Any client-supplied `required_quorum` parameter below the server minimum is overridden or validated against the server-computed minimum.
+- `knc_swarm_elect`: Strictly prohibits forced self-election (`force: true`) when Zero-Trust mode is active (`is_zero_trust()`), returning `-32001 Unauthorized`.
+- `knc_mesh_revoke_peer`: Coupled peer key revocation to active quorum consensus (`quorum_reached == true`), preventing isolated nodes from revoking peers without swarm consensus.
+
 
 
 

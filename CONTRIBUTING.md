@@ -1,40 +1,68 @@
-# Contributing to KnotenCore
+# Contributing to KnotenCore 🦀🤖
 
-First off, thank you for considering contributing to KnotenCore! It's people like you that make KnotenCore an enterprise-grade Virtual Machine architecture.
+Thank you for contributing to **KnotenCore** — a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents, fully driven by JSON-AST!
 
-## Getting Started
+---
 
-1. **Fork & Clone:** Fork the repository on GitHub and clone your fork locally.
+## 🎯 Architecture & Engine Scope
+
+KnotenCore is a **headless-first VM runtime & P2P mesh engine**. Logic is executed directly from JSON AST `.nod` structures or high-density `.knoten` DSL files by an AOT compiler targeting a bare-metal Register Stack-VM.
+
+---
+
+## 🚀 Development Workflow & Architect Directives
+
+All development on KnotenCore follows strict agentic sprint workflows and architect guidelines:
+
+1. **Workspace Setup:**
+   Ensure you have the latest stable Rust compiler installed via [rustup](https://rustup.rs/).
    ```bash
-   git clone https://github.com/YOUR_USERNAME/KnotenCore.git
+   git clone https://github.com/holgerbaer-bl/KnotenCore.git
    cd KnotenCore
-   ```
-2. **Setup Rust:** Ensure you have the latest stable Rust compiler installed via [rustup](https://rustup.rs/).
-3. **Build the Engine:** Run the following command from the `aether_compiler` root to verify your workspace is intact.
-   ```bash
-   cargo build
+   cargo check --workspace
    ```
 
-## Finding an Issue
-We curate issues labeled `good first issue` to help you onboard without needing deep knowledge of the AOT Compiler or Virtual Machine internals. These issues explicitly target the `core/` Standard Library. 
+2. **Branching & Commit Conventions:**
+   Work on feature or fix branches (`feat/name` or `fix/name`). Commit messages follow conventional commit style:
+   - `feat(sprint-XXX): Description`
+   - `fix(subsystem): Description`
+   - `docs(sprint-XXX): Description`
+   - `refactor(subsystem): Description`
 
-## Testing Your Changes
-The KnotenCore engine relies heavily on its integration safety sandbox.
-Before submitting your Pull Request, you **must** ensure the compiler unit tests and deterministic sandbox validation checks pass successfully:
+3. **Architect Directives (Documentation & Git Delivery Gates):**
+   - **Documentation Gates:** Every sprint and major hotfix MUST update and synchronize version references and architectural descriptions across `Cargo.toml`, `aether_compiler/src/rpc.rs` (`KNC_PROTOCOL_VERSION`), `README.md` (*Option 1 layout strictly preserved*), `llm.md`, `changelog.md`, `ROADMAP.md`, and `docs/KNOTEN_SPEC.md`.
+   - **Git Delivery:** Sprints must be delivered with annotated tags (`vX.Y.Z-tag`) and pushed directly to GitHub (`git push origin main --tags`).
+
+---
+
+## 🛡️ Quality Gates & Verification
+
+Before submitting changes or completing a sprint, all **5 Automated Quality Gates** must pass cleanly with zero errors or warnings:
+
 ```bash
-cargo clippy --lib
-cargo test --lib
+# 1. Formatting Gate
+cargo fmt --check
+
+# 2. Headless Clippy Gate (Strict Warnings-As-Errors)
+cargo clippy --workspace --no-default-features --all-targets -- -D warnings
+
+# 3. UI Clippy Gate (Strict Warnings-As-Errors)
+cargo clippy --workspace --features ui --all-targets -- -D warnings
+
+# 4. Headless Test Suite Gate
+cargo test --workspace --no-default-features
+
+# 5. UI Test Suite Gate
+cargo test --workspace --features ui
 ```
 
-If your changes involve new `.nod` script functionality:
-```bash
-cargo run --bin run_knc -- examples/your_test_script.nod
-```
+---
 
-## Submitting a Pull Request
-1. Create a branch (`git checkout -b feature/your-feature-name`).
-2. Make your logical, isolated commits.
-3. Push your branch to your fork.
-4. Open a Pull Request targeting our `main` branch. Provide a clear summary of your changes.
+## 🧪 Testing New Features
+
+If introducing new AST nodes or JSON-RPC methods:
+1. Add corresponding integration tests under `tests/` (e.g. `tests/zero_trust_mesh_tests.rs`, `tests/key_rotation_mesh_tests.rs`, `tests/agentic_swarm_tests.rs`).
+2. Verify node compilation in `aether_compiler/src/vm/compiler.rs` and execution parity in `aether_compiler/src/vm/machine.rs`.
+3. Verify JSON-RPC schema compliance in `aether_compiler/src/rpc.rs`.
 
 Happy Coding!
