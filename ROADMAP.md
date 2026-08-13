@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.20.1-security** · Hotfix: Comprehensive RPC Auth Bypass Mitigation & Snapshot/Restore Hardening
+Current engine version: **v2.21.0-authz** · Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation
 
 ## Done (selected milestones)
 
+- ✅ Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation (`(active_nodes / 2) + 1` quorum enforcement in `knc_swarm_quorum`, strict prohibition of `force: true` self-election in Zero-Trust mode, quorum-consensus gated peer revocation in `knc_mesh_revoke_peer`, Sprint 329 - v2.21.0-authz)
 - ✅ Comprehensive RPC Auth Bypass Mitigation & Snapshot/Restore Hardening (`check_mesh_auth` enforced across ALL 25 JSON-RPC endpoints, Hotfix - v2.20.1-security)
 - ✅ Zero-Trust Mesh Phase 2: Ed25519 Key Rotation, Nonce LRU Eviction & Peer Revocation (`knc_mesh_rotate_key`, `knc_mesh_revoke_peer`, `NonceCache` LRU eviction, keyless session migration, Sprint 328 - v2.20.0-trust)
 - ✅ Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Replay Protection (`knc_mesh_verify_peer`, Ed25519 envelope signing, 30s sliding replay window, anti-downgrade guard, Sprint 327 - v2.19.0)

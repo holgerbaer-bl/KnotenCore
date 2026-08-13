@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.21.0-authz] - Sprint 329: Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation (2026-08-13)
+Sprint 329 hardens Swarm Governance foundations with server-enforced quorum computation, Zero-Trust election restrictions, and quorum-gated peer revocation:
+- **Server-Enforced Quorum Thresholds (`handle_swarm_quorum`)**: Quorum threshold calculation `(active_nodes / 2) + 1` is strictly server-enforced, rejecting or overriding any client-supplied `required_quorum` values below the server-computed minimum.
+- **Zero-Trust Self-Election Hardening (`handle_swarm_elect`)**: Strictly prohibits forced self-election (`force: true`) when Zero-Trust mode is active, preventing unauthenticated nodes from self-promoting to leader.
+- **Quorum-Gated Peer Revocation (`knc_mesh_revoke_peer`)**: Coupled peer key revocation (`knc_mesh_revoke_peer`) to active quorum consensus (`quorum_reached == true`), preventing single isolated nodes from revoking peers without swarm consensus.
+- **Regression Test Coverage (`tests/key_rotation_mesh_tests.rs`)**: Added automated regression tests verifying client quorum parameter resistance, Zero-Trust self-election blocking, and quorum-gated peer revocation enforcement.
+
 ## [v2.20.1-security] - Security Hotfix: Comprehensive RPC Auth Bypass Mitigation & Snapshot/Restore Hardening (2026-08-12)
 Security Hotfix v2.20.1-security resolves a critical RPC authentication bypass vulnerability across all RPC routing endpoints:
 - **Comprehensive RPC Auth Audit & Enforcement**: Verified that `check_mesh_auth` is enforced across ALL 25 JSON-RPC methods (`knc_*`) in `aether_compiler/src/rpc.rs`.

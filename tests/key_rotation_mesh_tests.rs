@@ -211,3 +211,185 @@ fn test_zero_trust_nonce_lru_eviction() {
     // Re-inserting key1:nonce1 works now because it was LRU evicted
     assert!(cache.insert("key1:nonce1".to_string(), now_ts));
 }
+
+#[test]
+fn test_server_enforced_quorum_rejects_client_manipulation() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "quorum-server-test",
+        "127.0.0.1:0",
+        None,
+    );
+
+    // Register 2 active peers -> active_nodes = 3 -> server_threshold = (3/2) + 1 = 2
+    {
+        let mut peers = server.peers.lock().unwrap();
+        peers.insert(
+            "peer-1".to_string(),
+            aether_compiler::rpc::MeshPeer {
+                node_id: "peer-1".to_string(),
+                address: "127.0.0.1:9001".to_string(),
+                capabilities: vec![],
+                last_seen: 100,
+                latency_ms: 5,
+                status: "Active".to_string(),
+            },
+        );
+        peers.insert(
+            "peer-2".to_string(),
+            aether_compiler::rpc::MeshPeer {
+                node_id: "peer-2".to_string(),
+                address: "127.0.0.1:9002".to_string(),
+                capabilities: vec![],
+                last_seen: 100,
+                latency_ms: 10,
+                status: "Active".to_string(),
+            },
+        );
+    }
+
+    // Client attempts to pass required_quorum: 1
+    let req = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_swarm_quorum",
+        "params": {
+            "operation": "critical_op",
+            "required_quorum": 1
+        },
+        "id": 1
+    });
+
+    let resp_str = server.dispatch_request(&req.to_string());
+    let resp: serde_json::Value = serde_json::from_str(&resp_str).unwrap();
+
+    assert_eq!(resp["result"]["status"], "ok");
+    assert_eq!(resp["result"]["active_nodes"], 3);
+    // Server-enforced quorum threshold MUST remain 2 (max(2, 1) = 2)
+    assert_eq!(resp["result"]["quorum_threshold"], 2);
+}
+
+#[test]
+fn test_zero_trust_blocks_forced_self_election() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "election-node",
+        "127.0.0.1:0",
+        Some("secret".to_string()),
+    );
+    server.enable_zero_trust();
+
+    let now = current_ts();
+    let (pubkey, sig) = server.sign_envelope("nonce-elect-force", now);
+
+    let req = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_swarm_elect",
+        "params": {
+            "candidate_node_id": "election-node",
+            "force": true,
+            "zero_trust_envelope": {
+                "public_key": pubkey,
+                "signature": sig,
+                "timestamp": now,
+                "nonce": "nonce-elect-force",
+                "sender_node_id": "election-node"
+            }
+        },
+        "id": 1
+    });
+
+    let resp_str = server.dispatch_request(&req.to_string());
+    let resp: serde_json::Value = serde_json::from_str(&resp_str).unwrap();
+
+    assert_eq!(resp["error"]["code"], -32001);
+    assert!(
+        resp["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Forced self-election is strictly disabled")
+    );
+}
+
+#[test]
+fn test_quorum_gated_peer_revocation() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "revocation-quorum-node",
+        "127.0.0.1:0",
+        None,
+    );
+
+    // Add 2 stale peers (active_nodes = 1, server_threshold = 2 -> quorum_reached = false)
+    {
+        let mut peers = server.peers.lock().unwrap();
+        peers.insert(
+            "stale-peer-1".to_string(),
+            aether_compiler::rpc::MeshPeer {
+                node_id: "stale-peer-1".to_string(),
+                address: "127.0.0.1:9001".to_string(),
+                capabilities: vec![],
+                last_seen: 100,
+                latency_ms: 5,
+                status: "Stale".to_string(),
+            },
+        );
+        peers.insert(
+            "stale-peer-2".to_string(),
+            aether_compiler::rpc::MeshPeer {
+                node_id: "stale-peer-2".to_string(),
+                address: "127.0.0.1:9002".to_string(),
+                capabilities: vec![],
+                last_seen: 100,
+                latency_ms: 10,
+                status: "Stale".to_string(),
+            },
+        );
+    }
+
+    // Attempt peer revocation when quorum is NOT reached
+    let req_unauth = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_revoke_peer",
+        "params": {
+            "peer_pubkey": "abc123revokekey"
+        },
+        "id": 1
+    });
+
+    let resp_unauth_str = server.dispatch_request(&req_unauth.to_string());
+    let resp_unauth: serde_json::Value = serde_json::from_str(&resp_unauth_str).unwrap();
+
+    assert_eq!(resp_unauth["error"]["code"], -32001);
+    assert!(
+        resp_unauth["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Quorum consensus not reached")
+    );
+
+    // Activate peers so active_nodes = 3 >= 2 (quorum_reached = true)
+    {
+        let mut peers = server.peers.lock().unwrap();
+        if let Some(p) = peers.get_mut("stale-peer-1") {
+            p.status = "Active".to_string();
+        }
+        if let Some(p) = peers.get_mut("stale-peer-2") {
+            p.status = "Active".to_string();
+        }
+    }
+
+    let req_auth = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_revoke_peer",
+        "params": {
+            "peer_pubkey": "abc123revokekey"
+        },
+        "id": 2
+    });
+
+    let resp_auth_str = server.dispatch_request(&req_auth.to_string());
+    let resp_auth: serde_json::Value = serde_json::from_str(&resp_auth_str).unwrap();
+
+    assert_eq!(resp_auth["result"]["status"], "ok");
+    assert_eq!(resp_auth["result"]["revoked"], true);
+}

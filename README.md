@@ -1,9 +1,9 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.20.1--security-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.21.0--authz-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-291%2F291-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.20.1--security-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-294%2F294-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.21.0--authz-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -16,6 +16,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation (v2.21.0-authz)**: Server-enforced quorum computation `(active_nodes / 2) + 1` resisting client parameter manipulation (`knc_swarm_quorum`), strict prohibition of forced self-election (`force: true`) in Zero-Trust mode (`knc_swarm_elect`), and quorum-consensus gated peer revocation (`knc_mesh_revoke_peer`).
 - **Comprehensive RPC Auth Bypass Mitigation (v2.20.1-security)**: Exhaustive RPC authentication enforcement (`check_mesh_auth`) across ALL 25 JSON-RPC endpoints (`knc_*`), completely mitigating unauthenticated access to `knc_agent_snapshot`, `knc_agent_restore`, `knc_compile`, `knc_execute`, `knc_yield_resume`, and `knc_inspect_state`.
 - **Zero-Trust Mesh Phase 2: Key Rotation, Nonce LRU Eviction & Peer Revocation**: Volatile in-memory Ed25519 keypair re-keying (`knc_mesh_rotate_key`) without interrupting active streams, keyless session migration, bounded LRU nonce cache (`MAX_NONCE_CACHE_CAPACITY = 10_000`) with automatic TTL eviction, and instant peer revocation lists (`knc_mesh_revoke_peer`). *Hinweis: Die kryptografische Mesh-Signierung und Key-Rotation befinden sich in Phase 2 (lokale Ed25519-Verifikation & Peer-Sperrlisten). Sie ersetzen keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.*
 - **Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)**: Term tracking, dynamic node roles (`Leader`, `Worker`, `Storage`, `Observer`), and quorum voting (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`). *Hinweis: `knc_swarm_elect` verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1). Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.*

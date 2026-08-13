@@ -27,7 +27,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.20.1-security";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.21.0-authz";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -998,6 +998,14 @@ impl RpcServer {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
+        if force && self.is_zero_trust() {
+            return JsonRpcResponse::error(
+                id,
+                -32001,
+                "Unauthorized: Forced self-election is strictly disabled under Zero-Trust mode",
+            );
+        }
+
         let (leader_id, term, role) =
             self.swarm_governance
                 .elect(&self.node_id, candidate_id, requested_term, force);
@@ -1060,15 +1068,22 @@ impl RpcServer {
             .unwrap_or("cluster_op")
             .to_string();
 
-        let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
-        let active_peers_count = peers.values().filter(|p| p.status == "Active").count();
-        let active_nodes = 1 + active_peers_count;
+        let (active_nodes, total_nodes) = {
+            let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
+            let active_peers_count = peers.values().filter(|p| p.status == "Active").count();
+            (1 + active_peers_count, 1 + peers.len())
+        };
+        let server_threshold = (total_nodes / 2) + 1;
 
-        let quorum_threshold = params
+        let requested_quorum = params
             .get("required_quorum")
             .and_then(|v| v.as_u64())
-            .map(|q| q as usize)
-            .unwrap_or_else(|| (active_nodes / 2) + 1);
+            .map(|q| q as usize);
+
+        let quorum_threshold = match requested_quorum {
+            Some(req_q) => std::cmp::max(server_threshold, req_q),
+            None => server_threshold,
+        };
 
         let quorum_reached = active_nodes >= quorum_threshold;
 
@@ -1492,6 +1507,25 @@ impl RpcServer {
 
         if peer_pubkey.is_empty() {
             return JsonRpcResponse::error(id, -32602, "Missing parameter 'peer_pubkey'");
+        }
+
+        // Quorum-Gated Peer Revocation: Evaluate active nodes and quorum threshold
+        let (active_nodes, quorum_threshold) = {
+            let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
+            let active_peers_count = peers.values().filter(|p| p.status == "Active").count();
+            let active = 1 + active_peers_count;
+            let total = 1 + peers.len();
+            let threshold = (total / 2) + 1;
+            (active, threshold)
+        };
+        let quorum_reached = active_nodes >= quorum_threshold;
+
+        if !quorum_reached {
+            return JsonRpcResponse::error(
+                id,
+                -32001,
+                "Unauthorized: Quorum consensus not reached for peer revocation",
+            );
         }
 
         self.revoke_peer_key(&peer_pubkey);
