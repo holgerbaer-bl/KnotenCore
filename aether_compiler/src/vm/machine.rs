@@ -3301,13 +3301,17 @@ mod tests {
             .map(|_| {
                 let topic_clone = topic.clone();
                 std::thread::spawn(move || {
-                    let mut bus = isolate::bus_subscribe(&topic_clone);
-                    if bus.is_none() {
+                    let mut bus = None;
+                    for _ in 0..50 {
+                        bus = isolate::bus_subscribe(&topic_clone);
+                        if bus.is_some() {
+                            break;
+                        }
                         isolate::bus_publish(
                             topic_clone.clone(),
                             (0..10_000).map(RelType::Int).collect(),
                         );
-                        bus = isolate::bus_subscribe(&topic_clone);
+                        std::thread::sleep(std::time::Duration::from_millis(5));
                     }
                     let bus = bus.expect("Must subscribe to bus");
                     assert_eq!(bus.len(), 10_000);
