@@ -71,7 +71,7 @@ fn test_hmac_replay_within_window() {
         .as_secs();
     let nonce = "unique_nonce_req_99";
     let sender = "node_alpha";
-    let message = format!("{}:{}", nonce, sender);
+    let message = format!("{}:{}", timestamp, sender);
     let sig = hmac_sha256(auth_token.as_bytes(), message.as_bytes());
 
     let req = serde_json::json!({
