@@ -280,6 +280,13 @@ Closes CRITICAL and HIGH-severity audit findings by introducing strict payload, 
 - **VM Call Depth Limit (`MAX_CALL_DEPTH = 512`)**: Enforces `MAX_CALL_DEPTH` stack frame limit in `OpCode::Call`, returning `ERR_CALL_DEPTH_EXCEEDED` on recursion overflow.
 - **Universal Self-Election Lock**: Disables forced self-election (`force: true`) in `knc_swarm_elect` across all non-test execution environments.
 
+### 7.18. Root Election Hardening & Exhaustive String Bounds (`v2.21.2-security`)
+Performs root hardening against split-brain leadership claims and enforces exhaustive parameter length bounds across all RPC handlers:
+- **Root-Level Swarm Election Hardening**: Completely blocks unilateral self-nomination in `SwarmGovernance::elect()` after initial bootstrap. The success condition `target_candidate == local_node_id` is completely removed. Subsequent election attempts return `-32001 Unauthorized / Consensus Required`.
+- **Client Bypass Parameter Elimination**: Removes `allow_test_harness` / `test_harness` parameter checks from `handle_swarm_elect`, preventing client JSON payloads from overriding election rules.
+- **Exhaustive Parameter String Length Bounds (`MAX_PARAM_STRING_LEN = 256`)**: Enforces `validate_param_string_len` on all `session_id` extractions (`handle_compile`, `handle_execute`, `handle_yield_resume`, `handle_inspect_state`, `handle_agent_snapshot`, `handle_agent_restore`, `handle_agent_teleport`) and `nonce_str` before NonceCache insertion, returning `-32602 Invalid Parameter` for strings exceeding 256 bytes.
+
+
 
 
 

@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.21.2-security] - Sprint 332: Root Election Hardening & Exhaustive String Bounds (2026-08-15)
+Sprint 332 performs root hardening against split-brain leadership claims and enforces exhaustive parameter length bounds across all RPC handlers:
+- **Root-Level Swarm Election Hardening**: Hardened Phase 1 local election: unilateral self-nomination is completely blocked after initial bootstrap; dynamic failover and distributed voting scheduled for Phase 2. Removed `target_candidate == local_node_id` from `SwarmGovernance::elect()` success conditions entirely.
+- **Bypass Parameter Elimination**: Removed `allow_test_harness` / `test_harness` parameter checks from `handle_swarm_elect`, ensuring client JSON payloads cannot bypass election rules.
+- **Exhaustive String Parameter Caps**: Bound `validate_param_string_len(..., MAX_PARAM_STRING_LEN)` across all `session_id` extractions (`handle_compile`, `handle_execute`, `handle_yield_resume`, `handle_inspect_state`, `handle_agent_snapshot`, `handle_agent_restore`, `handle_agent_teleport`) and `nonce_str` before NonceCache insertion, returning `-32602 Invalid Parameter` for strings exceeding 256 bytes.
+
 ## [v2.21.1-security] - Sprint 331: Security Audit Rectification & Resource Limits (2026-08-13)
 Sprint 331 closes 2 CRITICAL and 3 HIGH-severity security audit findings, establishing strict resource limits across RPC transport, authentication nonces, parameter bounds, VM call depth, and swarm governance:
 - **RPC DoS & Body Caps (`MAX_BODY_BYTES` & `MAX_WS_PAYLOAD`)**: Set `MAX_BODY_BYTES = 1_048_576` (1 MiB) for raw TCP/HTTP JSON-RPC requests, returning `-32700 Parse Error` for oversized bodies. Enforced `MAX_WS_PAYLOAD = 1_048_576` in `read_ws_frame` before vector allocation.

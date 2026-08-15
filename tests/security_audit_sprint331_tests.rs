@@ -106,5 +106,122 @@ fn test_hmac_replay_within_window() {
 
 #[test]
 fn test_version_assertion_sprint331() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.21.1-security");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.21.2-security");
+}
+
+#[test]
+fn test_unilateral_reelection_rejected() {
+    let server = RpcServer::new(aether_compiler::executor::AgentPermissions::default());
+
+    // Initial election (bootstrap) sets leader
+    let req1 = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "knc_swarm_elect",
+        "params": { "candidate_node_id": "node_alpha" }
+    });
+    let resp1 = server.dispatch_request(&req1.to_string());
+    assert!(
+        resp1.contains("\"result\""),
+        "Bootstrap election failed: {}",
+        resp1
+    );
+
+    // Subsequent re-election attempt without swarm consensus must be rejected (-32001)
+    let req2 = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "knc_swarm_elect",
+        "params": { "candidate_node_id": "node_beta", "force": true }
+    });
+    let resp2 = server.dispatch_request(&req2.to_string());
+    assert!(
+        resp2.contains("-32001"),
+        "Unilateral re-election was not rejected: {}",
+        resp2
+    );
+    assert!(resp2.contains("Leader is already elected") || resp2.contains("Unauthorized"));
+}
+
+#[test]
+fn test_client_cannot_bypass_via_test_harness_param() {
+    let server = RpcServer::new(aether_compiler::executor::AgentPermissions::default());
+
+    // Set initial leader
+    let req1 = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "knc_swarm_elect",
+        "params": { "candidate_node_id": "node_alpha" }
+    });
+    let _ = server.dispatch_request(&req1.to_string());
+
+    // Attempting to bypass using allow_test_harness parameter MUST fail with -32001
+    let req_bypass = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "knc_swarm_elect",
+        "params": {
+            "candidate_node_id": "node_rogue",
+            "force": true,
+            "allow_test_harness": true,
+            "test_harness": true
+        }
+    });
+    let resp = server.dispatch_request(&req_bypass.to_string());
+    assert!(
+        resp.contains("-32001"),
+        "Client bypass via allow_test_harness succeeded unexpectedly: {}",
+        resp
+    );
+}
+
+#[test]
+fn test_oversized_session_id_rejected_on_all_endpoints() {
+    let server = RpcServer::new(aether_compiler::executor::AgentPermissions::default());
+    let oversized_session = "s".repeat(257);
+
+    // knc_compile
+    let ast = knoten_core_types::ast::Node::IntLiteral(42);
+    let req_compile = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "knc_compile",
+        "params": { "ast": ast, "session_id": oversized_session }
+    });
+    let resp_compile = server.dispatch_request(&req_compile.to_string());
+    assert!(
+        resp_compile.contains("-32602"),
+        "Oversized session_id on knc_compile not rejected: {}",
+        resp_compile
+    );
+    assert!(resp_compile.contains("exceeds maximum length"));
+
+    // knc_execute
+    let req_exec = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "knc_execute",
+        "params": { "ast": ast, "session_id": oversized_session }
+    });
+    let resp_exec = server.dispatch_request(&req_exec.to_string());
+    assert!(
+        resp_exec.contains("-32602"),
+        "Oversized session_id on knc_execute not rejected: {}",
+        resp_exec
+    );
+
+    // knc_inspect_state
+    let req_inspect = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "knc_inspect_state",
+        "params": { "session_id": oversized_session }
+    });
+    let resp_inspect = server.dispatch_request(&req_inspect.to_string());
+    assert!(
+        resp_inspect.contains("-32602"),
+        "Oversized session_id on knc_inspect_state not rejected: {}",
+        resp_inspect
+    );
 }

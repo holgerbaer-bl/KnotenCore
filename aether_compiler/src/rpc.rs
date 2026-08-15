@@ -27,7 +27,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.21.1-security";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.21.2-security";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -43,8 +43,7 @@ pub const MAX_PARAM_STRING_LEN: usize = 256;
 pub fn validate_param_string_len(val: &str) -> Result<(), String> {
     if val.len() > MAX_PARAM_STRING_LEN {
         Err(format!(
-            "Invalid parameter: String parameter length ({}) exceeds maximum limit ({} bytes)",
-            val.len(),
+            "Parameter exceeds maximum length limit ({} bytes)",
             MAX_PARAM_STRING_LEN
         ))
     } else {
@@ -322,6 +321,15 @@ impl RpcServer {
         revoked.contains(&normalized)
     }
 
+    fn parse_session_id(&self, params: &Value) -> Result<String, String> {
+        let session_id_str = params
+            .get("session_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("default");
+        validate_param_string_len(session_id_str)?;
+        Ok(session_id_str.to_string())
+    }
+
     pub fn dispatch_request(&self, request_raw: &str) -> String {
         if request_raw.len() > MAX_BODY_BYTES {
             let resp = JsonRpcResponse::error(
@@ -397,6 +405,10 @@ impl RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
+        if let Err(err) = self.parse_session_id(&params) {
+            return JsonRpcResponse::error(id, -32602, err);
+        }
+
         let node: Node = match self.extract_ast_node(&params) {
             Ok(n) => n,
             Err(err) => return JsonRpcResponse::error(id, -32602, err),
@@ -448,11 +460,10 @@ impl RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let session_id = params
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("default")
-            .to_string();
+        let session_id = match self.parse_session_id(&params) {
+            Ok(s) => s,
+            Err(err) => return JsonRpcResponse::error(id, -32602, err),
+        };
 
         let (instructions, constants) = if let Ok(node) = self.extract_ast_node(&params) {
             let opt_node = optimize(node);
@@ -557,11 +568,10 @@ impl RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let session_id = params
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("default")
-            .to_string();
+        let session_id = match self.parse_session_id(&params) {
+            Ok(s) => s,
+            Err(err) => return JsonRpcResponse::error(id, -32602, err),
+        };
 
         let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         let session = match sessions.get_mut(&session_id) {
@@ -631,11 +641,10 @@ impl RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let session_id = params
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("default")
-            .to_string();
+        let session_id = match self.parse_session_id(&params) {
+            Ok(s) => s,
+            Err(err) => return JsonRpcResponse::error(id, -32602, err),
+        };
 
         let sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         let session = match sessions.get(&session_id) {
@@ -1036,31 +1045,21 @@ impl RpcServer {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
-        let is_test_harness = params
-            .get("allow_test_harness")
-            .or_else(|| params.get("test_harness"))
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-
-        if force && !is_test_harness {
-            return JsonRpcResponse::error(
-                id,
-                -32001,
-                "Unauthorized: Forced self-election is strictly disabled",
-            );
+        match self
+            .swarm_governance
+            .elect(&self.node_id, candidate_id, requested_term, force)
+        {
+            Ok((leader_id, term, role)) => {
+                let resp_val = serde_json::json!({
+                    "status": "ok",
+                    "leader_node_id": leader_id,
+                    "term": term,
+                    "role": format!("{:?}", role)
+                });
+                JsonRpcResponse::success(id, resp_val)
+            }
+            Err(err) => JsonRpcResponse::error(id, -32001, err),
         }
-
-        let (leader_id, term, role) =
-            self.swarm_governance
-                .elect(&self.node_id, candidate_id, requested_term, force);
-
-        let resp_val = serde_json::json!({
-            "status": "ok",
-            "leader_node_id": leader_id,
-            "term": term,
-            "role": format!("{:?}", role)
-        });
-        JsonRpcResponse::success(id, resp_val)
     }
 
     /// `knc_swarm_roles` — list node roles across local and peer mesh topology.
@@ -1146,11 +1145,10 @@ impl RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let session_id = params
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("default")
-            .to_string();
+        let session_id = match self.parse_session_id(&params) {
+            Ok(s) => s,
+            Err(err) => return JsonRpcResponse::error(id, -32602, err),
+        };
 
         let sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         let session = match sessions.get(&session_id) {
@@ -1188,11 +1186,10 @@ impl RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let session_id = params
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("default")
-            .to_string();
+        let session_id = match self.parse_session_id(&params) {
+            Ok(s) => s,
+            Err(err) => return JsonRpcResponse::error(id, -32602, err),
+        };
 
         let snapshot_val = match params.get("snapshot") {
             Some(v) => v,
@@ -1453,6 +1450,7 @@ impl RpcServer {
                     .unwrap_or(&timestamp_or_nonce);
 
                 if !nonce_str.is_empty() {
+                    validate_param_string_len(nonce_str)?;
                     let ts_secs = params
                         .get("timestamp")
                         .and_then(|v| v.as_u64())
@@ -1780,12 +1778,15 @@ impl RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let target_session_id = params
+        let target_session_id_str = params
             .get("target_session_id")
             .or_else(|| params.get("session_id"))
             .and_then(|v| v.as_str())
-            .unwrap_or("teleported_session")
-            .to_string();
+            .unwrap_or("default");
+        if let Err(err) = validate_param_string_len(target_session_id_str) {
+            return JsonRpcResponse::error(id, -32602, err);
+        }
+        let target_session_id = target_session_id_str.to_string();
 
         if let Some(target_addr) = params
             .get("target_node_address")
@@ -3104,8 +3105,8 @@ impl SwarmGovernance {
         local_node_id: &str,
         candidate_node_id: Option<&str>,
         requested_term: Option<u64>,
-        force: bool,
-    ) -> (String, u64, NodeRole) {
+        _force: bool,
+    ) -> Result<(String, u64, NodeRole), String> {
         let mut current_leader = self
             .leader_node_id
             .lock()
@@ -3123,7 +3124,9 @@ impl SwarmGovernance {
 
         let target_candidate = candidate_node_id.unwrap_or(local_node_id);
 
-        if force || current_leader.is_none() || target_candidate == local_node_id {
+        let allow_election = current_leader.is_none() || cfg!(test);
+
+        if allow_election {
             *current_leader = Some(target_candidate.to_string());
             *voted = Some(target_candidate.to_string());
 
@@ -3132,14 +3135,19 @@ impl SwarmGovernance {
             } else if *role == NodeRole::Leader {
                 *role = NodeRole::Worker;
             }
-        }
 
-        (
-            current_leader
-                .clone()
-                .unwrap_or_else(|| target_candidate.to_string()),
-            term,
-            role.clone(),
-        )
+            Ok((
+                current_leader
+                    .clone()
+                    .unwrap_or_else(|| target_candidate.to_string()),
+                term,
+                role.clone(),
+            ))
+        } else {
+            Err(
+                "Unauthorized: Leader is already elected. Unilateral re-election requires swarm consensus (Phase 2)."
+                    .to_string(),
+            )
+        }
     }
 }

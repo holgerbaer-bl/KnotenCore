@@ -61,10 +61,10 @@ fn test_swarm_governance_direct_unit_test() {
     let server = make_server("node-beta");
     assert_eq!(server.swarm_governance.role(), NodeRole::Worker);
 
-    let (leader, term, role) =
-        server
-            .swarm_governance
-            .elect("node-beta", Some("node-beta"), Some(5), true);
+    let (leader, term, role) = server
+        .swarm_governance
+        .elect("node-beta", Some("node-beta"), Some(5), true)
+        .expect("Election failed");
     assert_eq!(leader, "node-beta");
     assert_eq!(term, 5);
     assert_eq!(role, NodeRole::Leader);
@@ -236,6 +236,6 @@ fn test_handshake_advertises_swarm_governance() {
     assert!(caps["node_roles"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.21.1-security"
+        "v2.21.2-security"
     );
 }
