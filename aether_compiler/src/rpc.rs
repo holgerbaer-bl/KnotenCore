@@ -27,7 +27,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.21.2-security";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.21.3-security";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -3124,7 +3124,7 @@ impl SwarmGovernance {
 
         let target_candidate = candidate_node_id.unwrap_or(local_node_id);
 
-        let allow_election = current_leader.is_none() || cfg!(test);
+        let allow_election = current_leader.is_none();
 
         if allow_election {
             *current_leader = Some(target_candidate.to_string());
@@ -3149,5 +3149,18 @@ impl SwarmGovernance {
                     .to_string(),
             )
         }
+    }
+
+    #[cfg(test)]
+    pub fn reset_for_testing(&self) {
+        let mut current_leader = self
+            .leader_node_id
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *current_leader = None;
+        let mut voted = self.voted_for.lock().unwrap_or_else(|e| e.into_inner());
+        *voted = None;
+        let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
+        *role = NodeRole::Worker;
     }
 }

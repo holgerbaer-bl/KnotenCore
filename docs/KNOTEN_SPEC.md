@@ -286,6 +286,13 @@ Performs root hardening against split-brain leadership claims and enforces exhau
 - **Client Bypass Parameter Elimination**: Removes `allow_test_harness` / `test_harness` parameter checks from `handle_swarm_elect`, preventing client JSON payloads from overriding election rules.
 - **Exhaustive Parameter String Length Bounds (`MAX_PARAM_STRING_LEN = 256`)**: Enforces `validate_param_string_len` on all `session_id` extractions (`handle_compile`, `handle_execute`, `handle_yield_resume`, `handle_inspect_state`, `handle_agent_snapshot`, `handle_agent_restore`, `handle_agent_teleport`) and `nonce_str` before NonceCache insertion, returning `-32602 Invalid Parameter` for strings exceeding 256 bytes.
 
+### 7.19. CI Test Isolation & Swarm Expectation Reconciliation (`v2.21.3-security`)
+Resolves CI test discrepancies (#397) by strictly isolating test fixtures and removing test-time runtime bypasses:
+- **Removal of `cfg!(test)` Runtime Bypass**: Removed `cfg!(test)` from `SwarmGovernance::elect()`. Unilateral re-election on an existing leader returns `-32001 Unauthorized` consistently across production, CI, and test runs.
+- **`#[cfg(test)]` Test Helper**: Added `#[cfg(test)] pub fn reset_for_testing(&self)` helper directly above the function signature for internal crate unit testing. Confirmed unreachable from any RPC dispatch route.
+- **CI Test Reconciliation & Isolation**: Isolated `RpcServer` instances across all integration test files (`agentic_swarm_tests.rs`, `key_rotation_mesh_tests.rs`, `security_audit_sprint331_tests.rs`), removing obsolete bypass parameters and reconciling election expectations.
+
+
 
 
 

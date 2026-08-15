@@ -106,7 +106,7 @@ fn test_hmac_replay_within_window() {
 
 #[test]
 fn test_version_assertion_sprint331() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.21.2-security");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.21.3-security");
 }
 
 #[test]

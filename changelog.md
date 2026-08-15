@@ -2,6 +2,12 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.21.3-security] - Sprint 333: CI Test Isolation & Swarm Expectation Reconciliation (2026-08-15)
+Sprint 333 resolves CI test discrepancies (#397) by strictly isolating test fixtures and removing test-time runtime bypasses:
+- **Removal of `cfg!(test)` Runtime Bypass**: Removed `cfg!(test)` from `SwarmGovernance::elect()`. Unilateral re-election on an existing leader returns `-32001 Unauthorized` consistently across production, CI, and test runs.
+- **`#[cfg(test)]` Test Helper**: Added `#[cfg(test)] pub fn reset_for_testing(&self)` helper directly above the function signature for internal crate unit testing. Confirmed unreachable from any RPC dispatch route.
+- **CI Test Reconciliation & Isolation**: Isolated `RpcServer` instances across all integration test files (`agentic_swarm_tests.rs`, `key_rotation_mesh_tests.rs`, `security_audit_sprint331_tests.rs`), removing obsolete bypass parameters and reconciling election expectations.
+
 ## [v2.21.2-security] - Sprint 332: Root Election Hardening & Exhaustive String Bounds (2026-08-15)
 Sprint 332 performs root hardening against split-brain leadership claims and enforces exhaustive parameter length bounds across all RPC handlers:
 - **Root-Level Swarm Election Hardening**: Hardened Phase 1 local election: unilateral self-nomination is completely blocked after initial bootstrap; dynamic failover and distributed voting scheduled for Phase 2. Removed `target_candidate == local_node_id` from `SwarmGovernance::elect()` success conditions entirely.
