@@ -211,7 +211,7 @@ fn test_isolate_custom_quota_applied() {
 
     // Create an isolate with 20 Constant instructions
     let instructions = vec![OpCode::Constant(0); 20];
-    let constants = vec![];
+    let constants = vec![RelType::Int(42)];
 
     let isolate = VMIsolate::new(instructions, constants).with_quota(custom_quota);
     let res = isolate.run();

@@ -1663,7 +1663,15 @@ impl RpcServer {
             let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
             let active_peers_count = peers.values().filter(|p| p.status == "Active").count();
             let active = 1 + active_peers_count;
-            let threshold = (active / 2) + 1;
+            let server_threshold = (active / 2) + 1;
+            let requested_quorum = params
+                .get("required_quorum")
+                .and_then(|v| v.as_u64())
+                .map(|q| q as usize);
+            let threshold = match requested_quorum {
+                Some(req_q) => std::cmp::max(server_threshold, req_q),
+                None => server_threshold,
+            };
             (active, threshold)
         };
         let quorum_reached = active_nodes >= quorum_threshold;

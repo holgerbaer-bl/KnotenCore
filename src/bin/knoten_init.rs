@@ -96,7 +96,13 @@ mod tests {
 
     #[test]
     fn test_cli_scaffolding_and_validation() {
-        let tmp = std::env::temp_dir().join("knoten_test_scaffold");
+        let tmp = std::env::temp_dir().join(format!(
+            "knoten_test_scaffold_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
         let _ = fs::remove_dir_all(&tmp);
         fs::create_dir_all(&tmp).unwrap();
 

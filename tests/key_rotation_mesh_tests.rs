@@ -356,7 +356,8 @@ fn test_quorum_gated_peer_revocation() {
         "jsonrpc": "2.0",
         "method": "knc_mesh_revoke_peer",
         "params": {
-            "peer_pubkey": "abc123revokekey"
+            "peer_pubkey": "abc123revokekey",
+            "required_quorum": 2
         },
         "id": 1
     });

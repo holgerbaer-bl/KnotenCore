@@ -13,6 +13,7 @@ output.rs
 *.log
 dummy_*.txt
 *_output.txt
+revoked_keys.json
 
 # Web artifacts — never commit generated HTML/JS/CSS
 *.html
