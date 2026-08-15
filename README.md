@@ -1,9 +1,9 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.21.3--security-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.21.4--security-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-301%2F301-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.21.3--security-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-306%2F306-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.21.4--security-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -16,6 +16,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **Audit Completion, State Persistence & Quorum Fixes (v2.21.4-security)**: Persistent disk storage & load gates for peer revocation lists (`revoked_keys.json`), peer registration auth gate against revoked keys (`knc_mesh_peers`), quorum threshold denominator hardening excluding Evicted/Stale peers in `knc_swarm_quorum` and `knc_mesh_revoke_peer`, stack traversal fix in `estimate_memory_bytes`, and custom `IsolateQuota` propagation in `VMIsolate`.
 - **CI Test Isolation & Swarm Expectation Reconciliation (v2.21.3-security)**: Complete removal of `cfg!(test)` runtime bypasses in `SwarmGovernance::elect()`, isolation of test fixtures across all integration tests, addition of `#[cfg(test)]` test helper for internal unit tests, and reconciliation of election expectations.
 - **Root Election Hardening & Exhaustive Bounds (v2.21.2-security)**: Complete removal of unilateral self-nomination in `SwarmGovernance::elect()`, elimination of client-side `allow_test_harness` parameter bypasses, and exhaustive `validate_param_string_len` enforcement across all `session_id` and `nonce_str` parameter extractions.
 - **Security Audit Rectification & Resource Limits (v2.21.1-security)**: TCP & WS payload caps (`MAX_BODY_BYTES = 1 MiB`, `MAX_WS_PAYLOAD = 1 MiB`), HMAC Nonce-LRU replay defense (`NonceCache`), string parameter length caps (`MAX_PARAM_STRING_LEN = 256`), VM call depth limits (`MAX_CALL_DEPTH = 512`), and universal self-election locks in `knc_swarm_elect`.
@@ -72,7 +73,7 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.21.3-security)
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.21.4-security)
 
 > Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 

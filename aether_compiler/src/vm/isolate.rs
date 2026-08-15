@@ -2,6 +2,7 @@ use super::machine::{VM, VMState};
 use super::scheduler::try_steal_work;
 use super::snapshot::{snapshot_isolate, store_snapshot};
 use crate::executor::{AgentPermissions, RelType};
+use knoten_core_types::ast::IsolateQuota;
 use knoten_core_types::opcode::OpCode;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -264,6 +265,7 @@ pub struct VMIsolate {
     pub mailbox: Option<std::sync::mpsc::Receiver<RelType>>,
     pub local_heap: HashMap<String, RelType>,
     pub migration_state: Option<VMState>,
+    pub quota: IsolateQuota,
 }
 
 impl VMIsolate {
@@ -275,6 +277,7 @@ impl VMIsolate {
             mailbox: None,
             local_heap: HashMap::new(),
             migration_state: None,
+            quota: IsolateQuota::default(),
         }
     }
 
@@ -291,11 +294,18 @@ impl VMIsolate {
             mailbox: Some(mailbox),
             local_heap: HashMap::new(),
             migration_state: None,
+            quota: IsolateQuota::default(),
         }
+    }
+
+    pub fn with_quota(mut self, quota: IsolateQuota) -> Self {
+        self.quota = quota;
+        self
     }
 
     pub fn run(mut self) -> Result<RelType, String> {
         let mut vm = VM::new();
+        vm.set_quota(self.quota);
         for (k, v) in self.local_heap.drain() {
             vm.globals.insert(k, v);
         }
@@ -386,8 +396,18 @@ pub fn spawn_shadow_isolate(
     instructions: Vec<OpCode>,
     constants: Vec<RelType>,
 ) -> std::thread::JoinHandle<SpeculativeResult> {
+    spawn_shadow_isolate_with_quota(snapshot, instructions, constants, IsolateQuota::default())
+}
+
+pub fn spawn_shadow_isolate_with_quota(
+    snapshot: VMState,
+    instructions: Vec<OpCode>,
+    constants: Vec<RelType>,
+    quota: IsolateQuota,
+) -> std::thread::JoinHandle<SpeculativeResult> {
     std::thread::spawn(move || {
         let mut vm = VM::new();
+        vm.set_quota(quota);
         vm.rollback(snapshot);
         let perms = AgentPermissions::default();
         match vm.run(&instructions, &constants, &perms, None) {

@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.21.3-security** · CI Test Isolation & Swarm Expectation Reconciliation
+Current engine version: **v2.21.4-security** · Audit Completion & State Persistence
 
 ## Done (selected milestones)
 
+- ✅ Audit Completion & State Persistence (persistent peer revocation storage `revoked_keys.json`, peer registration gate against revoked keys, active-peer quorum denominator calculation in `knc_swarm_quorum` and `knc_mesh_revoke_peer`, stack heap memory estimation fix, custom `IsolateQuota` support in `VMIsolate`, Sprint 334 - v2.21.4-security)
 - ✅ CI Test Isolation & Swarm Expectation Reconciliation (removal of `cfg!(test)` runtime bypass in `SwarmGovernance::elect()`, isolation of test fixtures, addition of `#[cfg(test)]` reset helper, reconciled election expectations, Sprint 333 - v2.21.3-security)
 - ✅ Root Election Hardening & Exhaustive String Bounds (complete blocking of unilateral self-nomination after bootstrap in `SwarmGovernance::elect()`, removal of client bypass params, exhaustive `validate_param_string_len` enforcement across all `session_id` and `nonce_str` extractions, Sprint 332 - v2.21.2-security)
 - ✅ Security Audit Rectification & Resource Limits (`MAX_BODY_BYTES` & `MAX_WS_PAYLOAD` 1 MiB caps, HMAC Nonce-LRU replay defense, `MAX_PARAM_STRING_LEN` 256B cap, `MAX_CALL_DEPTH` 512 frame guard, self-election locks, Sprint 331 - v2.21.1-security)

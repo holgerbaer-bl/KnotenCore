@@ -292,6 +292,14 @@ Resolves CI test discrepancies (#397) by strictly isolating test fixtures and re
 - **`#[cfg(test)]` Test Helper**: Added `#[cfg(test)] pub fn reset_for_testing(&self)` helper directly above the function signature for internal crate unit testing. Confirmed unreachable from any RPC dispatch route.
 - **CI Test Reconciliation & Isolation**: Isolated `RpcServer` instances across all integration test files (`agentic_swarm_tests.rs`, `key_rotation_mesh_tests.rs`, `security_audit_sprint331_tests.rs`), removing obsolete bypass parameters and reconciling election expectations.
 
+### 7.20. Audit Completion & State Persistence (`v2.21.4-security`)
+Closes the final four audit items (C4, C3, A4, A5), establishing persistent revocation state, registration gates, quorum denominator hardening, memory estimator stack traversal fixes, and isolate custom quotas:
+- **Peer Revocation Persistence & Registration Gate (C4)**: Persists `revoked_peer_keys` to disk (`revoked_keys.json`) with safe, panic-free I/O. Blocks registration of revoked peer keys or capabilities in `knc_mesh_peers?action=register`, returning `-32001 Unauthorized`.
+- **Quorum Denominator Hardening (C3)**: Hardens `server_threshold = (active_nodes / 2) + 1` across both `knc_swarm_quorum` and `knc_mesh_revoke_peer` to count strictly active, reachable peers (`1 + active_peers_count`), excluding `Evicted` and `Stale` peers from the denominator.
+- **Memory Estimator Stack Traversal Fix (A4)**: Removed `.take(64)` stack depth limit in `estimate_memory_bytes()`, traversing all stack items to prevent heap memory limit bypasses at stack depths > 64.
+- **Isolate Custom Quota Support (A5)**: Added `pub quota: IsolateQuota` to `VMIsolate`, propagating custom quotas to `vm.set_quota(...)` in `run()` and `spawn_shadow_isolate_with_quota()`.
+
+
 
 
 

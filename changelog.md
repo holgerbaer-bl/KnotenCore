@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.21.4-security] - Sprint 334: Audit Completion & State Persistence (2026-08-15)
+Sprint 334 closes the final four security audit items (C4, C3, A4, A5), introducing persistent peer revocation state, registration gates, quorum denominator hardening, stack memory estimation fixes, and isolate custom quotas:
+- **Peer Revocation Persistence & Registration Gate (C4)**: Persists `revoked_peer_keys` to disk (`revoked_keys.json`) with safe, panic-free I/O. Blocks registration of revoked peer keys or capabilities in `knc_mesh_peers?action=register`, returning `-32001 Unauthorized`.
+- **Quorum Denominator Hardening (C3)**: Hardens `server_threshold = (active_nodes / 2) + 1` across both `knc_swarm_quorum` and `knc_mesh_revoke_peer` to count strictly active, reachable peers (`1 + active_peers_count`), excluding `Evicted` and `Stale` peers from the denominator.
+- **Memory Estimator Stack Traversal Fix (A4)**: Removed `.take(64)` stack depth limit in `estimate_memory_bytes()`, traversing all stack items to prevent heap memory limit bypasses at stack depths > 64.
+- **Isolate Custom Quota Support (A5)**: Added `pub quota: IsolateQuota` to `VMIsolate`, propagating custom quotas to `vm.set_quota(...)` in `run()` and `spawn_shadow_isolate_with_quota()`.
+
 ## [v2.21.3-security] - Sprint 333: CI Test Isolation & Swarm Expectation Reconciliation (2026-08-15)
 Sprint 333 resolves CI test discrepancies (#397) by strictly isolating test fixtures and removing test-time runtime bypasses:
 - **Removal of `cfg!(test)` Runtime Bypass**: Removed `cfg!(test)` from `SwarmGovernance::elect()`. Unilateral re-election on an existing leader returns `-32001 Unauthorized` consistently across production, CI, and test runs.

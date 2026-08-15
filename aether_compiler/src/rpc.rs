@@ -11,6 +11,7 @@
 use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
 
@@ -27,7 +28,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.21.3-security";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.21.4-security";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -218,6 +219,7 @@ pub struct RpcServer {
     pub ed25519_keypair: Arc<Mutex<Ed25519KeyPair>>,
     pub verified_peer_keys: Arc<Mutex<HashMap<String, String>>>,
     pub revoked_peer_keys: Arc<Mutex<HashSet<String>>>,
+    pub revoked_keys_path: Arc<Mutex<Option<PathBuf>>>,
     pub used_nonces: Arc<Mutex<NonceCache>>,
     pub zero_trust_mode: Arc<AtomicBool>,
 }
@@ -233,7 +235,7 @@ impl RpcServer {
         node_address: impl Into<String>,
         mesh_auth_token: Option<String>,
     ) -> Self {
-        Self {
+        let server = Self {
             permissions,
             sessions: Arc::new(Mutex::new(HashMap::new())),
             node_id: node_id.into(),
@@ -247,9 +249,12 @@ impl RpcServer {
             ed25519_keypair: Arc::new(Mutex::new(Ed25519KeyPair::generate())),
             verified_peer_keys: Arc::new(Mutex::new(HashMap::new())),
             revoked_peer_keys: Arc::new(Mutex::new(HashSet::new())),
+            revoked_keys_path: Arc::new(Mutex::new(Some(PathBuf::from("revoked_keys.json")))),
             used_nonces: Arc::new(Mutex::new(NonceCache::new())),
             zero_trust_mode: Arc::new(AtomicBool::new(false)),
-        }
+        };
+        server.load_revoked_keys();
+        server
     }
 
     pub fn enable_zero_trust(&self) {
@@ -290,13 +295,91 @@ impl RpcServer {
         (old_pub, new_pub)
     }
 
-    pub fn revoke_peer_key(&self, peer_pubkey: &str) {
-        let normalized = peer_pubkey.trim().to_lowercase();
-        let mut revoked = self
-            .revoked_peer_keys
+    pub fn set_revoked_keys_path(&self, path: Option<PathBuf>) {
+        let mut p = self
+            .revoked_keys_path
             .lock()
             .unwrap_or_else(|e| e.into_inner());
-        revoked.insert(normalized.clone());
+        *p = path;
+    }
+
+    pub fn load_revoked_keys(&self) {
+        let path = {
+            let p = self
+                .revoked_keys_path
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            p.clone()
+        };
+        if let Some(path) = path
+            && path.exists()
+        {
+            match std::fs::read_to_string(&path) {
+                Ok(content) => match serde_json::from_str::<HashSet<String>>(&content) {
+                    Ok(keys) => {
+                        let mut revoked = self
+                            .revoked_peer_keys
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
+                        *revoked = keys;
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "Warning: Failed to parse revoked keys file {:?}: {}",
+                            path, e
+                        );
+                    }
+                },
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Failed to read revoked keys file {:?}: {}",
+                        path, e
+                    );
+                }
+            }
+        }
+    }
+
+    pub fn save_revoked_keys(&self) {
+        let path = {
+            let p = self
+                .revoked_keys_path
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            p.clone()
+        };
+        if let Some(path) = path {
+            let revoked = self
+                .revoked_peer_keys
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            if let Ok(json_str) = serde_json::to_string_pretty(&*revoked) {
+                if let Some(parent) = path.parent()
+                    && !parent.as_os_str().is_empty()
+                {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                if let Err(e) = std::fs::write(&path, json_str) {
+                    eprintln!(
+                        "Warning: Failed to write revoked keys file {:?}: {}",
+                        path, e
+                    );
+                }
+            }
+        }
+    }
+
+    pub fn revoke_peer_key(&self, peer_pubkey: &str) {
+        let normalized = peer_pubkey.trim().to_lowercase();
+        {
+            let mut revoked = self
+                .revoked_peer_keys
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            revoked.insert(normalized.clone());
+        }
+
+        self.save_revoked_keys();
 
         let mut verified = self
             .verified_peer_keys
@@ -1111,12 +1194,12 @@ impl RpcServer {
             .unwrap_or("cluster_op")
             .to_string();
 
-        let (active_nodes, total_nodes) = {
+        let active_nodes = {
             let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
             let active_peers_count = peers.values().filter(|p| p.status == "Active").count();
-            (1 + active_peers_count, 1 + peers.len())
+            1 + active_peers_count
         };
-        let server_threshold = (total_nodes / 2) + 1;
+        let server_threshold = (active_nodes / 2) + 1;
 
         let requested_quorum = params
             .get("required_quorum")
@@ -1580,8 +1663,7 @@ impl RpcServer {
             let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
             let active_peers_count = peers.values().filter(|p| p.status == "Active").count();
             let active = 1 + active_peers_count;
-            let total = 1 + peers.len();
-            let threshold = (total / 2) + 1;
+            let threshold = (active / 2) + 1;
             (active, threshold)
         };
         let quorum_reached = active_nodes >= quorum_threshold;
@@ -1651,6 +1733,18 @@ impl RpcServer {
         if action == "register" || action == "add" {
             if let Some(peer_val) = params.get("peer") {
                 if let Ok(mut peer) = serde_json::from_value::<MeshPeer>(peer_val.clone()) {
+                    if self.is_peer_key_revoked(&peer.node_id)
+                        || peer
+                            .capabilities
+                            .iter()
+                            .any(|cap| self.is_peer_key_revoked(cap))
+                    {
+                        return JsonRpcResponse::error(
+                            id,
+                            -32001,
+                            "Unauthorized: Peer key is revoked",
+                        );
+                    }
                     if !peers.contains_key(&peer.node_id) && peers.len() >= 256 {
                         return JsonRpcResponse::error(
                             id,
@@ -1997,6 +2091,7 @@ impl RpcServer {
             let ed25519_keypair = self.ed25519_keypair.clone();
             let verified_peer_keys = self.verified_peer_keys.clone();
             let revoked_peer_keys = self.revoked_peer_keys.clone();
+            let revoked_keys_path = self.revoked_keys_path.clone();
             let used_nonces = self.used_nonces.clone();
             let zero_trust_mode = self.zero_trust_mode.clone();
             std::thread::spawn(move || {
@@ -2014,6 +2109,7 @@ impl RpcServer {
                     ed25519_keypair,
                     verified_peer_keys,
                     revoked_peer_keys,
+                    revoked_keys_path,
                     used_nonces,
                     zero_trust_mode,
                 };

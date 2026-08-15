@@ -160,13 +160,7 @@ impl VM {
             * (std::mem::size_of::<String>() + std::mem::size_of::<RelType>());
         let frames_bytes = self.frames.capacity() * std::mem::size_of::<CallFrame>();
 
-        let stack_heap: usize = self
-            .stack
-            .iter()
-            .rev()
-            .take(64)
-            .map(estimate_reltype_heap_bytes)
-            .sum();
+        let stack_heap: usize = self.stack.iter().map(estimate_reltype_heap_bytes).sum();
         let globals_heap: usize = self.globals.values().map(estimate_reltype_heap_bytes).sum();
 
         stack_bytes + globals_bytes + frames_bytes + stack_heap + globals_heap
