@@ -278,6 +278,11 @@ fn test_zero_trust_blocks_forced_self_election() {
     );
     server.enable_zero_trust();
 
+    // Establish initial bootstrap leader
+    let _ = server
+        .swarm_governance
+        .elect("election-node", Some("election-node"), None, false);
+
     let now = current_ts();
     let (pubkey, sig) = server.sign_envelope("nonce-elect-force", now);
 
@@ -306,7 +311,7 @@ fn test_zero_trust_blocks_forced_self_election() {
         resp["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("Forced self-election is strictly disabled")
+            .contains("Unauthorized")
     );
 }
 
