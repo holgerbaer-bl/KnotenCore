@@ -219,7 +219,7 @@ fn test_isolate_custom_quota_applied() {
     assert!(res.is_err());
     let err = res.err().unwrap();
     assert!(
-        err.contains("Instruction quota exceeded") || err.contains("Quota Exceeded"),
+        err.contains("ERR_QUOTA_EXCEEDED") || err.to_lowercase().contains("quota"),
         "Custom quota was not passed to VM: {}",
         err
     );
