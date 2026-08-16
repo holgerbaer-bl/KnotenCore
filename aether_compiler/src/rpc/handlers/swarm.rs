@@ -400,6 +400,8 @@ impl super::super::RpcServer {
                     "term": election_term,
                     "role": NodeRole::Leader,
                     "votes_count": votes_count,
+                    "votes_granted": votes_count,
+                    "active_nodes": active_nodes,
                     "quorum_reached": true
                 });
                 return JsonRpcResponse::success(id, resp_val);
