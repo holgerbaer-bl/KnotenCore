@@ -442,7 +442,10 @@ impl RpcServer {
                 continue;
             }
 
-            if trimmed.to_lowercase().contains("upgrade: websocket") {
+            if trimmed.to_uppercase().starts_with("GET ")
+                || trimmed.to_uppercase().starts_with("POST ")
+                || trimmed.to_lowercase().contains("upgrade: websocket")
+            {
                 let mut sec_websocket_key = None;
                 let mut headers = vec![line.clone()];
                 loop {
@@ -537,13 +540,13 @@ impl RpcServer {
                 let (session_id, response_json, events) =
                     self.dispatch_request_ws(request_str.trim());
 
-                let mut ws_payload = serde_json::json!({
-                    "response": serde_json::from_str::<Value>(&response_json).unwrap_or(Value::String(response_json)),
-                    "events": events
-                });
-
-                if let Some(sid) = session_id {
-                    ws_payload["session_id"] = serde_json::Value::String(sid);
+                let mut ws_payload = serde_json::from_str::<Value>(&response_json)
+                    .unwrap_or_else(|_| serde_json::json!({ "result": response_json }));
+                if let Value::Object(ref mut map) = ws_payload {
+                    map.insert("events".to_string(), serde_json::json!(events));
+                    if let Some(sid) = session_id {
+                        map.insert("session_id".to_string(), serde_json::Value::String(sid));
+                    }
                 }
 
                 let ws_response_bytes = serde_json::to_vec(&ws_payload).unwrap_or_default();
