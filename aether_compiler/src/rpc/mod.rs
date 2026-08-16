@@ -209,9 +209,10 @@ impl RpcServer {
         if request_raw.len() > MAX_BODY_BYTES {
             let response = JsonRpcResponse::error(
                 None,
-                -32600,
+                -32700,
                 format!(
-                    "Oversized request payload exceeds MAX_BODY_BYTES ({} bytes)",
+                    "Parse Error: Request payload size ({} bytes) exceeds MAX_BODY_BYTES limit ({} bytes)",
+                    request_raw.len(),
                     MAX_BODY_BYTES
                 ),
             );

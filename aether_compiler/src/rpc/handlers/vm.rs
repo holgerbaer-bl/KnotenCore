@@ -59,6 +59,12 @@ impl super::super::RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
+        if params.get("session_id").is_some() {
+            if let Err(err) = self.parse_session_id(&params) {
+                return JsonRpcResponse::error(id, -32602, err);
+            }
+        }
+
         let node = match self.extract_ast_node(&params) {
             Ok(n) => n,
             Err(err) => return JsonRpcResponse::error(id, -32602, err),
