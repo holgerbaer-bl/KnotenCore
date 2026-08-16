@@ -28,7 +28,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.22.0";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.22.1";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -472,6 +472,7 @@ impl RpcServer {
             "knc_swarm_roles" => self.handle_swarm_roles(req.id, req.params),
             "knc_swarm_quorum" => self.handle_swarm_quorum(req.id, req.params),
             "knc_swarm_request_vote" => self.handle_swarm_request_vote(req.id, req.params),
+            "knc_swarm_heartbeat" => self.handle_swarm_heartbeat(req.id, req.params),
             // Sprint 327/328: Zero-Trust Mesh Phase 1 & 2 — Envelope Verification, Key Rotation & Revocation
             "knc_mesh_verify_peer" => self.handle_mesh_verify_peer(req.id, req.params),
             "knc_mesh_rotate_key" => self.handle_mesh_rotate_key(req.id, req.params),
@@ -1298,6 +1299,36 @@ impl RpcServer {
             "status": "ok",
             "term": current_term,
             "vote_granted": vote_granted,
+            "node_id": self.node_id
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    /// `knc_swarm_heartbeat` — Raft AppendEntries / Heartbeat RPC (27th Endpoint).
+    fn handle_swarm_heartbeat(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let leader_id = match params.get("leader_id").and_then(|v| v.as_str()) {
+            Some(l) => match validate_param_string_len(l) {
+                Ok(_) => l,
+                Err(e) => return JsonRpcResponse::error(id, -32602, e),
+            },
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'leader_id' parameter"),
+        };
+
+        let term = match params.get("term").and_then(|v| v.as_u64()) {
+            Some(t) => t,
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'term' parameter"),
+        };
+
+        let (current_term, success) = self.swarm_governance.process_heartbeat(term, leader_id);
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "success": success,
+            "term": current_term,
             "node_id": self.node_id
         });
         JsonRpcResponse::success(id, resp_val)
@@ -2543,6 +2574,79 @@ pub fn start_gossip_worker(
     })
 }
 
+/// Spawns a background thread running the Raft Heartbeat & Failover Governance loop.
+pub fn start_raft_governance_worker(
+    server: Arc<RpcServer>,
+    shutdown_signal: Arc<std::sync::atomic::AtomicBool>,
+) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let mut rng_seed: u64 = 350;
+        while !shutdown_signal.load(std::sync::atomic::Ordering::Relaxed) {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            if shutdown_signal.load(std::sync::atomic::Ordering::Relaxed) {
+                break;
+            }
+
+            let role = server.swarm_governance.role();
+            if role == NodeRole::Leader {
+                // Leader Heartbeat Broadcast Loop (Lock-Free during I/O)
+                let term = server.swarm_governance.term();
+                let active_peers = {
+                    let peers = server.peers.lock().unwrap_or_else(|e| e.into_inner());
+                    peers
+                        .iter()
+                        .filter(|(_, p)| p.status == "Active")
+                        .map(|(id, p)| (id.clone(), p.address.clone()))
+                        .collect::<Vec<_>>()
+                };
+
+                for (_peer_id, peer_address) in active_peers {
+                    let mut req_params = serde_json::json!({
+                        "term": term,
+                        "leader_id": server.node_id
+                    });
+                    if let Some(ref token) = server.mesh_auth_token {
+                        req_params["mesh_auth_token"] = serde_json::Value::String(token.clone());
+                    }
+                    let payload = serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "knc_swarm_heartbeat",
+                        "params": req_params
+                    });
+                    let _ = server.send_rpc_to_node_with_timeout(
+                        &peer_address,
+                        &payload.to_string(),
+                        300,
+                    );
+                }
+            } else if role == NodeRole::Worker {
+                // Failover Detection Loop
+                let elapsed = server.swarm_governance.last_heartbeat_elapsed_ms();
+                rng_seed = (rng_seed.wrapping_mul(6364136223846793005).wrapping_add(1)) % 200;
+                let failover_timeout_ms = 300 + rng_seed;
+
+                if elapsed > failover_timeout_ms && server.swarm_governance.leader_id().is_some() {
+                    // Leader failed/timed out: clear leader and attempt election
+                    {
+                        let mut leader = server
+                            .swarm_governance
+                            .leader_node_id
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
+                        *leader = None;
+                    }
+                    let mut elect_params = serde_json::json!({});
+                    if let Some(ref token) = server.mesh_auth_token {
+                        elect_params["mesh_auth_token"] = serde_json::Value::String(token.clone());
+                    }
+                    let _ = server.handle_swarm_elect(None, elect_params);
+                }
+            }
+        }
+    })
+}
+
 #[allow(clippy::needless_range_loop)]
 pub fn sha1_digest(data: &[u8]) -> [u8; 20] {
     let mut h0: u32 = 0x67452301;
@@ -3336,12 +3440,20 @@ pub struct SwarmGovernance {
     pub current_term: Mutex<u64>,
     pub voted_for: Mutex<Option<String>>,
     pub votes_received: Mutex<HashSet<String>>,
+    pub last_heartbeat_timestamp: Mutex<u64>,
 }
 
 impl Default for SwarmGovernance {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn current_now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 impl SwarmGovernance {
@@ -3352,6 +3464,7 @@ impl SwarmGovernance {
             current_term: Mutex::new(1),
             voted_for: Mutex::new(None),
             votes_received: Mutex::new(HashSet::new()),
+            last_heartbeat_timestamp: Mutex::new(current_now_ms()),
         }
     }
 
@@ -3378,7 +3491,48 @@ impl SwarmGovernance {
         *self.current_term.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    /// Process Raft `RequestVote` RPC logic.
+    /// Process Raft `AppendEntries` / Heartbeat RPC logic.
+    pub fn process_heartbeat(&self, leader_term: u64, leader_id: &str) -> (u64, bool) {
+        let mut term = self.current_term.lock().unwrap_or_else(|e| e.into_inner());
+        let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
+        let mut leader = self
+            .leader_node_id
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let mut last_hb = self
+            .last_heartbeat_timestamp
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        if leader_term < *term {
+            return (*term, false);
+        }
+
+        *term = leader_term;
+        *leader = Some(leader_id.to_string());
+        if *role == NodeRole::Candidate {
+            *role = NodeRole::Worker;
+        }
+        *last_hb = current_now_ms();
+
+        (*term, true)
+    }
+
+    pub fn last_heartbeat_elapsed_ms(&self) -> u64 {
+        let last = *self
+            .last_heartbeat_timestamp
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        current_now_ms().saturating_sub(last)
+    }
+
+    pub fn touch_heartbeat(&self) {
+        let mut last = self
+            .last_heartbeat_timestamp
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *last = current_now_ms();
+    }
     pub fn request_vote(&self, candidate_term: u64, candidate_id: &str) -> (u64, bool) {
         let mut term = self.current_term.lock().unwrap_or_else(|e| e.into_inner());
         let mut voted = self.voted_for.lock().unwrap_or_else(|e| e.into_inner());

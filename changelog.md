@@ -2,6 +2,13 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.22.1] - Sprint 336: Swarm Phase 2 Completion — Raft Heartbeats & Failure Detection (2026-08-16)
+Sprint 336 completes the Raft consensus engine by introducing periodic heartbeats, term synchronization, and automated leader failure detection:
+- **Raft AppendEntries / Heartbeat RPC (27th Endpoint)**: Added `knc_swarm_heartbeat` endpoint with mandatory `check_mesh_auth` gating, `validate_param_string_len` parameter validation, term rejection (`term < current_term`), and follower state synchronization.
+- **Leader Background Heartbeat Loop**: Implemented periodic background broadcasting in Leaders (100 ms interval) dispatching `knc_swarm_heartbeat` to all active peers with strict lock hygiene (mutexes released during network IO).
+- **Automated Leader Failure Detection & Re-Election**: Workers/Followers monitor `last_heartbeat_timestamp`. If heartbeats cease for longer than the randomized failover timeout (300–500 ms), the Leader is declared dead and automatic re-election is initiated via `knc_swarm_elect`.
+- **Multi-Node TCP Integration Suite**: Added `tests/swarm_heartbeat_failover_tests.rs` with 3 real TCP `RpcServer` instances testing periodic heartbeats, stale term rejection, and automatic leader failover.
+
 ## [v2.22.0] - Sprint 335: Swarm Phase 2 — Distributed Raft Voting & Consensus (2026-08-16)
 Sprint 335 implements distributed Raft consensus and voting semantics across the P2P mesh topology:
 - **Raft RequestVote RPC (26th Endpoint)**: Added `knc_swarm_request_vote` endpoint implementing Raft term rules, single-vote-per-term invariant, and candidate vote granting logic.

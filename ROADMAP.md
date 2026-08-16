@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.22.0** · Swarm Phase 2: Distributed Raft Voting & Consensus
+Current engine version: **v2.22.1** · Swarm Phase 2 Completion: Raft Heartbeats & Failure Detection
 
 ## Done (selected milestones)
 
+- ✅ Swarm Phase 2 Completion: Raft Heartbeats & Failure Detection (`knc_swarm_heartbeat` 27th endpoint, Leader background heartbeat loop with lock hygiene, follower/worker failure detection with randomized 300–500 ms timeout and automatic re-election, multi-node TCP integration tests, Sprint 336 - v2.22.1)
 - ✅ Swarm Phase 2: Distributed Raft Voting & Consensus (`knc_swarm_request_vote` 26th endpoint, term-tracking & single-vote-per-term invariant, mandatory mesh auth-gating against term inflation, dynamic election broadcast with strict lock hygiene, majority quorum decision `votes_count > active_nodes / 2`, randomized backoff sleep 150–300 ms, multi-node TCP cluster integration suite, Sprint 335 - v2.22.0)
 - ✅ Audit Completion & State Persistence (persistent peer revocation storage `revoked_keys.json`, peer registration gate against revoked keys, active-peer quorum denominator calculation in `knc_swarm_quorum` and `knc_mesh_revoke_peer`, stack heap memory estimation fix, custom `IsolateQuota` support in `VMIsolate`, Sprint 334 - v2.21.4-security)
 - ✅ CI Test Isolation & Swarm Expectation Reconciliation (removal of `cfg!(test)` runtime bypass in `SwarmGovernance::elect()`, isolation of test fixtures, addition of `#[cfg(test)]` reset helper, reconciled election expectations, Sprint 333 - v2.21.3-security)

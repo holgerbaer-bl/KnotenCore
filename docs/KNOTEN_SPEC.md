@@ -310,6 +310,14 @@ Implements distributed Raft consensus and voting semantics across the P2P mesh t
 - **Dynamic Election Broadcast & Lock Hygiene**: `knc_swarm_elect` increments term, transitions to `NodeRole::Candidate`, votes for self, snapshots active peers, releases all mutex locks, and broadcasts `knc_swarm_request_vote` RPCs over TCP sockets to active peers.
 - **Quorum Consensus & Randomized Backoff**: Transition to `NodeRole::Leader` occurs if `votes_count > active_nodes / 2` (where `active_nodes = 1 + active_peers_count`). If quorum is missed, role reverts to `NodeRole::Worker` and a randomized backoff sleep (150–300 ms) is executed to prevent livelocks before returning `-32001 Quorum consensus not reached`.
 
+### 7.22. Swarm Phase 2 Completion: Raft Heartbeats & Failure Detection (`v2.22.1`)
+Completes the Raft consensus protocol by introducing periodic heartbeats, follower term synchronization, and automated leader failure detection:
+- **Raft `AppendEntries` / Heartbeat RPC (`knc_swarm_heartbeat` — 27th Endpoint)**: Accepts `term: u64` and `leader_id: String` (validated with `MAX_PARAM_STRING_LEN`). Auth-gated with `check_mesh_auth`. Follower handling:
+  - If `leader_term < current_term`: Rejects heartbeat with `{ "success": false, "term": current_term }`.
+  - If `leader_term >= current_term`: Updates `current_term = leader_term`, sets `current_leader = Some(leader_id)`, resets candidate role to `Worker`, and updates `last_heartbeat_timestamp`. Returns `{ "success": true, "term": leader_term }`.
+- **Leader Background Heartbeat Loop**: Leaders run a background worker thread (`start_raft_governance_worker`) broadcasting `knc_swarm_heartbeat` to all active peers every 100 ms with strict lock hygiene.
+- **Leader Failover & Automatic Re-Election**: Workers monitor `last_heartbeat_timestamp`. If heartbeats cease for longer than the randomized failover timeout (300–500 ms), the worker declares the leader dead (`leader_node_id = None`) and initiates automatic re-election via `knc_swarm_elect`.
+
 
 
 

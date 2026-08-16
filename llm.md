@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.22.0 Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.22.1 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.22.0)
+## 🎯 AI-Readiness Benchmark — 20/20 auf internem Test-Set (v2.22.1)
 
 > Getestet mit einem einzigen Agenten (Antigravity/Claude) gegen 20 selbst definierte Szenarien. Kein unabhängiger Benchmark, keine Vergleichswerte anderer DSLs. PRs mit zusätzlichen/härteren Testfällen sind willkommen.
 
@@ -20,7 +20,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.21.0-authz** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Sprint 329 Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation (`(active_nodes / 2) + 1` quorum enforcement in `knc_swarm_quorum`, strict prohibition of `force: true` self-election in Zero-Trust mode under `knc_swarm_elect`, quorum-consensus gated peer revocation in `knc_mesh_revoke_peer`), Comprehensive RPC Auth Bypass Mitigation (`check_mesh_auth` enforced across ALL 25 JSON-RPC endpoints), Zero-Trust Mesh Phase 2 (`knc_mesh_rotate_key`, `knc_mesh_revoke_peer`, Nonce LRU Eviction), Zero-Trust Mesh Phase 1 (`knc_mesh_verify_peer`, Ed25519 envelope signing, 30s sliding replay window, anti-downgrade protection). *Transparenz-Hinweis: Die kryptografische Mesh-Signierung, Quorum-Governance und Key-Rotation befinden sich in Phase 2 (lokale Ed25519-Verifikation, Quorum-Gating & Peer-Sperrlisten). Sie ersetzen keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit.* Swarm Governance, Security Audit Rectification & Deep Hardening, Distributed CRDT Key-Value Storage & State Sync, Cluster Metrics & Adaptive Work-Stealing, Agentic Execution & Mesh Protocol.
+**Current Engine Version: v2.22.1** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Sprint 336 Raft Heartbeats & Failure Detection (`knc_swarm_heartbeat` 27th endpoint, background heartbeat loop in Leaders, worker failover monitoring on 300-500 ms randomized timeout), Sprint 335 Swarm Phase 2 Distributed Raft Voting (`knc_swarm_request_vote` 26th endpoint, single-vote-per-term invariant, lock hygiene broadcast), Sprint 334 Audit Completion & Persistence (`revoked_keys.json`, `knc_mesh_peers` revoked key gate, quorum denominator fix), Sprint 329 Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation, Comprehensive RPC Auth Bypass Mitigation, Zero-Trust Mesh Phase 2 & 1, Swarm Governance, Distributed CRDT Key-Value Storage & State Sync.
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---
