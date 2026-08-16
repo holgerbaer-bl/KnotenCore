@@ -227,5 +227,5 @@ fn test_isolate_custom_quota_applied() {
 
 #[test]
 fn test_version_assertion_sprint334() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.21.4-security");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.22.0");
 }

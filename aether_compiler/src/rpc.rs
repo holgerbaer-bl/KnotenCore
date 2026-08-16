@@ -28,7 +28,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.21.4-security";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.22.0";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -467,10 +467,11 @@ impl RpcServer {
             "knc_store_put" => self.handle_store_put(req.id, req.params),
             "knc_store_get" => self.handle_store_get(req.id, req.params),
             "knc_store_sync" => self.handle_store_sync(req.id, req.params),
-            // Sprint 323/325: Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)
+            // Sprint 323/325/335: Swarm Governance & Distributed Raft Voting
             "knc_swarm_elect" => self.handle_swarm_elect(req.id, req.params),
             "knc_swarm_roles" => self.handle_swarm_roles(req.id, req.params),
             "knc_swarm_quorum" => self.handle_swarm_quorum(req.id, req.params),
+            "knc_swarm_request_vote" => self.handle_swarm_request_vote(req.id, req.params),
             // Sprint 327/328: Zero-Trust Mesh Phase 1 & 2 — Envelope Verification, Key Rotation & Revocation
             "knc_mesh_verify_peer" => self.handle_mesh_verify_peer(req.id, req.params),
             "knc_mesh_rotate_key" => self.handle_mesh_rotate_key(req.id, req.params),
@@ -783,6 +784,8 @@ impl RpcServer {
                 "swarm_governance": true,
                 "swarm_leadership": true,
                 "node_roles": true,
+                "raft_consensus": true,
+                "raft_voting": true,
                 "zero_trust_mesh": true,
                 "key_rotation": true,
                 "peer_revocation": true
@@ -1109,40 +1112,195 @@ impl RpcServer {
     // Sprint 323/324: Local Swarm Role Management & Leadership Claim Primitives (Phase 1)
     // -------------------------------------------------------------------------
 
-    /// `knc_swarm_elect` — Local Swarm Role Management & Leadership Claim Primitives (Phase 1).
-    ///
-    /// Hinweis: `knc_swarm_elect` verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1).
-    /// Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.
+    /// `knc_swarm_elect` — Swarm Phase 2: Distributed Raft Consensus Election Broadcast.
     ///
     /// Params: `{ "candidate_node_id": "<str opt>", "term": <u64 opt>, "force": <bool opt> }`
-    /// Returns: `{ "status": "ok", "leader_node_id": "...", "term": N, "role": "Leader|Worker|Storage|Observer" }`
+    /// Returns: `{ "status": "ok", "leader_node_id": "...", "term": N, "role": "Leader|Worker|Candidate" }`
     fn handle_swarm_elect(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
         if let Err(err) = self.check_mesh_auth(&params) {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let candidate_id = params.get("candidate_node_id").and_then(|v| v.as_str());
-        let requested_term = params.get("term").and_then(|v| v.as_u64());
-        let force = params
-            .get("force")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-
-        match self
-            .swarm_governance
-            .elect(&self.node_id, candidate_id, requested_term, force)
+        if let Some(candidate_id) = params.get("candidate_node_id").and_then(|v| v.as_str())
+            && candidate_id != self.node_id
         {
-            Ok((leader_id, term, role)) => {
-                let resp_val = serde_json::json!({
-                    "status": "ok",
-                    "leader_node_id": leader_id,
-                    "term": term,
-                    "role": format!("{:?}", role)
-                });
-                JsonRpcResponse::success(id, resp_val)
-            }
-            Err(err) => JsonRpcResponse::error(id, -32001, err),
+            return JsonRpcResponse::error(
+                id,
+                -32001,
+                "Unauthorized: Node cannot unilaterally elect another candidate without swarm consensus",
+            );
         }
+
+        // 1. Lock Hygiene: Transition state to Candidate and increment term locally
+        let new_term = {
+            let mut term = self
+                .swarm_governance
+                .current_term
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *term += 1;
+            let mut role = self
+                .swarm_governance
+                .current_role
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *role = NodeRole::Candidate;
+            let mut voted = self
+                .swarm_governance
+                .voted_for
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *voted = Some(self.node_id.clone());
+            let mut leader = self
+                .swarm_governance
+                .leader_node_id
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *leader = None;
+            let mut votes = self
+                .swarm_governance
+                .votes_received
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            votes.clear();
+            votes.insert(self.node_id.clone());
+            *term
+        }; // SwarmGovernance lock dropped!
+
+        // 2. Lock Hygiene: Snapshot active peers
+        let active_peers: Vec<(String, String)> = {
+            let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
+            peers
+                .values()
+                .filter(|p| p.status == "Active")
+                .map(|p| (p.node_id.clone(), p.address.clone()))
+                .collect()
+        }; // peers lock dropped!
+
+        let total_active_nodes = 1 + active_peers.len();
+        let required_majority = (total_active_nodes / 2) + 1;
+        let mut votes_count = 1; // Self-vote
+
+        // 3. Outgoing Raft RequestVote RPC Broadcast (without holding locks!)
+        for (peer_id, peer_address) in &active_peers {
+            let mut req_params = serde_json::json!({
+                "term": new_term,
+                "candidate_id": self.node_id
+            });
+            if let Some(ref token) = self.mesh_auth_token {
+                req_params["mesh_auth_token"] = serde_json::Value::String(token.clone());
+            }
+
+            let req_payload = serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "knc_swarm_request_vote",
+                "params": req_params
+            });
+
+            if let Ok(resp_str) =
+                self.send_rpc_to_node_with_timeout(peer_address, &req_payload.to_string(), 500)
+                && let Ok(resp_val) = serde_json::from_str::<Value>(&resp_str)
+                && let Some(res) = resp_val.get("result")
+                && res
+                    .get("vote_granted")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+            {
+                votes_count += 1;
+                let mut votes = self
+                    .swarm_governance
+                    .votes_received
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                votes.insert(peer_id.clone());
+            }
+        }
+
+        // 4. Quorum Decision & Role Update
+        let quorum_reached = votes_count >= required_majority;
+        if quorum_reached {
+            let mut role = self
+                .swarm_governance
+                .current_role
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *role = NodeRole::Leader;
+            let mut leader = self
+                .swarm_governance
+                .leader_node_id
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *leader = Some(self.node_id.clone());
+
+            let resp_val = serde_json::json!({
+                "status": "ok",
+                "leader_node_id": self.node_id,
+                "term": new_term,
+                "role": "Leader",
+                "votes_granted": votes_count,
+                "active_nodes": total_active_nodes
+            });
+            JsonRpcResponse::success(id, resp_val)
+        } else {
+            let mut role = self
+                .swarm_governance
+                .current_role
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *role = NodeRole::Worker;
+            let mut leader = self
+                .swarm_governance
+                .leader_node_id
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *leader = None;
+
+            // Randomized Backoff (150–300 ms)
+            let backoff_ms = 150
+                + (std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos()
+                    % 151) as u64;
+            std::thread::sleep(std::time::Duration::from_millis(backoff_ms));
+
+            JsonRpcResponse::error(
+                id,
+                -32001,
+                "Quorum consensus not reached for leadership election",
+            )
+        }
+    }
+
+    /// `knc_swarm_request_vote` — Raft Consensus Vote Request RPC (26th Endpoint).
+    fn handle_swarm_request_vote(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let candidate_id = match params.get("candidate_id").and_then(|v| v.as_str()) {
+            Some(c) => match validate_param_string_len(c) {
+                Ok(_) => c,
+                Err(e) => return JsonRpcResponse::error(id, -32602, e),
+            },
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'candidate_id' parameter"),
+        };
+
+        let term = match params.get("term").and_then(|v| v.as_u64()) {
+            Some(t) => t,
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'term' parameter"),
+        };
+
+        let (current_term, vote_granted) = self.swarm_governance.request_vote(term, candidate_id);
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "term": current_term,
+            "vote_granted": vote_granted,
+            "node_id": self.node_id
+        });
+        JsonRpcResponse::success(id, resp_val)
     }
 
     /// `knc_swarm_roles` — list node roles across local and peer mesh topology.
@@ -2037,6 +2195,23 @@ impl RpcServer {
             self.handle_connection(stream);
         }
         Ok(())
+    }
+
+    pub fn spawn_background_tcp_server(
+        server: Arc<RpcServer>,
+        port: u16,
+    ) -> std::io::Result<(u16, std::thread::JoinHandle<()>)> {
+        let listener = TcpListener::bind(("127.0.0.1", port))?;
+        let bound_port = listener.local_addr()?.port();
+        let handle = std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let s = Arc::clone(&server);
+                std::thread::spawn(move || {
+                    s.handle_connection(stream);
+                });
+            }
+        });
+        Ok((bound_port, handle))
     }
 
     fn handle_connection(&self, mut stream: TcpStream) {
@@ -3149,19 +3324,18 @@ pub enum NodeRole {
     Leader,
     #[default]
     Worker,
+    Candidate,
     Storage,
     Observer,
 }
 
-/// Local Swarm Role Management & Leadership Claim Primitives (Phase 1).
-///
-/// `knc_swarm_elect` verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1).
-/// Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.
+/// Distributed Raft Voting & Swarm Governance (Phase 2).
 pub struct SwarmGovernance {
     pub current_role: Mutex<NodeRole>,
     pub leader_node_id: Mutex<Option<String>>,
-    pub current_term: AtomicU64,
+    pub current_term: Mutex<u64>,
     pub voted_for: Mutex<Option<String>>,
+    pub votes_received: Mutex<HashSet<String>>,
 }
 
 impl Default for SwarmGovernance {
@@ -3175,8 +3349,9 @@ impl SwarmGovernance {
         Self {
             current_role: Mutex::new(NodeRole::Worker),
             leader_node_id: Mutex::new(None),
-            current_term: AtomicU64::new(1),
+            current_term: Mutex::new(1),
             voted_for: Mutex::new(None),
+            votes_received: Mutex::new(HashSet::new()),
         }
     }
 
@@ -3200,10 +3375,44 @@ impl SwarmGovernance {
     }
 
     pub fn term(&self) -> u64 {
-        self.current_term.load(AtomicOrdering::Relaxed)
+        *self.current_term.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    /// Process election request/trigger.
+    /// Process Raft `RequestVote` RPC logic.
+    pub fn request_vote(&self, candidate_term: u64, candidate_id: &str) -> (u64, bool) {
+        let mut term = self.current_term.lock().unwrap_or_else(|e| e.into_inner());
+        let mut voted = self.voted_for.lock().unwrap_or_else(|e| e.into_inner());
+        let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
+        let mut leader = self
+            .leader_node_id
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        if candidate_term < *term {
+            return (*term, false);
+        }
+
+        if candidate_term > *term {
+            *term = candidate_term;
+            *voted = None;
+            *role = NodeRole::Worker;
+            *leader = None;
+        }
+
+        let grant = match voted.as_deref() {
+            None => true,
+            Some(v) if v == candidate_id => true,
+            _ => false,
+        };
+
+        if grant {
+            *voted = Some(candidate_id.to_string());
+        }
+
+        (*term, grant)
+    }
+
+    /// Legacy Phase 1 helper method kept for backward compatibility in internal tests.
     pub fn elect(
         &self,
         local_node_id: &str,
@@ -3211,42 +3420,24 @@ impl SwarmGovernance {
         requested_term: Option<u64>,
         _force: bool,
     ) -> Result<(String, u64, NodeRole), String> {
-        let mut current_leader = self
-            .leader_node_id
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        let mut voted = self.voted_for.lock().unwrap_or_else(|e| e.into_inner());
-        let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
-
-        let term = match requested_term {
-            Some(t) if t > self.current_term.load(AtomicOrdering::Relaxed) => {
-                self.current_term.store(t, AtomicOrdering::Relaxed);
-                t
-            }
-            _ => self.current_term.load(AtomicOrdering::Relaxed),
-        };
-
+        let term_to_request = requested_term.unwrap_or_else(|| self.term());
         let target_candidate = candidate_node_id.unwrap_or(local_node_id);
-
-        let allow_election = current_leader.is_none();
-
-        if allow_election {
-            *current_leader = Some(target_candidate.to_string());
-            *voted = Some(target_candidate.to_string());
-
+        let (granted_term, granted) = self.request_vote(term_to_request, target_candidate);
+        if granted {
             if target_candidate == local_node_id {
+                let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
                 *role = NodeRole::Leader;
-            } else if *role == NodeRole::Leader {
-                *role = NodeRole::Worker;
+                let mut leader = self
+                    .leader_node_id
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                *leader = Some(local_node_id.to_string());
             }
-
-            Ok((
-                current_leader
-                    .clone()
-                    .unwrap_or_else(|| target_candidate.to_string()),
-                term,
-                role.clone(),
-            ))
+            let role = self.role();
+            let leader = self
+                .leader_id()
+                .unwrap_or_else(|| target_candidate.to_string());
+            Ok((leader, granted_term, role))
         } else {
             Err(
                 "Unauthorized: Leader is already elected. Unilateral re-election requires swarm consensus (Phase 2)."
@@ -3266,5 +3457,12 @@ impl SwarmGovernance {
         *voted = None;
         let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
         *role = NodeRole::Worker;
+        let mut term = self.current_term.lock().unwrap_or_else(|e| e.into_inner());
+        *term = 1;
+        let mut votes = self
+            .votes_received
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        votes.clear();
     }
 }

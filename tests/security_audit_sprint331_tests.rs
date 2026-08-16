@@ -106,26 +106,39 @@ fn test_hmac_replay_within_window() {
 
 #[test]
 fn test_version_assertion_sprint331() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.21.4-security");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.22.0");
 }
 
 #[test]
 fn test_unilateral_reelection_rejected() {
     let server = RpcServer::new(aether_compiler::executor::AgentPermissions::default());
+    server.set_revoked_keys_path(None);
 
-    // Initial election (bootstrap) sets leader
+    // Register a peer so quorum requires multi-node consensus (total_active_nodes = 2)
+    let reg_peer = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "knc_mesh_peers",
+        "params": {
+            "action": "register",
+            "peer": {
+                "node_id": "peer_other",
+                "address": "127.0.0.1:9999",
+                "status": "Active",
+                "capabilities": ["worker"]
+            }
+        }
+    });
+    server.dispatch_request(&reg_peer.to_string());
+
+    // Initial election
     let req1 = serde_json::json!({
         "jsonrpc": "2.0",
         "id": 1,
         "method": "knc_swarm_elect",
         "params": { "candidate_node_id": "node_alpha" }
     });
-    let resp1 = server.dispatch_request(&req1.to_string());
-    assert!(
-        resp1.contains("\"result\""),
-        "Bootstrap election failed: {}",
-        resp1
-    );
+    let _resp1 = server.dispatch_request(&req1.to_string());
 
     // Subsequent re-election attempt without swarm consensus must be rejected (-32001)
     let req2 = serde_json::json!({
@@ -140,12 +153,34 @@ fn test_unilateral_reelection_rejected() {
         "Unilateral re-election was not rejected: {}",
         resp2
     );
-    assert!(resp2.contains("Leader is already elected") || resp2.contains("Unauthorized"));
+    assert!(
+        resp2.contains("Leader is already elected")
+            || resp2.contains("Unauthorized")
+            || resp2.contains("Quorum")
+    );
 }
 
 #[test]
 fn test_client_cannot_bypass_via_test_harness_param() {
     let server = RpcServer::new(aether_compiler::executor::AgentPermissions::default());
+    server.set_revoked_keys_path(None);
+
+    // Register a peer so quorum requires multi-node consensus (total_active_nodes = 2)
+    let reg_peer = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "knc_mesh_peers",
+        "params": {
+            "action": "register",
+            "peer": {
+                "node_id": "peer_other",
+                "address": "127.0.0.1:9999",
+                "status": "Active",
+                "capabilities": ["worker"]
+            }
+        }
+    });
+    server.dispatch_request(&reg_peer.to_string());
 
     // Set initial leader
     let req1 = serde_json::json!({

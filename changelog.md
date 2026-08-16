@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.22.0] - Sprint 335: Swarm Phase 2 — Distributed Raft Voting & Consensus (2026-08-16)
+Sprint 335 implements distributed Raft consensus and voting semantics across the P2P mesh topology:
+- **Raft RequestVote RPC (26th Endpoint)**: Added `knc_swarm_request_vote` endpoint implementing Raft term rules, single-vote-per-term invariant, and candidate vote granting logic.
+- **Mandatory RPC Auth-Gating**: Gated `knc_swarm_request_vote` with `check_mesh_auth` (`-32001 Unauthorized` on missing/invalid token) to protect against term-inflation attacks.
+- **Dynamic Election Broadcast & Lock Hygiene**: Updated `knc_swarm_elect` to broadcast `knc_swarm_request_vote` across active peers. Enforced strict lock hygiene: all mutex locks on `SwarmGovernance` and `RpcServer` state are released before performing outgoing TCP network requests to peers.
+- **Quorum Consensus & Randomized Backoff**: Transitioned role to `NodeRole::Leader` upon receiving majority votes (`votes_count > active_nodes / 2`). Missed quorum reverts role to `NodeRole::Worker` and applies a randomized backoff sleep (150–300 ms) before retrying to prevent livelocks.
+- **Multi-Node TCP Cluster Integration Suite**: Implemented real network integration tests (`tests/swarm_phase2_raft_tests.rs`) spawning 3 distinct TCP `RpcServer` instances communicating over network sockets.
+
 ## [v2.21.4-security] - Sprint 334: Audit Completion & State Persistence (2026-08-15)
 Sprint 334 closes the final four security audit items (C4, C3, A4, A5), introducing persistent peer revocation state, registration gates, quorum denominator hardening, stack memory estimation fixes, and isolate custom quotas:
 - **Peer Revocation Persistence & Registration Gate (C4)**: Persists `revoked_peer_keys` to disk (`revoked_keys.json`) with safe, panic-free I/O. Blocks registration of revoked peer keys or capabilities in `knc_mesh_peers?action=register`, returning `-32001 Unauthorized`.

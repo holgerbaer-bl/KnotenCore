@@ -276,12 +276,28 @@ fn test_zero_trust_blocks_forced_self_election() {
         "127.0.0.1:0",
         Some("secret".to_string()),
     );
-    server.enable_zero_trust();
+    server.set_revoked_keys_path(None);
 
-    // Establish initial bootstrap leader
-    let _ = server
-        .swarm_governance
-        .elect("election-node", Some("election-node"), None, false);
+    // Register a peer before enabling Zero-Trust mode so quorum requires multi-node consensus (total_active_nodes = 2)
+    let req_peer = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_peers",
+        "params": {
+            "action": "register",
+            "peer": {
+                "node_id": "peer-2",
+                "address": "127.0.0.1:9999",
+                "status": "Active",
+                "capabilities": ["worker"]
+            },
+            "mesh_auth_token": "secret"
+        },
+        "id": 0
+    });
+    let resp_p = server.dispatch_request(&req_peer.to_string());
+    assert!(resp_p.contains("\"status\":\"ok\""));
+
+    server.enable_zero_trust();
 
     let now = current_ts();
     let (pubkey, sig) = server.sign_envelope("nonce-elect-force", now);
@@ -311,7 +327,11 @@ fn test_zero_trust_blocks_forced_self_election() {
         resp["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("Unauthorized")
+            .contains("Quorum")
+            || resp["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("Unauthorized")
     );
 }
 

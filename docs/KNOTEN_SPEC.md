@@ -299,6 +299,17 @@ Closes the final four audit items (C4, C3, A4, A5), establishing persistent revo
 - **Memory Estimator Stack Traversal Fix (A4)**: Removed `.take(64)` stack depth limit in `estimate_memory_bytes()`, traversing all stack items to prevent heap memory limit bypasses at stack depths > 64.
 - **Isolate Custom Quota Support (A5)**: Added `pub quota: IsolateQuota` to `VMIsolate`, propagating custom quotas to `vm.set_quota(...)` in `run()` and `spawn_shadow_isolate_with_quota()`.
 
+### 7.21. Swarm Phase 2: Distributed Raft Voting & Consensus (`v2.22.0`)
+Implements distributed Raft consensus and voting semantics across the P2P mesh topology:
+- **Raft `RequestVote` RPC (`knc_swarm_request_vote` — 26th Endpoint)**: Accepts `term: u64` and `candidate_id: String` (validated with `MAX_PARAM_STRING_LEN`). Returns `vote_granted: bool` and current `term`. Enforces Raft term rules:
+  - If `candidate_term < current_term`: Vote denied (`vote_granted: false`).
+  - If `candidate_term > current_term`: Updates `current_term`, clears `voted_for`, steps down to `NodeRole::Worker`.
+  - If `voted_for` is `None` or `candidate_id`: Vote granted (`vote_granted: true`), sets `voted_for = Some(candidate_id)`.
+  - Single-vote-per-term invariant is strictly enforced.
+- **Mandatory RPC Auth-Gating**: Gated with `check_mesh_auth` (`-32001 Unauthorized` on missing/invalid token) to protect against term-inflation attacks.
+- **Dynamic Election Broadcast & Lock Hygiene**: `knc_swarm_elect` increments term, transitions to `NodeRole::Candidate`, votes for self, snapshots active peers, releases all mutex locks, and broadcasts `knc_swarm_request_vote` RPCs over TCP sockets to active peers.
+- **Quorum Consensus & Randomized Backoff**: Transition to `NodeRole::Leader` occurs if `votes_count > active_nodes / 2` (where `active_nodes = 1 + active_peers_count`). If quorum is missed, role reverts to `NodeRole::Worker` and a randomized backoff sleep (150–300 ms) is executed to prevent livelocks before returning `-32001 Quorum consensus not reached`.
+
 
 
 
