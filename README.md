@@ -1,9 +1,9 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.23.0-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.23.1-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-316%2F316-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.23.0-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-318%2F318-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.23.1-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -16,6 +16,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **Architectural Modularization & Codebase Detox (v2.23.1)**: Refactoring of monolithic `rpc.rs` into clean, modular sub-packages under `aether_compiler/src/rpc/` (`types.rs`, `auth.rs`, `handlers/vm.rs`, `handlers/mesh.rs`, `handlers/swarm.rs`, `handlers/store.rs`, `handlers/tasks.rs`, `handlers/agent.rs`, `mod.rs`), consolidating domain states and removing historical Sprint/Prompt tags with 100% backward-compatible public re-exports and API dispatching across all 28 JSON-RPC endpoints.
 - **Scoped Hot-Module-Replacement (v2.23.0)**: Live bytecode and AST reloading for running `VMIsolate` sessions (`knc_isolate_reload` — 28th endpoint) without destroying session state (environment variables, heap, quotas, VFS). Enforces execution scoping to prevent stack corruption during active execution (`ERR_HMR_ACTIVE_EXECUTION`) and guarantees transactional safety via pre-compilation validation.
 - **Swarm Phase 2 Completion: Raft Heartbeats & Failure Detection (v2.22.1)**: Full Raft consensus completion introducing periodic `knc_swarm_heartbeat` RPCs (27th endpoint), term synchronization, background heartbeat broadcasting in Leaders (100 ms interval) with strict lock hygiene, and automatic leader failover detection in Workers monitoring heartbeat timestamps against randomized timeouts (300–500 ms).
 - **Swarm Phase 2: Distributed Raft Voting & Consensus (v2.22.0)**: Distributed Raft consensus mechanism featuring `RequestVote` RPC (`knc_swarm_request_vote` — 26th endpoint), term-tracking and single-vote-per-term invariant, mandatory mesh auth-gating against term-inflation, dynamic election broadcast with strict lock hygiene (no mutexes held during outgoing network RPCs), majority quorum decision (`votes_count > active_nodes / 2`), and randomized backoff sleep (150–300 ms) on missed quorum to prevent livelocks.

@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.23.0** · Scoped Hot-Module-Replacement (HMR)
+Current engine version: **v2.23.1** · Architectural Modularization & Codebase Detox
 
 ## Done (selected milestones)
 
+- ✅ Architectural Modularization & Codebase Detox (submodule refactoring of monolithic `rpc.rs` into `aether_compiler/src/rpc/`, state consolidation, removal of historical Sprint/Prompt tags, 100% backward-compatible re-exports and API dispatching across all 28 JSON-RPC endpoints, integration test suite `tests/rpc_modularization_tests.rs`, Sprint 338 - v2.23.1)
 - ✅ Scoped Hot-Module-Replacement (`knc_isolate_reload` 28th endpoint, `VMIsolate::hot_reload_code`, transactional pre-compilation validation, execution scoping against stack corruption during active execution `ERR_HMR_ACTIVE_EXECUTION`, environment/heap/quota state preservation, integration test suite `tests/isolate_hmr_tests.rs`, Sprint 337 - v2.23.0)
 - ✅ Swarm Phase 2 Completion: Raft Heartbeats & Failure Detection (`knc_swarm_heartbeat` 27th endpoint, Leader background heartbeat loop with lock hygiene, follower/worker failure detection with randomized 300–500 ms timeout and automatic re-election, multi-node TCP integration tests, Sprint 336 - v2.22.1)
 - ✅ Swarm Phase 2: Distributed Raft Voting & Consensus (`knc_swarm_request_vote` 26th endpoint, term-tracking & single-vote-per-term invariant, mandatory mesh auth-gating against term inflation, dynamic election broadcast with strict lock hygiene, majority quorum decision `votes_count > active_nodes / 2`, randomized backoff sleep 150–300 ms, multi-node TCP cluster integration suite, Sprint 335 - v2.22.0)

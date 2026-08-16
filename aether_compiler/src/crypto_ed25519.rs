@@ -1,6 +1,4 @@
-// =============================================================================
-// Sprint 327: Zero-Trust Mesh Phase 1 — Ed25519 Cryptographic Module (ring)
-// =============================================================================
+/// Zero-Trust Mesh — Ed25519 Cryptographic Module backed by ring.
 
 use ring::digest::{SHA512, digest};
 use ring::rand::SystemRandom;

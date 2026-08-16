@@ -2,6 +2,22 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.23.1] - Sprint 338: Architectural Modularization & Codebase Detox (2026-08-16)
+Sprint 338 delivers architectural modularization and codebase detox across the core RPC server sub-system:
+- **Modularization of `rpc.rs` (`aether_compiler/src/rpc/`)**: Split the monolithic 3,733-line `rpc.rs` file into clean, domain-scoped submodules under `aether_compiler/src/rpc/`:
+  * `rpc/mod.rs`: `RpcServer` definition, wire-level dispatcher (`dispatch_request`), transport listeners (TCP/WebSocket), and public re-exports of all public types.
+  * `rpc/types.rs`: Protocol constants (`KNC_PROTOCOL_VERSION = "v2.23.1"`), `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcError`, `NonceCache`, `RpcSession` (with `hot_reload_code`), `MeshPeer`.
+  * `rpc/auth.rs`: `check_mesh_auth`, `verify_mesh_signature`, `validate_nonce_and_timestamp`, `save_revoked_keys_to_disk`, `load_revoked_keys_from_disk`, `generate_mesh_nonce`, `constant_time_eq`, `hmac_sha256`.
+  * `rpc/handlers/vm.rs`: `knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`, `knc_isolate_reload`.
+  * `rpc/handlers/mesh.rs`: `knc_mesh_discover`, `knc_mesh_peers`, `knc_mesh_ping`, `knc_mesh_metrics`, `knc_mesh_rotate_key`, `knc_mesh_revoke_peer`, `knc_mesh_verify_peer`, `MeshGossipWorker`, `MeshGossipConfig`.
+  * `rpc/handlers/swarm.rs`: `knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `knc_swarm_request_vote`, `knc_swarm_heartbeat`, `SwarmGovernance`, `NodeRole`, `start_raft_governance_worker`.
+  * `rpc/handlers/store.rs`: `knc_store_put`, `knc_store_get`, `knc_store_sync`, `MeshKvStore`, `CrdtEntry`.
+  * `rpc/handlers/tasks.rs`: `knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`, `TaskDispatcher`, `TaskItem`, `TaskStatus`, `MetricsCollector`, `NodeMetrics`.
+  * `rpc/handlers/agent.rs`: `knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`, `knc_agent_teleport`.
+- **100% Backward Compatibility**: Preserved all 28 JSON-RPC endpoints, wire protocols, auth-checks, and public API paths without breaking changes.
+- **Codebase Detox**: Purged historical Sprint/Prompt tag comments across `aether_compiler/src/`, converting technical explanations into timeless Rustdoc (`///`) and clean inline comments.
+- **Integration Test Suite**: Created `tests/rpc_modularization_tests.rs` testing public re-exports and dispatchability of all 28 JSON-RPC endpoints across the modularized `RpcServer`.
+
 ## [v2.23.0] - Sprint 337: Scoped Hot-Module-Replacement (HMR) (2026-08-16)
 Sprint 337 introduces Scoped Hot-Module-Replacement (HMR) for live bytecode reloading without state destruction:
 - **Scoped HMR Core (`VMIsolate::hot_reload_code`)**: Implemented transactional code reloading for running isolates. Pre-compiles new AST before replacing bytecode, returning `HmrReport { reloaded: true, previous_bytecode_len, new_bytecode_len, preserved_variables }`.

@@ -325,6 +325,20 @@ Introduces live bytecode and AST reloading for running `VMIsolate` instances wit
 - **State Preservation**: Preserves environment variables (`vm.globals`), `heap`, `session_id`, `quota`, and `vfs` intact across reload operations.
 - **28th RPC Endpoint (`knc_isolate_reload`)**: Auth-gated RPC endpoint (`check_mesh_auth`) accepting `session_id` (max 256 bytes) and `ast` (JSON-AST Node). Returns `HmrReport` or error codes (`-32602` / `-32001`).
 
+### 7.24. Architectural Modularization & Codebase Detox (`v2.23.1`)
+Refactoring of the core RPC server subsystem into domain-scoped submodules under `aether_compiler/src/rpc/`:
+- **Subpackage Modularization**:
+  * `rpc/mod.rs`: `RpcServer` definition, `dispatch_request` wire dispatcher, TCP & WebSocket server transports, and public re-exports.
+  * `rpc/types.rs`: Protocol constants (`KNC_PROTOCOL_VERSION = "v2.23.1"`), `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcError`, `NonceCache`, `RpcSession` (with `hot_reload_code`), `MeshPeer`.
+  * `rpc/auth.rs`: `check_mesh_auth`, Ed25519 signature verification, replay window checking, disk revocation persistence (`load_revoked_keys_from_disk`, `save_revoked_keys_to_disk`), `constant_time_eq`, `hmac_sha256`.
+  * `rpc/handlers/vm.rs`: `knc_compile`, `knc_execute`, `knc_yield_resume`, `knc_inspect_state`, `knc_isolate_reload`.
+  * `rpc/handlers/mesh.rs`: `knc_mesh_discover`, `knc_mesh_peers`, `knc_mesh_ping`, `knc_mesh_metrics`, `knc_mesh_rotate_key`, `knc_mesh_revoke_peer`, `knc_mesh_verify_peer`, `MeshGossipWorker`, `MeshGossipConfig`.
+  * `rpc/handlers/swarm.rs`: `knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`, `knc_swarm_request_vote`, `knc_swarm_heartbeat`, `SwarmGovernance`, `NodeRole`, `start_raft_governance_worker`.
+  * `rpc/handlers/store.rs`: `knc_store_put`, `knc_store_get`, `knc_store_sync`, `MeshKvStore`, `CrdtEntry`.
+  * `rpc/handlers/tasks.rs`: `knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`, `TaskDispatcher`, `TaskItem`, `TaskStatus`, `MetricsCollector`, `NodeMetrics`.
+  * `rpc/handlers/agent.rs`: `knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`, `knc_agent_teleport`.
+- **Invariants**: 100% backward-compatible public re-exports and API dispatching across all 28 JSON-RPC endpoints. Domain state lock granularity and fine-grained mutex semantics (`Arc<Mutex<...>>`) preserved 1:1. Purged historical Sprint/Prompt tags across `aether_compiler/src/` into timeless Rustdoc (`///`).
+
 
 
 
