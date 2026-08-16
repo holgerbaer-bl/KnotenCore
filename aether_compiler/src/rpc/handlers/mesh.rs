@@ -114,18 +114,21 @@ impl super::super::RpcServer {
                     }
                 };
 
-                let verified_keys = self
-                    .verified_peer_keys
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner());
-                if let Some(pubkey) = verified_keys.get(&peer.node_id) {
-                    if self.is_peer_key_revoked(pubkey) {
-                        return JsonRpcResponse::error(
-                            id,
-                            -32001,
-                            "Unauthorized: Registered peer key has been revoked",
-                        );
-                    }
+                let is_revoked = self.is_peer_key_revoked(&peer.node_id)
+                    || peer.capabilities.iter().any(|cap| self.is_peer_key_revoked(cap))
+                    || self
+                        .verified_peer_keys
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .get(&peer.node_id)
+                        .map_or(false, |pk| self.is_peer_key_revoked(pk));
+
+                if is_revoked {
+                    return JsonRpcResponse::error(
+                        id,
+                        -32001,
+                        "Unauthorized: Peer key is revoked",
+                    );
                 }
 
                 peer.last_seen = std::time::SystemTime::now()
