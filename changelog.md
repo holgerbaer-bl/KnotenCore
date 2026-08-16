@@ -2,6 +2,20 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.0] - Sprint 339: Formal Benchmark Suite & English Standardization (2026-08-16)
+Sprint 339 introduces the formal benchmark engine, CLI harness, complete RPC handler re-exports, and 100% English documentation standardization:
+- **Formal Benchmark Suite Engine (`aether_compiler/src/bench.rs`)**: Implemented `BenchmarkEngine` with 5 warmup runs and 100 statistical sample iterations per workload. Standardized workloads include:
+  * `Fibonacci(30)`: Call stack & arithmetic overhead calculation with relative AOT vs VM speedup measurement.
+  * `PrimeSieve(10_000)`: Nested loop optimization & dynamic array/heap access overhead.
+  * `IsolateSpawnThroughput`: Latency and throughput of creating and disposing isolated `VMIsolate` instances.
+  * `RpcJsonThroughput`: End-to-end `knc_execute` JSON-RPC parsing, compilation, execution, and serialization throughput.
+- **CLI Benchmark Harness (`knoten bench`)**: Added `knoten bench` CLI command in `src/main.rs` and `src/bin/run_knc.rs`. Outputs formatted ASCII table with Latencies (Mean, p50, p99), Throughput (ops/sec), Memory footprint, and relative AOT Speedup. Supports `--json` flag for automated CI/performance pipelines and `--workload <NAME>` for targeted workload execution.
+- **Complete RPC Handler Re-Exports**: Added `pub use agent::*;` and `pub use vm::*;` to `aether_compiler/src/rpc/handlers/mod.rs`, completing 100% public re-export coverage across `aether_compiler::rpc::handlers::*` and `aether_compiler::rpc::*`.
+- **Domain State Consolidation Note**: Preserved the fine-grained domain locking architecture (`Arc<Mutex<...>>` per domain) for maximum concurrency and safety; full state consolidation remains deferred.
+- **100% English Documentation Standardization**: Translated all remaining non-English and mixed-language passages in `README.md`, `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/KNOTEN_SPEC.md`, `AGENT_VALIDATION_REPORT.md`, and `audit.md` into professional technical English.
+- **Dedicated Benchmark Specification**: Created [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) (100% in English) detailing benchmark architecture, measurement methodology, workload parameters, reference hardware environment, and CLI usage.
+- **Integration Test Suite**: Created `tests/benchmark_integration_tests.rs` verifying workspace-wide version `v2.24.0`, complete RPC handler re-exports, direct benchmark engine API execution, and AOT/VM output parity.
+
 ## [v2.23.1] - Sprint 338: Architectural Modularization & Codebase Detox (2026-08-16)
 Sprint 338 delivers architectural modularization and codebase detox across the core RPC server sub-system:
 - **Modularization of `rpc.rs` (`aether_compiler/src/rpc/`)**: Split the monolithic 3,733-line `rpc.rs` file into clean, domain-scoped submodules under `aether_compiler/src/rpc/`:
@@ -100,7 +114,7 @@ Official Release v2.19.0 consolidates Zero-Trust Mesh Phase 1, industrial crypto
 - **Zero-Trust Mesh Phase 1**: Full cryptographic Ed25519 envelope signing, replay protection (30s sliding window), anti-downgrade enforcement, and peer verification endpoint `knc_mesh_verify_peer`.
 - **Industrial Cryptographic Integration (`ring`)**: Integrated production-grade `ring` (`v0.17`) backend for Ed25519 keypair signing and NIST-compliant SHA-512 digest computation.
 - **CI Test Suite Hardening**: Fixed P2P mesh bus timing race condition and static memory test isolation via `TEST_SNAPSHOT_LOCK`.
-- **Transparency Grounding**: Documented Phase 1 scope explicitly: *"Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit."*
+- **Transparency Grounding**: Documented Phase 1 scope explicitly: *"Cryptographic mesh signing is currently in Phase 1 (local Ed25519 envelope verification). It does not replace an external professional penetration test or third-party security audit."*
 
 ## [v2.19.0-zerotrust] - Sprint 327: Zero-Trust Mesh Phase 1: Cryptographic Envelope Signing & Anti-Downgrade Hardening (2026-08-11)
 Sprint 327 implements Zero-Trust Mesh Phase 1 with cryptographic Ed25519 envelope signing, anti-downgrade guards, and replay attack defense:
@@ -109,7 +123,7 @@ Sprint 327 implements Zero-Trust Mesh Phase 1 with cryptographic Ed25519 envelop
 - **Anti-Downgrade Protection**: Rejects unencrypted or plain legacy HMAC tokens when Zero-Trust mode is active.
 - **Replay Protection**: Enforces a strict 30-second sliding timestamp window (`MAX_ZERO_TRUST_WINDOW_SECS = 30`) and tracks nonce reuse in memory.
 - **Peer Key Verification Endpoint**: Implemented `knc_mesh_verify_peer` for mutual exchange and verification of public Ed25519 keys between mesh nodes.
-- **Transparency Grounding**: Documented Phase 1 scope explicitly: *"Die kryptografische Mesh-Signierung befindet sich in Phase 1 (lokale Ed25519-Envelope-Prüfung). Sie ersetzt keine externe professionelle Penetrationsprüfung oder Drittanbieter-Sicherheitsaudit."*
+- **Transparency Grounding**: Documented Phase 1 scope explicitly: *"Cryptographic mesh signing is currently in Phase 1 (local Ed25519 envelope verification). It does not replace an external professional penetration test or third-party security audit."*
 
 ## [v2.18.2] - Official Release: Grounded Swarm Governance & Scheduler Simulator Hardening (2026-08-09)
 Official Release v2.18.2 delivers grounded Swarm Governance terminology, scheduler harness clarification, and inspector telemetry hardening:
@@ -133,7 +147,7 @@ Official Release v2.18.1 delivers wire protocol capability renaming, a systemic 
 ## [v2.18.1-swarm] - Sprint 324: Swarm Governance Terminology Refinement & Grounding (2026-08-09)
 Sprint 324 refines and grounds the Swarm Governance terminology across all code, tests, and documentation gates:
 - **Terminology Refinement**: Replaced imprecise "Raft Leader Election" framing with `"Local Swarm Role Management & Leadership Claim Primitives (Phase 1)"`.
-- **Explicit Grounding Note**: Documented across `README.md`, `llm.md`, `ROADMAP.md`, `docs/KNOTEN_SPEC.md`, `aether_compiler/src/rpc.rs`, and `tests/agentic_swarm_tests.rs`: *"knc_swarm_elect verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1). Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant."*
+- **Explicit Grounding Note**: Documented across `README.md`, `llm.md`, `ROADMAP.md`, `docs/KNOTEN_SPEC.md`, `aether_compiler/src/rpc.rs`, and `tests/agentic_swarm_tests.rs`: *"knc_swarm_elect currently manages local node state and leadership claim (Phase 1). Full cross-node consensus broadcast via mesh is planned for a subsequent release."*
 - **Code & Test Comments**: Updated module and function doc comments in `rpc.rs` and `agentic_swarm_tests.rs` to explicitly designate `knc_swarm_elect` as a local state manager and leadership claim primitive.
 - **`KNC_PROTOCOL_VERSION`**: Updated to `"v2.18.1-swarm"`.
 
@@ -143,7 +157,7 @@ Official Release v2.18.0 delivers Swarm Governance, Raft-based Leader Election, 
 - **Raft Leader Election (`knc_swarm_elect`)**: Triggers or polls Raft leader election across the cluster topology. Supports candidate targeting, term increments, and forced leadership claim. Auth-protected via `mesh_auth_token`.
 - **Dynamic Node Roles (`knc_swarm_roles`)**: Maps and reports cluster node roles (`Leader`, `Worker`, `Storage`, `Observer`) across local and peer mesh topology.
 - **Swarm Quorum Consensus (`knc_swarm_quorum`)**: Evaluates active mesh nodes to enforce quorum threshold consensus (`(active_nodes / 2) + 1` or explicit threshold) prior to critical cluster operations. Auth-protected via `mesh_auth_token`.
-- **Grounded Documentation & Transparency**: Adapted `audit.md` to `# KnotenCore Claims Verification (AI-Assisted)` with explicit AI-assisted verification context, replaced generic pass badges with verified code references (`Codestelle verifiziert`), updated benchmark headers in `README.md` and `llm.md` to `20/20 auf internem Test-Set (v2.18.0)`, and added transparent disclaimer context regarding internal single-agent benchmarking.
+- **Grounded Documentation & Transparency**: Adapted `audit.md` to `# KnotenCore Claims Verification (AI-Assisted)` with explicit AI-assisted verification context, replaced generic pass badges with verified code references (`Code location verified`), updated benchmark headers in `README.md` and `llm.md` to `20/20 on internal test set (v2.18.0)`, and added transparent disclaimer context regarding internal single-agent benchmarking.
 - **`knc_agent_handshake` update**: Capabilities response now includes `swarm_governance: true`, `raft_leader_election: true`, and `node_roles: true`.
 - **`KNC_PROTOCOL_VERSION`**: Official release version `v2.18.0`.
 

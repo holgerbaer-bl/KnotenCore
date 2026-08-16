@@ -3,8 +3,8 @@
 // Verifies Local Swarm Role Management & Leadership Claim Primitives (Phase 1), cluster node roles,
 // quorum consensus voting, auth protection, and agentic handshake capabilities.
 //
-// Hinweis: knc_swarm_elect verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1).
-// Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.
+// Note: knc_swarm_elect currently manages local node state and leadership claim (Phase 1).
+// Full cross-node consensus broadcast via mesh is planned for a subsequent release.
 
 use serde_json::Value;
 
@@ -236,6 +236,6 @@ fn test_handshake_advertises_swarm_governance() {
     assert!(caps["node_roles"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.23.1"
+        "v2.24.0"
     );
 }

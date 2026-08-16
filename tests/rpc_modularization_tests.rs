@@ -11,8 +11,8 @@ use serde_json::json;
 #[test]
 fn test_version_assertion_sprint338() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.23.1",
-        "Protocol version must be synchronized to v2.23.1"
+        KNC_PROTOCOL_VERSION, "v2.24.0",
+        "Protocol version must be synchronized to v2.24.0"
     );
 }
 
@@ -116,7 +116,8 @@ fn test_all_28_rpc_methods_dispatchability() {
             "id": 1
         });
         let resp_str = server.dispatch_request(&req.to_string());
-        let resp: JsonRpcResponse = serde_json::from_str(&resp_str).expect("Valid JSON-RPC response");
+        let resp: JsonRpcResponse =
+            serde_json::from_str(&resp_str).expect("Valid JSON-RPC response");
         assert_eq!(resp.jsonrpc, "2.0");
         // Ensure method is registered and dispatched (not method not found -32601)
         if let Some(err) = &resp.error {

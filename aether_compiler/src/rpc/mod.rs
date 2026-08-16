@@ -79,11 +79,17 @@ impl RpcServer {
     }
 
     pub fn is_zero_trust(&self) -> bool {
-        *self.zero_trust_mode.lock().unwrap_or_else(|e| e.into_inner())
+        *self
+            .zero_trust_mode
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
     }
 
     pub fn set_zero_trust(&self, enabled: bool) {
-        let mut mode = self.zero_trust_mode.lock().unwrap_or_else(|e| e.into_inner());
+        let mut mode = self
+            .zero_trust_mode
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         *mode = enabled;
     }
 
@@ -92,7 +98,10 @@ impl RpcServer {
     }
 
     pub fn sign_envelope(&self, nonce: &str, timestamp: u64) -> (String, String) {
-        let kp = self.ed25519_keypair.lock().unwrap_or_else(|e| e.into_inner());
+        let kp = self
+            .ed25519_keypair
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let pubkey = kp.public_key_hex();
         let msg = format!("{}:{}:{}", timestamp, nonce, self.node_id);
         let sig = kp.sign_hex(msg.as_bytes());
@@ -100,12 +109,18 @@ impl RpcServer {
     }
 
     pub fn public_key_hex(&self) -> String {
-        let kp = self.ed25519_keypair.lock().unwrap_or_else(|e| e.into_inner());
+        let kp = self
+            .ed25519_keypair
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         kp.public_key_hex()
     }
 
     pub fn rotate_key(&self) -> (String, String) {
-        let mut kp = self.ed25519_keypair.lock().unwrap_or_else(|e| e.into_inner());
+        let mut kp = self
+            .ed25519_keypair
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let old_pub = kp.public_key_hex();
         *kp = Ed25519KeyPair::generate();
         let new_pub = kp.public_key_hex();
@@ -127,18 +142,16 @@ impl RpcServer {
             .unwrap_or_else(|e| e.into_inner())
             .clone();
 
-        if let Some(path) = path_opt {
-            if path.exists() {
-                if let Ok(data) = std::fs::read_to_string(&path) {
-                    if let Ok(keys) = serde_json::from_str::<HashSet<String>>(&data) {
-                        let mut revoked = self
-                            .revoked_peer_keys
-                            .lock()
-                            .unwrap_or_else(|e| e.into_inner());
-                        *revoked = keys;
-                    }
-                }
-            }
+        if let Some(path) = path_opt
+            && path.exists()
+            && let Ok(data) = std::fs::read_to_string(&path)
+            && let Ok(keys) = serde_json::from_str::<HashSet<String>>(&data)
+        {
+            let mut revoked = self
+                .revoked_peer_keys
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *revoked = keys;
         }
     }
 
@@ -232,11 +245,8 @@ impl RpcServer {
         };
 
         if req.jsonrpc != "2.0" {
-            let response = JsonRpcResponse::error(
-                req.id,
-                -32600,
-                "Invalid jsonrpc version. Must be '2.0'",
-            );
+            let response =
+                JsonRpcResponse::error(req.id, -32600, "Invalid jsonrpc version. Must be '2.0'");
             return serde_json::to_string(&response).unwrap_or_default();
         }
 
@@ -559,7 +569,7 @@ impl RpcServer {
 }
 
 pub fn compute_websocket_accept_key(key: &str) -> String {
-    use ring::digest::{digest, SHA1_FOR_LEGACY_USE_ONLY};
+    use ring::digest::{SHA1_FOR_LEGACY_USE_ONLY, digest};
     let guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     let combined = format!("{}{}", key.trim(), guid);
     let digest_result = digest(&SHA1_FOR_LEGACY_USE_ONLY, combined.as_bytes());
@@ -629,7 +639,7 @@ pub fn write_websocket_text_frame(stream: &mut TcpStream, payload: &[u8]) -> std
 }
 
 pub fn sha1_digest(input: &[u8]) -> Vec<u8> {
-    use ring::digest::{digest, SHA1_FOR_LEGACY_USE_ONLY};
+    use ring::digest::{SHA1_FOR_LEGACY_USE_ONLY, digest};
     digest(&SHA1_FOR_LEGACY_USE_ONLY, input).as_ref().to_vec()
 }
 

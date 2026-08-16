@@ -254,7 +254,7 @@ Resolves audit findings across CRDT storage, task queue management, and HMAC aut
 
 ### 7.13. Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1) (`v2.18.2`)
 Introduces Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1) and Dynamic Node Roles (`Leader`, `Worker`, `Storage`, `Observer`):
-- `knc_swarm_elect`: Triggers or queries local swarm role state and leadership claims. Supports candidate targeting, term increments, and forced leadership claim. Auth-protected via `mesh_auth_token`. *Hinweis: `knc_swarm_elect` verwaltet aktuell den lokalen Knotenzustand und Leadership-Claim (Phase 1). Ein vollwertiger Cross-Node Consensus Broadcast via Mesh ist für ein folgendes Release geplant.*
+- `knc_swarm_elect`: Triggers or queries local swarm role state and leadership claims. Supports candidate targeting, term increments, and forced leadership claim. Auth-protected via `mesh_auth_token`. *Note: knc_swarm_elect currently manages local node state and leadership claim (Phase 1). Full cross-node consensus broadcast via mesh is planned for a subsequent release.*
 - `knc_swarm_roles`: Maps and reports cluster node roles (`Leader`, `Worker`, `Storage`, `Observer`) across local and peer mesh topology.
 - `knc_swarm_quorum`: Evaluates active mesh nodes to enforce quorum threshold consensus (`(active_nodes / 2) + 1` or explicit threshold) prior to critical cluster operations. Auth-protected via `mesh_auth_token`.
 - `SwarmGovernance`: Thread-safe engine tracking node role, current leader ID, term, and election votes.
@@ -338,6 +338,13 @@ Refactoring of the core RPC server subsystem into domain-scoped submodules under
   * `rpc/handlers/tasks.rs`: `knc_task_submit`, `knc_task_status`, `knc_task_cancel`, `knc_task_steal`, `TaskDispatcher`, `TaskItem`, `TaskStatus`, `MetricsCollector`, `NodeMetrics`.
   * `rpc/handlers/agent.rs`: `knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`, `knc_agent_teleport`.
 - **Invariants**: 100% backward-compatible public re-exports and API dispatching across all 28 JSON-RPC endpoints. Domain state lock granularity and fine-grained mutex semantics (`Arc<Mutex<...>>`) preserved 1:1. Purged historical Sprint/Prompt tags across `aether_compiler/src/` into timeless Rustdoc (`///`).
+
+## 8. Formal Benchmarks (`v2.24.0`)
+Defines the standardized benchmark workloads and execution harness for KnotenCore:
+- **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
+- **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.
+- **CLI Harness (`knoten bench`)**: Formatted ASCII table output, machine-readable `--json` export, and `--workload <NAME>` targeting.
+- **Specification**: Complete specification, measurement methodology, and reference environment documented in [`docs/BENCHMARKS.md`](BENCHMARKS.md).
 
 
 

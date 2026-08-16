@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use serde_json::Value;
+use std::sync::Arc;
 
-use crate::rpc::types::{JsonRpcResponse, MeshPeer, KNC_PROTOCOL_VERSION};
+use crate::rpc::types::{JsonRpcResponse, KNC_PROTOCOL_VERSION, MeshPeer};
 
 #[derive(Debug, Clone)]
 pub struct MeshGossipConfig {
@@ -115,20 +115,19 @@ impl super::super::RpcServer {
                 };
 
                 let is_revoked = self.is_peer_key_revoked(&peer.node_id)
-                    || peer.capabilities.iter().any(|cap| self.is_peer_key_revoked(cap))
+                    || peer
+                        .capabilities
+                        .iter()
+                        .any(|cap| self.is_peer_key_revoked(cap))
                     || self
                         .verified_peer_keys
                         .lock()
                         .unwrap_or_else(|e| e.into_inner())
                         .get(&peer.node_id)
-                        .map_or(false, |pk| self.is_peer_key_revoked(pk));
+                        .is_some_and(|pk| self.is_peer_key_revoked(pk));
 
                 if is_revoked {
-                    return JsonRpcResponse::error(
-                        id,
-                        -32001,
-                        "Unauthorized: Peer key is revoked",
-                    );
+                    return JsonRpcResponse::error(id, -32001, "Unauthorized: Peer key is revoked");
                 }
 
                 peer.last_seen = std::time::SystemTime::now()
@@ -311,9 +310,7 @@ impl super::super::RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        let metrics = self
-            .metrics_collector
-            .collect(self.task_dispatcher.stats());
+        let metrics = self.metrics_collector.collect(self.task_dispatcher.stats());
         let resp_val = serde_json::json!({
             "status": "ok",
             "node_id": self.node_id,

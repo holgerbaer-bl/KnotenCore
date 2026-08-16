@@ -3,7 +3,7 @@ use knoten_core_types::opcode::OpCode;
 use serde_json::Value;
 
 use crate::executor::RelType;
-use crate::rpc::types::{validate_param_string_len, JsonRpcResponse, KNC_PROTOCOL_VERSION};
+use crate::rpc::types::{JsonRpcResponse, KNC_PROTOCOL_VERSION, validate_param_string_len};
 use crate::vm::machine::VmExecutionState;
 
 impl super::super::RpcServer {

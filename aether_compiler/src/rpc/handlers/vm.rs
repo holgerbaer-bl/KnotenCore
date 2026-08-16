@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use crate::executor::RelType;
 use crate::optimizer::optimize;
-use crate::rpc::types::{validate_param_string_len, JsonRpcResponse};
+use crate::rpc::types::{JsonRpcResponse, validate_param_string_len};
 use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 
@@ -59,10 +59,10 @@ impl super::super::RpcServer {
             return JsonRpcResponse::error(id, -32001, err);
         }
 
-        if params.get("session_id").is_some() {
-            if let Err(err) = self.parse_session_id(&params) {
-                return JsonRpcResponse::error(id, -32602, err);
-            }
+        if params.get("session_id").is_some()
+            && let Err(err) = self.parse_session_id(&params)
+        {
+            return JsonRpcResponse::error(id, -32602, err);
         }
 
         let node = match self.extract_ast_node(&params) {
@@ -218,7 +218,8 @@ impl super::super::RpcServer {
                 JsonRpcResponse::success(id, resp_val)
             }
             Err(err) => {
-                let msg = if err.to_uppercase().contains("QUOTA") && !err.contains("Quota Exceeded") {
+                let msg = if err.to_uppercase().contains("QUOTA") && !err.contains("Quota Exceeded")
+                {
                     format!("Quota Exceeded: {}", err)
                 } else {
                     err.to_string()
@@ -357,11 +358,7 @@ impl super::super::RpcServer {
         let new_ast: Node = match serde_json::from_value(ast_val.clone()) {
             Ok(ast) => ast,
             Err(e) => {
-                return JsonRpcResponse::error(
-                    id,
-                    -32602,
-                    format!("Invalid AST structure: {}", e),
-                );
+                return JsonRpcResponse::error(id, -32602, format!("Invalid AST structure: {}", e));
             }
         };
 
@@ -386,13 +383,12 @@ impl super::super::RpcServer {
                 JsonRpcResponse::success(id, resp_val)
             }
             Err(err) => {
-                let code = if err.contains("ERR_HMR_ACTIVE_EXECUTION")
-                    || err.contains("Unauthorized")
-                {
-                    -32001
-                } else {
-                    -32602
-                };
+                let code =
+                    if err.contains("ERR_HMR_ACTIVE_EXECUTION") || err.contains("Unauthorized") {
+                        -32001
+                    } else {
+                        -32602
+                    };
                 JsonRpcResponse::error(id, code, err)
             }
         }

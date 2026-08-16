@@ -2,6 +2,7 @@ pub use knoten_core_types::ast;
 pub mod async_bridge;
 #[cfg(feature = "ui")]
 pub mod audio;
+pub mod bench;
 pub mod compiler;
 pub mod crypto_ed25519;
 pub mod dsl_emitter;

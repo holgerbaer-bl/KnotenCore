@@ -1,10 +1,10 @@
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use crate::rpc::types::{validate_param_string_len, JsonRpcResponse};
+use crate::rpc::types::{JsonRpcResponse, validate_param_string_len};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NodeRole {
@@ -214,7 +214,11 @@ pub fn start_raft_governance_worker(
 
         let mut pseudo_rand = move |modulus: u64| -> u64 {
             seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
-            if modulus == 0 { 0 } else { (seed >> 16) % modulus }
+            if modulus == 0 {
+                0
+            } else {
+                (seed >> 16) % modulus
+            }
         };
 
         while !shutdown_signal.load(std::sync::atomic::Ordering::Relaxed) {
@@ -250,8 +254,7 @@ pub fn start_raft_governance_worker(
                     let elapsed = server.swarm_governance.last_heartbeat_elapsed_ms();
                     let randomized_timeout = 300 + pseudo_rand(200);
 
-                    if elapsed > randomized_timeout
-                        && server.swarm_governance.leader_id().is_some()
+                    if elapsed > randomized_timeout && server.swarm_governance.leader_id().is_some()
                     {
                         {
                             let mut leader = server
@@ -373,9 +376,14 @@ impl super::super::RpcServer {
                     }
                 });
 
-                if let Ok(resp_str) = self.dispatch_request_over_network(peer_addr, &vote_req.to_string())
+                if let Ok(resp_str) =
+                    self.dispatch_request_over_network(peer_addr, &vote_req.to_string())
                     && let Ok(resp_val) = serde_json::from_str::<Value>(&resp_str)
-                    && resp_val.get("result").and_then(|r| r.get("vote_granted")).and_then(|v| v.as_bool()) == Some(true)
+                    && resp_val
+                        .get("result")
+                        .and_then(|r| r.get("vote_granted"))
+                        .and_then(|v| v.as_bool())
+                        == Some(true)
                 {
                     votes_count += 1;
                 }
@@ -407,7 +415,7 @@ impl super::super::RpcServer {
                 return JsonRpcResponse::success(id, resp_val);
             } else {
                 self.swarm_governance.set_role(NodeRole::Worker);
-                let mut seed = (election_term.wrapping_mul(1000003)) as u64;
+                let mut seed = election_term.wrapping_mul(1000003);
                 seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
                 let backoff_ms = 150 + ((seed >> 16) % 150);
                 std::thread::sleep(std::time::Duration::from_millis(backoff_ms));
@@ -423,12 +431,10 @@ impl super::super::RpcServer {
             }
         }
 
-        match self.swarm_governance.elect(
-            &self.node_id,
-            candidate_id,
-            requested_term,
-            force,
-        ) {
+        match self
+            .swarm_governance
+            .elect(&self.node_id, candidate_id, requested_term, force)
+        {
             Ok((leader, term, role)) => {
                 let resp_val = serde_json::json!({
                     "status": "ok",

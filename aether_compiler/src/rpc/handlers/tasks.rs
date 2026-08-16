@@ -1,13 +1,11 @@
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
-use std::sync::Mutex;
 use knoten_core_types::ast::Node;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
 
-use crate::rpc::types::{
-    validate_param_string_len, JsonRpcResponse, MAX_TASK_QUEUE_DEPTH,
-};
+use crate::rpc::types::{JsonRpcResponse, MAX_TASK_QUEUE_DEPTH, validate_param_string_len};
 
 /// Lifecycle state of a dispatched task.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -369,8 +367,7 @@ impl super::super::RpcServer {
 
         let local_metrics = self.metrics_collector.collect(self.task_dispatcher.stats());
 
-        let is_throttled = local_metrics.is_overloaded
-            || worker_cpu.map_or(false, |cpu| cpu > 80.0);
+        let is_throttled = local_metrics.is_overloaded || worker_cpu.is_some_and(|cpu| cpu > 80.0);
 
         if is_throttled {
             let resp_val = serde_json::json!({

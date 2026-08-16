@@ -1,5 +1,4 @@
 /// Zero-Trust Mesh — Ed25519 Cryptographic Module backed by ring.
-
 use ring::digest::{SHA512, digest};
 use ring::rand::SystemRandom;
 use ring::signature::{ED25519, Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey};

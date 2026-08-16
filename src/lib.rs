@@ -1,6 +1,7 @@
 pub use aether_compiler::async_bridge;
 #[cfg(feature = "ui")]
 pub use aether_compiler::audio;
+pub use aether_compiler::bench;
 pub use aether_compiler::compiler;
 pub use aether_compiler::dsl_emitter;
 pub use aether_compiler::evaluator;

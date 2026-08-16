@@ -2,8 +2,8 @@ use serde_json::Value;
 
 use crate::crypto_ed25519::Ed25519PublicKey;
 use crate::rpc::types::{
-    validate_param_string_len, MAX_CLOCK_DRIFT_SECS, MAX_REPLAY_WINDOW_SECS,
-    MAX_ZERO_TRUST_WINDOW_SECS,
+    MAX_CLOCK_DRIFT_SECS, MAX_REPLAY_WINDOW_SECS, MAX_ZERO_TRUST_WINDOW_SECS,
+    validate_param_string_len,
 };
 
 /// Constant-time byte array equality check resisting timing side-channel attacks.
