@@ -28,7 +28,7 @@ use crate::validator::Validator;
 use crate::vm::compiler::Compiler;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.22.1";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.23.0";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
@@ -179,6 +179,43 @@ pub struct RpcSession {
     pub instructions: Vec<OpCode>,
     pub constants: Vec<RelType>,
     pub events: Vec<VmEvent>,
+}
+
+impl RpcSession {
+    pub fn hot_reload_code(
+        &mut self,
+        new_ast: &knoten_core_types::ast::Node,
+    ) -> Result<crate::vm::machine::HmrReport, String> {
+        // 1. Pre-compilation validation (Transactional Safety)
+        let (new_instructions, new_constants) = Compiler::compile(new_ast)?;
+
+        // 2. Scoping Check: Reject reload if VM is actively executing
+        if self.vm.execution_state == VmExecutionState::Running {
+            return Err(
+                "ERR_HMR_ACTIVE_EXECUTION: Cannot perform hot-reload on an active execution isolate"
+                    .to_string(),
+            );
+        }
+
+        let prev_len = self.instructions.len();
+        let new_len = new_instructions.len();
+        let preserved_vars = self.vm.globals.len();
+
+        // 3. State Preservation & Bytecode Swapping
+        self.instructions = new_instructions;
+        self.constants = new_constants;
+        self.vm.ip = 0;
+        self.vm.stack.clear();
+        self.vm.frames.clear();
+        self.vm.execution_state = VmExecutionState::Ready;
+
+        Ok(crate::vm::machine::HmrReport {
+            reloaded: true,
+            previous_bytecode_len: prev_len,
+            new_bytecode_len: new_len,
+            preserved_variables: preserved_vars,
+        })
+    }
 }
 
 fn default_peer_status() -> String {
@@ -477,6 +514,8 @@ impl RpcServer {
             "knc_mesh_verify_peer" => self.handle_mesh_verify_peer(req.id, req.params),
             "knc_mesh_rotate_key" => self.handle_mesh_rotate_key(req.id, req.params),
             "knc_mesh_revoke_peer" => self.handle_mesh_revoke_peer(req.id, req.params),
+            // Sprint 337: Scoped Hot-Module-Replacement (HMR)
+            "knc_isolate_reload" => self.handle_isolate_reload(req.id, req.params),
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }
@@ -582,11 +621,21 @@ impl RpcServer {
             };
             (inst, cnst)
         } else {
-            return JsonRpcResponse::error(
-                id,
-                -32602,
-                "Params must contain either 'ast' or ('instructions' and 'constants')",
-            );
+            let sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(existing_session) = sessions.get(&session_id)
+                && !existing_session.instructions.is_empty()
+            {
+                (
+                    existing_session.instructions.clone(),
+                    existing_session.constants.clone(),
+                )
+            } else {
+                return JsonRpcResponse::error(
+                    id,
+                    -32602,
+                    "Params must contain either 'ast' or ('instructions' and 'constants')",
+                );
+            }
         };
 
         let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
@@ -1883,6 +1932,67 @@ impl RpcServer {
         });
 
         JsonRpcResponse::success(id, resp_val)
+    }
+
+    /// `knc_isolate_reload` — Scoped Hot-Module-Replacement RPC (28th Endpoint).
+    ///
+    /// Params: `{ "session_id": "<str>", "ast": <Value> }`
+    /// Returns: `{ "status": "ok", "report": HmrReport }`
+    fn handle_isolate_reload(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let session_id = match params.get("session_id").and_then(|v| v.as_str()) {
+            Some(s) => match validate_param_string_len(s) {
+                Ok(_) => s.to_string(),
+                Err(err) => return JsonRpcResponse::error(id, -32602, err),
+            },
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'session_id' parameter"),
+        };
+
+        let ast_val = match params.get("ast") {
+            Some(v) => v,
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'ast' parameter"),
+        };
+
+        let new_ast: knoten_core_types::ast::Node = match serde_json::from_value(ast_val.clone()) {
+            Ok(ast) => ast,
+            Err(e) => {
+                return JsonRpcResponse::error(id, -32602, format!("Invalid AST structure: {}", e));
+            }
+        };
+
+        let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
+        let session = match sessions.get_mut(&session_id) {
+            Some(s) => s,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    -32602,
+                    format!("Session not found: {}", session_id),
+                );
+            }
+        };
+
+        match session.hot_reload_code(&new_ast) {
+            Ok(report) => {
+                let resp_val = serde_json::json!({
+                    "status": "ok",
+                    "report": report
+                });
+                JsonRpcResponse::success(id, resp_val)
+            }
+            Err(err) => {
+                let code =
+                    if err.contains("ERR_HMR_ACTIVE_EXECUTION") || err.contains("Unauthorized") {
+                        -32001
+                    } else {
+                        -32602
+                    };
+                JsonRpcResponse::error(id, code, err)
+            }
+        }
     }
 
     fn handle_mesh_discover(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {

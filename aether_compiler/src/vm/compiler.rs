@@ -30,6 +30,15 @@ impl Compiler {
         }
     }
 
+    pub fn compile(node: &Node) -> Result<(Vec<OpCode>, Vec<RelType>), String> {
+        let mut compiler = Self::new();
+        if compiler.compile_node(node) {
+            Ok((compiler.instructions, compiler.constants))
+        } else {
+            Err("Compiler Error: Node compilation failed".to_string())
+        }
+    }
+
     /// Recursively flattens an AST math/logic tree into linear opcodes.
     /// Returns false if the node cannot be compiled (e.g. it contains side-effects or variables).
     pub fn compile_node(&mut self, node: &Node) -> bool {

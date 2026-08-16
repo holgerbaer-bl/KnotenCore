@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.23.0] - Sprint 337: Scoped Hot-Module-Replacement (HMR) (2026-08-16)
+Sprint 337 introduces Scoped Hot-Module-Replacement (HMR) for live bytecode reloading without state destruction:
+- **Scoped HMR Core (`VMIsolate::hot_reload_code`)**: Implemented transactional code reloading for running isolates. Pre-compiles new AST before replacing bytecode, returning `HmrReport { reloaded: true, previous_bytecode_len, new_bytecode_len, preserved_variables }`.
+- **Execution Scoping Defense**: Strictly enforces reloading only during paused/yielded/idle states (`VmExecutionState::Yielded`, `Ready`). Active execution (`VmExecutionState::Running`) rejects reload with `ERR_HMR_ACTIVE_EXECUTION` (`-32001`) to prevent stack corruption.
+- **State Preservation**: Environment (`vm.globals`), `heap`, `session_id`, `quota`, and `vfs` remain 100% intact across hot-reload cycles.
+- **28th RPC Endpoint (`knc_isolate_reload`)**: Auth-gated RPC endpoint accepting `session_id` (max 256 bytes) and `ast` (JSON-AST Node). Returns `HmrReport` on success or JSON-RPC error codes (`-32602` / `-32001`).
+- **Integration Test Suite**: Added `tests/isolate_hmr_tests.rs` testing preserved session variables, transactional rollback on invalid AST, unauthenticated rejection, and custom quota preservation across HMR.
+
 ## [v2.22.1] - Sprint 336: Swarm Phase 2 Completion — Raft Heartbeats & Failure Detection (2026-08-16)
 Sprint 336 completes the Raft consensus engine by introducing periodic heartbeats, term synchronization, and automated leader failure detection:
 - **Raft AppendEntries / Heartbeat RPC (27th Endpoint)**: Added `knc_swarm_heartbeat` endpoint with mandatory `check_mesh_auth` gating, `validate_param_string_len` parameter validation, term rejection (`term < current_term`), and follower state synchronization.

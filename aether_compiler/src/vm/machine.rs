@@ -11,6 +11,7 @@ use super::scheduler;
 use super::snapshot;
 use super::vfs::VirtualFs;
 
+pub use isolate::HmrReport;
 pub use isolate::SpeculativeResult;
 pub use isolate::VMIsolate;
 pub use isolate::drain_hot_swap_registry;

@@ -258,6 +258,15 @@ pub fn drain_mesh_routing_table() {
     }
 }
 
+/// Sprint 337: Scoped Hot-Module-Replacement (HMR) Report
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct HmrReport {
+    pub reloaded: bool,
+    pub previous_bytecode_len: usize,
+    pub new_bytecode_len: usize,
+    pub preserved_variables: usize,
+}
+
 pub struct VMIsolate {
     pub instructions: Vec<OpCode>,
     pub constants: Vec<RelType>,
@@ -301,6 +310,34 @@ impl VMIsolate {
     pub fn with_quota(mut self, quota: IsolateQuota) -> Self {
         self.quota = quota;
         self
+    }
+
+    pub fn hot_reload_code(
+        &mut self,
+        new_ast: &knoten_core_types::ast::Node,
+    ) -> Result<HmrReport, String> {
+        let (new_instructions, new_constants) = crate::vm::compiler::Compiler::compile(new_ast)?;
+        let prev_len = self.instructions.len();
+        let new_len = new_instructions.len();
+        let preserved_vars = self.local_heap.len();
+
+        self.instructions = new_instructions;
+        self.constants = new_constants;
+
+        if self.isolate_id >= 0 {
+            hot_swap_isolate_code(
+                self.isolate_id,
+                self.instructions.clone(),
+                self.constants.clone(),
+            );
+        }
+
+        Ok(HmrReport {
+            reloaded: true,
+            previous_bytecode_len: prev_len,
+            new_bytecode_len: new_len,
+            preserved_variables: preserved_vars,
+        })
     }
 
     pub fn run(mut self) -> Result<RelType, String> {

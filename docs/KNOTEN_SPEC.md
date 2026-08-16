@@ -318,6 +318,13 @@ Completes the Raft consensus protocol by introducing periodic heartbeats, follow
 - **Leader Background Heartbeat Loop**: Leaders run a background worker thread (`start_raft_governance_worker`) broadcasting `knc_swarm_heartbeat` to all active peers every 100 ms with strict lock hygiene.
 - **Leader Failover & Automatic Re-Election**: Workers monitor `last_heartbeat_timestamp`. If heartbeats cease for longer than the randomized failover timeout (300–500 ms), the worker declares the leader dead (`leader_node_id = None`) and initiates automatic re-election via `knc_swarm_elect`.
 
+### 7.23. Scoped Hot-Module-Replacement (`v2.23.0`)
+Introduces live bytecode and AST reloading for running `VMIsolate` instances without destroying session state:
+- **Scoped HMR Core (`VMIsolate::hot_reload_code`)**: Pre-compiles the incoming AST before touching existing isolate state. If compilation succeeds, updates `instructions` and `constants`, resets `ip` to 0, and returns `HmrReport { reloaded: true, previous_bytecode_len, new_bytecode_len, preserved_variables }`.
+- **Execution Scoping & Stack Defense**: Reloading is strictly permitted when the VM is paused/yielded/idle (`VmExecutionState::Yielded`, `Ready`). Active execution (`VmExecutionState::Running`) is rejected with `ERR_HMR_ACTIVE_EXECUTION` (`-32001`) to prevent stack corruption.
+- **State Preservation**: Preserves environment variables (`vm.globals`), `heap`, `session_id`, `quota`, and `vfs` intact across reload operations.
+- **28th RPC Endpoint (`knc_isolate_reload`)**: Auth-gated RPC endpoint (`check_mesh_auth`) accepting `session_id` (max 256 bytes) and `ast` (JSON-AST Node). Returns `HmrReport` or error codes (`-32602` / `-32001`).
+
 
 
 
