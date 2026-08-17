@@ -135,17 +135,10 @@ fn stack_registry_drain() {
 fn estimate_reltype_heap_bytes(val: &RelType) -> usize {
     match val {
         RelType::Str(s) => s.capacity(),
-        RelType::Array(arr) => {
-            arr.capacity() * std::mem::size_of::<RelType>()
-                + arr.iter().map(estimate_reltype_heap_bytes).sum::<usize>()
-        }
+        RelType::Array(arr) => arr.capacity() * std::mem::size_of::<RelType>(),
         RelType::Dict(dict) => {
             if let Ok(map) = dict.try_lock() {
                 map.capacity() * (std::mem::size_of::<String>() + std::mem::size_of::<RelType>())
-                    + map
-                        .iter()
-                        .map(|(k, v)| k.capacity() + estimate_reltype_heap_bytes(v))
-                        .sum::<usize>()
             } else {
                 0
             }

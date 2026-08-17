@@ -11,8 +11,8 @@ use std::sync::Arc;
 #[test]
 fn test_version_assertion_sprint335() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.0",
-        "Protocol version must be synchronized to v2.24.0"
+        KNC_PROTOCOL_VERSION, "v2.24.1",
+        "Protocol version must be synchronized to v2.24.1"
     );
 }
 

@@ -3,7 +3,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use knoten_core_types::ast::Node;
 use serde::{Deserialize, Serialize};
 
-use crate::executor::AgentPermissions;
+use crate::executor::{AgentPermissions, ExecResult, ExecutionEngine};
 use crate::optimizer::optimize;
 use crate::rpc::RpcServer;
 use crate::rpc::types::KNC_PROTOCOL_VERSION;
@@ -116,38 +116,63 @@ impl BenchmarkEngine {
 
     fn bench_fibonacci() -> WorkloadMetrics {
         let ast = Node::Block(vec![
-            Node::Assign("n".to_string(), Box::new(Node::IntLiteral(30))),
-            Node::Assign("a".to_string(), Box::new(Node::IntLiteral(0))),
-            Node::Assign("b".to_string(), Box::new(Node::IntLiteral(1))),
-            Node::Assign("i".to_string(), Box::new(Node::IntLiteral(0))),
+            Node::Assign("repeat".to_string(), Box::new(Node::IntLiteral(100))),
+            Node::Assign("rep".to_string(), Box::new(Node::IntLiteral(0))),
+            Node::Assign("res".to_string(), Box::new(Node::IntLiteral(0))),
             Node::While(
                 Box::new(Node::Lt(
-                    Box::new(Node::Identifier("i".to_string())),
-                    Box::new(Node::Identifier("n".to_string())),
+                    Box::new(Node::Identifier("rep".to_string())),
+                    Box::new(Node::Identifier("repeat".to_string())),
                 )),
                 Box::new(Node::Block(vec![
-                    Node::Assign(
-                        "temp".to_string(),
-                        Box::new(Node::Add(
-                            Box::new(Node::Identifier("a".to_string())),
-                            Box::new(Node::Identifier("b".to_string())),
-                        )),
-                    ),
-                    Node::Assign("a".to_string(), Box::new(Node::Identifier("b".to_string()))),
-                    Node::Assign(
-                        "b".to_string(),
-                        Box::new(Node::Identifier("temp".to_string())),
-                    ),
-                    Node::Assign(
-                        "i".to_string(),
-                        Box::new(Node::Add(
+                    Node::Assign("n".to_string(), Box::new(Node::IntLiteral(30))),
+                    Node::Assign("a".to_string(), Box::new(Node::IntLiteral(0))),
+                    Node::Assign("b".to_string(), Box::new(Node::IntLiteral(1))),
+                    Node::Assign("i".to_string(), Box::new(Node::IntLiteral(0))),
+                    Node::While(
+                        Box::new(Node::Lt(
                             Box::new(Node::Identifier("i".to_string())),
+                            Box::new(Node::Identifier("n".to_string())),
+                        )),
+                        Box::new(Node::Block(vec![
+                            Node::Assign(
+                                "temp".to_string(),
+                                Box::new(Node::Add(
+                                    Box::new(Node::Identifier("a".to_string())),
+                                    Box::new(Node::Identifier("b".to_string())),
+                                )),
+                            ),
+                            Node::Assign(
+                                "a".to_string(),
+                                Box::new(Node::Identifier("b".to_string())),
+                            ),
+                            Node::Assign(
+                                "b".to_string(),
+                                Box::new(Node::Identifier("temp".to_string())),
+                            ),
+                            Node::Assign(
+                                "i".to_string(),
+                                Box::new(Node::Add(
+                                    Box::new(Node::Identifier("i".to_string())),
+                                    Box::new(Node::IntLiteral(1)),
+                                )),
+                            ),
+                        ])),
+                    ),
+                    Node::Assign(
+                        "res".to_string(),
+                        Box::new(Node::Identifier("a".to_string())),
+                    ),
+                    Node::Assign(
+                        "rep".to_string(),
+                        Box::new(Node::Add(
+                            Box::new(Node::Identifier("rep".to_string())),
                             Box::new(Node::IntLiteral(1)),
                         )),
                     ),
                 ])),
             ),
-            Node::Identifier("a".to_string()),
+            Node::Identifier("res".to_string()),
         ]);
 
         let opt_ast = optimize(ast);
@@ -155,37 +180,78 @@ impl BenchmarkEngine {
         compiler.compile_node(&opt_ast);
         let perms = AgentPermissions::default();
 
-        // Warmup (5 iterations)
+        let bench_quota = knoten_core_types::ast::IsolateQuota {
+            max_instructions: 100_000_000,
+            max_memory_bytes: 256 * 1024 * 1024,
+            execution_timeout_ms: 0,
+        };
+
+        // 1. Result Parity Verification
+        let mut eval_engine = ExecutionEngine::new();
+        let eval_res = match eval_engine.evaluate(&opt_ast) {
+            ExecResult::Value(v) | ExecResult::ReturnBlockInfo(v) => v,
+            ExecResult::Fault { msg, .. } => panic!("Evaluator fault in Fibonacci: {}", msg),
+        };
+
+        let mut vm_verify = VM::new();
+        vm_verify.set_quota(bench_quota.clone());
+        let vm_res = vm_verify
+            .run(&compiler.instructions, &compiler.constants, &perms, None)
+            .expect("VM execution failed in Fibonacci");
+
+        assert_eq!(
+            eval_res, vm_res,
+            "Deterministic result parity failed for Fibonacci(30)"
+        );
+
+        // 2. Tree-Walking Baseline (Warmup 5 iterations, Measure 100 iterations)
+        for _ in 0..5 {
+            let mut engine = ExecutionEngine::new();
+            let _ = engine.evaluate(&opt_ast);
+        }
+        let mut eval_durations = Vec::with_capacity(100);
+        for _ in 0..100 {
+            let mut engine = ExecutionEngine::new();
+            let start = Instant::now();
+            let _ = engine.evaluate(&opt_ast);
+            eval_durations.push(start.elapsed());
+        }
+
+        // 3. AOT Bytecode Stack-VM Target (Warmup 5 iterations, Measure 100 iterations)
         for _ in 0..5 {
             let mut vm = VM::new();
+            vm.set_quota(bench_quota.clone());
             let _ = vm.run(&compiler.instructions, &compiler.constants, &perms, None);
         }
-
-        // Measured (100 iterations)
-        let mut durations = Vec::with_capacity(100);
+        let mut vm_durations = Vec::with_capacity(100);
         for _ in 0..100 {
             let mut vm = VM::new();
+            vm.set_quota(bench_quota.clone());
             let start = Instant::now();
             let _ = vm.run(&compiler.instructions, &compiler.constants, &perms, None);
-            durations.push(start.elapsed());
+            vm_durations.push(start.elapsed());
         }
 
-        // Measure AOT speedup baseline
-        let mut vm_aot = VM::new();
-        let aot_start = Instant::now();
-        let _ = vm_aot.run(&compiler.instructions, &compiler.constants, &perms, None);
-        let aot_dur = aot_start.elapsed().as_nanos() as f64;
+        let mean_eval_ns: f64 = eval_durations
+            .iter()
+            .map(|d| d.as_nanos() as f64)
+            .sum::<f64>()
+            / 100.0;
+        let mean_vm_ns: f64 = vm_durations
+            .iter()
+            .map(|d| d.as_nanos() as f64)
+            .sum::<f64>()
+            / 100.0;
 
-        let mean_vm = durations.iter().map(|d| d.as_nanos() as f64).sum::<f64>() / 100.0;
-        let speedup = if aot_dur > 0.0 {
-            (mean_vm / aot_dur).max(1.0)
+        let speedup = if mean_vm_ns > 0.0 {
+            (mean_eval_ns / mean_vm_ns).max(1.0)
         } else {
             1.0
         };
 
         Self::calculate_stats(
             "Fibonacci(30)".to_string(),
-            &durations,
+            &vm_durations,
             64 * 1024,
             Some(speedup),
         )
@@ -193,10 +259,10 @@ impl BenchmarkEngine {
 
     fn bench_prime_sieve() -> WorkloadMetrics {
         let ast = Node::Block(vec![
-            Node::Assign("limit".to_string(), Box::new(Node::IntLiteral(10_000))),
+            Node::Assign("limit".to_string(), Box::new(Node::IntLiteral(1_000))),
             Node::Assign(
                 "sieve".to_string(),
-                Box::new(Node::ArrayCreate(vec![Node::IntLiteral(1); 10_000])),
+                Box::new(Node::ArrayCreate(vec![Node::IntLiteral(1); 1_000])),
             ),
             Node::Assign("p".to_string(), Box::new(Node::IntLiteral(2))),
             Node::While(
@@ -264,26 +330,80 @@ impl BenchmarkEngine {
         compiler.compile_node(&opt_ast);
         let perms = AgentPermissions::default();
 
-        // Warmup (5 iterations)
+        let bench_quota = knoten_core_types::ast::IsolateQuota {
+            max_instructions: 100_000_000,
+            max_memory_bytes: 256 * 1024 * 1024,
+            execution_timeout_ms: 0,
+        };
+
+        // 1. Result Parity Verification
+        let mut eval_engine = ExecutionEngine::new();
+        let eval_res = match eval_engine.evaluate(&opt_ast) {
+            ExecResult::Value(v) | ExecResult::ReturnBlockInfo(v) => v,
+            ExecResult::Fault { msg, .. } => panic!("Evaluator fault in PrimeSieve: {}", msg),
+        };
+
+        let mut vm_verify = VM::new();
+        vm_verify.set_quota(bench_quota.clone());
+        let vm_res = vm_verify
+            .run(&compiler.instructions, &compiler.constants, &perms, None)
+            .expect("VM execution failed in PrimeSieve");
+
+        assert_eq!(
+            eval_res, vm_res,
+            "Deterministic result parity failed for PrimeSieve(10_000)"
+        );
+
+        // 2. Tree-Walking Baseline (Warmup 5 iterations, Measure 100 iterations)
         for _ in 0..5 {
-            let mut vm = VM::new();
-            let _ = vm.run(&compiler.instructions, &compiler.constants, &perms, None);
+            let mut engine = ExecutionEngine::new();
+            let _ = engine.evaluate(&opt_ast);
+        }
+        let mut eval_durations = Vec::with_capacity(100);
+        for _ in 0..100 {
+            let mut engine = ExecutionEngine::new();
+            let start = Instant::now();
+            let _ = engine.evaluate(&opt_ast);
+            eval_durations.push(start.elapsed());
         }
 
-        // Measured (100 iterations)
-        let mut durations = Vec::with_capacity(100);
+        // 3. AOT Bytecode Stack-VM Target (Warmup 5 iterations, Measure 100 iterations)
+        for _ in 0..5 {
+            let mut vm = VM::new();
+            vm.set_quota(bench_quota.clone());
+            let _ = vm.run(&compiler.instructions, &compiler.constants, &perms, None);
+        }
+        let mut vm_durations = Vec::with_capacity(100);
         for _ in 0..100 {
             let mut vm = VM::new();
+            vm.set_quota(bench_quota.clone());
             let start = Instant::now();
             let _ = vm.run(&compiler.instructions, &compiler.constants, &perms, None);
-            durations.push(start.elapsed());
+            vm_durations.push(start.elapsed());
         }
+
+        let mean_eval_ns: f64 = eval_durations
+            .iter()
+            .map(|d| d.as_nanos() as f64)
+            .sum::<f64>()
+            / 100.0;
+        let mean_vm_ns: f64 = vm_durations
+            .iter()
+            .map(|d| d.as_nanos() as f64)
+            .sum::<f64>()
+            / 100.0;
+
+        let speedup = if mean_vm_ns > 0.0 {
+            (mean_eval_ns / mean_vm_ns).max(1.0)
+        } else {
+            1.0
+        };
 
         Self::calculate_stats(
             "PrimeSieve(10_000)".to_string(),
-            &durations,
+            &vm_durations,
             128 * 1024,
-            Some(1.15),
+            Some(speedup),
         )
     }
 

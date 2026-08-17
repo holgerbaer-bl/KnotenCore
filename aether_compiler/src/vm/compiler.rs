@@ -550,6 +550,11 @@ impl Compiler {
                 true
             }
             Node::ArraySet(arr_node, idx_node, val_node) => {
+                let name_opt = if let Node::Identifier(ref name) = **arr_node {
+                    Some(name.clone())
+                } else {
+                    None
+                };
                 if !self.compile_node(arr_node) {
                     return false;
                 }
@@ -560,6 +565,14 @@ impl Compiler {
                     return false;
                 }
                 self.instructions.push(OpCode::ArraySet);
+                if let Some(name) = name_opt {
+                    if let Some(local_idx) = self.resolve_local(&name) {
+                        self.instructions.push(OpCode::SetLocal(local_idx));
+                    } else {
+                        let const_idx = self.add_constant(RelType::Str(name));
+                        self.instructions.push(OpCode::SetGlobal(const_idx));
+                    }
+                }
                 true
             }
             Node::ArrayPush(arr_node, val_node) => {

@@ -16,6 +16,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **Benchmark Engine Rectification & Real Tree-Walking Comparison (v2.24.1)**: Methodological rectification comparing the AST Tree-Walking Interpreter (`Evaluator::evaluate`) against the AOT Bytecode Stack-VM (`VM::run`) on identical, uniformly processed AST inputs with deterministic result parity validation.
 - **Formal Benchmark Suite & English Standardization (v2.24.0)**: Formal benchmark suite engine (`BenchmarkEngine`), `knoten bench` CLI harness, comprehensive RPC handler re-exports, 100% English documentation standardization, and dedicated benchmark specification ([`docs/BENCHMARKS.md`](docs/BENCHMARKS.md)).
 - **Architectural Modularization & Codebase Detox (v2.23.1)**: Clean decomposition of the monolithic RPC server into domain submodules (`aether_compiler/src/rpc/`), state consolidation with fine-grained mutex granularity preserved, and historical Sprint comment detoxification.
 - **Scoped Hot-Module-Replacement (v2.23.0)**: Live bytecode hot-swapping for active `VMIsolate` instances (`knc_isolate_reload`) strictly scoped to execution yield points without destroying heap variables or quota state.
@@ -78,7 +79,7 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.0)
+## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.1)
 
 > Tested with a single agent (Antigravity/Claude) against 20 custom scenarios. Not an independent benchmark; no comparison values from other DSLs. PRs with additional/stricter test cases are welcome.
 

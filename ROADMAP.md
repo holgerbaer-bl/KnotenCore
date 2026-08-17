@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.0** · Formal Benchmark Suite & English Standardization
+Current engine version: **v2.24.1** · Benchmark Engine Rectification & Real Tree-Walking Interpreter Comparison
 
 ## Done (selected milestones)
 
+- ✅ Benchmark Engine Rectification & Real Tree-Walking Interpreter Comparison (AST Tree-Walking Interpreter vs. AOT Bytecode Stack-VM on identical AST inputs, deterministic result parity validation, authentic AOT speedup calculation, Sprint 340 - v2.24.1)
 - ✅ Formal Benchmark Suite & English Standardization (formal benchmark engine `BenchmarkEngine`, `knoten bench` CLI harness, comprehensive RPC handler re-exports, 100% English documentation standardization, dedicated benchmark specification `docs/BENCHMARKS.md`, Sprint 339 - v2.24.0)
 - ✅ Architectural Modularization & Codebase Detox (submodule refactoring of monolithic `rpc.rs` into `aether_compiler/src/rpc/`, state consolidation, removal of historical Sprint/Prompt tags, 100% backward-compatible re-exports and API dispatching across all 28 JSON-RPC endpoints, integration test suite `tests/rpc_modularization_tests.rs`, Sprint 338 - v2.23.1)
 - ✅ Scoped Hot-Module-Replacement (`knc_isolate_reload` 28th endpoint, `VMIsolate::hot_reload_code`, transactional pre-compilation validation, execution scoping against stack corruption during active execution `ERR_HMR_ACTIVE_EXECUTION`, environment/heap/quota state preservation, integration test suite `tests/isolate_hmr_tests.rs`, Sprint 337 - v2.23.0)

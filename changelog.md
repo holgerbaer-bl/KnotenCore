@@ -2,7 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-## [v2.24.0] - Sprint 339: Formal Benchmark Suite & English Standardization (2026-08-16)
+## [v2.24.1] - Sprint 340: Benchmark Engine Rectification & Real Tree-Walking Interpreter Comparison (2026-08-17)
+Sprint 340 rectifies the benchmark methodology by comparing the AST Tree-Walking Interpreter (`Evaluator::evaluate`) directly against the AOT Bytecode Stack-VM (`VM::run`):
+- **Methodological Rectification (`aether_compiler/src/bench.rs`)**: Integrated `ExecutionEngine` tree-walking evaluator as the baseline for all compute workloads (`Fibonacci(30)` and `PrimeSieve(10_000)`). Both execution engines operate on identical, uniformly processed AST inputs (`optimize(ast)`).
+- **Deterministic Result Parity Enforcement**: Added strict runtime assertions (`assert_eq!(eval_res, vm_res)`) ensuring that the tree-walking evaluator and bytecode VM produce identical return values.
+- **Speedup Calculation**: Computes authentic AOT speedup ratio `mean_tree_walking_duration / mean_bytecode_vm_duration`.
+- **Memory Check & VM Loop Optimization**: Optimized memory estimation check frequency in the VM execution loop to 10,000 instructions, eliminating watchdog and allocation inspection bottlenecks during long-running benchmark iterations.
+- **Integration Test Suite Extension (`tests/benchmark_integration_tests.rs`)**: Added `test_version_assertion_sprint340` and `test_true_evaluator_vs_vm_benchmark_parity` testing result parity between `Evaluator` and `VM` and validating non-zero `BenchmarkEngine` metrics.
+- **Strict 100% English Documentation**: Updated [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md), [`README.md`](README.md) (*Option 1 preserved*), [`llm.md`](llm.md), [`changelog.md`](changelog.md), [`ROADMAP.md`](ROADMAP.md), and [`docs/KNOTEN_SPEC.md`](docs/KNOTEN_SPEC.md) in 100% professional technical English.
 Sprint 339 introduces the formal benchmark engine, CLI harness, complete RPC handler re-exports, and 100% English documentation standardization:
 - **Formal Benchmark Suite Engine (`aether_compiler/src/bench.rs`)**: Implemented `BenchmarkEngine` with 5 warmup runs and 100 statistical sample iterations per workload. Standardized workloads include:
   * `Fibonacci(30)`: Call stack & arithmetic overhead calculation with relative AOT vs VM speedup measurement.

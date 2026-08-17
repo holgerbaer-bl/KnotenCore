@@ -1,13 +1,14 @@
-# KnotenCore Formal Benchmark Suite Specification & Baseline (`v2.24.0`)
+# KnotenCore Formal Benchmark Suite Specification & Baseline (`v2.24.1`)
 
-This document defines the formal benchmark architecture, methodology, workload definitions, and reference baseline measurements for the **KnotenCore Execution Runtime (`v2.24.0`)**.
+This document defines the formal benchmark architecture, methodology, workload definitions, and reference baseline measurements for the **KnotenCore Execution Runtime (`v2.24.1`)**.
 
 ---
 
 ## 1. Methodology & Statistical Rigor
 
-The **KnotenCore Benchmark Engine** ([`aether_compiler/src/bench.rs`](file:///d:/Tools/Aether%20Core/aether_compiler/src/bench.rs)) enforces rigorous measurement methodology to eliminate cold-start noise, jitter, and transient scheduling artifacts:
+The **KnotenCore Benchmark Engine** ([`aether_compiler/src/bench.rs`](file:///d:/Tools/Aether%20Core/aether_compiler/src/bench.rs)) enforces controlled performance comparison between the **AST Tree-Walking Interpreter** ([`aether_compiler/src/evaluator.rs`](file:///d:/Tools/Aether%20Core/aether_compiler/src/evaluator.rs)) and the **AOT Bytecode Stack-VM** ([`aether_compiler/src/vm/machine.rs`](file:///d:/Tools/Aether%20Core/aether_compiler/src/vm/machine.rs)):
 
+- **Methodological Guardrail (Isolation of Variables)**: Both execution engines operate on the exact same input AST baseline (`optimize(ast)`). AST constant folding and peephole passes are applied to the AST prior to evaluating both engines, preventing compiler optimization passes from confounding bytecode execution metrics.
 - **Warmup Iterations**: 5 unmeasured warmup runs are executed prior to data collection for every workload to prime CPU instruction caches, memory allocators, and internal VM metadata.
 - **Sample Window**: Minimum of 100 measured iterations per workload.
 - **Metrics Collected**:
@@ -16,7 +17,8 @@ The **KnotenCore Benchmark Engine** ([`aether_compiler/src/bench.rs`](file:///d:
   - **Tail Latency (`p99_ns`)**: 99th percentile execution latency.
   - **Throughput (`ops_per_sec`)**: Calculated as `1,000,000,000.0 / mean_ns`.
   - **Memory Footprint (`memory_bytes`)**: Memory consumption allocated by VM isolate frames or RPC buffers.
-  - **Relative AOT Speedup (`aot_speedup`)**: Ratio of VM baseline runtime to AOT compilation runtime (`VM_ns / AOT_ns`).
+  - **Relative Speedup (`aot_speedup`)**: Computed as `mean_tree_walking_duration / mean_bytecode_vm_duration` across identical AST inputs.
+- **Result Parity Assertion**: Strict runtime equality checks (`assert_eq!(eval_res, vm_res)`) ensure both engines produce 100% identical outputs across compute workloads.
 
 ---
 
@@ -33,7 +35,7 @@ The **KnotenCore Benchmark Engine** ([`aether_compiler/src/bench.rs`](file:///d:
 - **Objective**: Evaluates array access bounds checking, heap allocation, and inner loop execution overhead.
 
 ### 2.3 `IsolateSpawnThroughput`
-- **Category**: Micro-VM Lifecycle & Multitenancy Lateny.
+- **Category**: Micro-VM Lifecycle & Multitenancy Latency.
 - **Description**: Rapid instantiation, hot-code loading (`VMIsolate::hot_reload_code`), and disposal of isolated VM isolates (`VMIsolate`).
 - **Objective**: Measures multitenant worker creation throughput and heap initialization latency.
 
@@ -55,14 +57,14 @@ All baseline benchmarks were captured under controlled conditions:
 
 ---
 
-## 4. Measured Reference Baselines (`v2.24.0`)
+## 4. Measured Reference Baselines (`v2.24.1`)
 
 | Workload | Mean (ms) | p50 (ms) | p99 (ms) | Throughput | Memory Footprint | Relative Speedup |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`Fibonacci(30)`** | `0.025 ms` | `0.024 ms` | `0.045 ms` | `40.0 k ops/s` | `64.0 KB` | `1.45x` |
-| **`PrimeSieve(10_000)`** | `0.850 ms` | `0.820 ms` | `1.200 ms` | `1.18 k ops/s` | `128.0 KB` | `1.15x` |
-| **`IsolateSpawnThroughput`** | `0.005 ms` | `0.005 ms` | `0.012 ms` | `200.0 k ops/s` | `32.0 KB` | `N/A` |
-| **`RpcJsonThroughput`** | `0.018 ms` | `0.017 ms` | `0.035 ms` | `55.5 k ops/s` | `16.0 KB` | `N/A` |
+| **`Fibonacci(30)`** | `3.85 ms` | `3.84 ms` | `4.04 ms` | `260 ops/s` | `64.0 KB` | `1.00x` |
+| **`PrimeSieve(10_000)`** | `10.69 ms` | `10.67 ms` | `11.33 ms` | `93.5 ops/s` | `128.0 KB` | `1.00x` |
+| **`IsolateSpawnThroughput`** | `0.0003 ms` | `0.0003 ms` | `0.0010 ms` | `2.96 M ops/s` | `32.0 KB` | `N/A` |
+| **`RpcJsonThroughput`** | `0.006 ms` | `0.006 ms` | `0.026 ms` | `163.5 k ops/s` | `16.0 KB` | `N/A` |
 
 ---
 
