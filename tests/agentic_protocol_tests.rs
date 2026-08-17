@@ -37,7 +37,7 @@ fn test_agentic_handshake() {
     assert_eq!(resp["jsonrpc"], "2.0");
     assert_eq!(resp["id"], 1);
     assert_eq!(resp["result"]["status"], "ok");
-    assert_eq!(resp["result"]["protocol_version"], "v2.24.1");
+    assert_eq!(resp["result"]["protocol_version"], "v2.24.2");
     assert_eq!(resp["result"]["engine"], "KnotenCore");
     assert_eq!(resp["result"]["capabilities"]["state_snapshots"], true);
     assert_eq!(resp["result"]["capabilities"]["async_yield"], true);

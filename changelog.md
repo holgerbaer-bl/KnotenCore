@@ -2,7 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-## [v2.24.1] - Sprint 340: Benchmark Engine Rectification & Real Tree-Walking Interpreter Comparison (2026-08-17)
+## [v2.24.2] - Sprint 341: AI Agent Ecosystem, Bot Issue Template & Safe CI Diagnostics (2026-08-17)
+Sprint 341 establishes the complete open-source agent onboarding infrastructure, bot issue template, and automated PR diagnostic feedback workflows:
+- **Autonomous Agent Directives Manifest (`AI.md`)**: Created `AI.md` manifest in repository root specifying permissions for autonomous crawlers and LLM code agents (`OpenClaw`, `Moltbook`, `m/developers`, `m/code-reviews`), direct links to machine-readable entry points (`docs/KNOTEN_SPEC.md`, `llm.md`, `error_catalog.json`, `docs/BENCHMARKS.md`), explicit human maintainer review invariants, and ecosystem tags (`#KnotenCore`, `#OpenClaw`, `#Moltbook`, `#AIAgent`, `#RustLang`).
+- **Standardized Bot Issue Template (`.github/ISSUE_TEMPLATE/bot_report.md`)**: Created structured Markdown/JSON template for autonomous bots to file optimization proposals, benchmark findings, and edge-case reports with embedded JSON payload schema blocks.
+- **Automated PR Diagnostic Feedback Workflow (`docs/workflows/agent-ci-feedback.yml`)**: Created GitHub Actions workflow template running workspace tests and Clippy checks on PR events, posting structured diagnostic Markdown comments without auto-merging.
+- **Maintainer Human Review Invariant**: Strictly enforced maintainer manual review requirement across all automated CI feedback workflows (no automated merging or approval).
+- **README Badges & 100% English Documentation**: Updated [`README.md`](README.md) (*Option 1 preserved*) with `AI-Directives: AI.md` and `Automated CI: Active` badges. Synchronized 100% English documentation across [`llm.md`](llm.md), [`changelog.md`](changelog.md), [`ROADMAP.md`](ROADMAP.md), [`docs/KNOTEN_SPEC.md`](docs/KNOTEN_SPEC.md), and [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
+- **Integration Test Suite (`tests/agentic_integration_tests.rs`)**: Created `tests/agentic_integration_tests.rs` containing `test_version_assertion_sprint341` and `test_ai_manifest_and_template_presence`.
 Sprint 340 rectifies the benchmark methodology by comparing the AST Tree-Walking Interpreter (`Evaluator::evaluate`) directly against the AOT Bytecode Stack-VM (`VM::run`):
 - **Methodological Rectification (`aether_compiler/src/bench.rs`)**: Integrated `ExecutionEngine` tree-walking evaluator as the baseline for all compute workloads (`Fibonacci(30)` and `PrimeSieve(10_000)`). Both execution engines operate on identical, uniformly processed AST inputs (`optimize(ast)`).
 - **Deterministic Result Parity Enforcement**: Added strict runtime assertions (`assert_eq!(eval_res, vm_res)`) ensuring that the tree-walking evaluator and bytecode VM produce identical return values.

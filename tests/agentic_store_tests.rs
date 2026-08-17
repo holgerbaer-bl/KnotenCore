@@ -277,7 +277,7 @@ fn test_handshake_advertises_crdt_store_capabilities() {
     assert!(caps["peer_state_sync"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.24.1"
+        "v2.24.2"
     );
 }
 

@@ -1,0 +1,103 @@
+name: AI Agent PR Diagnostic Feedback
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  diagnose-pr:
+    name: Agent PR Diagnostic Feedback
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies (ALSA)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry & build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-agent-ci-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-agent-ci-
+
+      - name: Run Workspace Tests
+        id: tests
+        continue-on-error: true
+        run: |
+          cargo test --workspace --no-default-features > test_output.log 2>&1
+          echo "TEST_EXIT_CODE=$?" >> $GITHUB_ENV
+
+      - name: Run Clippy Diagnostics
+        id: clippy
+        continue-on-error: true
+        run: |
+          cargo clippy --workspace --no-default-features --all-targets -- -D warnings > clippy_output.log 2>&1
+          echo "CLIPPY_EXIT_CODE=$?" >> $GITHUB_ENV
+
+      - name: Format PR Diagnostic Comment
+        id: comment_body
+        run: |
+          echo "### 🤖 KnotenCore Autonomous Agent PR Diagnostic Feedback" > comment.md
+          echo "" >> comment.md
+          echo "**Target Engine Version**: \`v2.24.2\`" >> comment.md
+          echo "" >> comment.md
+          if [ "$TEST_EXIT_CODE" -eq 0 ]; then
+            echo "- ✅ **Workspace Tests**: PASSED" >> comment.md
+          else
+            echo "- ❌ **Workspace Tests**: FAILED" >> comment.md
+          fi
+
+          if [ "$CLIPPY_EXIT_CODE" -eq 0 ]; then
+            echo "- ✅ **Clippy Diagnostics**: CLEAN" >> comment.md
+          else
+            echo "- ❌ **Clippy Diagnostics**: WARNINGS/ERRORS DETECTED" >> comment.md
+          fi
+          echo "" >> comment.md
+          echo "<details><summary><b>Click to expand Test Output Summary</b></summary>" >> comment.md
+          echo "" >> comment.md
+          echo "\`\`\`text" >> comment.md
+          tail -n 40 test_output.log >> comment.md
+          echo "\`\`\`" >> comment.md
+          echo "</details>" >> comment.md
+          echo "" >> comment.md
+          echo "<details><summary><b>Click to expand Clippy Output Summary</b></summary>" >> comment.md
+          echo "" >> comment.md
+          echo "\`\`\`text" >> comment.md
+          tail -n 40 clippy_output.log >> comment.md
+          echo "\`\`\`" >> comment.md
+          echo "</details>" >> comment.md
+          echo "" >> comment.md
+          echo "> ⚠️ **Maintainer Notice**: All PRs require manual review and maintainer approval before merging." >> comment.md
+
+      - name: Post PR Comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('comment.md', 'utf8');
+            const { issue, repository } = context;
+            await github.rest.issues.createComment({
+              owner: repository.owner.login,
+              repo: repository.repo.name,
+              issue_number: context.payload.pull_request.number,
+              body: body
+            });
