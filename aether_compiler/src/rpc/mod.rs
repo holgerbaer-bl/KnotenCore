@@ -279,6 +279,7 @@ impl RpcServer {
             "knc_mesh_rotate_key" => self.handle_mesh_rotate_key(req.id, req.params),
             "knc_mesh_revoke_peer" => self.handle_mesh_revoke_peer(req.id, req.params),
             "knc_isolate_reload" => self.handle_isolate_reload(req.id, req.params),
+            "knc_eval_isolate" => self.handle_eval_isolate(req.id, req.params),
             "knc_meaning_of_life" | "sys.meaning_of_life" => {
                 self.handle_meaning_of_life(req.id, req.params)
             }

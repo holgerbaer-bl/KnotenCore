@@ -80,6 +80,92 @@ pub enum VmEvent {
 
 pub type VmEventHook = std::sync::Arc<dyn Fn(VmEvent) + Send + Sync>;
 
+/// Sprint 343: Granular Isolate Sandboxing & Quota Error Types
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum VMError {
+    GasExhausted {
+        executed_instructions: u64,
+        limit: u64,
+    },
+    MemoryQuotaExceeded {
+        current_bytes: usize,
+        limit_bytes: usize,
+    },
+    WatchdogTimeout {
+        elapsed_us: u64,
+        timeout_us: u64,
+    },
+    RuntimeFault(String),
+}
+
+impl std::fmt::Display for VMError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VMError::GasExhausted {
+                executed_instructions,
+                limit,
+            } => write!(
+                f,
+                "ERR_QUOTA_EXCEEDED: GasExhausted {{ executed_instructions: {}, limit: {} }}",
+                executed_instructions, limit
+            ),
+            VMError::MemoryQuotaExceeded {
+                current_bytes,
+                limit_bytes,
+            } => write!(
+                f,
+                "ERR_MEMORY_LIMIT_EXCEEDED: MemoryQuotaExceeded {{ current_bytes: {}, limit_bytes: {} }}",
+                current_bytes, limit_bytes
+            ),
+            VMError::WatchdogTimeout {
+                elapsed_us,
+                timeout_us,
+            } => write!(
+                f,
+                "WATCHDOG_TIMEOUT: WatchdogTimeout {{ elapsed_us: {}, timeout_us: {} }}",
+                elapsed_us, timeout_us
+            ),
+            VMError::RuntimeFault(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl std::error::Error for VMError {}
+
+/// Sprint 343: Isolate Gas Metering & Budget Engine
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct GasMeter {
+    pub consumed_gas: u64,
+    pub limit: u64,
+}
+
+impl Default for GasMeter {
+    fn default() -> Self {
+        Self::new(1_000_000)
+    }
+}
+
+impl GasMeter {
+    pub fn new(limit: u64) -> Self {
+        Self {
+            consumed_gas: 0,
+            limit,
+        }
+    }
+
+    pub fn consume(&mut self, amount: u64) -> Result<(), VMError> {
+        self.consumed_gas = self.consumed_gas.saturating_add(amount);
+        if self.limit > 0 && self.consumed_gas >= self.limit {
+            Err(VMError::GasExhausted {
+                executed_instructions: self.consumed_gas,
+                limit: self.limit,
+            })
+        } else {
+            Ok(())
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct VM {
     pub stack: Vec<RelType>,
@@ -98,6 +184,8 @@ pub struct VM {
     pub execution_state: VmExecutionState,
     /// Sprint 311: Configurable Multi-Tenant Resource Quotas
     pub quota: knoten_core_types::ast::IsolateQuota,
+    /// Sprint 343: Gas Metering & Execution Budget
+    pub gas_meter: GasMeter,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -173,11 +261,64 @@ impl VM {
             event_hook: None,
             execution_state: VmExecutionState::Ready,
             quota: knoten_core_types::ast::IsolateQuota::default(),
+            gas_meter: GasMeter::default(),
         }
     }
 
     pub fn set_quota(&mut self, quota: knoten_core_types::ast::IsolateQuota) {
         self.quota = quota;
+    }
+
+    pub fn run_with_quota(
+        &mut self,
+        node: &knoten_core_types::ast::Node,
+        max_instructions: u64,
+        max_memory_bytes: usize,
+    ) -> Result<RelType, VMError> {
+        self.stack.clear();
+        self.frames.clear();
+        self.ip = 0;
+        self.base_pointer = 0;
+        self.execution_state = VmExecutionState::Running;
+
+        let opt_ast = crate::optimizer::optimize(node.clone());
+        let mut compiler = crate::vm::compiler::Compiler::new();
+        if !compiler.compile_node(&opt_ast) {
+            return Err(VMError::RuntimeFault("Compilation failed".to_string()));
+        }
+
+        self.quota.max_instructions = max_instructions;
+        self.quota.max_memory_bytes = max_memory_bytes;
+        self.gas_meter = GasMeter::new(max_instructions);
+
+        let perms = AgentPermissions::default();
+        match self.run(&compiler.instructions, &compiler.constants, &perms, None) {
+            Ok(res) => Ok(res),
+            Err(err_msg) => {
+                if err_msg.contains("GasExhausted") || err_msg.contains("ERR_QUOTA_EXCEEDED") {
+                    Err(VMError::GasExhausted {
+                        executed_instructions: self.gas_meter.consumed_gas,
+                        limit: max_instructions,
+                    })
+                } else if err_msg.contains("MemoryQuotaExceeded")
+                    || err_msg.contains("ERR_MEMORY_LIMIT_EXCEEDED")
+                {
+                    Err(VMError::MemoryQuotaExceeded {
+                        current_bytes: self.estimate_memory_bytes(),
+                        limit_bytes: max_memory_bytes,
+                    })
+                } else if err_msg.contains("WatchdogTimeout")
+                    || err_msg.contains("WATCHDOG_TIMEOUT")
+                {
+                    Err(VMError::WatchdogTimeout {
+                        elapsed_us: self.quota.execution_timeout_ms * 1000,
+                        timeout_us: self.quota.execution_timeout_ms * 1000,
+                    })
+                } else {
+                    Err(VMError::RuntimeFault(err_msg))
+                }
+            }
+        }
     }
 
     pub fn set_event_hook(&mut self, hook: VmEventHook) {
@@ -292,28 +433,32 @@ impl VM {
                 .wrapping_add(inspector::opcode_discriminant_hash(op));
 
             instr_count += 1;
+            self.gas_meter.consume(1).ok();
             if instr_count >= self.quota.max_instructions {
                 inspector::push_vm_crash_marker(self.ip, self.stack.len(), "ERR_QUOTA_EXCEEDED");
-                let msg = format!(
-                    "ERR_QUOTA_EXCEEDED: Execution exceeded maximum allowed instruction count ({})",
-                    self.quota.max_instructions
-                );
+                let err = VMError::GasExhausted {
+                    executed_instructions: instr_count,
+                    limit: self.quota.max_instructions,
+                };
+                let msg = err.to_string();
                 self.execution_state = VmExecutionState::Fault(msg.clone());
                 return Err(msg);
             }
 
             if instr_count == 1 || instr_count.is_multiple_of(100) {
                 inspector::track_hot_path(self.ip);
-                if self.estimate_memory_bytes() > self.quota.max_memory_bytes {
+                let current_bytes = self.estimate_memory_bytes();
+                if self.quota.max_memory_bytes > 0 && current_bytes > self.quota.max_memory_bytes {
                     inspector::push_vm_crash_marker(
                         self.ip,
                         self.stack.len(),
                         "ERR_MEMORY_LIMIT_EXCEEDED",
                     );
-                    let msg = format!(
-                        "ERR_MEMORY_LIMIT_EXCEEDED: VM memory allocation threshold ({} bytes) exceeded",
-                        self.quota.max_memory_bytes
-                    );
+                    let err = VMError::MemoryQuotaExceeded {
+                        current_bytes,
+                        limit_bytes: self.quota.max_memory_bytes,
+                    };
+                    let msg = err.to_string();
                     self.execution_state = VmExecutionState::Fault(msg.clone());
                     return Err(msg);
                 }
@@ -324,19 +469,21 @@ impl VM {
                     inspector::VM_SLEEP_ACCUMULATED_MS.load(std::sync::atomic::Ordering::SeqCst);
                 let effective_cpu =
                     accumulated_cpu.saturating_sub(std::time::Duration::from_millis(sleep_ms));
-                if self.quota.execution_timeout_ms > 0
-                    && effective_cpu + start.elapsed()
-                        >= std::time::Duration::from_millis(self.quota.execution_timeout_ms)
-                {
+                let elapsed_dur = effective_cpu + start.elapsed();
+                let elapsed_us = elapsed_dur.as_micros() as u64;
+                let timeout_us = self.quota.execution_timeout_ms * 1000;
+
+                if self.quota.execution_timeout_ms > 0 && elapsed_us >= timeout_us {
                     eprintln!(
                         "[KnotenCore Watchdog] Execution timeout exceeded ({}ms). Terminating script to prevent CPU freeze.",
                         self.quota.execution_timeout_ms
                     );
                     inspector::push_vm_crash_marker(self.ip, self.stack.len(), "WATCHDOG_TIMEOUT");
-                    let msg = format!(
-                        "Watchdog: Execution timeout exceeded ({}ms)",
-                        self.quota.execution_timeout_ms
-                    );
+                    let err = VMError::WatchdogTimeout {
+                        elapsed_us,
+                        timeout_us,
+                    };
+                    let msg = err.to_string();
                     self.execution_state = VmExecutionState::Fault(msg.clone());
                     return Err(msg);
                 }
@@ -792,6 +939,18 @@ impl VM {
                     }
                     elements.reverse();
                     self.stack.push(RelType::Array(elements));
+                    let current_bytes = self.estimate_memory_bytes();
+                    if self.quota.max_memory_bytes > 0
+                        && current_bytes > self.quota.max_memory_bytes
+                    {
+                        let err = VMError::MemoryQuotaExceeded {
+                            current_bytes,
+                            limit_bytes: self.quota.max_memory_bytes,
+                        };
+                        let msg = err.to_string();
+                        self.execution_state = VmExecutionState::Fault(msg.clone());
+                        return Err(msg);
+                    }
                 }
                 OpCode::ArrayGet => {
                     let idx_val = self.stack.pop().unwrap_or(RelType::Void);
@@ -827,6 +986,18 @@ impl VM {
                     if let RelType::Array(mut arr) = arr_val {
                         arr.push(val);
                         self.stack.push(RelType::Array(arr));
+                        let current_bytes = self.estimate_memory_bytes();
+                        if self.quota.max_memory_bytes > 0
+                            && current_bytes > self.quota.max_memory_bytes
+                        {
+                            let err = VMError::MemoryQuotaExceeded {
+                                current_bytes,
+                                limit_bytes: self.quota.max_memory_bytes,
+                            };
+                            let msg = err.to_string();
+                            self.execution_state = VmExecutionState::Fault(msg.clone());
+                            return Err(msg);
+                        }
                     } else {
                         return Err("ArrayPush expects Array".into());
                     }

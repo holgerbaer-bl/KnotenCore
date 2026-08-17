@@ -411,4 +411,54 @@ impl super::super::RpcServer {
         let result = crate::executor::build_meaning_of_life_json(input);
         JsonRpcResponse::success(id, result)
     }
+
+    pub fn handle_eval_isolate(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        let ast_val = match params.get("ast") {
+            Some(v) => v,
+            None => return JsonRpcResponse::error(id, -32602, "Missing 'ast' parameter"),
+        };
+
+        let ast: Node = match serde_json::from_value(ast_val.clone()) {
+            Ok(ast) => ast,
+            Err(e) => {
+                return JsonRpcResponse::error(id, -32602, format!("Invalid AST structure: {}", e));
+            }
+        };
+
+        let max_instructions = params
+            .get("max_instructions")
+            .and_then(|v| v.as_u64())
+            .unwrap_or_else(|| {
+                params
+                    .get("quota")
+                    .and_then(|q| q.get("max_instructions"))
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1_000_000)
+            });
+
+        let max_memory_bytes = params
+            .get("max_memory_bytes")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as usize)
+            .unwrap_or_else(|| {
+                params
+                    .get("quota")
+                    .and_then(|q| q.get("max_memory_bytes"))
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize)
+                    .unwrap_or(16 * 1024 * 1024)
+            });
+
+        let mut vm = crate::vm::machine::VM::new();
+        match vm.run_with_quota(&ast, max_instructions, max_memory_bytes) {
+            Ok(res) => {
+                let json_res = crate::natives::fs::reltype_to_json_value(&res);
+                JsonRpcResponse::success(
+                    id,
+                    serde_json::json!({ "status": "ok", "result": json_res }),
+                )
+            }
+            Err(err) => JsonRpcResponse::error(id, -32000, format!("Quota Exceeded: {}", err)),
+        }
+    }
 }

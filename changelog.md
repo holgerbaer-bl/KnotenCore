@@ -2,7 +2,13 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-## [v2.24.3] - Sprint 342: Deep Thought 42 Intrinsic & Deterministic Protocol Extension (2026-08-17)
+## [v2.24.4] - Sprint 343: Isolate Gas Metering, Execution Watchdog & Resource Quotas (2026-08-17)
+Sprint 343 implements granular deterministic sandboxing for AI agent isolates, featuring instruction gas metering, microsecond wall-clock watchdog timeouts, and strict isolate heap quotas:
+- **VM Gas Metering Engine (`GasMeter`)**: Configurable opcode execution budget tracking per execution cycle with `VM::run_with_quota(ast, max_instructions, max_memory_bytes)` returning `Err(VMError::GasExhausted { executed_instructions, limit })`. Zero-panic stack unwinding guarantee.
+- **Microsecond Wall-Clock Watchdog & Heap Guard**: Real-time microsecond deadline monitoring preventing multitasking lockups or infinite loops (`VMError::WatchdogTimeout`), and hard memory boundary checks (`VMError::MemoryQuotaExceeded`).
+- **RPC Quota Isolate Evaluation (`knc_eval_isolate`)**: Added RPC handler `handle_eval_isolate` enforcing custom isolate quotas over JSON-RPC.
+- **100% English Documentation & Version Synchronization (`v2.24.4`)**: Synchronized version `v2.24.4` across workspace `Cargo.toml` files, [`README.md`](README.md) (*Option 1 preserved*), [`llm.md`](llm.md), [`changelog.md`](changelog.md), [`ROADMAP.md`](ROADMAP.md), [`docs/KNOTEN_SPEC.md`](docs/KNOTEN_SPEC.md), and [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md). Documented Isolate Gas & Sandboxing Specification in `docs/KNOTEN_SPEC.md`.
+- **Integration Test Suite (`tests/isolate_quota_integration_tests.rs`)**: Added integration test suite containing `test_version_assertion_sprint343`, `test_gas_exhaustion_deterministic_abort`, `test_memory_quota_enforcement`, and `test_rpc_isolate_quota_enforcement`.
 Sprint 342 introduces the built-in "Deep Thought" intrinsic and RPC endpoint returning deterministic Hitchhiker metadata when evaluated or queried:
 - **Deep Thought 42 Intrinsic (`knc_meaning_of_life` / `sys.meaning_of_life`)**: Implemented intrinsic handling in both Tree-Walking Interpreter (`evaluator.rs` / `executor.rs`) and Bytecode VM (`compiler.rs` / `machine.rs`).
 - **Deterministic Hitchhiker Payload**:

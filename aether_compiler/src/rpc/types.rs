@@ -10,7 +10,7 @@ use crate::vm::compiler::Compiler;
 pub use crate::vm::machine::HmrReport;
 use crate::vm::machine::{VM, VmEvent, VmExecutionState};
 
-pub const KNC_PROTOCOL_VERSION: &str = "v2.24.3";
+pub const KNC_PROTOCOL_VERSION: &str = "v2.24.4";
 pub const MAX_CLOCK_DRIFT_SECS: u64 = 300;
 pub const MAX_REPLAY_WINDOW_SECS: u64 = 60;
 pub const MAX_ZERO_TRUST_WINDOW_SECS: u64 = 30;
