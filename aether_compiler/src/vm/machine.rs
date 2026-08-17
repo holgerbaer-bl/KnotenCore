@@ -899,6 +899,21 @@ impl VM {
                     }
                     args.reverse();
 
+                    if func == "knc_meaning_of_life" || func == "meaning_of_life" {
+                        let input = if !args.is_empty() {
+                            match &args[0] {
+                                RelType::Int(i) => *i,
+                                RelType::Float(f) => *f as i64,
+                                _ => 42,
+                            }
+                        } else {
+                            42
+                        };
+                        self.stack
+                            .push(crate::executor::build_meaning_of_life_reltype(input));
+                        continue;
+                    }
+
                     if module == "registry" {
                         if func == "registry_play_sound" {
                             if args.len() == 1
@@ -1607,6 +1622,24 @@ impl VM {
                         args.push(self.stack.pop().unwrap_or(RelType::Void));
                     }
                     args.reverse(); // Standard reverse popping mapping
+
+                    if name == "knc_meaning_of_life"
+                        || name == "meaning_of_life"
+                        || name == "sys.meaning_of_life"
+                    {
+                        let input = if !args.is_empty() {
+                            match &args[0] {
+                                RelType::Int(i) => *i,
+                                RelType::Float(f) => *f as i64,
+                                _ => 42,
+                            }
+                        } else {
+                            42
+                        };
+                        self.stack
+                            .push(crate::executor::build_meaning_of_life_reltype(input));
+                        continue;
+                    }
 
                     // Dynamic module routing from script prefix conventions
                     let (module, func) = if name.starts_with("registry_") {
@@ -3228,6 +3261,7 @@ mod tests {
 
     #[test]
     fn test_vm_isolate_hot_swap_reloading() {
+        isolate::drain_hot_swap_registry();
         let add_instr = vec![
             OpCode::Constant(0),
             OpCode::Constant(1),

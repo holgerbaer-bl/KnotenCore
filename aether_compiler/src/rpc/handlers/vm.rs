@@ -393,4 +393,22 @@ impl super::super::RpcServer {
             }
         }
     }
+
+    pub fn handle_meaning_of_life(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        let input = params
+            .get("input")
+            .and_then(|v| v.as_i64())
+            .or_else(|| params.get("answer").and_then(|v| v.as_i64()))
+            .or_else(|| {
+                params
+                    .as_array()
+                    .and_then(|a| a.first())
+                    .and_then(|v| v.as_i64())
+            })
+            .or_else(|| params.as_i64())
+            .unwrap_or(42);
+
+        let result = crate::executor::build_meaning_of_life_json(input);
+        JsonRpcResponse::success(id, result)
+    }
 }

@@ -279,6 +279,9 @@ impl RpcServer {
             "knc_mesh_rotate_key" => self.handle_mesh_rotate_key(req.id, req.params),
             "knc_mesh_revoke_peer" => self.handle_mesh_revoke_peer(req.id, req.params),
             "knc_isolate_reload" => self.handle_isolate_reload(req.id, req.params),
+            "knc_meaning_of_life" | "sys.meaning_of_life" => {
+                self.handle_meaning_of_life(req.id, req.params)
+            }
             _ => {
                 JsonRpcResponse::error(req.id, -32601, format!("Method not found: {}", req.method))
             }

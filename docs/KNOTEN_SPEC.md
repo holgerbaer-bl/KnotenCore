@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.24.2)
+# KnotenCore JSON AST Specification (v2.24.3)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 

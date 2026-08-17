@@ -1,6 +1,6 @@
 [package]
 name = "knoten_core"
-version = "2.24.2"
+version = "2.24.3"
 edition = "2024"
 
 [lib]

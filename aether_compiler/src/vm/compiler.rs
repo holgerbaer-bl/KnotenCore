@@ -269,6 +269,21 @@ impl Compiler {
             }
             Node::NativeCall(name, args) | Node::Call(name, args) => {
                 match name.as_str() {
+                    "knc_meaning_of_life" | "sys.meaning_of_life" | "meaning_of_life" => {
+                        for arg in args {
+                            if !self.compile_node(arg) {
+                                return false;
+                            }
+                        }
+                        let mod_idx = self.add_constant(RelType::Str("sys".to_string()));
+                        let fn_idx = self.add_constant(RelType::Str("meaning_of_life".to_string()));
+                        self.instructions.push(OpCode::NativeExternCall {
+                            module_idx: mod_idx,
+                            func_idx: fn_idx,
+                            arg_count: args.len(),
+                        });
+                        true
+                    }
                     "str_len" => {
                         if args.len() != 1 {
                             return false;

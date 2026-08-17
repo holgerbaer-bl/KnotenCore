@@ -1,11 +1,11 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.24.2-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.24.3-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![AI Directives](https://img.shields.io/badge/AI--Directives-AI.md-purple)](AI.md)
 [![Automated CI](https://img.shields.io/badge/Automated_CI-Active-brightgreen)](docs/workflows/agent-ci-feedback.yml)
 [![Tests](https://img.shields.io/badge/tests-318%2F318-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.24.2-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Release](https://img.shields.io/badge/release-v2.24.3-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -18,7 +18,8 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
-- **AI Agent Ecosystem & Safe PR Feedback Workflow (v2.24.2)**: Autonomous AI agent onboarding manifest ([`AI.md`](AI.md)), standardized bot report issue template ([`.github/ISSUE_TEMPLATE/bot_report.md`](.github/ISSUE_TEMPLATE/bot_report.md)), automated PR diagnostic feedback workflow ([`.github/workflows/agent-ci-feedback.yml`](.github/workflows/agent-ci-feedback.yml)), and README badges.
+- **Deep Thought 42 Intrinsic & Deterministic Protocol Extension (v2.24.3)**: Built-in `knc_meaning_of_life` intrinsic & RPC endpoint returning deterministic Hitchhiker payload metadata (`answer`: 42, `status`: "Don't Panic", `ultimate_question`: "...") across both Evaluator and VM engines with full parity.
+- **AI Agent Ecosystem & Safe PR Feedback Workflow (v2.24.2)**: Autonomous AI agent onboarding manifest ([`AI.md`](AI.md)), standardized bot report issue template ([`.github/ISSUE_TEMPLATE/bot_report.md`](.github/ISSUE_TEMPLATE/bot_report.md)), automated PR diagnostic feedback workflow ([`docs/workflows/agent-ci-feedback.yml`](docs/workflows/agent-ci-feedback.yml)), and README badges.
 - **Benchmark Engine Rectification & Real Tree-Walking Comparison (v2.24.1)**: Methodological rectification comparing the AST Tree-Walking Interpreter (`Evaluator::evaluate`) against the AOT Bytecode Stack-VM (`VM::run`) on identical, uniformly processed AST inputs with deterministic result parity validation.
 - **Formal Benchmark Suite & English Standardization (v2.24.0)**: Formal benchmark suite engine (`BenchmarkEngine`), `knoten bench` CLI harness, comprehensive RPC handler re-exports, 100% English documentation standardization, and dedicated benchmark specification ([`docs/BENCHMARKS.md`](docs/BENCHMARKS.md)).
 - **Architectural Modularization & Codebase Detox (v2.23.1)**: Clean decomposition of the monolithic RPC server into domain submodules (`aether_compiler/src/rpc/`), state consolidation with fine-grained mutex granularity preserved, and historical Sprint comment detoxification.
@@ -82,7 +83,7 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.2)
+## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.3)
 
 > Tested with a single agent (Antigravity/Claude) against 20 custom scenarios. Not an independent benchmark; no comparison values from other DSLs. PRs with additional/stricter test cases are welcome.
 

@@ -55,6 +55,42 @@ impl PartialEq for RelType {
     }
 }
 
+pub fn build_meaning_of_life_reltype(input: i64) -> RelType {
+    let mut map = std::collections::HashMap::new();
+    map.insert("answer".to_string(), RelType::Int(input));
+    if input == 42 {
+        map.insert(
+            "status".to_string(),
+            RelType::Str("Don't Panic".to_string()),
+        );
+        map.insert(
+            "ultimate_question".to_string(),
+            RelType::Str("Unknown (requires another 7.5 million years of computation)".to_string()),
+        );
+    } else {
+        map.insert(
+            "status".to_string(),
+            RelType::Str("Calculating...".to_string()),
+        );
+    }
+    RelType::Object(map)
+}
+
+pub fn build_meaning_of_life_json(input: i64) -> serde_json::Value {
+    if input == 42 {
+        serde_json::json!({
+            "answer": 42,
+            "status": "Don't Panic",
+            "ultimate_question": "Unknown (requires another 7.5 million years of computation)"
+        })
+    } else {
+        serde_json::json!({
+            "answer": input,
+            "status": "Calculating..."
+        })
+    }
+}
+
 #[derive(Clone, Default)]
 pub struct AgentPermissions {
     pub allow_network: bool,
@@ -776,6 +812,21 @@ impl ExecutionEngine {
                         err => return err,
                     }
                 }
+                if name == "knc_meaning_of_life"
+                    || name == "meaning_of_life"
+                    || name == "sys.meaning_of_life"
+                {
+                    let input = if !v_args.is_empty() {
+                        match &v_args[0] {
+                            RelType::Int(i) => *i,
+                            RelType::Float(f) => *f as i64,
+                            _ => 42,
+                        }
+                    } else {
+                        42
+                    };
+                    return ExecResult::Value(build_meaning_of_life_reltype(input));
+                }
                 for mod_ in &self.native_modules {
                     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         mod_.handle(name, &v_args, &self.permissions)
@@ -814,6 +865,19 @@ impl ExecutionEngine {
                         ExecResult::Value(v) => v_args.push(v),
                         err => return err,
                     }
+                }
+
+                if function == "knc_meaning_of_life" || function == "meaning_of_life" {
+                    let input = if !v_args.is_empty() {
+                        match &v_args[0] {
+                            RelType::Int(i) => *i,
+                            RelType::Float(f) => *f as i64,
+                            _ => 42,
+                        }
+                    } else {
+                        42
+                    };
+                    return ExecResult::Value(build_meaning_of_life_reltype(input));
                 }
 
                 // Security Lockdown: Intercept sensitive ExternCalls before they hit the bridge
