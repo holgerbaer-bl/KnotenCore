@@ -84,6 +84,170 @@ impl ExecutionEngine {
                 },
                 err => err,
             },
+
+            // Sprint 344: SIMD Vector Operations
+            Node::VectorDot(a, b) => {
+                let a_res = match self.evaluate_inner(a) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                let b_res = match self.evaluate_inner(b) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                match (a_res, b_res) {
+                    (RelType::Array(arr1), RelType::Array(arr2)) => {
+                        if arr1.len() != arr2.len() {
+                            return ExecResult::Fault {
+                                msg: "VectorDot vector lengths mismatch".into(),
+                                node: "Node::VectorDot".into(),
+                            };
+                        }
+                        let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))
+                            && arr2.iter().all(|x| matches!(x, RelType::Int(_)));
+                        if is_int {
+                            let dot: i64 = arr1
+                                .iter()
+                                .zip(arr2.iter())
+                                .map(|(x, y)| match (x, y) {
+                                    (RelType::Int(i1), RelType::Int(i2)) => i1 * i2,
+                                    _ => 0,
+                                })
+                                .sum();
+                            ExecResult::Value(RelType::Int(dot))
+                        } else {
+                            let dot: f64 = arr1
+                                .iter()
+                                .zip(arr2.iter())
+                                .map(|(x, y)| {
+                                    let v1 = match x {
+                                        RelType::Float(f) => *f,
+                                        RelType::Int(i) => *i as f64,
+                                        _ => 0.0,
+                                    };
+                                    let v2 = match y {
+                                        RelType::Float(f) => *f,
+                                        RelType::Int(i) => *i as f64,
+                                        _ => 0.0,
+                                    };
+                                    v1 * v2
+                                })
+                                .sum();
+                            ExecResult::Value(RelType::Float(dot))
+                        }
+                    }
+                    _ => ExecResult::Fault {
+                        msg: "VectorDot expects Array operands".into(),
+                        node: "Node::VectorDot".into(),
+                    },
+                }
+            }
+            Node::VectorAdd(a, b) => {
+                let a_res = match self.evaluate_inner(a) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                let b_res = match self.evaluate_inner(b) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                match (a_res, b_res) {
+                    (RelType::Array(arr1), RelType::Array(arr2)) => {
+                        if arr1.len() != arr2.len() {
+                            return ExecResult::Fault {
+                                msg: "VectorAdd vector lengths mismatch".into(),
+                                node: "Node::VectorAdd".into(),
+                            };
+                        }
+                        let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))
+                            && arr2.iter().all(|x| matches!(x, RelType::Int(_)));
+                        let res: Vec<RelType> = arr1
+                            .iter()
+                            .zip(arr2.iter())
+                            .map(|(x, y)| {
+                                if is_int {
+                                    match (x, y) {
+                                        (RelType::Int(i1), RelType::Int(i2)) => {
+                                            RelType::Int(i1 + i2)
+                                        }
+                                        _ => RelType::Int(0),
+                                    }
+                                } else {
+                                    let v1 = match x {
+                                        RelType::Float(f) => *f,
+                                        RelType::Int(i) => *i as f64,
+                                        _ => 0.0,
+                                    };
+                                    let v2 = match y {
+                                        RelType::Float(f) => *f,
+                                        RelType::Int(i) => *i as f64,
+                                        _ => 0.0,
+                                    };
+                                    RelType::Float(v1 + v2)
+                                }
+                            })
+                            .collect();
+                        ExecResult::Value(RelType::Array(res))
+                    }
+                    _ => ExecResult::Fault {
+                        msg: "VectorAdd expects Array operands".into(),
+                        node: "Node::VectorAdd".into(),
+                    },
+                }
+            }
+            Node::VectorMul(a, b) | Node::VectorTransform(a, b) => {
+                let a_res = match self.evaluate_inner(a) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                let b_res = match self.evaluate_inner(b) {
+                    ExecResult::Value(v) => v,
+                    err => return err,
+                };
+                match (a_res, b_res) {
+                    (RelType::Array(arr1), RelType::Array(arr2)) => {
+                        if arr1.len() != arr2.len() {
+                            return ExecResult::Fault {
+                                msg: "VectorMul vector lengths mismatch".into(),
+                                node: "Node::VectorMul".into(),
+                            };
+                        }
+                        let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))
+                            && arr2.iter().all(|x| matches!(x, RelType::Int(_)));
+                        let res: Vec<RelType> = arr1
+                            .iter()
+                            .zip(arr2.iter())
+                            .map(|(x, y)| {
+                                if is_int {
+                                    match (x, y) {
+                                        (RelType::Int(i1), RelType::Int(i2)) => {
+                                            RelType::Int(i1 * i2)
+                                        }
+                                        _ => RelType::Int(0),
+                                    }
+                                } else {
+                                    let v1 = match x {
+                                        RelType::Float(f) => *f,
+                                        RelType::Int(i) => *i as f64,
+                                        _ => 0.0,
+                                    };
+                                    let v2 = match y {
+                                        RelType::Float(f) => *f,
+                                        RelType::Int(i) => *i as f64,
+                                        _ => 0.0,
+                                    };
+                                    RelType::Float(v1 * v2)
+                                }
+                            })
+                            .collect();
+                        ExecResult::Value(RelType::Array(res))
+                    }
+                    _ => ExecResult::Fault {
+                        msg: "VectorMul expects Array operands".into(),
+                        node: "Node::VectorMul".into(),
+                    },
+                }
+            }
             Node::Eq(l, r) => self.do_compare(l, "==", r),
             Node::Lt(l, r) => self.do_compare(l, "<", r),
             Node::Gt(l, r) => self.do_compare(l, ">", r),

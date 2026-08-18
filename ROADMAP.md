@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.5** · Zero-Trust RPC Mesh Auth Hardening, Global Endpoint Audit & CI Formatting Rectification
+Current engine version: **v2.24.6** · SIMD Vector Compute Engine, Batch OpCodes & Matrix Benchmarks
 
 ## Done (selected milestones)
 
+- ✅ SIMD Vector Compute Engine, Batch OpCodes & Matrix Benchmarks (contiguous numeric buffer representations `Vec<f64>` / `Vec<i64>`, SIMD-accelerated batch opcodes `VectorDot`, `VectorAdd`, `VectorMul`, AST vector lowering, element-proportional batch gas accounting, formal vector benchmark workload `VectorDotProduct(100_000)`, Sprint 344 - v2.24.6)
 - ✅ Zero-Trust RPC Mesh Auth Hardening & Dynamic Introspection (`knc_eval_isolate` auth guard `-32001`, `RpcServer::registered_methods()`, dynamic reflection-safe auth compliance test suite, `use aether_compiler::vm::machine::{VM, VMError};` rustfmt alignment, Sprint 343.1 - v2.24.5)
 - ✅ Isolate Gas Metering, Execution Watchdog & Resource Quotas (instruction gas metering `GasMeter`, microsecond wall-clock watchdog, hard memory heap allocation boundaries, `VMError::GasExhausted`, `VMError::MemoryQuotaExceeded`, `VMError::WatchdogTimeout`, RPC `knc_eval_isolate`, Sprint 343 - v2.24.4)
 - ✅ Deep Thought 42 Intrinsic & Deterministic Protocol Extension (built-in `knc_meaning_of_life` intrinsic & RPC endpoint returning Hitchhiker payload metadata across Evaluator and VM engines with full parity, Sprint 342 - v2.24.3)

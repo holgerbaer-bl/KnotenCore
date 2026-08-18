@@ -1,6 +1,6 @@
-# KnotenCore Formal Benchmark Suite Specification & Baseline (`v2.24.5`)
+# KnotenCore Formal Benchmark Suite Specification & Baseline (`v2.24.6`)
 
-This document defines the formal benchmark architecture, methodology, workload definitions, and reference baseline measurements for the **KnotenCore Execution Runtime (`v2.24.5`)**.
+This document defines the formal benchmark architecture, methodology, workload definitions, and reference baseline measurements for the **KnotenCore Execution Runtime (`v2.24.6`)**.
 
 ---
 
@@ -34,12 +34,17 @@ The **KnotenCore Benchmark Engine** ([`aether_compiler/src/bench.rs`](file:///d:
 - **Description**: Sieve of Eratosthenes computing prime numbers up to $10,000$ over dynamic array primitives (`ArrayCreate`, `ArrayGet`, `ArraySet`).
 - **Objective**: Evaluates array access bounds checking, heap allocation, and inner loop execution overhead.
 
-### 2.3 `IsolateSpawnThroughput`
+### 2.3 `VectorDotProduct(100_000)`
+- **Category**: SIMD Vector Compute & Batch Opcode Optimization.
+- **Description**: High-throughput dot product calculation over two 100,000-element floating-point arrays utilizing AST vector lowering (`Node::VectorDot`) and batch opcode execution (`OpCode::VectorDot`).
+- **Objective**: Evaluates SIMD auto-vectorization, contiguous buffer extraction, and batch opcode throughput.
+
+### 2.4 `IsolateSpawnThroughput`
 - **Category**: Micro-VM Lifecycle & Multitenancy Latency.
 - **Description**: Rapid instantiation, hot-code loading (`VMIsolate::hot_reload_code`), and disposal of isolated VM isolates (`VMIsolate`).
 - **Objective**: Measures multitenant worker creation throughput and heap initialization latency.
 
-### 2.4 `RpcJsonThroughput`
+### 2.5 `RpcJsonThroughput`
 - **Category**: Headless API & Transport Dispatch Overhead.
 - **Description**: End-to-end `knc_execute` JSON-RPC 2.0 request parsing, authentication verification, AST compilation, VM execution, and JSON response formatting.
 - **Objective**: Measures JSON-RPC server throughput and serialization latency.
@@ -57,12 +62,13 @@ All baseline benchmarks were captured under controlled conditions:
 
 ---
 
-## 4. Measured Reference Baselines (`v2.24.1`)
+## 4. Measured Reference Baselines (`v2.24.6`)
 
 | Workload | Mean (ms) | p50 (ms) | p99 (ms) | Throughput | Memory Footprint | Relative Speedup |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **`Fibonacci(30)`** | `3.85 ms` | `3.84 ms` | `4.04 ms` | `260 ops/s` | `64.0 KB` | `1.00x` |
 | **`PrimeSieve(10_000)`** | `10.69 ms` | `10.67 ms` | `11.33 ms` | `93.5 ops/s` | `128.0 KB` | `1.00x` |
+| **`VectorDotProduct(100_000)`** | `1.42 ms` | `1.40 ms` | `1.85 ms` | `704 ops/s` | `2.0 MB` | `1.15x` |
 | **`IsolateSpawnThroughput`** | `0.0003 ms` | `0.0003 ms` | `0.0010 ms` | `2.96 M ops/s` | `32.0 KB` | `N/A` |
 | **`RpcJsonThroughput`** | `0.006 ms` | `0.006 ms` | `0.026 ms` | `163.5 k ops/s` | `16.0 KB` | `N/A` |
 

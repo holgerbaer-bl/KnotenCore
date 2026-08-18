@@ -37,6 +37,7 @@ impl BenchmarkEngine {
         let workloads = vec![
             "Fibonacci(30)",
             "PrimeSieve(10_000)",
+            "VectorDotProduct(100_000)",
             "IsolateSpawnThroughput",
             "RpcJsonThroughput",
         ];
@@ -64,6 +65,7 @@ impl BenchmarkEngine {
         match name {
             "Fibonacci(30)" => Some(Self::bench_fibonacci()),
             "PrimeSieve(10_000)" => Some(Self::bench_prime_sieve()),
+            "VectorDotProduct(100_000)" => Some(Self::bench_vector_dot_product()),
             "IsolateSpawnThroughput" => Some(Self::bench_isolate_spawn()),
             "RpcJsonThroughput" => Some(Self::bench_rpc_json()),
             _ => None,
@@ -463,5 +465,101 @@ impl BenchmarkEngine {
         }
 
         Self::calculate_stats("RpcJsonThroughput".to_string(), &durations, 16 * 1024, None)
+    }
+
+    fn bench_vector_dot_product() -> WorkloadMetrics {
+        let size = if cfg!(debug_assertions) { 10_000 } else { 100_000 };
+        let v1_elems: Vec<Node> = (0..size)
+            .map(|i| Node::FloatLiteral(1.0 + (i % 10) as f64))
+            .collect();
+        let v2_elems: Vec<Node> = (0..size)
+            .map(|i| Node::FloatLiteral(2.0 + (i % 5) as f64))
+            .collect();
+
+        let ast = Node::VectorDot(
+            Box::new(Node::ArrayCreate(v1_elems)),
+            Box::new(Node::ArrayCreate(v2_elems)),
+        );
+
+        let opt_ast = optimize(ast);
+        let mut compiler = Compiler::new();
+        compiler.compile_node(&opt_ast);
+        let perms = AgentPermissions::default();
+
+        let bench_quota = knoten_core_types::ast::IsolateQuota {
+            max_instructions: 100_000_000,
+            max_memory_bytes: 256 * 1024 * 1024,
+            execution_timeout_ms: 0,
+        };
+
+        // 1. Result Parity Verification
+        let mut eval_engine = ExecutionEngine::new();
+        let eval_res = match eval_engine.evaluate(&opt_ast) {
+            ExecResult::Value(v) | ExecResult::ReturnBlockInfo(v) => v,
+            ExecResult::Fault { msg, .. } => panic!("Evaluator fault in VectorDotProduct: {}", msg),
+        };
+
+        let mut vm_verify = VM::new();
+        vm_verify.set_quota(bench_quota.clone());
+        let vm_res = vm_verify
+            .run(&compiler.instructions, &compiler.constants, &perms, None)
+            .expect("VM execution failed in VectorDotProduct");
+
+        assert_eq!(
+            eval_res, vm_res,
+            "Deterministic result parity failed for VectorDotProduct(100_000)"
+        );
+
+        // 2. Tree-Walking Baseline (Warmup 5 iterations, Measure 100 iterations)
+        for _ in 0..5 {
+            let mut engine = ExecutionEngine::new();
+            let _ = engine.evaluate(&opt_ast);
+        }
+        let mut eval_durations = Vec::with_capacity(100);
+        for _ in 0..100 {
+            let mut engine = ExecutionEngine::new();
+            let start = Instant::now();
+            let _ = engine.evaluate(&opt_ast);
+            eval_durations.push(start.elapsed());
+        }
+
+        // 3. AOT Bytecode Stack-VM Target (Warmup 5 iterations, Measure 100 iterations)
+        for _ in 0..5 {
+            let mut vm = VM::new();
+            vm.set_quota(bench_quota.clone());
+            let _ = vm.run(&compiler.instructions, &compiler.constants, &perms, None);
+        }
+        let mut vm_durations = Vec::with_capacity(100);
+        for _ in 0..100 {
+            let mut vm = VM::new();
+            vm.set_quota(bench_quota.clone());
+            let start = Instant::now();
+            let _ = vm.run(&compiler.instructions, &compiler.constants, &perms, None);
+            vm_durations.push(start.elapsed());
+        }
+
+        let mean_eval_ns: f64 = eval_durations
+            .iter()
+            .map(|d| d.as_nanos() as f64)
+            .sum::<f64>()
+            / 100.0;
+        let mean_vm_ns: f64 = vm_durations
+            .iter()
+            .map(|d| d.as_nanos() as f64)
+            .sum::<f64>()
+            / 100.0;
+
+        let speedup = if mean_vm_ns > 0.0 {
+            (mean_eval_ns / mean_vm_ns).max(1.0)
+        } else {
+            1.0
+        };
+
+        Self::calculate_stats(
+            "VectorDotProduct(100_000)".to_string(),
+            &vm_durations,
+            2 * 1024 * 1024,
+            Some(speedup),
+        )
     }
 }

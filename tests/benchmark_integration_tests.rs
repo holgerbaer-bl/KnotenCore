@@ -8,7 +8,7 @@ use knoten_core_types::ast::Node;
 
 #[test]
 fn test_version_assertion_sprint340() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.5");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.6");
     let server = RpcServer::new(AgentPermissions::default());
     let req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -17,7 +17,7 @@ fn test_version_assertion_sprint340() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.5\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.6\""));
 }
 
 #[test]
@@ -47,8 +47,8 @@ fn test_handlers_reexports_complete() {
 #[test]
 fn test_benchmark_engine_direct_api() {
     let report: BenchmarkReport = BenchmarkEngine::run_all();
-    assert_eq!(report.protocol_version, "v2.24.5");
-    assert!(report.metrics.len() >= 4);
+    assert_eq!(report.protocol_version, "v2.24.6");
+    assert!(report.metrics.len() >= 5);
 
     for m in &report.metrics {
         assert!(m.iterations > 0);
@@ -56,10 +56,11 @@ fn test_benchmark_engine_direct_api() {
         assert!(m.ops_per_sec > 0.0);
     }
 
-    let json_str = serde_json::to_string(&report).expect("Failed to serialize BenchmarkReport");
-    assert!(json_str.contains("\"protocol_version\":\"v2.24.5\""));
+    let json_str = serde_json::to_string_pretty(&report).unwrap();
+    assert!(json_str.contains("\"protocol_version\": \"v2.24.6\""));
     assert!(json_str.contains("Fibonacci(30)"));
     assert!(json_str.contains("PrimeSieve(10_000)"));
+    assert!(json_str.contains("VectorDotProduct(100_000)"));
 
     let single: Option<WorkloadMetrics> = BenchmarkEngine::run_workload("Fibonacci(30)");
     assert!(single.is_some());

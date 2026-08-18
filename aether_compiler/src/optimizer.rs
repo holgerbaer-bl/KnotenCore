@@ -27,7 +27,11 @@ pub fn count_nodes(node: &Node) -> usize {
         | Node::BitAnd(l, r)
         | Node::BitShiftLeft(l, r)
         | Node::BitShiftRight(l, r)
-        | Node::Concat(l, r) => {
+        | Node::Concat(l, r)
+        | Node::VectorDot(l, r)
+        | Node::VectorAdd(l, r)
+        | Node::VectorMul(l, r)
+        | Node::VectorTransform(l, r) => {
             count += count_nodes(l) + count_nodes(r);
         }
         Node::Lte(l, r)
@@ -413,6 +417,14 @@ pub fn optimize(node: Node) -> Node {
         Node::Sub(l, r) => optimize_math_op(*l, *r, '-'),
         Node::Mul(l, r) => optimize_math_op(*l, *r, '*'),
         Node::Div(l, r) => optimize_math_op(*l, *r, '/'),
+
+        // Vector Operations Optimization
+        Node::VectorDot(l, r) => Node::VectorDot(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::VectorAdd(l, r) => Node::VectorAdd(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::VectorMul(l, r) => Node::VectorMul(Box::new(optimize(*l)), Box::new(optimize(*r))),
+        Node::VectorTransform(l, r) => {
+            Node::VectorTransform(Box::new(optimize(*l)), Box::new(optimize(*r)))
+        }
 
         // Logic Folding
         Node::Eq(l, r) => optimize_eq(*l, *r),
@@ -1181,6 +1193,22 @@ fn substitute_identifier(node: &Node, name: &str, value: i64) -> Node {
             Box::new(substitute_identifier(r, name, value)),
         ),
         Node::Div(l, r) => Node::Div(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::VectorDot(l, r) => Node::VectorDot(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::VectorAdd(l, r) => Node::VectorAdd(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::VectorMul(l, r) => Node::VectorMul(
+            Box::new(substitute_identifier(l, name, value)),
+            Box::new(substitute_identifier(r, name, value)),
+        ),
+        Node::VectorTransform(l, r) => Node::VectorTransform(
             Box::new(substitute_identifier(l, name, value)),
             Box::new(substitute_identifier(r, name, value)),
         ),

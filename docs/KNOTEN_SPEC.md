@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.24.5)
+# KnotenCore JSON AST Specification (v2.24.6)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -348,10 +348,20 @@ Refactoring of the core RPC server subsystem into domain-scoped submodules under
   * `rpc/handlers/agent.rs`: `knc_agent_handshake`, `knc_agent_snapshot`, `knc_agent_restore`, `knc_agent_teleport`.
 - **Invariants**: 100% backward-compatible public re-exports and API dispatching across all 28 JSON-RPC endpoints. Domain state lock granularity and fine-grained mutex semantics (`Arc<Mutex<...>>`) preserved 1:1. Purged historical Sprint/Prompt tags across `aether_compiler/src/` into timeless Rustdoc (`///`).
 
-## 8. Formal Benchmarks (`v2.24.0`)
+### 7.5. SIMD Vector Compute OpCodes Specification (v2.24.6)
+Defines high-throughput contiguous numeric vector batch operations for SIMD auto-vectorization:
+- **OpCodes**:
+  * `VectorAdd`: Element-wise addition over contiguous numeric arrays (`RelType::Array`).
+  * `VectorMul`: Element-wise multiplication over contiguous numeric arrays (`RelType::Array`).
+  * `VectorDot`: High-throughput dot product calculation using 4-element iterator chunking for compiler auto-vectorization.
+- **Contiguous Buffer Extraction**: Zero-allocation numeric buffer extraction helpers in `RelType` (`as_f64_slice_or_vec()`, `as_i64_slice_or_vec()`, `is_pure_int_array()`).
+- **AST Vectorization Lowering**: Lowering AST vector expressions (`Node::VectorDot`, `Node::VectorAdd`, `Node::VectorMul`, `Node::VectorTransform`) directly to batch opcodes with 100% deterministic result parity between Evaluator and VM.
+- **Proportional Gas Metering**: Deducts base gas plus element-proportional gas (`1 + len as u64`) per batch instruction execution cycle.
+
+## 8. Formal Benchmarks (`v2.24.6`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
-- **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.
+- **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.
 - **CLI Harness (`knoten bench`)**: Formatted ASCII table output, machine-readable `--json` export, and `--workload <NAME>` targeting.
 - **Specification**: Complete specification, measurement methodology, and reference environment documented in [`docs/BENCHMARKS.md`](BENCHMARKS.md).
 

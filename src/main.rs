@@ -14,7 +14,7 @@ fn main() {
         return;
     }
 
-    println!("KnotenCore 🦀🤖 (v2.24.0) — Headless-First Deterministic Execution Runtime");
+    println!("KnotenCore 🦀🤖 (v2.24.6) — Headless-First Deterministic Execution Runtime");
     println!("Usage:");
     println!("  knoten bench [--json] [--workload <NAME>]");
 }
@@ -25,7 +25,7 @@ fn run_benchmark_cli(is_json: bool, workload: Option<&str>) {
             Some(m) => vec![m],
             None => {
                 eprintln!(
-                    "[Error] Unknown workload name '{}'. Available: Fibonacci(30), PrimeSieve(10_000), IsolateSpawnThroughput, RpcJsonThroughput",
+                    "[Error] Unknown workload name '{}'. Available: Fibonacci(30), PrimeSieve(10_000), VectorDotProduct(100_000), IsolateSpawnThroughput, RpcJsonThroughput",
                     name
                 );
                 std::process::exit(1);

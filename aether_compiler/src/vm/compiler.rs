@@ -84,6 +84,27 @@ impl Compiler {
                 self.instructions.push(OpCode::Multiply);
                 true
             }
+            Node::VectorDot(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) {
+                    return false;
+                }
+                self.instructions.push(OpCode::VectorDot);
+                true
+            }
+            Node::VectorAdd(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) {
+                    return false;
+                }
+                self.instructions.push(OpCode::VectorAdd);
+                true
+            }
+            Node::VectorMul(l, r) | Node::VectorTransform(l, r) => {
+                if !self.compile_node(l) || !self.compile_node(r) {
+                    return false;
+                }
+                self.instructions.push(OpCode::VectorMul);
+                true
+            }
             Node::Div(l, r) => {
                 if !self.compile_node(l) || !self.compile_node(r) {
                     return false;

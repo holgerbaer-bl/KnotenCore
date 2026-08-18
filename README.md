@@ -1,11 +1,11 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.24.5-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.24.6-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![AI Directives](https://img.shields.io/badge/AI--Directives-AI.md-purple)](AI.md)
 [![Automated CI](https://img.shields.io/badge/Automated_CI-Active-brightgreen)](docs/workflows/agent-ci-feedback.yml)
-[![Tests](https://img.shields.io/badge/tests-325%2F325-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.24.5-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-328%2F328-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.24.6-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -18,6 +18,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **SIMD Vector Compute Engine & Batch OpCodes (v2.24.6)**: Contiguous numeric buffer representations (`Vec<f64>` / `Vec<i64>`), SIMD-accelerated batch opcodes (`VectorDot`, `VectorAdd`, `VectorMul`), AST vectorization lowering, proportional batch gas accounting, and formal vector benchmark workload (`VectorDotProduct(100_000)`).
 - **Zero-Trust RPC Mesh Auth Hardening & CI Formatting Rectification (v2.24.5)**: Mandatory mesh authentication enforcement on `knc_eval_isolate`, canonical endpoint introspection (`RpcServer::registered_methods()`), dynamic RPC auth compliance test suite, and rustfmt import ordering alignment.
 - **Isolate Gas Metering, Execution Watchdog & Resource Quotas (v2.24.4)**: Configurable execution gas meter (`GasMeter`), microsecond wall-clock watchdog deadline enforcement, strict isolate heap allocation boundary guards (`VMError::GasExhausted`, `VMError::MemoryQuotaExceeded`, `VMError::WatchdogTimeout`), and RPC isolate evaluation (`knc_eval_isolate`).
 - **Deep Thought 42 Intrinsic & Deterministic Protocol Extension (v2.24.3)**: Built-in `knc_meaning_of_life` intrinsic & RPC endpoint returning deterministic Hitchhiker payload metadata (`answer`: 42, `status`: "Don't Panic", `ultimate_question`: "...") across both Evaluator and VM engines with full parity.

@@ -60,6 +60,11 @@ pub enum OpCode {
     Concat,
     ToString,
 
+    // Sprint 344: SIMD Vector Batch Operations
+    VectorAdd,
+    VectorMul,
+    VectorDot,
+
     // Sprint 127: IO & System
     WriteFile,
     NativeExternCall {

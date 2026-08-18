@@ -1026,6 +1026,186 @@ impl VM {
                     let val = self.stack.pop().unwrap_or(RelType::Void);
                     self.stack.push(RelType::Str(val.to_string()));
                 }
+                OpCode::VectorDot => {
+                    let r_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let l_val = self.stack.pop().unwrap_or(RelType::Void);
+                    match (l_val, r_val) {
+                        (RelType::Array(arr1), RelType::Array(arr2)) => {
+                            if arr1.len() != arr2.len() {
+                                return Err("VectorDot vector lengths mismatch".into());
+                            }
+                            let len = arr1.len();
+                            self.gas_meter.consume(len as u64).ok();
+                            instr_count += len as u64;
+
+                            let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))
+                                && arr2.iter().all(|x| matches!(x, RelType::Int(_)));
+
+                            if is_int {
+                                let a_ints: Vec<i64> = arr1
+                                    .iter()
+                                    .map(|x| match x {
+                                        RelType::Int(i) => *i,
+                                        _ => 0,
+                                    })
+                                    .collect();
+                                let b_ints: Vec<i64> = arr2
+                                    .iter()
+                                    .map(|x| match x {
+                                        RelType::Int(i) => *i,
+                                        _ => 0,
+                                    })
+                                    .collect();
+                                let dot: i64 = a_ints
+                                    .chunks_exact(4)
+                                    .zip(b_ints.chunks_exact(4))
+                                    .map(|(ca, cb)| {
+                                        ca[0] * cb[0]
+                                            + ca[1] * cb[1]
+                                            + ca[2] * cb[2]
+                                            + ca[3] * cb[3]
+                                    })
+                                    .sum::<i64>()
+                                    + a_ints
+                                        .chunks_exact(4)
+                                        .remainder()
+                                        .iter()
+                                        .zip(b_ints.chunks_exact(4).remainder())
+                                        .map(|(x, y)| x * y)
+                                        .sum::<i64>();
+                                self.stack.push(RelType::Int(dot));
+                            } else {
+                                let a_floats: Vec<f64> = arr1
+                                    .iter()
+                                    .map(|x| match x {
+                                        RelType::Float(f) => *f,
+                                        RelType::Int(i) => *i as f64,
+                                        _ => 0.0,
+                                    })
+                                    .collect();
+                                let b_floats: Vec<f64> = arr2
+                                    .iter()
+                                    .map(|x| match x {
+                                        RelType::Float(f) => *f,
+                                        RelType::Int(i) => *i as f64,
+                                        _ => 0.0,
+                                    })
+                                    .collect();
+                                let dot: f64 = a_floats
+                                    .chunks_exact(4)
+                                    .zip(b_floats.chunks_exact(4))
+                                    .map(|(ca, cb)| {
+                                        ca[0] * cb[0]
+                                            + ca[1] * cb[1]
+                                            + ca[2] * cb[2]
+                                            + ca[3] * cb[3]
+                                    })
+                                    .sum::<f64>()
+                                    + a_floats
+                                        .chunks_exact(4)
+                                        .remainder()
+                                        .iter()
+                                        .zip(b_floats.chunks_exact(4).remainder())
+                                        .map(|(x, y)| x * y)
+                                        .sum::<f64>();
+                                self.stack.push(RelType::Float(dot));
+                            }
+                        }
+                        _ => return Err("VectorDot expects Array operands".into()),
+                    }
+                }
+                OpCode::VectorAdd => {
+                    let r_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let l_val = self.stack.pop().unwrap_or(RelType::Void);
+                    match (l_val, r_val) {
+                        (RelType::Array(arr1), RelType::Array(arr2)) => {
+                            if arr1.len() != arr2.len() {
+                                return Err("VectorAdd vector lengths mismatch".into());
+                            }
+                            let len = arr1.len();
+                            self.gas_meter.consume(len as u64).ok();
+                            instr_count += len as u64;
+
+                            let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))
+                                && arr2.iter().all(|x| matches!(x, RelType::Int(_)));
+
+                            let res: Vec<RelType> = arr1
+                                .iter()
+                                .zip(arr2.iter())
+                                .map(|(x, y)| {
+                                    if is_int {
+                                        match (x, y) {
+                                            (RelType::Int(i1), RelType::Int(i2)) => {
+                                                RelType::Int(i1 + i2)
+                                            }
+                                            _ => RelType::Int(0),
+                                        }
+                                    } else {
+                                        let v1 = match x {
+                                            RelType::Float(f) => *f,
+                                            RelType::Int(i) => *i as f64,
+                                            _ => 0.0,
+                                        };
+                                        let v2 = match y {
+                                            RelType::Float(f) => *f,
+                                            RelType::Int(i) => *i as f64,
+                                            _ => 0.0,
+                                        };
+                                        RelType::Float(v1 + v2)
+                                    }
+                                })
+                                .collect();
+                            self.stack.push(RelType::Array(res));
+                        }
+                        _ => return Err("VectorAdd expects Array operands".into()),
+                    }
+                }
+                OpCode::VectorMul => {
+                    let r_val = self.stack.pop().unwrap_or(RelType::Void);
+                    let l_val = self.stack.pop().unwrap_or(RelType::Void);
+                    match (l_val, r_val) {
+                        (RelType::Array(arr1), RelType::Array(arr2)) => {
+                            if arr1.len() != arr2.len() {
+                                return Err("VectorMul vector lengths mismatch".into());
+                            }
+                            let len = arr1.len();
+                            self.gas_meter.consume(len as u64).ok();
+                            instr_count += len as u64;
+
+                            let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))
+                                && arr2.iter().all(|x| matches!(x, RelType::Int(_)));
+
+                            let res: Vec<RelType> = arr1
+                                .iter()
+                                .zip(arr2.iter())
+                                .map(|(x, y)| {
+                                    if is_int {
+                                        match (x, y) {
+                                            (RelType::Int(i1), RelType::Int(i2)) => {
+                                                RelType::Int(i1 * i2)
+                                            }
+                                            _ => RelType::Int(0),
+                                        }
+                                    } else {
+                                        let v1 = match x {
+                                            RelType::Float(f) => *f,
+                                            RelType::Int(i) => *i as f64,
+                                            _ => 0.0,
+                                        };
+                                        let v2 = match y {
+                                            RelType::Float(f) => *f,
+                                            RelType::Int(i) => *i as f64,
+                                            _ => 0.0,
+                                        };
+                                        RelType::Float(v1 + v2)
+                                    }
+                                })
+                                .collect();
+                            self.stack.push(RelType::Array(res));
+                        }
+                        _ => return Err("VectorMul expects Array operands".into()),
+                    }
+                }
                 OpCode::WriteFile => {
                     let data_val = self.stack.pop().unwrap_or(RelType::Void);
                     let path_val = self.stack.pop().unwrap_or(RelType::Void);

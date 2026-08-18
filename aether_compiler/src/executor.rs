@@ -55,6 +55,47 @@ impl PartialEq for RelType {
     }
 }
 
+impl RelType {
+    pub fn as_f64_slice_or_vec(&self) -> Option<Vec<f64>> {
+        if let RelType::Array(arr) = self {
+            let mut v = Vec::with_capacity(arr.len());
+            for item in arr {
+                match item {
+                    RelType::Float(f) => v.push(*f),
+                    RelType::Int(i) => v.push(*i as f64),
+                    _ => return None,
+                }
+            }
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_i64_slice_or_vec(&self) -> Option<Vec<i64>> {
+        if let RelType::Array(arr) = self {
+            let mut v = Vec::with_capacity(arr.len());
+            for item in arr {
+                match item {
+                    RelType::Int(i) => v.push(*i),
+                    _ => return None,
+                }
+            }
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_pure_int_array(&self) -> bool {
+        if let RelType::Array(arr) = self {
+            !arr.is_empty() && arr.iter().all(|x| matches!(x, RelType::Int(_)))
+        } else {
+            false
+        }
+    }
+}
+
 pub fn build_meaning_of_life_reltype(input: i64) -> RelType {
     let mut map = std::collections::HashMap::new();
     map.insert("answer".to_string(), RelType::Int(input));

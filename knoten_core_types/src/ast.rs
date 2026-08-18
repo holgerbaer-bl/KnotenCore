@@ -49,6 +49,12 @@ pub enum Node {
     Index(Box<Node>, Box<Node>),             // General index (Expression based)
     Concat(Box<Node>, Box<Node>),
 
+    // Sprint 344: SIMD Vector Batch Operations
+    VectorDot(Box<Node>, Box<Node>),
+    VectorAdd(Box<Node>, Box<Node>),
+    VectorMul(Box<Node>, Box<Node>),
+    VectorTransform(Box<Node>, Box<Node>),
+
     ObjectLiteral(std::collections::HashMap<String, Node>),
     PropertyGet(Box<Node>, String), // Target Object, Property Name
     PropertySet(Box<Node>, String, Box<Node>), // Target Object, Property Name, Value
