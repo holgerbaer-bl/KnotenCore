@@ -1,11 +1,11 @@
 use aether_compiler::executor::AgentPermissions;
 use aether_compiler::rpc::{KNC_PROTOCOL_VERSION, RpcServer};
-use aether_compiler::vm::machine::{VMError, VM};
+use aether_compiler::vm::machine::{VM, VMError};
 use knoten_core_types::ast::Node;
 
 #[test]
 fn test_version_assertion_sprint343() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.4");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.5");
     let server = RpcServer::new(AgentPermissions::default());
     let req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -14,7 +14,7 @@ fn test_version_assertion_sprint343() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.4\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.5\""));
 }
 
 #[test]
@@ -77,8 +77,97 @@ fn test_memory_quota_enforcement() {
 }
 
 #[test]
+fn test_all_rpc_endpoints_auth_compliance() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-local",
+        "127.0.0.1:0",
+        Some("secret-token".to_string()),
+    );
+    server.enable_zero_trust();
+
+    for &method in RpcServer::registered_methods() {
+        let req = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": method,
+            "params": {}
+        });
+        let resp = server.dispatch_request(&req.to_string());
+        if RpcServer::is_method_public(method) {
+            assert!(
+                !resp.contains("-32001") && !resp.contains("Unauthorized"),
+                "Public method {} unexpectedly returned auth failure: {}",
+                method,
+                resp
+            );
+        } else {
+            assert!(
+                resp.contains("-32001") || resp.contains("Unauthorized"),
+                "Protected method {} failed to reject unauthorized request: {}",
+                method,
+                resp
+            );
+        }
+    }
+}
+
+#[test]
+fn test_isolate_rpc_unauthenticated_rejection() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-1",
+        "127.0.0.1:9000",
+        Some("secret-token".to_string()),
+    );
+
+    let req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "knc_eval_isolate",
+        "params": {
+            "ast": Node::IntLiteral(42)
+        }
+    });
+
+    let resp = server.dispatch_request(&req.to_string());
+    assert!(resp.contains("-32001"));
+    assert!(resp.contains("Unauthorized"));
+}
+
+#[test]
+fn test_isolate_rpc_authenticated_execution() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-1",
+        "127.0.0.1:9000",
+        Some("secret-token".to_string()),
+    );
+
+    let req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "knc_eval_isolate",
+        "params": {
+            "mesh_auth_token": "secret-token",
+            "ast": Node::IntLiteral(42),
+            "max_instructions": 1000
+        }
+    });
+
+    let resp = server.dispatch_request(&req.to_string());
+    assert!(resp.contains("\"status\":\"ok\""));
+    assert!(resp.contains("42"));
+}
+
+#[test]
 fn test_rpc_isolate_quota_enforcement() {
-    let server = RpcServer::new(AgentPermissions::default());
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-1",
+        "127.0.0.1:9000",
+        Some("secret-token".to_string()),
+    );
 
     let infinite_loop = Node::Block(vec![
         Node::Assign("y".to_string(), Box::new(Node::IntLiteral(0))),
@@ -102,6 +191,7 @@ fn test_rpc_isolate_quota_enforcement() {
         "id": 1,
         "method": "knc_eval_isolate",
         "params": {
+            "mesh_auth_token": "secret-token",
             "ast": infinite_loop,
             "max_instructions": 30
         }

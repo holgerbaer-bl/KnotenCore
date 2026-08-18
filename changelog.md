@@ -2,7 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-## [v2.24.4] - Sprint 343: Isolate Gas Metering, Execution Watchdog & Resource Quotas (2026-08-17)
+## [v2.24.5] - Sprint 343.1: Zero-Trust RPC Mesh Auth Hardening, Global Endpoint Audit & CI Formatting Rectification (2026-08-18)
+Sprint 343.1 resolves the security regression in `knc_eval_isolate`, enforces Zero-Trust RPC mesh auth validation invariants, normalizes endpoint naming, implements dynamic reflection-safe auth compliance tests, and fixes rustfmt import ordering:
+- **Zero-Trust Auth Enforcement on `knc_eval_isolate` (`aether_compiler/src/rpc/handlers/vm.rs`)**: Mandated `check_mesh_auth` verification check at entry point, rejecting unauthenticated/untrusted network callers with `-32001 Unauthorized` / mesh auth failure.
+- **Normalized RPC Naming Schema (`aether_compiler/src/rpc/mod.rs`)**: Standardized legacy `sys.meaning_of_life` to `knc_meaning_of_life` while inheriting identical auth guards on legacy alias dispatch.
+- **Global Dispatch Audit & Dynamic Introspection Helper (`REGISTERED_METHODS`)**: Swept all registered RPC dispatch entries and exposed canonical registry slice `RpcServer::registered_methods()` and `RpcServer::is_method_public()`.
+- **Dynamic Introspection Auth Compliance Test Suite (`tests/isolate_quota_integration_tests.rs`)**: Implemented `test_all_rpc_endpoints_auth_compliance` deriving endpoints dynamically from `RpcServer::registered_methods()`, verifying protected endpoint rejection of unauthenticated requests.
+- **CI Import Formatting Rectification (`tests/isolate_quota_integration_tests.rs`)**: Reordered imports alphabetically (`use aether_compiler::vm::machine::{VM, VMError};`) ensuring 100% rustfmt compliance.
+- **100% English Documentation & Version Synchronization (`v2.24.5`)**: Synchronized version `v2.24.5` across workspace `Cargo.toml` files, [`README.md`](README.md) (*Option 1 preserved*), [`llm.md`](llm.md), [`changelog.md`](changelog.md), [`ROADMAP.md`](ROADMAP.md), [`docs/KNOTEN_SPEC.md`](docs/KNOTEN_SPEC.md), and [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md). Documented zero-trust auth validation invariants in `docs/KNOTEN_SPEC.md`.
 Sprint 343 implements granular deterministic sandboxing for AI agent isolates, featuring instruction gas metering, microsecond wall-clock watchdog timeouts, and strict isolate heap quotas:
 - **VM Gas Metering Engine (`GasMeter`)**: Configurable opcode execution budget tracking per execution cycle with `VM::run_with_quota(ast, max_instructions, max_memory_bytes)` returning `Err(VMError::GasExhausted { executed_instructions, limit })`. Zero-panic stack unwinding guarantee.
 - **Microsecond Wall-Clock Watchdog & Heap Guard**: Real-time microsecond deadline monitoring preventing multitasking lockups or infinite loops (`VMError::WatchdogTimeout`), and hard memory boundary checks (`VMError::MemoryQuotaExceeded`).

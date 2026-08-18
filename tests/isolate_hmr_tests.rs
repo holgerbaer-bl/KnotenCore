@@ -5,7 +5,7 @@ use serde_json::json;
 
 #[test]
 fn test_version_assertion_sprint337() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.4");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.5");
 }
 
 #[test]

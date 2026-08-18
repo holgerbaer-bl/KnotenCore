@@ -44,7 +44,49 @@ impl Default for RpcServer {
     }
 }
 
+pub const REGISTERED_METHODS: &[&str] = &[
+    "knc_compile",
+    "knc_execute",
+    "knc_yield_resume",
+    "knc_inspect_state",
+    "knc_agent_handshake",
+    "knc_agent_snapshot",
+    "knc_agent_restore",
+    "knc_mesh_discover",
+    "knc_mesh_peers",
+    "knc_agent_teleport",
+    "knc_task_submit",
+    "knc_task_status",
+    "knc_task_cancel",
+    "knc_task_steal",
+    "knc_mesh_ping",
+    "knc_mesh_metrics",
+    "knc_store_put",
+    "knc_store_get",
+    "knc_store_sync",
+    "knc_swarm_elect",
+    "knc_swarm_roles",
+    "knc_swarm_quorum",
+    "knc_swarm_request_vote",
+    "knc_swarm_heartbeat",
+    "knc_mesh_verify_peer",
+    "knc_mesh_rotate_key",
+    "knc_mesh_revoke_peer",
+    "knc_isolate_reload",
+    "knc_eval_isolate",
+    "knc_meaning_of_life",
+    "sys.meaning_of_life",
+];
+
 impl RpcServer {
+    pub fn registered_methods() -> &'static [&'static str] {
+        REGISTERED_METHODS
+    }
+
+    pub fn is_method_public(method: &str) -> bool {
+        matches!(method, "knc_meaning_of_life" | "sys.meaning_of_life")
+    }
+
     pub fn new(permissions: AgentPermissions) -> Self {
         Self::with_mesh(permissions, "node-local", "127.0.0.1:0", None)
     }

@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.4** · Isolate Gas Metering, Execution Watchdog & Resource Quotas
+Current engine version: **v2.24.5** · Zero-Trust RPC Mesh Auth Hardening, Global Endpoint Audit & CI Formatting Rectification
 
 ## Done (selected milestones)
 
+- ✅ Zero-Trust RPC Mesh Auth Hardening & Dynamic Introspection (`knc_eval_isolate` auth guard `-32001`, `RpcServer::registered_methods()`, dynamic reflection-safe auth compliance test suite, `use aether_compiler::vm::machine::{VM, VMError};` rustfmt alignment, Sprint 343.1 - v2.24.5)
 - ✅ Isolate Gas Metering, Execution Watchdog & Resource Quotas (instruction gas metering `GasMeter`, microsecond wall-clock watchdog, hard memory heap allocation boundaries, `VMError::GasExhausted`, `VMError::MemoryQuotaExceeded`, `VMError::WatchdogTimeout`, RPC `knc_eval_isolate`, Sprint 343 - v2.24.4)
 - ✅ Deep Thought 42 Intrinsic & Deterministic Protocol Extension (built-in `knc_meaning_of_life` intrinsic & RPC endpoint returning Hitchhiker payload metadata across Evaluator and VM engines with full parity, Sprint 342 - v2.24.3)
 - ✅ AI Agent Ecosystem & Safe PR Feedback Workflow (AI agent directives manifest `AI.md`, standardized bot report issue template `.github/ISSUE_TEMPLATE/bot_report.md`, PR diagnostic feedback workflow `docs/workflows/agent-ci-feedback.yml`, README badges, strict human maintainer review invariant, Sprint 341 - v2.24.2)

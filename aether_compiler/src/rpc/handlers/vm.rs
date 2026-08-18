@@ -413,6 +413,10 @@ impl super::super::RpcServer {
     }
 
     pub fn handle_eval_isolate(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
         let ast_val = match params.get("ast") {
             Some(v) => v,
             None => return JsonRpcResponse::error(id, -32602, "Missing 'ast' parameter"),

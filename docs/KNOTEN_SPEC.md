@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.24.4)
+# KnotenCore JSON AST Specification (v2.24.5)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -191,14 +191,14 @@ Enforces multi-tenant compute boundaries per session/isolate:
 - `execution_timeout_ms`: Watchdog execution timeout (default: 500ms).
 Quota violations trigger JSON-RPC error code `-32000` (`Quota Exceeded`).
 
-### 7.4. Isolate Gas Metering & Sandboxing Specification (`v2.24.4`)
+### 7.4. Isolate Gas Metering, Sandboxing & Zero-Trust Auth Specification (`v2.24.5`)
 Granular deterministic sandboxing engine for AI agent isolates:
 - `GasMeter`: Tracks consumed opcodes per execution cycle (`VM::run_with_quota`).
 - **Quota Error Types (`VMError`)**:
   * `VMError::GasExhausted { executed_instructions, limit }`: Aborts execution cleanly when instruction budget is depleted.
   * `VMError::MemoryQuotaExceeded { current_bytes, limit_bytes }`: Aborts immediately upon dynamic allocation exceeding heap quota limits.
   * `VMError::WatchdogTimeout { elapsed_us, timeout_us }`: Prevents multitasking CPU lockups or infinite recursive loops via real-time microsecond deadline monitoring.
-- `knc_eval_isolate`: Dedicated JSON-RPC endpoint evaluating JSON-AST nodes under strict caller-specified isolate resource quotas.
+- `knc_eval_isolate`: Dedicated JSON-RPC endpoint evaluating JSON-AST nodes under strict caller-specified isolate resource quotas. Protected by mandatory Zero-Trust mesh authentication (`check_mesh_auth`), returning `-32001 Unauthorized` for untrusted or unauthenticated callers.
 
 ### 7.4. WebSocket RPC & Realtime Event Broadcaster (`--ws-port <PORT>`)
 Establishes a persistent RFC 6455 WebSocket transport. Pushes real-time `VmEvent` text frame notifications (`knc_event`) to connected clients as VM execution state transitions occur (`Yielded`, `Finished`, `Fault`).
