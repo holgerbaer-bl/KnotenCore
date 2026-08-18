@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.6** · SIMD Vector Compute Engine, Batch OpCodes & Matrix Benchmarks
+Current engine version: **v2.24.7** · Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec
 
 ## Done (selected milestones)
 
+- ✅ Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec (strict vector opcode gas error propagation `self.gas_meter.consume(...)?`, execution ordering hardening, `cargo fmt` formatting rectification in `bench.rs`, authentic release benchmark measurements in `docs/BENCHMARKS.md`, explicit RPC authentication semantics documentation, Sprint 344.1 - v2.24.7)
 - ✅ SIMD Vector Compute Engine, Batch OpCodes & Matrix Benchmarks (contiguous numeric buffer representations `Vec<f64>` / `Vec<i64>`, SIMD-accelerated batch opcodes `VectorDot`, `VectorAdd`, `VectorMul`, AST vector lowering, element-proportional batch gas accounting, formal vector benchmark workload `VectorDotProduct(100_000)`, Sprint 344 - v2.24.6)
 - ✅ Zero-Trust RPC Mesh Auth Hardening & Dynamic Introspection (`knc_eval_isolate` auth guard `-32001`, `RpcServer::registered_methods()`, dynamic reflection-safe auth compliance test suite, `use aether_compiler::vm::machine::{VM, VMError};` rustfmt alignment, Sprint 343.1 - v2.24.5)
 - ✅ Isolate Gas Metering, Execution Watchdog & Resource Quotas (instruction gas metering `GasMeter`, microsecond wall-clock watchdog, hard memory heap allocation boundaries, `VMError::GasExhausted`, `VMError::MemoryQuotaExceeded`, `VMError::WatchdogTimeout`, RPC `knc_eval_isolate`, Sprint 343 - v2.24.4)

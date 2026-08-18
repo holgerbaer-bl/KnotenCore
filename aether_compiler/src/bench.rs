@@ -468,7 +468,11 @@ impl BenchmarkEngine {
     }
 
     fn bench_vector_dot_product() -> WorkloadMetrics {
-        let size = if cfg!(debug_assertions) { 10_000 } else { 100_000 };
+        let size = if cfg!(debug_assertions) {
+            10_000
+        } else {
+            100_000
+        };
         let v1_elems: Vec<Node> = (0..size)
             .map(|i| Node::FloatLiteral(1.0 + (i % 10) as f64))
             .collect();

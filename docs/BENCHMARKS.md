@@ -1,6 +1,6 @@
-# KnotenCore Formal Benchmark Suite Specification & Baseline (`v2.24.6`)
+# KnotenCore Formal Benchmark Suite Specification & Baseline (`v2.24.7`)
 
-This document defines the formal benchmark architecture, methodology, workload definitions, and reference baseline measurements for the **KnotenCore Execution Runtime (`v2.24.6`)**.
+This document defines the formal benchmark architecture, methodology, workload definitions, and reference baseline measurements for the **KnotenCore Execution Runtime (`v2.24.7`)**.
 
 ---
 
@@ -62,15 +62,15 @@ All baseline benchmarks were captured under controlled conditions:
 
 ---
 
-## 4. Measured Reference Baselines (`v2.24.6`)
+## 4. Measured Reference Baselines (`v2.24.7`)
 
 | Workload | Mean (ms) | p50 (ms) | p99 (ms) | Throughput | Memory Footprint | Relative Speedup |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`Fibonacci(30)`** | `3.85 ms` | `3.84 ms` | `4.04 ms` | `260 ops/s` | `64.0 KB` | `1.00x` |
-| **`PrimeSieve(10_000)`** | `10.69 ms` | `10.67 ms` | `11.33 ms` | `93.5 ops/s` | `128.0 KB` | `1.00x` |
-| **`VectorDotProduct(100_000)`** | `1.42 ms` | `1.40 ms` | `1.85 ms` | `704 ops/s` | `2.0 MB` | `1.15x` |
-| **`IsolateSpawnThroughput`** | `0.0003 ms` | `0.0003 ms` | `0.0010 ms` | `2.96 M ops/s` | `32.0 KB` | `N/A` |
-| **`RpcJsonThroughput`** | `0.006 ms` | `0.006 ms` | `0.026 ms` | `163.5 k ops/s` | `16.0 KB` | `N/A` |
+| **`Fibonacci(30)`** | `3.83 ms` | `3.77 ms` | `4.47 ms` | `260.96 ops/s` | `64.0 KB` | `1.00x` |
+| **`PrimeSieve(10_000)`** | `10.98 ms` | `10.91 ms` | `13.88 ms` | `91.06 ops/s` | `128.0 KB` | `1.00x` |
+| **`VectorDotProduct(100_000)`** | `226.19 ms` | `221.28 ms` | `290.11 ms` | `4.42 ops/s` | `2048.0 KB` | `1.00x` |
+| **`IsolateSpawnThroughput`** | `0.000 ms` | `0.001 ms` | `0.001 ms` | `2.13 M ops/s` | `32.0 KB` | `N/A` |
+| **`RpcJsonThroughput`** | `0.007 ms` | `0.007 ms` | `0.020 ms` | `133.96 k ops/s` | `16.0 KB` | `N/A` |
 
 ---
 

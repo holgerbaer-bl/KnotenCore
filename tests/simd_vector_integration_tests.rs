@@ -7,7 +7,7 @@ use knoten_core_types::ast::Node;
 
 #[test]
 fn test_version_assertion_sprint344() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.6");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.7");
     let server = RpcServer::new(AgentPermissions::default());
     let req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -16,7 +16,7 @@ fn test_version_assertion_sprint344() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.6\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.7\""));
 }
 
 #[test]
@@ -80,6 +80,35 @@ fn test_vector_gas_accounting() {
         } => {
             assert!(executed_instructions >= 50);
             assert_eq!(limit, 50);
+        }
+        other => panic!("Expected VMError::GasExhausted, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_vector_gas_exhaustion_strict_abort() {
+    let size = 1_000;
+    let v1_elems: Vec<Node> = (0..size).map(|i| Node::IntLiteral(i as i64)).collect();
+    let v2_elems: Vec<Node> = (0..size).map(|i| Node::IntLiteral(i as i64)).collect();
+
+    let ast = Node::VectorDot(
+        Box::new(Node::ArrayCreate(v1_elems)),
+        Box::new(Node::ArrayCreate(v2_elems)),
+    );
+
+    let opt_ast = optimize(ast);
+    let mut vm = VM::new();
+    // Low instruction quota of 10 instruction budget for a 1,000 element vector operation
+    let res = vm.run_with_quota(&opt_ast, 10, 16 * 1024 * 1024);
+    assert!(res.is_err());
+    let err = res.unwrap_err();
+    match err {
+        VMError::GasExhausted {
+            executed_instructions,
+            limit,
+        } => {
+            assert_eq!(limit, 10);
+            assert!(executed_instructions >= 10);
         }
         other => panic!("Expected VMError::GasExhausted, got {:?}", other),
     }

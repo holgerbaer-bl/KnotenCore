@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.24.6)
+# KnotenCore JSON AST Specification (v2.24.7)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -358,7 +358,12 @@ Defines high-throughput contiguous numeric vector batch operations for SIMD auto
 - **AST Vectorization Lowering**: Lowering AST vector expressions (`Node::VectorDot`, `Node::VectorAdd`, `Node::VectorMul`, `Node::VectorTransform`) directly to batch opcodes with 100% deterministic result parity between Evaluator and VM.
 - **Proportional Gas Metering**: Deducts base gas plus element-proportional gas (`1 + len as u64`) per batch instruction execution cycle.
 
-## 8. Formal Benchmarks (`v2.24.6`)
+### 7.6. RPC Authentication Default Semantics & Vector Gas Metering Hardening (v2.24.7)
+Specifies strict error propagation, execution ordering invariants, and RPC security defaults:
+- **RPC Authentication Semantics**: Local development default is opt-in (`mesh_auth_token: None`), permitting unauthenticated local developer tooling connections on loopback interfaces. In production, multi-tenant, or P2P mesh deployments, authentication is strictly enforced via `enable_zero_trust()` or mandatory pre-shared auth token verification (`check_mesh_auth`).
+- **Strict Vector Gas Metering**: Replaces suppressed gas deduction in batch opcodes (`VectorDot`, `VectorAdd`, `VectorMul`) with strict error propagation (`self.gas_meter.consume(...)?`). Gas deduction and quota checking MUST occur prior to updating internal instruction counters (`instr_count += len`) and executing compute loops, guaranteeing zero unmetered operations and clean stack unwinding on quota exhaustion (`VMError::GasExhausted`).
+
+## 8. Formal Benchmarks (`v2.24.7`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

@@ -1035,7 +1035,22 @@ impl VM {
                                 return Err("VectorDot vector lengths mismatch".into());
                             }
                             let len = arr1.len();
-                            self.gas_meter.consume(len as u64).ok();
+                            if let Err(err) = self.gas_meter.consume(len as u64) {
+                                let msg = err.to_string();
+                                self.execution_state = VmExecutionState::Fault(msg.clone());
+                                return Err(msg);
+                            }
+                            if self.quota.max_instructions > 0
+                                && instr_count + (len as u64) >= self.quota.max_instructions
+                            {
+                                let err = VMError::GasExhausted {
+                                    executed_instructions: instr_count + (len as u64),
+                                    limit: self.quota.max_instructions,
+                                };
+                                let msg = err.to_string();
+                                self.execution_state = VmExecutionState::Fault(msg.clone());
+                                return Err(msg);
+                            }
                             instr_count += len as u64;
 
                             let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))
@@ -1123,7 +1138,22 @@ impl VM {
                                 return Err("VectorAdd vector lengths mismatch".into());
                             }
                             let len = arr1.len();
-                            self.gas_meter.consume(len as u64).ok();
+                            if let Err(err) = self.gas_meter.consume(len as u64) {
+                                let msg = err.to_string();
+                                self.execution_state = VmExecutionState::Fault(msg.clone());
+                                return Err(msg);
+                            }
+                            if self.quota.max_instructions > 0
+                                && instr_count + (len as u64) >= self.quota.max_instructions
+                            {
+                                let err = VMError::GasExhausted {
+                                    executed_instructions: instr_count + (len as u64),
+                                    limit: self.quota.max_instructions,
+                                };
+                                let msg = err.to_string();
+                                self.execution_state = VmExecutionState::Fault(msg.clone());
+                                return Err(msg);
+                            }
                             instr_count += len as u64;
 
                             let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))
@@ -1169,7 +1199,22 @@ impl VM {
                                 return Err("VectorMul vector lengths mismatch".into());
                             }
                             let len = arr1.len();
-                            self.gas_meter.consume(len as u64).ok();
+                            if let Err(err) = self.gas_meter.consume(len as u64) {
+                                let msg = err.to_string();
+                                self.execution_state = VmExecutionState::Fault(msg.clone());
+                                return Err(msg);
+                            }
+                            if self.quota.max_instructions > 0
+                                && instr_count + (len as u64) >= self.quota.max_instructions
+                            {
+                                let err = VMError::GasExhausted {
+                                    executed_instructions: instr_count + (len as u64),
+                                    limit: self.quota.max_instructions,
+                                };
+                                let msg = err.to_string();
+                                self.execution_state = VmExecutionState::Fault(msg.clone());
+                                return Err(msg);
+                            }
                             instr_count += len as u64;
 
                             let is_int = arr1.iter().all(|x| matches!(x, RelType::Int(_)))

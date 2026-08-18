@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.7] - Sprint 344.1: Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec (2026-08-18)
+Sprint 344.1 resolves CI formatting diffs, hardens vector opcode gas error handling, updates benchmark and badge documentation, and documents RPC authentication default semantics:
+- **CI Formatting Rectification (`aether_compiler/src/bench.rs`)**: Formatted `if cfg!(debug_assertions)` multi-line expression in `bench_vector_dot_product`, ensuring 0 formatting diffs across `cargo fmt --check`.
+- **Vector OpCode Gas Metering Hardening (`aether_compiler/src/vm/machine.rs`)**: Replaced suppressed gas meter consumption with strict error propagation `self.gas_meter.consume(...)?`. Enforced gas deduction and instruction quota checks prior to updating instruction counters and executing element compute loops, guaranteeing immediate abort and stack unwinding on gas exhaustion.
+- **Benchmark Suite & Auth Documentation Synchronization (`docs/BENCHMARKS.md`, `docs/KNOTEN_SPEC.md` & `README.md`)**: Updated `docs/BENCHMARKS.md` with authentic release build measurements for `VectorDotProduct(100_000)` (`226.19 ms` mean, `4.42 ops/s`). Documented RPC authentication default semantics: local development default is opt-in (`mesh_auth_token: None`), while production/mesh configurations strictly require `enable_zero_trust()` or a pre-shared auth token.
+- **100% English README & Version Synchronization (`v2.24.7`)**: Updated badges (`v2.24.7`, `329/329` tests) in `README.md` (*Option 1 preserved*) and synchronized version `v2.24.7` across `Cargo.toml`, `aether_compiler/Cargo.toml`, `knoten_core_types/Cargo.toml`, `rpc/types.rs`, `README.md`, `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/KNOTEN_SPEC.md`, and `docs/BENCHMARKS.md`.
+- **Automated Quality Gates & Integration Tests (`tests/simd_vector_integration_tests.rs`)**: Added `test_vector_gas_exhaustion_strict_abort` asserting immediate deterministic abort on quota exhaustion during vector operations. Updated all version assertions to `v2.24.7`.
+
 ## [v2.24.6] - Sprint 344: SIMD Vector Compute Engine, Batch OpCodes & Matrix Benchmarks (2026-08-18)
 Sprint 344 implements contiguous numeric array representations, SIMD-accelerated batch operations, AST vectorization lowering, proportional gas accounting, and formal vector benchmarks:
 - **SIMD-Accelerated Vector Compute & Batch OpCodes (`knoten_core_types/src/opcode.rs` & `aether_compiler/src/vm/machine.rs`)**: Added specialized vector batch opcodes (`OpCode::VectorAdd`, `OpCode::VectorMul`, `OpCode::VectorDot`). Contiguous numeric buffer extraction helpers (`as_f64_slice_or_vec()`, `as_i64_slice_or_vec()`, `is_pure_int_array()`) in `RelType` for zero-allocation batch execution on numeric vectors. High-throughput 4-element iterator chunking for LLVM SIMD auto-vectorization.
