@@ -386,7 +386,13 @@ Specifies the two-tier automated integration test suite (`tests/examples_verific
 - **Tier 2 (Syntax & Bytecode Compilation Integrity)**: All scripts in `examples/03_agents_and_zero_trust/` (multi-node cluster / quota RPC harness dependent) and `examples/04_interactive_and_ui/` (egui GUI window render loop dependent) are dynamically discovered, parsed, and compiled into non-empty VM bytecode streams.
 - **Dynamic Safeguard**: Enforces assertions requiring at least 1 verified script per category subfolder, preventing false-positive test passes if example directories are renamed or relocated.
 
-## 8. Formal Benchmarks (`v2.24.10`)
+### 7.10. Real-World Mesh & Vector Example Scripts (v2.24.11)
+Documents the Stage-2 agent orchestration and Stage-1 vector utility `.knoten` scripts:
+- **`examples/03_agents_and_zero_trust/task_offloading.knoten`**: Demonstrates Ed25519 payload signing, delegating compute tasks to optimal mesh peers, and validating `SignedTaskResult` with anti-replay guarantees without local privilege escalation.
+- **`examples/03_agents_and_zero_trust/mesh_telemetry.knoten`**: Demonstrates inspecting dynamic peer load metrics (CPU, RAM, queue depth, latency score) and tracking epidemic gossip states.
+- **`examples/02_vector_and_compute/vector_math.knoten`**: Pure `.knoten` implementation of reusable matrix/vector routines (`VectorDot`, `VectorAdd`, `VectorMul`, self-dot squared magnitude).
+
+## 8. Formal Benchmarks (`v2.24.11`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

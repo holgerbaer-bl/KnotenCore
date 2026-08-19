@@ -1,0 +1,40 @@
+// KnotenCore Examples — 03 Agents & Zero-Trust: P2P Mesh Telemetry
+// Demonstrates epidemic gossip state tracking and dynamic peer load telemetry inspection
+
+print("=== Zero-Trust Epidemic P2P Mesh Telemetry Demo ===");
+
+// 1. Gossip State Telemetry
+let node_self = "node-coordinator-root";
+let active_peers = 5;
+let stale_peers = 1;
+let evicted_peers = 0;
+
+print("Local Mesh Gossip State for Node [" + node_self + "]:");
+print("  Active Peers:  " + ToString(active_peers));
+print("  Stale Peers:   " + ToString(stale_peers));
+print("  Evicted Peers: " + ToString(evicted_peers));
+
+// 2. Peer Load Metrics Inspection
+let p1_id = "node-worker-01";
+let p1_cpu = 12.4;
+let p1_ram_mb = 128.5;
+let p1_queue = 0;
+let p1_latency_ms = 8;
+let p1_score = p1_latency_ms * 0.4 + p1_cpu * 0.3 + p1_queue * 10.0;
+
+let p2_id = "node-worker-02";
+let p2_cpu = 68.2;
+let p2_ram_mb = 512.0;
+let p2_queue = 4;
+let p2_latency_ms = 45;
+let p2_score = p2_latency_ms * 0.4 + p2_cpu * 0.3 + p2_queue * 10.0;
+
+print("Peer Metric Analysis:");
+print("  [" + p1_id + "] CPU: " + ToString(p1_cpu) + "% | RAM: " + ToString(p1_ram_mb) + " MB | Queue: " + ToString(p1_queue) + " | Latency: " + ToString(p1_latency_ms) + " ms -> Composite Score: " + ToString(p1_score));
+print("  [" + p2_id + "] CPU: " + ToString(p2_cpu) + "% | RAM: " + ToString(p2_ram_mb) + " MB | Queue: " + ToString(p2_queue) + " | Latency: " + ToString(p2_latency_ms) + " ms -> Composite Score: " + ToString(p2_score));
+
+if (p1_score < p2_score) {
+    print("Routing decision: Target [" + p1_id + "] selected as optimal low-latency peer.");
+} else {
+    print("Routing decision: Target [" + p2_id + "] selected.");
+}

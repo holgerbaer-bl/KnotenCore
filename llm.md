@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.24.10 Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.24.11 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.10)
+## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.11)
 
 > Tested with a single agent (Antigravity/Claude) against 20 custom scenarios. Not an independent benchmark; no comparison values from other DSLs. PRs with additional/stricter test cases are welcome.
 
@@ -20,7 +20,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.24.9** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Sprint 346 Examples Directory Cleanup & Restructuring (purged obsolete test relics and legacy `.nod` files, standardized `.knoten` script extensions across 4 thematic categories: `01_getting_started`, `02_vector_and_compute`, `03_agents_and_zero_trust`, `04_interactive_and_ui`), Sprint 345 Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading, Sprint 344.1 Vector Gas Metering Fix & Benchmark Spec, and Sprint 344 SIMD Vector Compute Engine.
+**Current Engine Version: v2.24.11** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Sprint 348 Dogfooding & Real-World Mesh Examples (real-world Stage-2 agent orchestration `task_offloading.knoten` and `mesh_telemetry.knoten`, and Stage-1 SIMD vector math utility `vector_math.knoten`), Sprint 347 CI Examples Verification Harness (`tests/examples_verification.rs`), Sprint 346 Examples Directory Cleanup & Restructuring, Sprint 345 Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading, Sprint 344.1 Vector Gas Metering Fix & Benchmark Spec, and Sprint 344 SIMD Vector Compute Engine.
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---

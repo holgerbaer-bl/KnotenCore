@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.10** · CI Examples Verification Harness
+Current engine version: **v2.24.11** · Dogfooding & Real-World Mesh Examples
 
 ## Done (selected milestones)
 
+- ✅ Dogfooding & Real-World Mesh Examples (real-world Stage-2 agent orchestration `task_offloading.knoten` and `mesh_telemetry.knoten`, Stage-1 SIMD vector math utility `vector_math.knoten`, Tier 1 end-to-end VM evaluation and Tier 2 compilation integrity verification, Section 7.10 of `docs/KNOTEN_SPEC.md`, Sprint 348 - v2.24.11)
 - ✅ CI Examples Verification Harness (dedicated two-tier automated integration test suite `tests/examples_verification.rs`, recursive `.knoten` script discovery under `examples/`, Tier 1 end-to-end VM runtime execution for getting started & compute scripts, Tier 2 syntax & bytecode compilation integrity for zero-trust sandbox & egui UI scripts, dynamic subfolder safeguards, Sprint 347 - v2.24.10)
 - ✅ Examples Directory Cleanup & Restructuring (standardized `.knoten` script extensions across all examples, purged obsolete test relics and legacy `.nod` files, restructured `examples/` workspace into 4 thematic categories: `01_getting_started`, `02_vector_and_compute`, `03_agents_and_zero_trust`, `04_interactive_and_ui`, aligned `test_examples_compilation_and_validation`, Sprint 346 - v2.24.9)
 - ✅ Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading (epidemic gossip discovery and peer load telemetry `GossipState` / `PeerMetrics`, latency-weighted/load-aware peer selection, Ed25519-signed `GossipFrame` transport, cryptographic task payload and worker result verification `SignedTaskResult`, per-peer rate-limiting `MAX_PER_PEER_TASK_RATE`, queue flood protection `MAX_TASK_QUEUE_DEPTH`, zero-trust sandboxed remote execution, Sprint 345 - v2.24.8)

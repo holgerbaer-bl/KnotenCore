@@ -1,0 +1,28 @@
+// KnotenCore Examples — 02 Vector & Compute: Vector Math Utilities
+// Reusable vector routines: vector addition, element-wise multiplication, and SIMD batch dot product
+
+print("=== Vector & Matrix Math Utilities Demo ===");
+
+let vec1 = [3.0, 4.0, 0.0];
+let vec2 = [6.0, 8.0, 1.0];
+
+print("Vector 1: [3.0, 4.0, 0.0]");
+print("Vector 2: [6.0, 8.0, 1.0]");
+
+// 1. SIMD Batch Addition
+let vec_sum = VectorAdd(vec1, vec2);
+print("Vector Addition (Vec1 + Vec2):");
+print(vec_sum);
+
+// 2. SIMD Batch Multiplication
+let vec_product = VectorMul(vec1, vec2);
+print("Vector Element-wise Product (Vec1 * Vec2):");
+print(vec_product);
+
+// 3. SIMD Dot Product computation
+let dot_result = VectorDot(vec1, vec2);
+print("SIMD Dot Product (Vec1 · Vec2) = " + ToString(dot_result));
+
+// 4. Self-Dot Product for Magnitude Squared
+let mag_sq = VectorDot(vec1, vec1);
+print("Vector 1 Squared Magnitude (Vec1 · Vec1) = " + ToString(mag_sq));

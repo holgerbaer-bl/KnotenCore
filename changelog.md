@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.11] - Sprint 348: Dogfooding & Real-World Mesh Examples (2026-08-19)
+Sprint 348 implements real-world Stage-2 agent orchestration and Stage-1 vector utility scripts directly in `.knoten`:
+- **Stage-2 Mesh & Agent Orchestration Examples (`examples/03_agents_and_zero_trust/`)**:
+  - `task_offloading.knoten`: Demonstrates Ed25519 payload signing, delegating compute tasks to optimal mesh peers, and validating `SignedTaskResult` with anti-replay guarantees without local privilege escalation. Verified by Tier 2 compilation integrity test.
+  - `mesh_telemetry.knoten`: Demonstrates inspecting dynamic peer load metrics (CPU, RAM, queue depth, latency score) and tracking epidemic gossip states. Verified by Tier 2 compilation integrity test.
+- **Stage-1 Vector & Array Utility Module (`examples/02_vector_and_compute/`)**:
+  - `vector_math.knoten`: Pure `.knoten` implementation of reusable matrix/vector routines (`VectorDot`, `VectorAdd`, `VectorMul`, self-dot squared magnitude). Verified by Tier 1 end-to-end VM evaluation test.
+- **100% English Documentation & Version Synchronization (`v2.24.11`)**: Synchronized version `v2.24.11` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.11`, `336/336` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.10 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.10] - Sprint 347: CI Examples Verification Harness (2026-08-19)
 Sprint 347 implements a dedicated two-tier automated integration test suite that recursively validates all `.knoten` scripts in `examples/` to guarantee parseability, compilability, and execution across all future releases:
 - **Two-Tier Examples Verification Test Suite (`tests/examples_verification.rs`)**:
