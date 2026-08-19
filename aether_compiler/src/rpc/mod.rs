@@ -36,6 +36,9 @@ pub struct RpcServer {
     pub revoked_keys_path: Arc<Mutex<Option<PathBuf>>>,
     pub used_nonces: Arc<Mutex<NonceCache>>,
     pub zero_trust_mode: Arc<Mutex<bool>>,
+    pub gossip_state: Arc<crate::mesh::GossipState>,
+    pub gossip_replay_tracker: Arc<crate::mesh::AntiReplayTracker>,
+    pub task_rate_limiter: Arc<PeerRateLimiter>,
 }
 
 impl Default for RpcServer {
@@ -54,11 +57,13 @@ pub const REGISTERED_METHODS: &[&str] = &[
     "knc_agent_restore",
     "knc_mesh_discover",
     "knc_mesh_peers",
+    "knc_mesh_gossip",
     "knc_agent_teleport",
     "knc_task_submit",
     "knc_task_status",
     "knc_task_cancel",
     "knc_task_steal",
+    "knc_task_complete",
     "knc_mesh_ping",
     "knc_mesh_metrics",
     "knc_store_put",
@@ -115,6 +120,9 @@ impl RpcServer {
             revoked_keys_path: Arc::new(Mutex::new(Some(PathBuf::from("revoked_keys.json")))),
             used_nonces: Arc::new(Mutex::new(NonceCache::new())),
             zero_trust_mode: Arc::new(Mutex::new(false)),
+            gossip_state: Arc::new(crate::mesh::GossipState::new()),
+            gossip_replay_tracker: Arc::new(crate::mesh::AntiReplayTracker::new()),
+            task_rate_limiter: Arc::new(PeerRateLimiter::new()),
         };
         server.load_revoked_keys();
         server
@@ -302,11 +310,13 @@ impl RpcServer {
             "knc_agent_restore" => self.handle_agent_restore(req.id, req.params),
             "knc_mesh_discover" => self.handle_mesh_discover(req.id, req.params),
             "knc_mesh_peers" => self.handle_mesh_peers(req.id, req.params),
+            "knc_mesh_gossip" => self.handle_mesh_gossip(req.id, req.params),
             "knc_agent_teleport" => self.handle_agent_teleport(req.id, req.params),
             "knc_task_submit" => self.handle_task_submit(req.id, req.params),
             "knc_task_status" => self.handle_task_status(req.id, req.params),
             "knc_task_cancel" => self.handle_task_cancel(req.id, req.params),
             "knc_task_steal" => self.handle_task_steal(req.id, req.params),
+            "knc_task_complete" => self.handle_task_complete(req.id, req.params),
             "knc_mesh_ping" => self.handle_mesh_ping(req.id, req.params),
             "knc_mesh_metrics" => self.handle_mesh_metrics(req.id, req.params),
             "knc_store_put" => self.handle_store_put(req.id, req.params),
@@ -458,6 +468,9 @@ impl RpcServer {
             let revoked_keys_path = self.revoked_keys_path.clone();
             let used_nonces = self.used_nonces.clone();
             let zero_trust_mode = self.zero_trust_mode.clone();
+            let gossip_state = self.gossip_state.clone();
+            let gossip_replay_tracker = self.gossip_replay_tracker.clone();
+            let task_rate_limiter = self.task_rate_limiter.clone();
             std::thread::spawn(move || {
                 let server = RpcServer {
                     permissions,
@@ -476,6 +489,9 @@ impl RpcServer {
                     revoked_keys_path,
                     used_nonces,
                     zero_trust_mode,
+                    gossip_state,
+                    gossip_replay_tracker,
+                    task_rate_limiter,
                 };
                 server.handle_ws_connection(stream);
             });

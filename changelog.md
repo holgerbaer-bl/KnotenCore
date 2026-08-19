@@ -2,6 +2,16 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.8] - Sprint 345: Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading (2026-08-19)
+Sprint 345 implements epidemic gossip discovery, latency-weighted/load-aware peer selection, Ed25519-signed gossip message transport, cryptographic task payload and result signing, task queue flood rate limiting, and zero-trust sandboxed remote execution:
+- **Dynamic P2P Mesh Gossip & Transport Integrity (`aether_compiler/src/mesh/`)**: Added epidemic gossip discovery and peer load telemetry module (`GossipState`, `PeerMetrics`). Implemented latency-weighted and load-aware peer selection strategy (`select_optimal_peer`) calculating composite routing scores to route AST tasks to optimal peers. Added automatic decaying of unresponsive peers (`Active` -> `Stale` after 60s -> `Evicted` after 180s).
+- **Gossip Message Integrity & Anti-Replay (`aether_compiler/src/mesh/transport.rs`)**: Implemented `GossipFrame` signed with sender Ed25519 key, including monotonic sequence numbers and timestamp anti-replay validation (`AntiReplayTracker`, `verify_gossip_frame`).
+- **Cryptographic Task Delegation & Result Verification (`aether_compiler/src/rpc/handlers/tasks.rs`)**: Implemented Ed25519 cryptographic signature verification for incoming AST task payloads in `knc_task_submit` and worker result verification in `SignedTaskResult` / `knc_task_complete`, rejecting tampered or unauthenticated results and revoked peer keys.
+- **Resource Protection, Rate Limiting & Sandboxing (`aether_compiler/src/rpc/handlers/tasks.rs`)**: Enforced task queue capacity limits (`MAX_TASK_QUEUE_DEPTH`) and per-peer task submission sliding window rate-limiting (`MAX_PER_PEER_TASK_RATE`), mitigating queue flood attempts. Guaranteed zero-trust sandboxed remote task execution with zero host filesystem access.
+- **Dynamic RPC Introspection & Protocol Security**: Registered `knc_mesh_gossip` and `knc_task_complete` in `RpcServer::registered_methods()`, maintaining 100% auth compliance coverage under `test_all_rpc_endpoints_auth_compliance`.
+- **100% English Documentation & Version Synchronization (`v2.24.8`)**: Synchronized version `v2.24.8` across workspace `Cargo.toml` files, `README.md` (*Option 1 preserved*, badges `v2.24.8`, `334/334` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.7 of `docs/KNOTEN_SPEC.md`.
+- **Automated Quality Gates & Integration Tests (`tests/mesh_gossip_integration_tests.rs`)**: Added integration test suite verifying gossip discovery, latency-weighted routing, signed task delegation, result verification, queue flood rate limiting, and gossip anti-replay protection.
+
 ## [v2.24.7] - Sprint 344.1: Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec (2026-08-18)
 Sprint 344.1 resolves CI formatting diffs, hardens vector opcode gas error handling, updates benchmark and badge documentation, and documents RPC authentication default semantics:
 - **CI Formatting Rectification (`aether_compiler/src/bench.rs`)**: Formatted `if cfg!(debug_assertions)` multi-line expression in `bench_vector_dot_product`, ensuring 0 formatting diffs across `cargo fmt --check`.

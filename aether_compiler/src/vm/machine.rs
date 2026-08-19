@@ -4284,6 +4284,8 @@ mod tests {
     #[test]
     fn test_p2p_mesh_bus_distributed_routing() {
         let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        isolate::bus_drain();
+        isolate::drain_mesh_routing_table();
         let data = vec![RelType::Int(42), RelType::Float(3.15)];
 
         isolate::mesh_subscribe("global_telemetry", "Knoten_Zadar");

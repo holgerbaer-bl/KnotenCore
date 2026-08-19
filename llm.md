@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.24.5 Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.24.8 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.5)
+## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.8)
 
 > Tested with a single agent (Antigravity/Claude) against 20 custom scenarios. Not an independent benchmark; no comparison values from other DSLs. PRs with additional/stricter test cases are welcome.
 
@@ -20,7 +20,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.24.7** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Sprint 344.1 Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec (`self.gas_meter.consume(...)?` error propagation, gas deduction ordering hardening, `bench.rs` formatting alignment, authentic benchmark measurements, RPC auth default semantics documentation), Sprint 344 SIMD Vector Compute Engine, Batch OpCodes & Matrix Benchmarks (`OpCode::VectorDot`, `OpCode::VectorAdd`, `OpCode::VectorMul`, `RelType::as_f64_slice_or_vec`, `Node::VectorDot`, AST vector lowering, batch gas accounting, `VectorDotProduct(100_000)` benchmark), Sprint 343.1 Zero-Trust RPC Mesh Auth Hardening (`knc_eval_isolate` auth guard, `RpcServer::registered_methods()`, dynamic introspection test suite, rustfmt import ordering alignment), Sprint 343 Isolate Gas Metering, Execution Watchdog & Resource Quotas (`GasMeter`, `VMError::GasExhausted`, `VMError::MemoryQuotaExceeded`, `VMError::WatchdogTimeout`, `knc_eval_isolate`), Sprint 342 Deep Thought 42 Intrinsic & Deterministic Protocol Extension (`knc_meaning_of_life` intrinsic & RPC endpoint returning Hitchhiker payload metadata across Evaluator and VM engines with full parity).
+**Current Engine Version: v2.24.8** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Sprint 345 Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading (epidemic gossip discovery and peer load telemetry `GossipState` / `PeerMetrics`, latency-weighted/load-aware peer selection, Ed25519-signed `GossipFrame` transport, cryptographic task payload and worker result verification `SignedTaskResult`, per-peer rate-limiting `MAX_PER_PEER_TASK_RATE`, queue flood protection `MAX_TASK_QUEUE_DEPTH`, zero-trust sandboxed remote execution), Sprint 344.1 Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec, Sprint 344 SIMD Vector Compute Engine & Batch OpCodes, Sprint 343.1 Zero-Trust RPC Mesh Auth Hardening, and Sprint 343 Isolate Gas Metering & Resource Quotas.
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---

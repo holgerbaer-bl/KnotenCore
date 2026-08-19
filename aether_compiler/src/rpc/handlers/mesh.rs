@@ -450,4 +450,59 @@ impl super::super::RpcServer {
 
         JsonRpcResponse::success(id, resp_val)
     }
+
+    pub fn handle_mesh_gossip(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        if let Some(frame_val) = params.get("frame") {
+            let frame: crate::mesh::GossipFrame = match serde_json::from_value(frame_val.clone()) {
+                Ok(f) => f,
+                Err(e) => {
+                    return JsonRpcResponse::error(
+                        id,
+                        -32602,
+                        format!("Invalid GossipFrame payload: {}", e),
+                    );
+                }
+            };
+
+            if let Err(err) =
+                crate::mesh::verify_gossip_frame(&frame, Some(&self.gossip_replay_tracker))
+            {
+                return JsonRpcResponse::error(id, -32001, err);
+            }
+
+            if self.is_peer_key_revoked(&frame.sender_public_key) {
+                return JsonRpcResponse::error(
+                    id,
+                    -32001,
+                    "Unauthorized: Sender peer key is revoked",
+                );
+            }
+
+            if let Ok(metrics) =
+                serde_json::from_value::<crate::mesh::PeerMetrics>(frame.payload.clone())
+            {
+                self.gossip_state.update_peer_metrics(metrics);
+            }
+
+            let resp_val = serde_json::json!({
+                "status": "ok",
+                "gossip_verified": true,
+                "sender_node_id": frame.sender_node_id,
+                "peers": self.gossip_state.list_peers()
+            });
+            return JsonRpcResponse::success(id, resp_val);
+        }
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "gossip": true,
+            "node_id": self.node_id,
+            "peers": self.gossip_state.list_peers()
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
 }

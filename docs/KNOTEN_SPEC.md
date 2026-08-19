@@ -363,7 +363,15 @@ Specifies strict error propagation, execution ordering invariants, and RPC secur
 - **RPC Authentication Semantics**: Local development default is opt-in (`mesh_auth_token: None`), permitting unauthenticated local developer tooling connections on loopback interfaces. In production, multi-tenant, or P2P mesh deployments, authentication is strictly enforced via `enable_zero_trust()` or mandatory pre-shared auth token verification (`check_mesh_auth`).
 - **Strict Vector Gas Metering**: Replaces suppressed gas deduction in batch opcodes (`VectorDot`, `VectorAdd`, `VectorMul`) with strict error propagation (`self.gas_meter.consume(...)?`). Gas deduction and quota checking MUST occur prior to updating internal instruction counters (`instr_count += len`) and executing compute loops, guaranteeing zero unmetered operations and clean stack unwinding on quota exhaustion (`VMError::GasExhausted`).
 
-## 8. Formal Benchmarks (`v2.24.7`)
+### 7.7. Zero-Trust P2P Mesh Gossip Protocol, Bidirectional Result Signing, and Queue Protection (v2.24.8)
+Specifies epidemic peer discovery, load-aware routing, transport security, and signed task delegation:
+- **Epidemic P2P Mesh Gossip (`aether_compiler/src/mesh/`)**: Nodes maintain local `GossipState` containing `PeerMetrics` (CPU load, memory usage, task queue depth, latency, status). Gossip updates propagate dynamically and decay unresponsive peers (`Active` -> `Stale` after 60s -> `Evicted` after 180s).
+- **Latency-Weighted & Load-Aware Peer Selection**: Dynamic task routing via `select_optimal_peer`, evaluating composite routing scores `score = (latency_ms as f64) * 0.4 + cpu_load_percent * 0.3 + (queue_depth as f64) * 10.0 + memory_usage_percent * 0.3` across active, non-overloaded peer nodes.
+- **Signed Transport Integrity & Anti-Replay**: Transport frames (`GossipFrame`) are cryptographically signed with sender Ed25519 keys (`create_signed_gossip_frame`) and validated (`verify_gossip_frame`) using monotonic sequence numbers (`AntiReplayTracker`) and timestamp anti-replay validation.
+- **Bidirectional Task & Result Signing**: AST task payloads submitted via `knc_task_submit` require valid sender Ed25519 signatures in zero-trust mode. Worker nodes execute tasks in sandboxed VM isolates (zero host filesystem access) and sign execution results (`SignedTaskResult`). Delegating nodes verify worker result signatures (`complete_signed`) and check against peer key revocation lists (`is_peer_key_revoked`).
+- **Resource Limits & Flood Protection**: Enforces task queue capacity limits (`MAX_TASK_QUEUE_DEPTH = 10,000`) and per-peer task rate-limiting (`MAX_PER_PEER_TASK_RATE = 50` tasks / 60s window per peer), rejecting queue flooding attempts with `-32001` auth/rate errors.
+
+## 8. Formal Benchmarks (`v2.24.8`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

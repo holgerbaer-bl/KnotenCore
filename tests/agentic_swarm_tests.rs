@@ -236,6 +236,6 @@ fn test_handshake_advertises_swarm_governance() {
     assert!(caps["node_roles"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.24.7"
+        "v2.24.8"
     );
 }

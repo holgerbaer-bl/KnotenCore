@@ -10,6 +10,7 @@ pub mod evaluator;
 pub mod executor;
 pub mod ffi;
 pub mod math;
+pub mod mesh;
 pub mod natives;
 pub mod optimizer;
 pub mod parser;
