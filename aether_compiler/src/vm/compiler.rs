@@ -493,6 +493,13 @@ impl Compiler {
                         std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(file_path);
                     if fallback.exists() {
                         path = fallback;
+                    } else if let Some(parent) =
+                        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent()
+                    {
+                        let parent_fallback = parent.join(file_path);
+                        if parent_fallback.exists() {
+                            path = parent_fallback;
+                        }
                     }
                 }
 
@@ -1196,7 +1203,7 @@ mod tests {
     #[test]
     fn test_import_compilation() {
         let mut compiler = Compiler::new();
-        let ast = Node::Import("examples/imported_ast.nod".to_string());
+        let ast = Node::Import("examples/01_getting_started/hello_knoten.knoten".to_string());
         assert!(compiler.compile_node(&ast));
         assert!(!compiler.instructions.is_empty());
     }

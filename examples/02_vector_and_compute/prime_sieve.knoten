@@ -1,0 +1,25 @@
+// KnotenCore Examples — 02 Vector & Compute: Prime Sieve
+// Demonstrates deterministic compute and array manipulations
+
+let limit = 30;
+let primes = [];
+let num = 2;
+
+while (num <= limit) {
+    let is_prime = true;
+    let div = 2;
+    while (div * div <= num) {
+        if (num % div == 0) {
+            is_prime = false;
+        }
+        div = div + 1;
+    }
+    if (is_prime) {
+        primes = array_push(primes, num);
+    }
+    num = num + 1;
+}
+
+print("Prime numbers up to " + ToString(limit) + ":");
+print(primes);
+print("Total primes found: " + ToString(array_len(primes)));

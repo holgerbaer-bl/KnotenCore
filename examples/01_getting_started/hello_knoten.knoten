@@ -1,0 +1,14 @@
+// KnotenCore Examples — 01 Getting Started: Hello Knoten
+// Demonstrates basic syntax, variable binding, string concatenation, and print output
+
+let message = "Hello from KnotenCore 🦀🤖!";
+let version = "v2.24.9";
+
+print(message);
+print("Running on KnotenCore Engine " + version);
+
+let a = 10;
+let b = 32;
+let sum = a + b;
+
+print("Basic arithmetic computation: 10 + 32 = " + ToString(sum));

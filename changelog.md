@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.9] - Sprint 346: Examples Directory Cleanup & Restructuring (2026-08-19)
+Sprint 346 cleans up outdated debug/test relics, standardizes all script extensions to `.knoten`, and restructures the `examples/` workspace into 4 thematic categories:
+- **Obsolete Relic Purge (`examples/`)**: Purged internal VM/parser test scripts (`panic_test.knoten`, `watchdog_test.knoten`, `memory_stress.knoten`, `parser_test.knoten`), legacy JSON `.nod` files (`dashboard_config.nod`, `imported_ast.nod`, and old `examples/getting_started/task1..7.nod`), and redundant demo scripts (`light_demo.knoten`, `math_demo.knoten`, `random_demo.knoten`, `scene_demo.knoten`, `texture_demo.knoten`, `time_stamping.knoten`).
+- **4-Category Workspace Restructuring (`examples/`)**: Organized example scripts into 4 clean thematic categories with standardized `.knoten` extensions:
+  - `examples/01_getting_started/`: `hello_knoten.knoten` (basic syntax, variable binding, print output) and `control_flow.knoten` (conditionals, loops, recursion).
+  - `examples/02_vector_and_compute/`: `simd_dot_product.knoten` (`VectorDot` / SIMD batch operations) and `prime_sieve.knoten` (deterministic compute & array manipulations).
+  - `examples/03_agents_and_zero_trust/`: `isolate_sandbox.knoten` (quota-sandboxed isolate execution).
+  - `examples/04_interactive_and_ui/`: `calculator.knoten` (migrated egui calculator UI) and `telemetry_dashboard.knoten` (migrated system telemetry dashboard UI).
+- **Test Suite Alignment (`tests/sandbox_tests.rs`)**: Updated `test_examples_compilation_and_validation` to scan and parse all `.knoten` scripts across the 4 new category subdirectories.
+- **100% English Documentation & Version Synchronization (`v2.24.9`)**: Synchronized version `v2.24.9` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.9`, `335/335` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/KNOTEN_SPEC.md`, and `docs/BENCHMARKS.md`.
+
 ## [v2.24.8] - Sprint 345: Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading (2026-08-19)
 Sprint 345 implements epidemic gossip discovery, latency-weighted/load-aware peer selection, Ed25519-signed gossip message transport, cryptographic task payload and result signing, task queue flood rate limiting, and zero-trust sandboxed remote execution:
 - **Dynamic P2P Mesh Gossip & Transport Integrity (`aether_compiler/src/mesh/`)**: Added epidemic gossip discovery and peer load telemetry module (`GossipState`, `PeerMetrics`). Implemented latency-weighted and load-aware peer selection strategy (`select_optimal_peer`) calculating composite routing scores to route AST tasks to optimal peers. Added automatic decaying of unresponsive peers (`Active` -> `Stale` after 60s -> `Evicted` after 180s).

@@ -1,0 +1,79 @@
+// KnotenCore Examples — 04 Interactive & UI: Telemetry Dashboard
+// Migrated & cleaned up interactive system telemetry dashboard UI script
+
+let win = registry_create_window(800, 640, "KnotenCore — Telemetry Dashboard");
+
+registry_play_boot_tone();
+
+print("=== Telemetry Dashboard ===");
+print("  Domain: https://knotencore.de/");
+
+let last_run = "never";
+let current_time = time_get_string();
+let epoch = time_utc_timestamp();
+
+print("  Current: " + current_time + " (epoch " + ToString(epoch) + ")");
+
+let cpu_raw = [12.5, 34.2, 56.8, 23.1, 78.4, 45.0, 67.3, 31.9, 89.2, 15.7];
+let net_raw = [5.1, 10.3, 8.7, 22.4, 15.0, 30.6, 25.8, 18.2, 40.1, 12.9];
+let mem_raw = [42.5, 41.8, 43.1, 42.0, 44.2, 41.5, 43.8, 42.3, 44.0, 41.2];
+let dsk_raw = [73.0, 73.1, 73.2, 73.0, 73.3, 73.0, 73.1, 73.2, 73.0, 73.1];
+
+let cpu_scaled = math_vector_scale(cpu_raw, 1.0);
+let net_scaled = math_vector_scale(net_raw, 1.0);
+
+let gauge_offset = 100 - 25 * 2;
+print("  Constant folded value: " + ToString(gauge_offset));
+
+let avg_cpu = 0.0;
+let i = 0;
+while (i < 4) {
+    let idx = i * 2;
+    let val = idx + 1;
+    avg_cpu = avg_cpu + val;
+    i = i + 1;
+    if (i > 3) {
+        i = 5;
+    }
+}
+
+let avg_cpu_final = avg_cpu / 4.0;
+print("  Unrolled loop result: " + ToString(avg_cpu_final));
+
+let x = 42;
+let y = x;
+let z = y;
+print("  Peephole test — x=" + ToString(x) + " y=" + ToString(y) + " z=" + ToString(z));
+
+let current_cpu = array_get(cpu_scaled, 9);
+let current_mem = array_get(mem_raw, 9);
+let current_dsk = array_get(dsk_raw, 9);
+
+ui_progress_gauge("CPU Load", current_cpu, 0.0, 100.0);
+ui_progress_gauge("RAM Usage", current_mem, 0.0, 64.0);
+ui_progress_gauge("Disk Usage", current_dsk, 0.0, 100.0);
+
+ui_bar_chart("CPU History (last 10 ticks %)", cpu_scaled);
+ui_bar_chart("Memory History (last 10 ticks GB)", mem_raw);
+
+let scale_mat = [
+    2.0, 0.0, 0.0, 0.0,
+    0.0, 2.0, 0.0, 0.0,
+    0.0, 0.0, 2.0, 0.0,
+    0.0, 0.0, 0.0, 1.0
+];
+let point = [10.0, 20.0, 30.0];
+let transformed = math_matrix_transform(scale_mat, point);
+
+UIWindow("main_dash", "Telemetry Dashboard – " + current_time, UIVBox {
+    UILabel("KnotenCore Telemetry Dashboard");
+    UILabel("Domain: https://knotencore.de/");
+    UILabel("");
+    UILabel("Last run: " + last_run);
+    UILabel("Current:  " + current_time);
+    UILabel("Epoch:    " + ToString(epoch));
+    UILabel("");
+    UILabel("=== Metrics ===");
+    UILabel("CPU avg (4-sample): " + ToString(avg_cpu_final) + " %");
+    UILabel("3D Point scaled 2x: " + ToString(transformed));
+});

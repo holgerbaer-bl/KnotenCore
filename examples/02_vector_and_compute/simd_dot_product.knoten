@@ -1,0 +1,20 @@
+// KnotenCore Examples — 02 Vector & Compute: SIMD Dot Product
+// Demonstrates VectorDot, VectorAdd, and VectorMul batch operations
+
+let vec_a = [1.0, 2.0, 3.0, 4.0, 5.0];
+let vec_b = [2.0, 0.5, 1.5, 2.0, 1.0];
+
+// Vector Dot Product computation
+let dot_result = VectorDot(vec_a, vec_b);
+print("Vector A: [1.0, 2.0, 3.0, 4.0, 5.0]");
+print("Vector B: [2.0, 0.5, 1.5, 2.0, 1.0]");
+print("SIMD Dot Product (A · B) = " + ToString(dot_result));
+
+// Vector Batch Addition & Multiplication
+let vec_sum = VectorAdd(vec_a, vec_b);
+let vec_product = VectorMul(vec_a, vec_b);
+
+print("Vector Addition (A + B):");
+print(vec_sum);
+print("Vector Multiplication (A * B):");
+print(vec_product);

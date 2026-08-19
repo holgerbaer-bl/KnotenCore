@@ -13,7 +13,12 @@ use serde_json::json;
 
 #[test]
 fn test_version_assertion_sprint345() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.8");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.9");
+}
+
+#[test]
+fn test_version_assertion_sprint346() {
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.9");
     let server = RpcServer::new(AgentPermissions::default());
     let req = json!({
         "jsonrpc": "2.0",
@@ -22,7 +27,7 @@ fn test_version_assertion_sprint345() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.8\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.9\""));
 }
 
 #[test]

@@ -1,7 +1,10 @@
+// KnotenCore Examples — 04 Interactive & UI: Calculator
+// Migrated & cleaned up interactive egui calculator UI script
+
 let win = registry_create_window(480, 620, "KnotenCore — Calculator");
 
-print("Calculator UI rendered. All 16 buttons interactive via egui at 60 FPS.");
-print("Close the window to see the VM event loop begin processing.");
+print("Calculator UI rendered. Interactive buttons via egui at 60 FPS.");
+print("Close the window to complete execution.");
 
 let display = "0";
 let count = 0;
@@ -42,4 +45,4 @@ while (count < 5) {
     count = count + 1;
 }
 
-print("Demo complete. Window stays open — close it manually.");
+print("Calculator demo loop complete.");

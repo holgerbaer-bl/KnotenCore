@@ -366,23 +366,13 @@ fn test_examples_compilation_and_validation() {
 
     let examples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples");
     let example_files = [
-        "calculator.knoten",
-        "compute_parallel.knoten",
-        "control_room.knoten",
-        "dashboard.knoten",
-        "light_demo.knoten",
-        "math_demo.knoten",
-        "memory_stress.knoten",
-        "panic_test.knoten",
-        "parser_test.knoten",
-        "random_demo.knoten",
-        "raycast_demo.knoten",
-        "RESCUE_3D.knoten",
-        "scene_demo.knoten",
-        "telemetry_dashboard.knoten",
-        "time_stamping.knoten",
-        "ui_demo.knoten",
-        "watchdog_test.knoten",
+        "01_getting_started/hello_knoten.knoten",
+        "01_getting_started/control_flow.knoten",
+        "02_vector_and_compute/simd_dot_product.knoten",
+        "02_vector_and_compute/prime_sieve.knoten",
+        "03_agents_and_zero_trust/isolate_sandbox.knoten",
+        "04_interactive_and_ui/calculator.knoten",
+        "04_interactive_and_ui/telemetry_dashboard.knoten",
     ];
 
     let mut parsed = 0;

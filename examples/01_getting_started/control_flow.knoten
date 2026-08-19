@@ -1,0 +1,31 @@
+// KnotenCore Examples — 01 Getting Started: Control Flow
+// Demonstrates conditionals, iterative loops, and recursive function evaluation
+
+// 1. Conditionals
+let threshold = 50;
+let score = 75;
+
+if (score > threshold) {
+    print("Score exceeds threshold: PASS");
+} else {
+    print("Score below threshold: FAIL");
+}
+
+// 2. Iterative Loop
+print("Counting from 1 to 5:");
+let counter = 1;
+while (counter <= 5) {
+    print("Iteration: " + ToString(counter));
+    counter = counter + 1;
+}
+
+// 3. Recursive Fibonacci
+fn fib(n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}
+
+let fib10 = fib(10);
+print("Recursive fibonacci(10) = " + ToString(fib10));

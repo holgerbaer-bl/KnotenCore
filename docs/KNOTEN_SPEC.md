@@ -1,4 +1,4 @@
-# KnotenCore JSON AST Specification (v2.24.7)
+# KnotenCore JSON AST Specification (v2.24.9)
 
 KnotenCore is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. It bypasses text-parsing and instead consumes highly-efficient serialized JSON AST structures.
 
@@ -371,7 +371,16 @@ Specifies epidemic peer discovery, load-aware routing, transport security, and s
 - **Bidirectional Task & Result Signing**: AST task payloads submitted via `knc_task_submit` require valid sender Ed25519 signatures in zero-trust mode. Worker nodes execute tasks in sandboxed VM isolates (zero host filesystem access) and sign execution results (`SignedTaskResult`). Delegating nodes verify worker result signatures (`complete_signed`) and check against peer key revocation lists (`is_peer_key_revoked`).
 - **Resource Limits & Flood Protection**: Enforces task queue capacity limits (`MAX_TASK_QUEUE_DEPTH = 10,000`) and per-peer task rate-limiting (`MAX_PER_PEER_TASK_RATE = 50` tasks / 60s window per peer), rejecting queue flooding attempts with `-32001` auth/rate errors.
 
-## 8. Formal Benchmarks (`v2.24.8`)
+### 7.8. Examples Directory Standardization & Workspace Categorization (v2.24.9)
+Specifies the directory structure and naming conventions for KnotenCore code examples:
+- **Standardized Extensions**: All example script extensions are normalized to `.knoten`. Obsolete `.nod` JSON representations and test scripts are purged from the examples tree.
+- **Thematic Categories**:
+  1. `examples/01_getting_started/`: Basic syntax, variable binding, print statements (`hello_knoten.knoten`), and control flow structures (`control_flow.knoten`).
+  2. `examples/02_vector_and_compute/`: High-throughput SIMD batch operations (`simd_dot_product.knoten`) and deterministic compute / array algorithms (`prime_sieve.knoten`).
+  3. `examples/03_agents_and_zero_trust/`: Quota-sandboxed isolate execution and resource-bounded evaluation (`isolate_sandbox.knoten`).
+  4. `examples/04_interactive_and_ui/`: Interactive egui user interface applications (`calculator.knoten`, `telemetry_dashboard.knoten`).
+
+## 8. Formal Benchmarks (`v2.24.9`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

@@ -1,0 +1,29 @@
+// KnotenCore Examples — 03 Agents & Zero-Trust: Isolate Sandboxing
+// Demonstrates quota-sandboxed execution and resource-bounded isolate evaluation
+
+print("=== Zero-Trust Agent Isolate Sandbox Demo ===");
+
+// Simulating an isolated computational task
+let max_instructions = 10000;
+let memory_quota_bytes = 16777216; // 16 MB
+
+print("Isolate Quota Configuration:");
+print("  Max Instructions: " + ToString(max_instructions));
+print("  Memory Quota:     " + ToString(memory_quota_bytes) + " bytes");
+
+let task_id = "task-sandbox-01";
+let status = "Running";
+
+print("Task [" + task_id + "] status: " + status);
+
+// Computational work inside sandbox bounds
+let accumulator = 0;
+let step = 0;
+while (step < 100) {
+    accumulator = accumulator + step;
+    step = step + 1;
+}
+
+status = "Completed";
+print("Task [" + task_id + "] execution finished safely.");
+print("Accumulated Result: " + ToString(accumulator));

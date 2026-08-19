@@ -1,11 +1,11 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.24.8-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.24.9-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![AI Directives](https://img.shields.io/badge/AI--Directives-AI.md-purple)](AI.md)
 [![Automated CI](https://img.shields.io/badge/Automated_CI-Active-brightgreen)](docs/workflows/agent-ci-feedback.yml)
-[![Tests](https://img.shields.io/badge/tests-334%2F334-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.24.8-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-335%2F335-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.24.9-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -18,6 +18,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **Examples Directory Cleanup & Restructuring (v2.24.9)**: Standardized `.knoten` script extensions across all examples, purged obsolete test relics and legacy `.nod` files, and restructured the `examples/` workspace into 4 thematic categories (`01_getting_started`, `02_vector_and_compute`, `03_agents_and_zero_trust`, `04_interactive_and_ui`).
 - **Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading (v2.24.8)**: Epidemic gossip discovery and peer load telemetry (`GossipState`, `PeerMetrics`), latency-weighted/load-aware peer selection, Ed25519-signed gossip message transport (`GossipFrame`, `verify_gossip_frame`), cryptographic task delegation and worker result verification (`SignedTaskResult`), per-peer task rate-limiting (`MAX_PER_PEER_TASK_RATE`), queue flood protection (`MAX_TASK_QUEUE_DEPTH`), and zero-trust sandboxed remote execution.
 - **Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec (v2.24.7)**: Strict vector opcode gas error propagation (`self.gas_meter.consume(...)?;`), execution ordering hardening (gas deduction before instruction counter update), `cargo fmt` formatting rectification in `bench.rs`, authentic release benchmark measurements in `docs/BENCHMARKS.md`, and explicit RPC authentication semantics documentation (local development opt-in via `mesh_auth_token: None` vs. production Zero-Trust enforcement).
 - **SIMD Vector Compute Engine & Batch OpCodes (v2.24.6)**: Contiguous numeric buffer representations (`Vec<f64>` / `Vec<i64>`), SIMD-accelerated batch opcodes (`VectorDot`, `VectorAdd`, `VectorMul`), AST vectorization lowering, proportional batch gas accounting, and formal vector benchmark workload (`VectorDotProduct(100_000)`).

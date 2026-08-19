@@ -1,8 +1,0 @@
-{
-  "Block": [
-    {"Assign": ["count", {"IntLiteral": 1000}]},
-    {"Assign": ["shader_src", {"StringLiteral": "@compute @workgroup_size(64)\nfn main(@builtin(global_invocation_id) id: vec3<u32>) {\n    let val = f32(id.x);\n    output[id.x] = val * val;\n}"}]},
-    {"Assign": ["shader_id", {"IntLiteral": 1}]},
-    {"Return": {"Identifier": "shader_id"}}
-  ]
-}
