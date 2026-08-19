@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.24.9 Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.24.10 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.9)
+## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.10)
 
 > Tested with a single agent (Antigravity/Claude) against 20 custom scenarios. Not an independent benchmark; no comparison values from other DSLs. PRs with additional/stricter test cases are welcome.
 

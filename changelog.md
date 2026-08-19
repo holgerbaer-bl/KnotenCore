@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.10] - Sprint 347: CI Examples Verification Harness (2026-08-19)
+Sprint 347 implements a dedicated two-tier automated integration test suite that recursively validates all `.knoten` scripts in `examples/` to guarantee parseability, compilability, and execution across all future releases:
+- **Two-Tier Examples Verification Test Suite (`tests/examples_verification.rs`)**:
+  - **Tier 1 (End-to-End Runtime Execution)**: Recursively parses, compiles, and executes all scripts under `examples/01_getting_started/` and `examples/02_vector_and_compute/` in an isolated VM instance (`VM::default()`), asserting clean runtime termination without panics, gas exhaustion, or uncaught VM runtime errors.
+  - **Tier 2 (Syntax & Bytecode Compilation Integrity)**: Recursively parses and compiles all scripts under `examples/03_agents_and_zero_trust/` (execution bypassed: multi-node cluster / quota RPC harness required) and `examples/04_interactive_and_ui/` (execution bypassed: active egui GUI window render loop required) into non-empty VM bytecode streams.
+  - **Dynamic Subfolder Safeguards**: Enforces strict assertions requiring at least 1 verified script per category subfolder, preventing false-positive test passes if example directories are renamed or relocated.
+- **100% English Documentation & Version Synchronization (`v2.24.10`)**: Synchronized version `v2.24.10` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.10`, `336/336` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.9 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.9] - Sprint 346: Examples Directory Cleanup & Restructuring (2026-08-19)
 Sprint 346 cleans up outdated debug/test relics, standardizes all script extensions to `.knoten`, and restructures the `examples/` workspace into 4 thematic categories:
 - **Obsolete Relic Purge (`examples/`)**: Purged internal VM/parser test scripts (`panic_test.knoten`, `watchdog_test.knoten`, `memory_stress.knoten`, `parser_test.knoten`), legacy JSON `.nod` files (`dashboard_config.nod`, `imported_ast.nod`, and old `examples/getting_started/task1..7.nod`), and redundant demo scripts (`light_demo.knoten`, `math_demo.knoten`, `random_demo.knoten`, `scene_demo.knoten`, `texture_demo.knoten`, `time_stamping.knoten`).

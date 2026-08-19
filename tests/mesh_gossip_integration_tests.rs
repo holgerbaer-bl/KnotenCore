@@ -13,21 +13,21 @@ use serde_json::json;
 
 #[test]
 fn test_version_assertion_sprint345() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.9");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.10");
 }
 
 #[test]
 fn test_version_assertion_sprint346() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.9");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.10");
     let server = RpcServer::new(AgentPermissions::default());
-    let req = json!({
+    let req = serde_json::json!({
         "jsonrpc": "2.0",
         "id": 1,
-        "method": "knc_agent_handshake",
+        "method": "knc_mesh_metrics",
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.9\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.10\""));
 }
 
 #[test]

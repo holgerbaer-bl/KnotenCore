@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.9** · Examples Directory Cleanup & Restructuring
+Current engine version: **v2.24.10** · CI Examples Verification Harness
 
 ## Done (selected milestones)
 
+- ✅ CI Examples Verification Harness (dedicated two-tier automated integration test suite `tests/examples_verification.rs`, recursive `.knoten` script discovery under `examples/`, Tier 1 end-to-end VM runtime execution for getting started & compute scripts, Tier 2 syntax & bytecode compilation integrity for zero-trust sandbox & egui UI scripts, dynamic subfolder safeguards, Sprint 347 - v2.24.10)
 - ✅ Examples Directory Cleanup & Restructuring (standardized `.knoten` script extensions across all examples, purged obsolete test relics and legacy `.nod` files, restructured `examples/` workspace into 4 thematic categories: `01_getting_started`, `02_vector_and_compute`, `03_agents_and_zero_trust`, `04_interactive_and_ui`, aligned `test_examples_compilation_and_validation`, Sprint 346 - v2.24.9)
 - ✅ Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading (epidemic gossip discovery and peer load telemetry `GossipState` / `PeerMetrics`, latency-weighted/load-aware peer selection, Ed25519-signed `GossipFrame` transport, cryptographic task payload and worker result verification `SignedTaskResult`, per-peer rate-limiting `MAX_PER_PEER_TASK_RATE`, queue flood protection `MAX_TASK_QUEUE_DEPTH`, zero-trust sandboxed remote execution, Sprint 345 - v2.24.8)
 - ✅ Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec (strict vector opcode gas error propagation `self.gas_meter.consume(...)?`, execution ordering hardening, `cargo fmt` formatting rectification in `bench.rs`, authentic release benchmark measurements in `docs/BENCHMARKS.md`, explicit RPC authentication semantics documentation, Sprint 344.1 - v2.24.7)

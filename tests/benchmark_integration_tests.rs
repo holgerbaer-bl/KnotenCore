@@ -8,7 +8,7 @@ use knoten_core_types::ast::Node;
 
 #[test]
 fn test_version_assertion_sprint340() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.9");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.10");
     let server = RpcServer::new(AgentPermissions::default());
     let req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -17,7 +17,7 @@ fn test_version_assertion_sprint340() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.9\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.10\""));
 }
 
 #[test]
@@ -28,14 +28,24 @@ fn test_handlers_reexports_complete() {
         "id": 1,
         "method": "knc_agent_handshake",
         "params": {
-            "node_id": "test-agent",
-            "capabilities": ["compute"]
+            "node_id": "test-node-1"
         }
     });
-    let resp_agent = server.dispatch_request(&req_agent.to_string());
-    assert!(resp_agent.contains("\"status\":\"ok\""));
+    let res_agent = server.dispatch_request(&req_agent.to_string());
+    assert!(res_agent.contains("\"status\":\"ok\""));
 
-    // Verify handlers re-exports from aether_compiler::rpc::handlers::* and aether_compiler::rpc::*
+    let report = BenchmarkEngine::run_all();
+    assert_eq!(report.protocol_version, "v2.24.10");
+    assert!(report.metrics.len() >= 5);
+
+    for m in &report.metrics {
+        assert!(m.iterations > 0);
+        assert!(m.mean_ns > 0.0);
+        assert!(m.ops_per_sec > 0.0);
+    }
+
+    let json_str = serde_json::to_string_pretty(&report).unwrap();
+    assert!(json_str.contains("\"protocol_version\": \"v2.24.10\""));
     let dummy_id = Some(serde_json::json!(100));
     let res_a =
         server.handle_agent_handshake(dummy_id.clone(), serde_json::json!({"node_id": "a"}));
@@ -47,7 +57,7 @@ fn test_handlers_reexports_complete() {
 #[test]
 fn test_benchmark_engine_direct_api() {
     let report: BenchmarkReport = BenchmarkEngine::run_all();
-    assert_eq!(report.protocol_version, "v2.24.9");
+    assert_eq!(report.protocol_version, "v2.24.10");
     assert!(report.metrics.len() >= 5);
 
     for m in &report.metrics {
@@ -57,7 +67,7 @@ fn test_benchmark_engine_direct_api() {
     }
 
     let json_str = serde_json::to_string_pretty(&report).unwrap();
-    assert!(json_str.contains("\"protocol_version\": \"v2.24.9\""));
+    assert!(json_str.contains("\"protocol_version\": \"v2.24.10\""));
     assert!(json_str.contains("Fibonacci(30)"));
     assert!(json_str.contains("PrimeSieve(10_000)"));
     assert!(json_str.contains("VectorDotProduct(100_000)"));

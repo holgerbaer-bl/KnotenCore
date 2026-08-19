@@ -380,7 +380,13 @@ Specifies the directory structure and naming conventions for KnotenCore code exa
   3. `examples/03_agents_and_zero_trust/`: Quota-sandboxed isolate execution and resource-bounded evaluation (`isolate_sandbox.knoten`).
   4. `examples/04_interactive_and_ui/`: Interactive egui user interface applications (`calculator.knoten`, `telemetry_dashboard.knoten`).
 
-## 8. Formal Benchmarks (`v2.24.9`)
+### 7.9. CI Examples Verification Harness (v2.24.10)
+Specifies the two-tier automated integration test suite (`tests/examples_verification.rs`) for continuous verification of example code:
+- **Tier 1 (End-to-End Runtime Execution)**: All scripts in `examples/01_getting_started/` and `examples/02_vector_and_compute/` are dynamically discovered, parsed, compiled, and executed inside an isolated `VM` instance. Asserts clean runtime termination without panics, gas exhaustion, or uncaught VM runtime errors.
+- **Tier 2 (Syntax & Bytecode Compilation Integrity)**: All scripts in `examples/03_agents_and_zero_trust/` (multi-node cluster / quota RPC harness dependent) and `examples/04_interactive_and_ui/` (egui GUI window render loop dependent) are dynamically discovered, parsed, and compiled into non-empty VM bytecode streams.
+- **Dynamic Safeguard**: Enforces assertions requiring at least 1 verified script per category subfolder, preventing false-positive test passes if example directories are renamed or relocated.
+
+## 8. Formal Benchmarks (`v2.24.10`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.
