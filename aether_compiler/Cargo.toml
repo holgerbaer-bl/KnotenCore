@@ -1,6 +1,6 @@
 [package]
 name = "aether_compiler"
-version = "2.24.11"
+version = "2.24.12"
 edition = "2024"
 autobins = false
 

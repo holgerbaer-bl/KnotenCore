@@ -392,7 +392,12 @@ Documents the Stage-2 agent orchestration and Stage-1 vector utility `.knoten` s
 - **`examples/03_agents_and_zero_trust/mesh_telemetry.knoten`**: Demonstrates inspecting dynamic peer load metrics (CPU, RAM, queue depth, latency score) and tracking epidemic gossip states.
 - **`examples/02_vector_and_compute/vector_math.knoten`**: Pure `.knoten` implementation of reusable matrix/vector routines (`VectorDot`, `VectorAdd`, `VectorMul`, self-dot squared magnitude).
 
-## 8. Formal Benchmarks (`v2.24.11`)
+### 7.11. CI Workflow Hardening & Non-Interactive Release Builds (v2.24.12)
+Specifies the non-interactive execution environment and job timeout guards across GitHub Actions pipelines:
+- **Non-Interactive Terminal Execution**: Configures `DEBIAN_FRONTEND: noninteractive` and suppresses Ubuntu `needrestart` prompt dialogs (`$nrconf{restart} = "a";` in `/etc/needrestart/conf.d/silent.conf`) during system package installation steps (`apt-get install -y --no-install-recommends`).
+- **Bounded Execution Timeouts**: Enforces `timeout-minutes: 10` across all jobs in `.github/workflows/ci.yml` and `.github/workflows/release.yml`, preventing hung test threads or stalled external downloads from consuming runner quotas.
+
+## 8. Formal Benchmarks (`v2.24.12`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

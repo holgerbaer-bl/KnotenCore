@@ -11,8 +11,8 @@ use serde_json::json;
 #[test]
 fn test_version_assertion_sprint338() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.11",
-        "Protocol version must be synchronized to v2.24.11"
+        KNC_PROTOCOL_VERSION, "v2.24.12",
+        "Protocol version must be synchronized to v2.24.12"
     );
 }
 

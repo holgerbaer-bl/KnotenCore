@@ -25,7 +25,7 @@ use std::path::Path;
 
 #[test]
 fn test_version_assertion_sprint347() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.11");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.12");
     let server = RpcServer::new(AgentPermissions::default());
     let req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -34,12 +34,17 @@ fn test_version_assertion_sprint347() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.11\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.12\""));
 }
 
 #[test]
 fn test_version_assertion_sprint348() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.11");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.12");
+}
+
+#[test]
+fn test_version_assertion_sprint349() {
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.12");
 }
 
 #[test]

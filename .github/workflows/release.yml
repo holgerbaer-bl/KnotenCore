@@ -12,6 +12,7 @@ jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -39,9 +40,14 @@ jobs:
 
     - name: Install Linux Dependencies
       if: runner.os == 'Linux'
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        NEEDRESTART_MODE: a
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libasound2-dev pkg-config libudev-dev libwayland-dev
+        sudo mkdir -p /etc/needrestart
+        echo '$nrconf{restart} = "a";' | sudo tee /etc/needrestart/conf.d/silent.conf > /dev/null
+        sudo -E apt-get update -y
+        sudo -E apt-get install -y --no-install-recommends libasound2-dev pkg-config libudev-dev libwayland-dev
 
     - name: Build run_knc (Release)
       run: cargo build --release --bin run_knc --target ${{ matrix.target }}
@@ -92,6 +98,7 @@ jobs:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     if: startsWith(github.ref, 'refs/tags/v')

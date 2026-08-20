@@ -2,6 +2,14 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.12] - Sprint 349: CI Workflow Hardening & Non-Interactive Release Builds (2026-08-20)
+Sprint 349 hardens GitHub Actions CI and Release pipelines against interactive terminal hangs and configures non-interactive package installations on Ubuntu 24.04 runners to prevent pipeline timeouts:
+- **CI & Release Workflows Hardening (`.github/workflows/`)**:
+  - Configured `DEBIAN_FRONTEND: noninteractive` and `NEEDRESTART_MODE: a` / `/etc/needrestart/conf.d/silent.conf` suppression to prevent Ubuntu `needrestart` terminal prompts from freezing headless runners.
+  - Enforced `sudo -E apt-get update -y` and `sudo -E apt-get install -y --no-install-recommends` for system dependencies (`libasound2-dev`, `pkg-config`, `libudev-dev`, `libwayland-dev`).
+  - Added strict `timeout-minutes: 10` execution boundaries across all build, quality, and release jobs in `ci.yml` and `release.yml`.
+- **100% English Documentation & Version Synchronization (`v2.24.12`)**: Synchronized version `v2.24.12` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.12`, `337/337` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.11 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.11] - Sprint 348: Dogfooding & Real-World Mesh Examples (2026-08-19)
 Sprint 348 implements real-world Stage-2 agent orchestration and Stage-1 vector utility scripts directly in `.knoten`:
 - **Stage-2 Mesh & Agent Orchestration Examples (`examples/03_agents_and_zero_trust/`)**:
