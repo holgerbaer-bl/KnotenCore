@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.12** · CI Workflow Hardening & Non-Interactive Release Builds
+Current engine version: **v2.24.13** · Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide
 
 ## Done (selected milestones)
 
+- ✅ Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide (standardized inline guest demarcation headers in `examples/03_agents_and_zero_trust/`, comprehensive host orchestration guide `examples/03_agents_and_zero_trust/README.md`, CLI/JSON-RPC signed payload submission examples, host Rust code strictly using `aether_compiler::crypto_ed25519` `ring` module, Section 7.12 of `docs/KNOTEN_SPEC.md`, Sprint 350 - v2.24.13)
 - ✅ CI Workflow Hardening & Non-Interactive Release Builds (hardened GitHub Actions `ci.yml` and `release.yml` against interactive terminal hangs, `DEBIAN_FRONTEND: noninteractive`, `needrestart` prompt suppression via silent configuration, 10-minute job execution boundaries across Linux, Windows, macOS runners, Section 7.11 of `docs/KNOTEN_SPEC.md`, Sprint 349 - v2.24.12)
 - ✅ Dogfooding & Real-World Mesh Examples (real-world Stage-2 agent orchestration `task_offloading.knoten` and `mesh_telemetry.knoten`, Stage-1 SIMD vector math utility `vector_math.knoten`, Tier 1 end-to-end VM evaluation and Tier 2 compilation integrity verification, Section 7.10 of `docs/KNOTEN_SPEC.md`, Sprint 348 - v2.24.11)
 - ✅ CI Examples Verification Harness (dedicated two-tier automated integration test suite `tests/examples_verification.rs`, recursive `.knoten` script discovery under `examples/`, Tier 1 end-to-end VM runtime execution for getting started & compute scripts, Tier 2 syntax & bytecode compilation integrity for zero-trust sandbox & egui UI scripts, dynamic subfolder safeguards, Sprint 347 - v2.24.10)

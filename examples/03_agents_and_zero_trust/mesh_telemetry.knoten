@@ -1,3 +1,16 @@
+// ============================================================================
+// ⚠️ ILLUSTRATIVE GUEST SCRIPT: Zero-Trust Sandboxed Execution Model
+//
+// This script illustrates the DATA SHAPE and lifecycle of task delegation
+// from the perspective of an isolated guest isolate. By design, .knoten scripts
+// have ZERO network/socket intrinsics to guarantee hermetic sandboxing.
+//
+// Real cryptographic signing (Ed25519), RPC mesh transport, and peer discovery
+// are performed exclusively by the Host/Orchestrator layer.
+// For end-to-end host orchestration code, see:
+// examples/03_agents_and_zero_trust/README.md
+// ============================================================================
+
 // KnotenCore Examples — 03 Agents & Zero-Trust: P2P Mesh Telemetry
 // Demonstrates epidemic gossip state tracking and dynamic peer load telemetry inspection
 
@@ -24,7 +37,7 @@ let p1_score = p1_latency_ms * 0.4 + p1_cpu * 0.3 + p1_queue * 10.0;
 
 let p2_id = "node-worker-02";
 let p2_cpu = 68.2;
-let p2_ram_mb = 512.0;
+let p2_ram_mb = 45;
 let p2_queue = 4;
 let p2_latency_ms = 45;
 let p2_score = p2_latency_ms * 0.4 + p2_cpu * 0.3 + p2_queue * 10.0;

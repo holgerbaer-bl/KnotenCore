@@ -397,7 +397,12 @@ Specifies the non-interactive execution environment and job timeout guards acros
 - **Non-Interactive Terminal Execution**: Configures `DEBIAN_FRONTEND: noninteractive` and suppresses Ubuntu `needrestart` prompt dialogs (`$nrconf{restart} = "a";` in `/etc/needrestart/conf.d/silent.conf`) during system package installation steps (`apt-get install -y --no-install-recommends`).
 - **Bounded Execution Timeouts**: Enforces `timeout-minutes: 10` across all jobs in `.github/workflows/ci.yml` and `.github/workflows/release.yml`, preventing hung test threads or stalled external downloads from consuming runner quotas.
 
-## 8. Formal Benchmarks (`v2.24.12`)
+### 7.12. Host vs. Guest Zero-Trust Architecture & Agent Orchestration Guide (v2.24.13)
+Specifies the architectural demarcation and documentation standards between Guest DSL sandboxed execution and Host-level cryptographic orchestration:
+- **Guest DSL Sandboxing**: `.knoten` scripts operate in an isolated VM isolate with zero network or socket access intrinsics. Standardized demarcation headers (`examples/03_agents_and_zero_trust/`) clarify guest data-shape representation vs. host execution.
+- **Host Orchestration Guide**: `examples/03_agents_and_zero_trust/README.md` documents end-to-end task submission (`knc_task_submit`), Ed25519 payload signing, WebSocket/HTTP RPC transport, and `SignedTaskResult` verification using workspace-native `ring`-backed cryptography (`aether_compiler::crypto_ed25519`).
+
+## 8. Formal Benchmarks (`v2.24.13`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

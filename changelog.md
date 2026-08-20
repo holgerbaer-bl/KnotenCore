@@ -2,6 +2,15 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.13] - Sprint 350: Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide (2026-08-20)
+Sprint 350 clarifies and documents the security boundary between hermetic Guest DSL isolates and Host-level cryptographic mesh orchestrators:
+- **Inline Guest Demarcation Headers (`examples/03_agents_and_zero_trust/`)**: Standardized prominent header comments in `task_offloading.knoten` and `mesh_telemetry.knoten` explaining that `.knoten` guest scripts are hermetically sandboxed with zero network/socket intrinsics.
+- **Comprehensive Host Orchestration Reference Guide (`examples/03_agents_and_zero_trust/README.md`)**:
+  - Detailed architecture overview of Guest Sandboxed Execution vs. Host Orchestration.
+  - Step-by-step CLI and JSON-RPC payload construction (`knc_task_submit`) with real Ed25519 signatures and polling `SignedTaskResult`.
+  - Concrete Host Rust code strictly using workspace-native `aether_compiler::crypto_ed25519` (`Ed25519KeyPair`, `Ed25519PublicKey`) and `SignedTaskResult::verify()`.
+- **100% English Documentation & Version Synchronization (`v2.24.13`)**: Synchronized version `v2.24.13` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.13`, `338/338` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.12 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.12] - Sprint 349: CI Workflow Hardening & Non-Interactive Release Builds (2026-08-20)
 Sprint 349 hardens GitHub Actions CI and Release pipelines against interactive terminal hangs and configures non-interactive package installations on Ubuntu 24.04 runners to prevent pipeline timeouts:
 - **CI & Release Workflows Hardening (`.github/workflows/`)**:
