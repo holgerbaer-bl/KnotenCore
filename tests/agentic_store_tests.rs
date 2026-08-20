@@ -574,7 +574,11 @@ fn test_store_differential_sync_only_transfers_deltas() {
     })
     .to_string();
     let verify_diff_resp = parse_response(&server_a.dispatch_request(&verify_diff_req));
-    assert!(result_field(&verify_diff_resp, "in_sync").as_bool().unwrap());
+    assert!(
+        result_field(&verify_diff_resp, "in_sync")
+            .as_bool()
+            .unwrap()
+    );
     assert_eq!(
         result_field(&verify_diff_resp, "entries")
             .as_array()
