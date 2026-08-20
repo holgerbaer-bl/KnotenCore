@@ -277,7 +277,7 @@ fn test_handshake_advertises_crdt_store_capabilities() {
     assert!(caps["peer_state_sync"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.24.15"
+        "v2.24.16"
     );
 }
 
@@ -356,4 +356,286 @@ fn test_mesh_auth_replay_attack_protection() {
     let resp = parse_response(&raw);
     assert!(resp.error.is_some());
     assert_eq!(resp.error.unwrap().code, -32001);
+}
+
+#[test]
+fn test_store_digest_deterministic_across_identical_nodes() {
+    let server_a = make_server("node-digest-a");
+    let server_b = make_server("node-digest-b");
+
+    // Insert keys in forward order on node A
+    server_a.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": { "key": "k1", "value": "val1", "timestamp": 100, "writer_id": "w1" },
+            "id": 1
+        })
+        .to_string(),
+    );
+    server_a.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": { "key": "k2", "value": {"nested": 42}, "timestamp": 200, "writer_id": "w2" },
+            "id": 2
+        })
+        .to_string(),
+    );
+    server_a.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": { "key": "k3", "value": [1, 2, 3], "timestamp": 300, "writer_id": "w3" },
+            "id": 3
+        })
+        .to_string(),
+    );
+
+    // Insert keys in reverse order on node B
+    server_b.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": { "key": "k3", "value": [1, 2, 3], "timestamp": 300, "writer_id": "w3" },
+            "id": 10
+        })
+        .to_string(),
+    );
+    server_b.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": { "key": "k1", "value": "val1", "timestamp": 100, "writer_id": "w1" },
+            "id": 11
+        })
+        .to_string(),
+    );
+    server_b.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": { "key": "k2", "value": {"nested": 42}, "timestamp": 200, "writer_id": "w2" },
+            "id": 12
+        })
+        .to_string(),
+    );
+
+    // Query digests on both nodes
+    let req_digest = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_digest",
+        "params": {},
+        "id": 100
+    })
+    .to_string();
+
+    let resp_a = parse_response(&server_a.dispatch_request(&req_digest));
+    let resp_b = parse_response(&server_b.dispatch_request(&req_digest));
+
+    assert!(resp_a.error.is_none());
+    assert!(resp_b.error.is_none());
+
+    let digest_a = result_field(&resp_a, "state_digest").as_str().unwrap();
+    let digest_b = result_field(&resp_b, "state_digest").as_str().unwrap();
+
+    assert_eq!(
+        digest_a, digest_b,
+        "Digests must match regardless of insertion order"
+    );
+    assert_eq!(result_field(&resp_a, "entry_count").as_u64().unwrap(), 3);
+    assert_eq!(
+        result_field(&resp_a, "latest_timestamp").as_u64().unwrap(),
+        300
+    );
+}
+
+#[test]
+fn test_store_differential_sync_only_transfers_deltas() {
+    let server_a = make_server("node-sync-a");
+    let server_b = make_server("node-sync-b");
+
+    // Populate common base data
+    for i in 1..=5 {
+        server_a.dispatch_request(
+            &serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "knc_store_put",
+                "params": { "key": format!("base_{}", i), "value": i, "timestamp": 100, "writer_id": "init" },
+                "id": i
+            })
+            .to_string(),
+        );
+        server_b.dispatch_request(
+            &serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "knc_store_put",
+                "params": { "key": format!("base_{}", i), "value": i, "timestamp": 100, "writer_id": "init" },
+                "id": i
+            })
+            .to_string(),
+        );
+    }
+
+    // Add new updates only on Node A with timestamp 500
+    server_a.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": { "key": "delta_key_1", "value": "new_val_1", "timestamp": 500, "writer_id": "updater" },
+            "id": 99
+        })
+        .to_string(),
+    );
+    server_a.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": { "key": "delta_key_2", "value": "new_val_2", "timestamp": 500, "writer_id": "updater" },
+            "id": 100
+        })
+        .to_string(),
+    );
+
+    // Node B gets its own digest
+    let req_b_digest = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_digest",
+        "params": {},
+        "id": 101
+    })
+    .to_string();
+    let resp_b_digest = parse_response(&server_b.dispatch_request(&req_b_digest));
+    let digest_b = result_field(&resp_b_digest, "state_digest")
+        .as_str()
+        .unwrap();
+
+    // Node B requests differential updates from Node A since timestamp 200
+    let diff_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_diff",
+        "params": {
+            "peer_digest": digest_b,
+            "since_timestamp": 200
+        },
+        "id": 102
+    })
+    .to_string();
+
+    let diff_raw = server_a.dispatch_request(&diff_req);
+    let diff_resp = parse_response(&diff_raw);
+    assert!(diff_resp.error.is_none());
+
+    assert!(!result_field(&diff_resp, "in_sync").as_bool().unwrap());
+    let entries = result_field(&diff_resp, "entries").as_array().unwrap();
+    assert_eq!(
+        entries.len(),
+        2,
+        "Only the 2 delta keys updated after ts 200 should be returned"
+    );
+
+    // Apply differential sync on Node B
+    let sync_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_sync",
+        "params": {
+            "action": "push",
+            "entries": entries
+        },
+        "id": 103
+    })
+    .to_string();
+    let sync_resp = parse_response(&server_b.dispatch_request(&sync_req));
+    assert!(sync_resp.error.is_none());
+    assert_eq!(
+        result_field(&sync_resp, "updated_entries")
+            .as_u64()
+            .unwrap(),
+        2
+    );
+
+    // After sync, digests must match and knc_store_diff returns in_sync: true
+    let resp_b_digest_after = parse_response(&server_b.dispatch_request(&req_b_digest));
+    let digest_b_after = result_field(&resp_b_digest_after, "state_digest")
+        .as_str()
+        .unwrap();
+
+    let resp_a_digest = parse_response(&server_a.dispatch_request(&req_b_digest));
+    let digest_a = result_field(&resp_a_digest, "state_digest")
+        .as_str()
+        .unwrap();
+    assert_eq!(digest_a, digest_b_after);
+
+    let verify_diff_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_diff",
+        "params": { "peer_digest": digest_b_after },
+        "id": 104
+    })
+    .to_string();
+    let verify_diff_resp = parse_response(&server_a.dispatch_request(&verify_diff_req));
+    assert!(result_field(&verify_diff_resp, "in_sync").as_bool().unwrap());
+    assert_eq!(
+        result_field(&verify_diff_resp, "entries")
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+}
+
+#[test]
+fn test_store_digest_revoked_node_rejected() {
+    let server = RpcServer::new(AgentPermissions::default());
+    server.enable_zero_trust();
+    server.set_revoked_keys_path(None);
+
+    let evil_kp = aether_compiler::crypto_ed25519::Ed25519KeyPair::generate();
+    let evil_pubkey = evil_kp.public_key_hex();
+    server.revoke_peer_key(&evil_pubkey);
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let canonical_msg = format!("{}:{}", now, "nonce-evil");
+    let sig_hex = evil_kp.sign_hex(canonical_msg.as_bytes());
+
+    // Call knc_store_digest from revoked node
+    let digest_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_digest",
+        "params": {
+            "timestamp": now,
+            "nonce": "nonce-evil",
+            "public_key": evil_pubkey,
+            "signature": sig_hex
+        },
+        "id": 1
+    })
+    .to_string();
+
+    let resp = parse_response(&server.dispatch_request(&digest_req));
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, -32001);
+
+    // Call knc_store_diff from revoked node
+    let diff_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_diff",
+        "params": {
+            "peer_digest": "abc",
+            "timestamp": now,
+            "nonce": "nonce-evil",
+            "public_key": evil_pubkey,
+            "signature": sig_hex
+        },
+        "id": 2
+    })
+    .to_string();
+
+    let resp_diff = parse_response(&server.dispatch_request(&diff_req));
+    assert!(resp_diff.error.is_some());
+    assert_eq!(resp_diff.error.unwrap().code, -32001);
 }

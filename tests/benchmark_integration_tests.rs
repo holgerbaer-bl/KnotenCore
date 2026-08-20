@@ -8,7 +8,7 @@ use knoten_core_types::ast::Node;
 
 #[test]
 fn test_version_assertion_sprint340() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.15");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.16");
     let server = RpcServer::new(AgentPermissions::default());
     let req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -17,7 +17,7 @@ fn test_version_assertion_sprint340() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.15\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.16\""));
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn test_handlers_reexports_complete() {
     assert!(res_agent.contains("\"status\":\"ok\""));
 
     let report = BenchmarkEngine::run_all();
-    assert_eq!(report.protocol_version, "v2.24.15");
+    assert_eq!(report.protocol_version, "v2.24.16");
     assert!(report.metrics.len() >= 5);
 
     for m in &report.metrics {
@@ -45,7 +45,7 @@ fn test_handlers_reexports_complete() {
     }
 
     let json_str = serde_json::to_string_pretty(&report).unwrap();
-    assert!(json_str.contains("\"protocol_version\": \"v2.24.15\""));
+    assert!(json_str.contains("\"protocol_version\": \"v2.24.16\""));
     let dummy_id = Some(serde_json::json!(100));
     let res_a =
         server.handle_agent_handshake(dummy_id.clone(), serde_json::json!({"node_id": "a"}));
@@ -57,7 +57,7 @@ fn test_handlers_reexports_complete() {
 #[test]
 fn test_benchmark_engine_direct_api() {
     let report: BenchmarkReport = BenchmarkEngine::run_all();
-    assert_eq!(report.protocol_version, "v2.24.15");
+    assert_eq!(report.protocol_version, "v2.24.16");
     assert!(report.metrics.len() >= 5);
 
     for m in &report.metrics {
@@ -67,7 +67,7 @@ fn test_benchmark_engine_direct_api() {
     }
 
     let json_str = serde_json::to_string_pretty(&report).unwrap();
-    assert!(json_str.contains("\"protocol_version\": \"v2.24.15\""));
+    assert!(json_str.contains("\"protocol_version\": \"v2.24.16\""));
     assert!(json_str.contains("Fibonacci(30)"));
     assert!(json_str.contains("PrimeSieve(10_000)"));
     assert!(json_str.contains("VectorDotProduct(100_000)"));

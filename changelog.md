@@ -2,6 +2,20 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.16] - Sprint 353: CRDT Store State Digest, Differential Mesh Sync & ring Hashing (2026-08-20)
+Sprint 353 enhances the decentralized KV-store with deterministic anti-entropy state digests and differential mesh synchronization using native `ring` hashing:
+- **Deterministic Anti-Entropy State Digest (`aether_compiler/src/rpc/handlers/store.rs`)**:
+  - Implemented `compute_state_digest(&self) -> String` using strictly native `ring::digest::SHA256` hashing across deterministically sorted active (non-evicted) store keys.
+  - Generates canonical representations of sorted `(key, value_hash, timestamp, writer_id)` tuples.
+  - Documented known limitation: `writer_id` is currently an unauthenticated parameter; state digest inherits this trust boundary until peer identity binding is implemented.
+  - Added new JSON-RPC endpoint `knc_store_digest` returning `{ "state_digest": "<hex>", "entry_count": usize, "latest_timestamp": u64 }` with zero-trust auth verification and peer revocation validation.
+- **Differential Sync Engine (`aether_compiler/src/rpc/handlers/store.rs`)**:
+  - Added new JSON-RPC endpoint `knc_store_diff` accepting `{ "peer_digest": "<hex>", "since_timestamp": Option<u64>, "key_prefix": Option<String> }`.
+  - Short-circuits with `{ "in_sync": true, "entries": [] }` when digests match; otherwise returns timestamp-bounded delta entries.
+  - Enforced zero-trust authentication and peer revocation checks.
+- **100% English Documentation & Version Synchronization (`v2.24.16`)**:
+  - Synchronized version `v2.24.16` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.16`, `290/290` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.15 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.15] - Sprint 352: Zero-Trust Raft Heartbeat Envelopes, Anti-Downgrade Hardening & CI Format Repair (2026-08-20)
 Sprint 352 resolves the final audit finding (P3), transitions all Raft swarm governance heartbeat exchanges to Ed25519-signed zero-trust envelopes, enforces strict anti-downgrade protections, and repairs CI formatting:
 - **Zero-Trust Raft Heartbeat Signing (`aether_compiler/src/rpc/handlers/swarm.rs`)**:

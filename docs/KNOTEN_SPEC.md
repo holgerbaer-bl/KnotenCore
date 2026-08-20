@@ -414,7 +414,13 @@ Specifies the cryptographic signing and anti-downgrade guarantees for Raft swarm
 - **Verification & Revocation Filter**: `handle_swarm_heartbeat` verifies Ed25519 signatures, timestamp validity (30-second window), and rejects revoked keys via `is_peer_key_revoked()`.
 - **Strict Anti-Downgrade Invariant**: Authentication mode is governed strictly by server startup configuration (`is_zero_trust()`). Client-supplied parameters (e.g. `backward_compat`, `allow_legacy_hmac`) cannot force a fallback to legacy HMAC when the node is in Zero-Trust mode.
 
-## 8. Formal Benchmarks (`v2.24.15`)
+### 7.15. CRDT Store State Digests & Differential Mesh Synchronization (v2.24.16)
+Specifies the anti-entropy state digest computation, differential sync protocol, and trust boundaries:
+- **Deterministic SHA-256 State Digest (`knc_store_digest`)**: Computes a deterministic state digest across active (non-evicted) store keys sorted lexicographically. Uses `ring::digest::SHA256` to hash canonical representations of `(key, value_hash, timestamp, writer_id)` tuples.
+- **Differential Sync (`knc_store_diff`)**: Compares local state digest against `peer_digest`. Returns `{ "in_sync": true, "entries": [] }` if digests match; otherwise returns delta entries filtered by `since_timestamp` and `key_prefix`, bounded by `MAX_SYNC_ENTRIES`.
+- **Trust Boundary Demarcation**: Documents that `writer_id` is an unauthenticated client-supplied parameter under the current protocol; anti-entropy digests reflect this trust boundary until cryptographic peer identity binding is established.
+
+## 8. Formal Benchmarks (`v2.24.16`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

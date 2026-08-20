@@ -136,6 +136,86 @@ impl MeshKvStore {
         let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         store.values().cloned().collect()
     }
+
+    /// Computes a deterministic SHA256 anti-entropy state digest across all active store entries.
+    ///
+    /// Deterministically sorts active keys, computes canonical value digests, and feeds
+    /// (key, value_hash, timestamp, writer_id) tuples into a SHA-256 digest context.
+    ///
+    /// Known limitation: writer_id is currently an unauthenticated parameter;
+    /// state digest inherits this trust boundary until peer identity binding is implemented.
+    pub fn compute_state_digest(&self) -> String {
+        use ring::digest::{Context, SHA256, digest};
+
+        let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        let mut sorted_keys: Vec<&String> = store.keys().collect();
+        sorted_keys.sort();
+
+        let mut context = Context::new(&SHA256);
+        for key in sorted_keys {
+            if let Some(entry) = store.get(key) {
+                let val_str = serde_json::to_string(&entry.value).unwrap_or_default();
+                let val_digest = digest(&SHA256, val_str.as_bytes());
+                let val_hash_hex: String = val_digest
+                    .as_ref()
+                    .iter()
+                    .map(|b| format!("{:02x}", b))
+                    .collect();
+
+                let canonical_repr = format!(
+                    "{}:{}:{}:{}\n",
+                    entry.key, val_hash_hex, entry.timestamp, entry.writer_id
+                );
+                context.update(canonical_repr.as_bytes());
+            }
+        }
+
+        let final_digest = context.finish();
+        final_digest
+            .as_ref()
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect()
+    }
+
+    /// Returns the maximum timestamp recorded among all active entries, or 0 if empty.
+    pub fn latest_timestamp(&self) -> u64 {
+        let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        store.values().map(|e| e.timestamp).max().unwrap_or(0)
+    }
+
+    /// Returns differential entries matching optional `since_timestamp` and `key_prefix`, bounded by limit.
+    pub fn diff_entries(
+        &self,
+        since_timestamp: Option<u64>,
+        key_prefix: Option<&str>,
+        limit: usize,
+    ) -> Vec<CrdtEntry> {
+        let store = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        let mut matching: Vec<CrdtEntry> = store
+            .values()
+            .filter(|e| {
+                if let Some(since) = since_timestamp
+                    && e.timestamp < since
+                {
+                    return false;
+                }
+                if let Some(prefix) = key_prefix
+                    && !e.key.starts_with(prefix)
+                {
+                    return false;
+                }
+                true
+            })
+            .cloned()
+            .collect();
+
+        matching.sort_by(|a, b| a.key.cmp(&b.key));
+        if matching.len() > limit {
+            matching.truncate(limit);
+        }
+        matching
+    }
 }
 
 impl super::super::RpcServer {
@@ -265,5 +345,65 @@ impl super::super::RpcServer {
                 format!("Unknown knc_store_sync action '{}'", action),
             ),
         }
+    }
+
+    pub fn handle_store_digest(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let state_digest = self.store.compute_state_digest();
+        let entry_count = self.store.len();
+        let latest_timestamp = self.store.latest_timestamp();
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "state_digest": state_digest,
+            "entry_count": entry_count,
+            "latest_timestamp": latest_timestamp
+        });
+        JsonRpcResponse::success(id, resp_val)
+    }
+
+    pub fn handle_store_diff(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
+        if let Err(err) = self.check_mesh_auth(&params) {
+            return JsonRpcResponse::error(id, -32001, err);
+        }
+
+        let peer_digest = params.get("peer_digest").and_then(|v| v.as_str());
+        let local_digest = self.store.compute_state_digest();
+
+        if let Some(pd) = peer_digest
+            && !pd.is_empty()
+            && pd.eq_ignore_ascii_case(&local_digest)
+        {
+            let resp_val = serde_json::json!({
+                "status": "ok",
+                "in_sync": true,
+                "state_digest": local_digest,
+                "entries": []
+            });
+            return JsonRpcResponse::success(id, resp_val);
+        }
+
+        let since_timestamp = params.get("since_timestamp").and_then(|v| v.as_u64());
+        let key_prefix = params.get("key_prefix").and_then(|v| v.as_str());
+
+        let limit = params
+            .get("limit")
+            .and_then(|v| v.as_u64())
+            .map(|l| (l as usize).min(MAX_SYNC_ENTRIES))
+            .unwrap_or(MAX_SYNC_ENTRIES);
+
+        let delta_entries = self.store.diff_entries(since_timestamp, key_prefix, limit);
+
+        let resp_val = serde_json::json!({
+            "status": "ok",
+            "in_sync": false,
+            "state_digest": local_digest,
+            "entries_count": delta_entries.len(),
+            "entries": delta_entries
+        });
+        JsonRpcResponse::success(id, resp_val)
     }
 }
