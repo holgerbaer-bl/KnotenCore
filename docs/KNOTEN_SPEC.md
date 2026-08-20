@@ -402,7 +402,13 @@ Specifies the architectural demarcation and documentation standards between Gues
 - **Guest DSL Sandboxing**: `.knoten` scripts operate in an isolated VM isolate with zero network or socket access intrinsics. Standardized demarcation headers (`examples/03_agents_and_zero_trust/`) clarify guest data-shape representation vs. host execution.
 - **Host Orchestration Guide**: `examples/03_agents_and_zero_trust/README.md` documents end-to-end task submission (`knc_task_submit`), Ed25519 payload signing, WebSocket/HTTP RPC transport, and `SignedTaskResult` verification using workspace-native `ring`-backed cryptography (`aether_compiler::crypto_ed25519`).
 
-## 8. Formal Benchmarks (`v2.24.13`)
+### 7.13. WebSocket Robustness, Gossip Revocation Gate & Test Realignment (v2.24.14)
+Specifies the WebSocket connection robustness handling, epidemic gossip revocation gate, and test metric synchronization:
+- **WebSocket Frame Handling Robustness**: `handle_websocket_frames` handles `TcpStream::try_clone()` failures gracefully without thread panic, dropping failed connections and logging warnings.
+- **Epidemic Gossip Revocation Gate**: `knc_mesh_peers?action=gossip` verifies every peer in the gossip payload against `is_peer_key_revoked()`, evicting revoked entries and tracking rejections in `revoked_rejected`.
+- **Test Metric Realignment**: Realigns workspace test count metadata to 280 verified tests following legacy test script cleanup.
+
+## 8. Formal Benchmarks (`v2.24.14`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

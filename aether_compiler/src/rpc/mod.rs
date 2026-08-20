@@ -557,7 +557,14 @@ impl RpcServer {
     }
 
     fn handle_websocket_frames(&self, mut stream: TcpStream) {
-        let mut reader = BufReader::new(stream.try_clone().unwrap());
+        let cloned = match stream.try_clone() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[WARN] WebSocket: Failed to clone TcpStream, dropping connection: {}", e);
+                return;
+            }
+        };
+        let mut reader = BufReader::new(cloned);
 
         loop {
             let mut header = [0u8; 2];

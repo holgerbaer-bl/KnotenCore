@@ -3983,6 +3983,7 @@ mod tests {
 
     #[test]
     fn test_vm_adaptive_evolutionary_pgo() {
+        let _lock = TEST_SNAPSHOT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let isolate_id: i64 = 77;
 
         let instructions = vec![

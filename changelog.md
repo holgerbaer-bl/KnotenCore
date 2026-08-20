@@ -2,6 +2,17 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.14] - Sprint 351: WebSocket Robustness, Gossip Revocation Gate & Test Realignment (2026-08-20)
+Sprint 351 resolves findings from the security and architecture audit, closes a gossip peer revocation bypass, hardens WebSocket stream cloning against descriptor exhaustion, and realigns test metrics:
+- **WebSocket Stream Robustness (`aether_compiler/src/rpc/mod.rs`)**:
+  - Replaced unsafe `.unwrap()` on `TcpStream::try_clone()` with graceful error handling and warning log output to prevent thread panics under OS file-descriptor exhaustion.
+- **Gossip Peer Revocation Gate (`aether_compiler/src/rpc/handlers/mesh.rs`)**:
+  - Enforced strict revocation validation (`is_peer_key_revoked()`) in the `knc_mesh_peers?action=gossip` propagation handler.
+  - Automatically evicts incoming revoked nodes from local routing tables and increments the `revoked_rejected` counter, preventing malicious authenticated peers from re-introducing revoked nodes.
+  - Added dedicated integration test `test_gossip_propagation_filters_revoked_peers` in `tests/agentic_gossip_tests.rs`.
+- **100% English Documentation & Version Synchronization (`v2.24.14`)**:
+  - Synchronized version `v2.24.14` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.14`, `280/280` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.13 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.13] - Sprint 350: Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide (2026-08-20)
 Sprint 350 clarifies and documents the security boundary between hermetic Guest DSL isolates and Host-level cryptographic mesh orchestrators:
 - **Inline Guest Demarcation Headers (`examples/03_agents_and_zero_trust/`)**: Standardized prominent header comments in `task_offloading.knoten` and `mesh_telemetry.knoten` explaining that `.knoten` guest scripts are hermetically sandboxed with zero network/socket intrinsics.

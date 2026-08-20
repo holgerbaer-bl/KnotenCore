@@ -230,3 +230,59 @@ fn test_mesh_ping_rejects_invalid_token() {
     let peers = server.peers.lock().unwrap();
     assert!(!peers.contains_key("attacker-node"));
 }
+
+#[test]
+fn test_gossip_propagation_filters_revoked_peers() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-local",
+        "127.0.0.1:9090",
+        None,
+    );
+
+    // Revoziere einen böswilligen Peer explizit
+    server.revoke_peer_key("revoked-evil-node");
+
+    // Ein authentifizierter Peer sendet Gossip mit einem legitimen und einem revozierten Knoten
+    let gossip_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_peers",
+        "params": {
+            "action": "gossip",
+            "peers": [
+                {
+                    "node_id": "legit-peer-1",
+                    "address": "127.0.0.1:9111",
+                    "capabilities": ["mesh_ping"],
+                    "last_seen": 1000,
+                    "latency_ms": 10,
+                    "status": "Active"
+                },
+                {
+                    "node_id": "revoked-evil-node",
+                    "address": "127.0.0.1:9666",
+                    "capabilities": ["mesh_ping"],
+                    "last_seen": 1000,
+                    "latency_ms": 10,
+                    "status": "Active"
+                }
+            ]
+        },
+        "id": 1
+    });
+
+    let resp_str = server.dispatch_request(&gossip_req.to_string());
+    let resp: serde_json::Value = serde_json::from_str(&resp_str).unwrap();
+
+    assert_eq!(resp["result"]["status"], "ok");
+    assert_eq!(resp["result"]["gossip_summary"]["added"], 1);
+    assert_eq!(resp["result"]["gossip_summary"]["revoked_rejected"], 1);
+
+    // Verify: legit-peer-1 is active, revoked-evil-node is NOT active in routing table
+    let peers = server.peers.lock().unwrap();
+    assert!(peers.contains_key("legit-peer-1"));
+    assert_eq!(peers["legit-peer-1"].status, "Active");
+    assert!(
+        !peers.contains_key("revoked-evil-node") || peers["revoked-evil-node"].status == "Evicted"
+    );
+}

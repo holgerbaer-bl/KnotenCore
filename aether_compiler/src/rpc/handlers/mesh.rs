@@ -159,11 +159,33 @@ impl super::super::RpcServer {
 
                 let mut added = 0;
                 let mut updated = 0;
+                let mut revoked_rejected = 0;
 
                 for mut peer in incoming_peers {
                     if peer.node_id == self.node_id {
                         continue;
                     }
+
+                    // Revocation gate: reject any peer whose node_id or known public key
+                    // appears in the revocation list. This prevents a malicious-but-authenticated
+                    // peer from re-introducing evicted nodes via gossip propagation (I2 fix).
+                    let peer_key_revoked = self.is_peer_key_revoked(&peer.node_id)
+                        || self
+                            .verified_peer_keys
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner())
+                            .get(&peer.node_id)
+                            .is_some_and(|pk| self.is_peer_key_revoked(pk));
+
+                    if peer_key_revoked {
+                        // Ensure any stale local entry for this node is evicted, not reactivated.
+                        if let Some(existing) = peers.get_mut(&peer.node_id) {
+                            existing.status = "Evicted".to_string();
+                        }
+                        revoked_rejected += 1;
+                        continue;
+                    }
+
                     if let Some(existing) = peers.get_mut(&peer.node_id) {
                         existing.last_seen = now;
                         existing.status = "Active".to_string();
@@ -183,6 +205,7 @@ impl super::super::RpcServer {
                     "gossip_summary": {
                         "added": added,
                         "updated": updated,
+                        "revoked_rejected": revoked_rejected,
                         "total_known_peers": peers.len()
                     },
                     "peers": peer_list
