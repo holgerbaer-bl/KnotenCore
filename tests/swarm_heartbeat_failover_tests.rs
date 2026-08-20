@@ -8,7 +8,7 @@ use std::time::Duration;
 
 #[test]
 fn test_version_assertion_sprint336() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.14");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.15");
 }
 
 #[test]
@@ -271,4 +271,183 @@ fn test_leader_failover_triggers_reelection() {
 
     shutdown2.store(true, std::sync::atomic::Ordering::Relaxed);
     shutdown3.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[test]
+fn test_raft_heartbeat_ed25519_signature_verification_success() {
+    let server = RpcServer::new(AgentPermissions::default());
+    server.enable_zero_trust();
+    server.set_revoked_keys_path(None);
+
+    let leader_kp = aether_compiler::crypto_ed25519::Ed25519KeyPair::generate();
+    let leader_pubkey = leader_kp.public_key_hex();
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let term = 2u64;
+    let leader_id = "zt-leader-node";
+    let canonical_msg = format!("{}:{}:{}:{}", leader_id, term, leader_id, now);
+    let sig_hex = leader_kp.sign_hex(canonical_msg.as_bytes());
+
+    let hb_req = json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "knc_swarm_heartbeat",
+        "params": {
+            "term": term,
+            "leader_id": leader_id,
+            "sender_node_id": leader_id,
+            "timestamp": now,
+            "public_key": leader_pubkey,
+            "signature": sig_hex
+        }
+    });
+
+    let resp_str = server.dispatch_request(&hb_req.to_string());
+    let resp: serde_json::Value = serde_json::from_str(&resp_str).unwrap();
+
+    assert_eq!(resp["result"]["status"], "ok");
+    assert_eq!(resp["result"]["success"], true);
+    assert_eq!(
+        server.swarm_governance.leader_id(),
+        Some(leader_id.to_string())
+    );
+}
+
+#[test]
+fn test_raft_heartbeat_forged_signature_rejected() {
+    let server = RpcServer::new(AgentPermissions::default());
+    server.enable_zero_trust();
+    server.set_revoked_keys_path(None);
+
+    let leader_kp = aether_compiler::crypto_ed25519::Ed25519KeyPair::generate();
+    let attacker_kp = aether_compiler::crypto_ed25519::Ed25519KeyPair::generate();
+    let leader_pubkey = leader_kp.public_key_hex();
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let term = 3u64;
+    let leader_id = "zt-leader-node";
+    // Attacker signs payload with their own private key but claims it's leader_pubkey
+    let forged_msg = format!("{}:{}:{}:{}", leader_id, term, leader_id, now);
+    let forged_sig_hex = attacker_kp.sign_hex(forged_msg.as_bytes());
+
+    let hb_req = json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "knc_swarm_heartbeat",
+        "params": {
+            "term": term,
+            "leader_id": leader_id,
+            "sender_node_id": leader_id,
+            "timestamp": now,
+            "public_key": leader_pubkey,
+            "signature": forged_sig_hex
+        }
+    });
+
+    let resp_str = server.dispatch_request(&hb_req.to_string());
+    let resp: serde_json::Value = serde_json::from_str(&resp_str).unwrap();
+
+    assert!(resp.get("error").is_some());
+    assert_eq!(resp["error"]["code"], -32001);
+    assert!(
+        resp["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Invalid Ed25519 signature")
+    );
+}
+
+#[test]
+fn test_raft_heartbeat_revoked_node_rejected() {
+    let server = RpcServer::new(AgentPermissions::default());
+    server.enable_zero_trust();
+    server.set_revoked_keys_path(None);
+
+    let evil_leader_kp = aether_compiler::crypto_ed25519::Ed25519KeyPair::generate();
+    let evil_pubkey = evil_leader_kp.public_key_hex();
+
+    // Revoke the evil node's public key
+    server.revoke_peer_key(&evil_pubkey);
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let term = 4u64;
+    let leader_id = "evil-leader-node";
+    let canonical_msg = format!("{}:{}:{}:{}", leader_id, term, leader_id, now);
+    let sig_hex = evil_leader_kp.sign_hex(canonical_msg.as_bytes());
+
+    let hb_req = json!({
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "knc_swarm_heartbeat",
+        "params": {
+            "term": term,
+            "leader_id": leader_id,
+            "sender_node_id": leader_id,
+            "timestamp": now,
+            "public_key": evil_pubkey,
+            "signature": sig_hex
+        }
+    });
+
+    let resp_str = server.dispatch_request(&hb_req.to_string());
+    let resp: serde_json::Value = serde_json::from_str(&resp_str).unwrap();
+
+    assert!(resp.get("error").is_some());
+    assert_eq!(resp["error"]["code"], -32001);
+    assert!(
+        resp["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("revoked")
+    );
+}
+
+#[test]
+fn test_raft_heartbeat_client_cannot_force_hmac_fallback() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "zt-worker-node",
+        "127.0.0.1:0",
+        Some("legacy-token-123".to_string()),
+    );
+    server.enable_zero_trust();
+    server.set_revoked_keys_path(None);
+
+    // Client attempts to send plaintext HMAC token or backward_compat flag in zero-trust mode
+    let hb_downgrade_req = json!({
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "knc_swarm_heartbeat",
+        "params": {
+            "term": 5,
+            "leader_id": "legacy-leader",
+            "mesh_auth_token": "legacy-token-123",
+            "backward_compat": true,
+            "allow_legacy_hmac": true
+        }
+    });
+
+    let resp_str = server.dispatch_request(&hb_downgrade_req.to_string());
+    let resp: serde_json::Value = serde_json::from_str(&resp_str).unwrap();
+
+    assert!(resp.get("error").is_some());
+    assert_eq!(resp["error"]["code"], -32001);
+    assert!(
+        resp["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("rejected in zero-trust mode")
+    );
 }

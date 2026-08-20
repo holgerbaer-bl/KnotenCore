@@ -408,7 +408,13 @@ Specifies the WebSocket connection robustness handling, epidemic gossip revocati
 - **Epidemic Gossip Revocation Gate**: `knc_mesh_peers?action=gossip` verifies every peer in the gossip payload against `is_peer_key_revoked()`, evicting revoked entries and tracking rejections in `revoked_rejected`.
 - **Test Metric Realignment**: Realigns workspace test count metadata to 280 verified tests following legacy test script cleanup.
 
-## 8. Formal Benchmarks (`v2.24.14`)
+### 7.14. Zero-Trust Raft Heartbeat Envelopes & Anti-Downgrade Invariants (v2.24.15)
+Specifies the cryptographic signing and anti-downgrade guarantees for Raft swarm governance:
+- **Ed25519 Signed Heartbeats**: Deprecates plaintext authentication tokens in background Raft governance workers. Heartbeat payloads use canonical wire format `sender_node_id:term:leader_id:timestamp` signed with the leader's native Ed25519 keypair.
+- **Verification & Revocation Filter**: `handle_swarm_heartbeat` verifies Ed25519 signatures, timestamp validity (30-second window), and rejects revoked keys via `is_peer_key_revoked()`.
+- **Strict Anti-Downgrade Invariant**: Authentication mode is governed strictly by server startup configuration (`is_zero_trust()`). Client-supplied parameters (e.g. `backward_compat`, `allow_legacy_hmac`) cannot force a fallback to legacy HMAC when the node is in Zero-Trust mode.
+
+## 8. Formal Benchmarks (`v2.24.15`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

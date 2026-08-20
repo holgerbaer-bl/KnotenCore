@@ -2,6 +2,21 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.15] - Sprint 352: Zero-Trust Raft Heartbeat Envelopes, Anti-Downgrade Hardening & CI Format Repair (2026-08-20)
+Sprint 352 resolves the final audit finding (P3), transitions all Raft swarm governance heartbeat exchanges to Ed25519-signed zero-trust envelopes, enforces strict anti-downgrade protections, and repairs CI formatting:
+- **Zero-Trust Raft Heartbeat Signing (`aether_compiler/src/rpc/handlers/swarm.rs`)**:
+  - Removed plaintext transmission of `mesh_auth_token` in periodic Raft governance background worker loops.
+  - Heartbeat payloads are now signed using the leader node's native Ed25519 keypair in canonical wire format (`sender_node_id:term:leader_id:timestamp`).
+- **Heartbeat Verification & Peer Revocation Validation (`aether_compiler/src/rpc/handlers/swarm.rs`)**:
+  - `handle_swarm_heartbeat` verifies Ed25519 signatures against sender public keys and ensures timestamps fall within the 30-second replay protection window.
+  - Heartbeats from revoked leader/sender public keys are strictly rejected via `is_peer_key_revoked()`.
+- **Strict Anti-Downgrade Invariant (`aether_compiler/src/rpc/handlers/swarm.rs`)**:
+  - Governs authentication fallback strictly through server-side configuration (`is_zero_trust()`).
+  - Rejects any client-side attempts to force HMAC fallback or supply `backward_compat: true` flags when operating in Zero-Trust mode.
+  - Added dedicated integration tests in `tests/swarm_heartbeat_failover_tests.rs`.
+- **100% English Documentation & Version Synchronization (`v2.24.15`)**:
+  - Synchronized version `v2.24.15` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.15`, `286/286` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.14 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.14] - Sprint 351: WebSocket Robustness, Gossip Revocation Gate & Test Realignment (2026-08-20)
 Sprint 351 resolves findings from the security and architecture audit, closes a gossip peer revocation bypass, hardens WebSocket stream cloning against descriptor exhaustion, and realigns test metrics:
 - **WebSocket Stream Robustness (`aether_compiler/src/rpc/mod.rs`)**:

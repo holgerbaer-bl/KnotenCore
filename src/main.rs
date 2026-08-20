@@ -14,7 +14,7 @@ fn main() {
         return;
     }
 
-    println!("KnotenCore 🦀🤖 (v2.24.14) — Headless-First Deterministic Execution Runtime");
+    println!("KnotenCore 🦀🤖 (v2.24.15) — Headless-First Deterministic Execution Runtime");
     println!("Usage:");
     println!("  knoten bench [--json] [--workload <NAME>]");
 }

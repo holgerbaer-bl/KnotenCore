@@ -1,11 +1,11 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.24.14-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.24.15-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![AI Directives](https://img.shields.io/badge/AI--Directives-AI.md-purple)](AI.md)
 [![Automated CI](https://img.shields.io/badge/Automated_CI-Active-brightgreen)](docs/workflows/agent-ci-feedback.yml)
-[![Tests](https://img.shields.io/badge/tests-280%2F280-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.24.14-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-286%2F286-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.24.15-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -18,6 +18,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **Zero-Trust Raft Heartbeats & Anti-Downgrade Hardening (v2.24.15)**: Deprecated plaintext auth tokens in Raft governance heartbeats, enforced canonical Ed25519 signature verification (`sender_node_id:term:leader_id:timestamp`), integrated peer revocation validation, and strictly blocked client-initiated HMAC downgrade attacks in zero-trust mode.
 - **WebSocket Robustness, Gossip Revocation Gate & Test Realignment (v2.24.14)**: Hardened WebSocket connection handling with graceful `try_clone` error recovery against OS file-descriptor exhaustion, enforced strict peer revocation filtering on P2P gossip propagation (`knc_mesh_peers?action=gossip`), and realigned repository test badges to 280/280 verified tests.
 - **Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide (v2.24.13)**: Standardized inline demarcation headers across guest `.knoten` scripts, clarifying hermetic zero-network sandboxing vs. host-level cryptographic mesh orchestration (`examples/03_agents_and_zero_trust/README.md`) with concrete CLI, JSON-RPC, and workspace-native `ring`-backed Ed25519 Rust examples.
 - **CI Workflow Hardening & Non-Interactive Release Builds (v2.24.12)**: Hardened GitHub Actions CI and Release pipelines against interactive terminal hangs (`DEBIAN_FRONTEND: noninteractive`, `needrestart` prompt suppression via silent configuration) and enforced 10-minute job execution bounds across Linux, Windows, and macOS runners.

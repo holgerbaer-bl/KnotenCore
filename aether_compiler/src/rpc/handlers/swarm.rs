@@ -235,6 +235,21 @@ pub fn start_raft_governance_worker(
                             .collect()
                     };
 
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs();
+
+                    let (pubkey_hex, sig_hex) = {
+                        let kp = server
+                            .ed25519_keypair
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
+                        let canonical_msg =
+                            format!("{}:{}:{}:{}", server.node_id, term, server.node_id, now);
+                        (kp.public_key_hex(), kp.sign_hex(canonical_msg.as_bytes()))
+                    };
+
                     for (_peer_id, peer_addr) in active_peers {
                         let req = serde_json::json!({
                             "jsonrpc": "2.0",
@@ -243,7 +258,10 @@ pub fn start_raft_governance_worker(
                             "params": {
                                 "term": term,
                                 "leader_id": server.node_id,
-                                "mesh_auth_token": server.mesh_auth_token
+                                "sender_node_id": server.node_id,
+                                "timestamp": now,
+                                "public_key": pubkey_hex,
+                                "signature": sig_hex
                             }
                         });
                         let _ = server.dispatch_request_over_network(&peer_addr, &req.to_string());
@@ -553,8 +571,30 @@ impl super::super::RpcServer {
     }
 
     pub fn handle_swarm_heartbeat(&self, id: Option<Value>, params: Value) -> JsonRpcResponse {
-        if let Err(err) = self.check_mesh_auth(&params) {
-            return JsonRpcResponse::error(id, -32001, err);
+        let pubkey_str = params
+            .get("zero_trust_envelope")
+            .and_then(|e| e.get("public_key"))
+            .or_else(|| params.get("public_key"))
+            .and_then(|v| v.as_str());
+
+        let sig_str = params
+            .get("zero_trust_envelope")
+            .and_then(|e| e.get("signature").or_else(|| e.get("ed25519_signature")))
+            .or_else(|| params.get("signature"))
+            .or_else(|| params.get("ed25519_signature"))
+            .and_then(|v| v.as_str());
+
+        let is_signed = pubkey_str.is_some() && sig_str.is_some();
+
+        // STRICT ANTI-DOWNGRADE INVARIANT:
+        // If the server is in Zero-Trust mode, incoming requests with plaintext HMAC tokens or
+        // client-side backward_compat flags MUST be rejected immediately.
+        if self.is_zero_trust() && !is_signed {
+            return JsonRpcResponse::error(
+                id,
+                -32001,
+                "Unauthorized: Unsigned payload or legacy HMAC token rejected in zero-trust mode",
+            );
         }
 
         let leader_term = match params.get("term").and_then(|v| v.as_u64()) {
@@ -569,6 +609,104 @@ impl super::super::RpcServer {
             },
             None => return JsonRpcResponse::error(id, -32602, "Missing 'leader_id' parameter"),
         };
+
+        let sender_node_id = params
+            .get("sender_node_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or(leader_id);
+
+        if let (Some(pubkey_hex), Some(sig_hex)) = (pubkey_str, sig_str) {
+            let normalized_pubkey = pubkey_hex.trim().to_lowercase();
+            if self.is_peer_key_revoked(&normalized_pubkey)
+                || self.is_peer_key_revoked(sender_node_id)
+                || self.is_peer_key_revoked(leader_id)
+            {
+                return JsonRpcResponse::error(
+                    id,
+                    -32001,
+                    "Unauthorized: Leader or sender public key has been revoked",
+                );
+            }
+
+            let ts = params
+                .get("zero_trust_envelope")
+                .and_then(|e| e.get("timestamp"))
+                .or_else(|| params.get("timestamp"))
+                .and_then(|v| v.as_u64());
+
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+
+            if let Some(ts_val) = ts {
+                let ts_secs = if ts_val > 10_000_000_000 {
+                    ts_val / 1000
+                } else {
+                    ts_val
+                };
+                if now.abs_diff(ts_secs) > crate::rpc::types::MAX_ZERO_TRUST_WINDOW_SECS {
+                    return JsonRpcResponse::error(
+                        id,
+                        -32001,
+                        "Unauthorized: Request timestamp expired or invalid (replay protection window: 30s)",
+                    );
+                }
+
+                // Canonical message: sender_node_id:term:leader_id:timestamp
+                let canonical_msg = format!(
+                    "{}:{}:{}:{}",
+                    sender_node_id, leader_term, leader_id, ts_secs
+                );
+                let alt_msg = format!(
+                    "{}:{}:{}",
+                    ts_secs,
+                    params
+                        .get("nonce")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default(),
+                    sender_node_id
+                );
+
+                let pubkey = match crate::crypto_ed25519::Ed25519PublicKey::from_hex(pubkey_hex) {
+                    Ok(pk) => pk,
+                    Err(e) => {
+                        return JsonRpcResponse::error(
+                            id,
+                            -32001,
+                            format!("Unauthorized: Bad public key: {}", e),
+                        );
+                    }
+                };
+
+                if !pubkey.verify_hex(canonical_msg.as_bytes(), sig_hex)
+                    && !pubkey.verify_hex(alt_msg.as_bytes(), sig_hex)
+                {
+                    return JsonRpcResponse::error(
+                        id,
+                        -32001,
+                        "Unauthorized: Invalid Ed25519 signature on Raft heartbeat",
+                    );
+                }
+
+                let mut verified = self
+                    .verified_peer_keys
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                verified.insert(sender_node_id.to_string(), normalized_pubkey);
+            } else {
+                return JsonRpcResponse::error(
+                    id,
+                    -32001,
+                    "Unauthorized: Missing timestamp in heartbeat zero-trust envelope",
+                );
+            }
+        } else {
+            // Legacy HMAC check when server is NOT in zero-trust mode
+            if let Err(err) = self.check_mesh_auth(&params) {
+                return JsonRpcResponse::error(id, -32001, err);
+            }
+        }
 
         let (current_term, success) = self
             .swarm_governance

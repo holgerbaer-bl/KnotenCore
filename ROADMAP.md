@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.14** · WebSocket Robustness, Gossip Revocation Gate & Test Realignment
+Current engine version: **v2.24.15** · Zero-Trust Raft Heartbeats & Anti-Downgrade Hardening
 
 ## Done (selected milestones)
 
+- ✅ Zero-Trust Raft Heartbeats & Anti-Downgrade Hardening (deprecated plaintext auth tokens in Raft governance heartbeats, canonical Ed25519 signature verification, peer revocation filtering, anti-downgrade enforcement, Section 7.14 of `docs/KNOTEN_SPEC.md`, Sprint 352 - v2.24.15)
 - ✅ WebSocket Robustness, Gossip Revocation Gate & Test Realignment (hardened WebSocket frame handling against `try_clone` failure, strict revocation filter in `knc_mesh_peers?action=gossip`, eviction of incoming revoked peers, realigned test badge to 280/280 verified tests, Section 7.13 of `docs/KNOTEN_SPEC.md`, Sprint 351 - v2.24.14)
 - ✅ Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide (standardized inline guest demarcation headers in `examples/03_agents_and_zero_trust/`, comprehensive host orchestration guide `examples/03_agents_and_zero_trust/README.md`, CLI/JSON-RPC signed payload submission examples, host Rust code strictly using `aether_compiler::crypto_ed25519` `ring` module, Section 7.12 of `docs/KNOTEN_SPEC.md`, Sprint 350 - v2.24.13)
 - ✅ CI Workflow Hardening & Non-Interactive Release Builds (hardened GitHub Actions `ci.yml` and `release.yml` against interactive terminal hangs, `DEBIAN_FRONTEND: noninteractive`, `needrestart` prompt suppression via silent configuration, 10-minute job execution boundaries across Linux, Windows, macOS runners, Section 7.11 of `docs/KNOTEN_SPEC.md`, Sprint 349 - v2.24.12)

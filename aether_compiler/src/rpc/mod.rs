@@ -560,7 +560,10 @@ impl RpcServer {
         let cloned = match stream.try_clone() {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("[WARN] WebSocket: Failed to clone TcpStream, dropping connection: {}", e);
+                eprintln!(
+                    "[WARN] WebSocket: Failed to clone TcpStream, dropping connection: {}",
+                    e
+                );
                 return;
             }
         };
