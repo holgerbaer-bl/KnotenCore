@@ -749,22 +749,24 @@ fn test_store_digest_incorporates_authenticated_writer_identities() {
     let msg1 = format!("{}:{}:", now, "nonce-d1");
     let sig1 = kp1.sign_hex(msg1.as_bytes());
 
-    let resp1 = parse_response(&server_zt.dispatch_request(
-        &serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": "knc_store_put",
-            "params": {
-                "key": "same_key",
-                "value": "same_val",
-                "timestamp": now,
-                "nonce": "nonce-d1",
-                "public_key": pubkey1,
-                "signature": sig1
-            },
-            "id": 1
-        })
-        .to_string(),
-    ));
+    let resp1 = parse_response(
+        &server_zt.dispatch_request(
+            &serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "knc_store_put",
+                "params": {
+                    "key": "same_key",
+                    "value": "same_val",
+                    "timestamp": now,
+                    "nonce": "nonce-d1",
+                    "public_key": pubkey1,
+                    "signature": sig1
+                },
+                "id": 1
+            })
+            .to_string(),
+        ),
+    );
     assert!(resp1.error.is_none());
     assert!(result_field(&resp1, "written").as_bool().unwrap());
 
@@ -777,22 +779,24 @@ fn test_store_digest_incorporates_authenticated_writer_identities() {
     let msg2 = format!("{}:{}:", now, "nonce-d2");
     let sig2 = kp2.sign_hex(msg2.as_bytes());
 
-    let resp2 = parse_response(&server_zt2.dispatch_request(
-        &serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": "knc_store_put",
-            "params": {
-                "key": "same_key",
-                "value": "same_val",
-                "timestamp": now,
-                "nonce": "nonce-d2",
-                "public_key": pubkey2,
-                "signature": sig2
-            },
-            "id": 2
-        })
-        .to_string(),
-    ));
+    let resp2 = parse_response(
+        &server_zt2.dispatch_request(
+            &serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "knc_store_put",
+                "params": {
+                    "key": "same_key",
+                    "value": "same_val",
+                    "timestamp": now,
+                    "nonce": "nonce-d2",
+                    "public_key": pubkey2,
+                    "signature": sig2
+                },
+                "id": 2
+            })
+            .to_string(),
+        ),
+    );
     assert!(resp2.error.is_none());
     assert!(result_field(&resp2, "written").as_bool().unwrap());
 
