@@ -11,32 +11,40 @@ use serde_json::json;
 #[test]
 fn test_version_assertion_sprint338() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.16",
-        "Protocol version must be synchronized to v2.24.16"
+        KNC_PROTOCOL_VERSION, "v2.24.17",
+        "Protocol version must be synchronized to v2.24.17"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint351() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.16",
-        "Protocol version must be synchronized to v2.24.16 for Sprint 351"
+        KNC_PROTOCOL_VERSION, "v2.24.17",
+        "Protocol version must be synchronized to v2.24.17 for Sprint 351"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint352() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.16",
-        "Protocol version must be synchronized to v2.24.16 for Sprint 352"
+        KNC_PROTOCOL_VERSION, "v2.24.17",
+        "Protocol version must be synchronized to v2.24.17 for Sprint 352"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint353() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.16",
-        "Protocol version must be synchronized to v2.24.16 for Sprint 353"
+        KNC_PROTOCOL_VERSION, "v2.24.17",
+        "Protocol version must be synchronized to v2.24.17 for Sprint 353"
+    );
+}
+
+#[test]
+fn test_version_assertion_sprint354() {
+    assert_eq!(
+        KNC_PROTOCOL_VERSION, "v2.24.17",
+        "Protocol version must be synchronized to v2.24.17 for Sprint 354"
     );
 }
 

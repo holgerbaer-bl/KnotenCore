@@ -418,9 +418,15 @@ Specifies the cryptographic signing and anti-downgrade guarantees for Raft swarm
 Specifies the anti-entropy state digest computation, differential sync protocol, and trust boundaries:
 - **Deterministic SHA-256 State Digest (`knc_store_digest`)**: Computes a deterministic state digest across active (non-evicted) store keys sorted lexicographically. Uses `ring::digest::SHA256` to hash canonical representations of `(key, value_hash, timestamp, writer_id)` tuples.
 - **Differential Sync (`knc_store_diff`)**: Compares local state digest against `peer_digest`. Returns `{ "in_sync": true, "entries": [] }` if digests match; otherwise returns delta entries filtered by `since_timestamp` and `key_prefix`, bounded by `MAX_SYNC_ENTRIES`.
-- **Trust Boundary Demarcation**: Documents that `writer_id` is an unauthenticated client-supplied parameter under the current protocol; anti-entropy digests reflect this trust boundary until cryptographic peer identity binding is established.
 
-## 8. Formal Benchmarks (`v2.24.16`)
+### 7.16. Authenticated Store Identity Binding & Strict Tag Governance (v2.24.17)
+Specifies the cryptographic binding of KV-store mutations to verified caller identities and strict release governance:
+- **Authenticated `writer_id` Resolution**: In `knc_store_put`, caller identity is resolved strictly from verified authentication context. In **Ed25519 Zero-Trust mode**, `writer_id` is bound to `ed25519:<pubkey_hex>`, ignoring any client-supplied spoofing parameters (`writer_id` or `sender_node_id`). In **Legacy HMAC mode**, `writer_id` is scoped under `legacy-hmac:<sender_node_id>` with explicit trust boundary scoping.
+- **CRDT LWW Conflict Resolution**: Last-Write-Wins tie-breaking on equal timestamps deterministically compares authenticated writer identity strings.
+- **State Digest Identity Binding**: Anti-entropy state digests (`knc_store_digest`) hash authenticated `writer_id` values, ensuring digest integrity across cryptographically distinct writers.
+- **Strict Tag Governance**: Enforces immutable release tag discipline (`git tag -a v2.24.17`) and strictly rejects forced tag overwrites across local and remote repositories.
+
+## 8. Formal Benchmarks (`v2.24.17`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

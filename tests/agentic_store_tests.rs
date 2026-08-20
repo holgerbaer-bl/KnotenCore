@@ -277,7 +277,7 @@ fn test_handshake_advertises_crdt_store_capabilities() {
     assert!(caps["peer_state_sync"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.24.16"
+        "v2.24.17"
     );
 }
 
@@ -642,4 +642,170 @@ fn test_store_digest_revoked_node_rejected() {
     let resp_diff = parse_response(&server.dispatch_request(&diff_req));
     assert!(resp_diff.error.is_some());
     assert_eq!(resp_diff.error.unwrap().code, -32001);
+}
+
+#[test]
+fn test_store_put_ed25519_forces_public_key_writer_id() {
+    let server = RpcServer::new(AgentPermissions::default());
+    server.enable_zero_trust();
+
+    let kp = aether_compiler::crypto_ed25519::Ed25519KeyPair::generate();
+    let pubkey = kp.public_key_hex();
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let canonical_msg = format!("{}:{}:{}", now, "nonce-store-put", "spoofed_sender");
+    let sig_hex = kp.sign_hex(canonical_msg.as_bytes());
+
+    // Call knc_store_put with spoofed writer_id and sender_node_id
+    let req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_put",
+        "params": {
+            "key": "secure_config",
+            "value": "locked_value",
+            "timestamp": now,
+            "nonce": "nonce-store-put",
+            "public_key": pubkey,
+            "signature": sig_hex,
+            "writer_id": "spoofed_admin_node",
+            "sender_node_id": "spoofed_sender"
+        },
+        "id": 1
+    })
+    .to_string();
+
+    let resp = parse_response(&server.dispatch_request(&req));
+    assert!(resp.error.is_none());
+    assert!(result_field(&resp, "written").as_bool().unwrap());
+
+    // Response and internal entry writer_id MUST be ed25519:<pubkey_hex>
+    let expected_writer = format!("ed25519:{}", pubkey.to_lowercase());
+    assert_eq!(
+        result_field(&resp, "writer_id").as_str().unwrap(),
+        expected_writer
+    );
+
+    let stored_entry = server.store.get("secure_config").unwrap();
+    assert_eq!(stored_entry.writer_id, expected_writer);
+}
+
+#[test]
+fn test_store_put_legacy_hmac_marks_scoped_writer_id() {
+    let server = make_authed_server("hmac-server", "shared-mesh-secret");
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "knc_store_put",
+        "params": {
+            "key": "shared_setting",
+            "value": "active",
+            "timestamp": now,
+            "mesh_auth_token": "shared-mesh-secret",
+            "sender_node_id": "worker-node-42"
+        },
+        "id": 1
+    })
+    .to_string();
+
+    let resp = parse_response(&server.dispatch_request(&req));
+    assert!(resp.error.is_none());
+    assert!(result_field(&resp, "written").as_bool().unwrap());
+
+    // Response and internal entry writer_id MUST be legacy-hmac:<sender_node_id>
+    assert_eq!(
+        result_field(&resp, "writer_id").as_str().unwrap(),
+        "legacy-hmac:worker-node-42"
+    );
+
+    let stored_entry = server.store.get("shared_setting").unwrap();
+    assert_eq!(stored_entry.writer_id, "legacy-hmac:worker-node-42");
+}
+
+#[test]
+fn test_store_digest_incorporates_authenticated_writer_identities() {
+    let server_zt = RpcServer::new(AgentPermissions::default());
+    server_zt.enable_zero_trust();
+
+    let kp1 = aether_compiler::crypto_ed25519::Ed25519KeyPair::generate();
+    let pubkey1 = kp1.public_key_hex();
+
+    let kp2 = aether_compiler::crypto_ed25519::Ed25519KeyPair::generate();
+    let pubkey2 = kp2.public_key_hex();
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let msg1 = format!("{}:{}:", now, "nonce-d1");
+    let sig1 = kp1.sign_hex(msg1.as_bytes());
+
+    let resp1 = parse_response(&server_zt.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": {
+                "key": "same_key",
+                "value": "same_val",
+                "timestamp": now,
+                "nonce": "nonce-d1",
+                "public_key": pubkey1,
+                "signature": sig1
+            },
+            "id": 1
+        })
+        .to_string(),
+    ));
+    assert!(resp1.error.is_none());
+    assert!(result_field(&resp1, "written").as_bool().unwrap());
+
+    let digest1 = server_zt.store.compute_state_digest();
+
+    // Re-create server and insert identical key/value/timestamp but from different authenticated key
+    let server_zt2 = RpcServer::new(AgentPermissions::default());
+    server_zt2.enable_zero_trust();
+
+    let msg2 = format!("{}:{}:", now, "nonce-d2");
+    let sig2 = kp2.sign_hex(msg2.as_bytes());
+
+    let resp2 = parse_response(&server_zt2.dispatch_request(
+        &serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "knc_store_put",
+            "params": {
+                "key": "same_key",
+                "value": "same_val",
+                "timestamp": now,
+                "nonce": "nonce-d2",
+                "public_key": pubkey2,
+                "signature": sig2
+            },
+            "id": 2
+        })
+        .to_string(),
+    ));
+    assert!(resp2.error.is_none());
+    assert!(result_field(&resp2, "written").as_bool().unwrap());
+
+    let digest2 = server_zt2.store.compute_state_digest();
+
+    // Digests must differ because writer_id is bound to the distinct authenticated public keys
+    assert_ne!(
+        digest1, digest2,
+        "State digests must incorporate authenticated writer identities"
+    );
+}
+
+#[test]
+fn test_version_assertion_sprint354() {
+    assert_eq!(aether_compiler::rpc::KNC_PROTOCOL_VERSION, "v2.24.17");
 }

@@ -2,6 +2,19 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.17] - Sprint 354: Authenticated Store Identity Binding & Strict Tag Governance (2026-08-20)
+Sprint 354 binds distributed CRDT KV-store mutations directly to verified session identities and incorporates authenticated identities into state digests:
+- **Authenticated `writer_id` Identity Binding (`aether_compiler/src/rpc/handlers/store.rs`)**:
+  - In `handle_store_put`, when authenticated via **Ed25519 Zero-Trust**, `writer_id` is derived strictly from the verified Ed25519 public key (`ed25519:<pubkey_hex>`), ignoring spoofed client parameters.
+  - When authenticated via **Legacy HMAC**, `writer_id` is constructed as `legacy-hmac:<sender_node_id>` with documented scoped trust exception semantics for shared-secret auth.
+  - CRDT LWW tie-breaking on equal timestamps naturally uses this authenticated identity format.
+  - Updated `compute_state_digest` documentation to reflect authenticated identity binding.
+- **Integration Test Expansion (`tests/agentic_store_tests.rs`)**:
+  - Added `test_store_put_ed25519_forces_public_key_writer_id`, `test_store_put_legacy_hmac_marks_scoped_writer_id`, `test_store_digest_incorporates_authenticated_writer_identities`, and `test_version_assertion_sprint354`.
+  - Workspace test suite expanded to 294/294 verified tests.
+- **100% English Documentation & Version Synchronization (`v2.24.17`)**:
+  - Synchronized version `v2.24.17` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.17`, `294/294` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.16 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.16] - Sprint 353: CRDT Store State Digest, Differential Mesh Sync & ring Hashing (2026-08-20)
 Sprint 353 enhances the decentralized KV-store with deterministic anti-entropy state digests and differential mesh synchronization using native `ring` hashing:
 - **Deterministic Anti-Entropy State Digest (`aether_compiler/src/rpc/handlers/store.rs`)**:

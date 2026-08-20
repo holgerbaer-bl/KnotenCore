@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.16** · CRDT State Digests & Differential Mesh Sync
+Current engine version: **v2.24.17** · Authenticated Store Identity Binding & Strict Tag Governance
 
 ## Done (selected milestones)
 
+- ✅ Authenticated Store Identity Binding & Strict Tag Governance (bound CRDT mutations in `knc_store_put` directly to verified session identities `ed25519:<pubkey_hex>` or scoped `legacy-hmac:<sender_node_id>`, incorporated authenticated writer identities into anti-entropy state digests, Section 7.16 of `docs/KNOTEN_SPEC.md`, Sprint 354 - v2.24.17)
 - ✅ CRDT State Digests & Differential Mesh Sync (deterministic `ring::digest::SHA256` anti-entropy state digests `knc_store_digest`, differential sync `knc_store_diff`, LWW delta merging, documented writer_id trust boundary limitation, Section 7.15 of `docs/KNOTEN_SPEC.md`, Sprint 353 - v2.24.16)
 - ✅ Zero-Trust Raft Heartbeats & Anti-Downgrade Hardening (deprecated plaintext auth tokens in Raft governance heartbeats, canonical Ed25519 signature verification, peer revocation filtering, anti-downgrade enforcement, Section 7.14 of `docs/KNOTEN_SPEC.md`, Sprint 352 - v2.24.15)
 - ✅ WebSocket Robustness, Gossip Revocation Gate & Test Realignment (hardened WebSocket frame handling against `try_clone` failure, strict revocation filter in `knc_mesh_peers?action=gossip`, eviction of incoming revoked peers, realigned test badge to 280/280 verified tests, Section 7.13 of `docs/KNOTEN_SPEC.md`, Sprint 351 - v2.24.14)
