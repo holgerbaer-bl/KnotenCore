@@ -1,13 +1,14 @@
 [workspace.package]
-version = "2.24.18"
-authors = ["Holger Baer <holgerbaer-bl@users.noreply.github.com>"]
+version = "2.24.19"
+authors = ["Holger Baer"]
 edition = "2024"
-license = "MIT"
+description = "A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST."
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/holgerbaer-bl/KnotenCore"
 
 [package]
 name = "knoten_core"
-version = "2.24.18"
+version = "2.24.19"
 edition = "2024"
 
 [lib]

@@ -1,6 +1,6 @@
-# KnotenCore Formal Benchmark Suite Specification & Baseline (`v2.24.18`)
+# KnotenCore Formal Benchmark Suite Specification & Baseline (`v2.24.19`)
 
-This document defines the formal benchmark architecture, methodology, workload definitions, and reference baseline measurements for the **KnotenCore Execution Runtime (`v2.24.18`)**.
+This document defines the formal benchmark architecture, methodology, workload definitions, and reference baseline measurements for the **KnotenCore Execution Runtime (`v2.24.19`)**.
 
 ---
 

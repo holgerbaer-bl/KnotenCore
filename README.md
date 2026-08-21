@@ -1,11 +1,11 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.24.18-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.24.19-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![AI Directives](https://img.shields.io/badge/AI--Directives-AI.md-purple)](AI.md)
 [![Automated CI](https://img.shields.io/badge/Automated_CI-Active-brightgreen)](docs/workflows/agent-ci-feedback.yml)
-[![Tests](https://img.shields.io/badge/tests-305%2F305-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.24.18-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-312%2F312-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.24.19-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -18,6 +18,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **RPC Dual-Engine Evaluation Endpoint & Quarantine Protocol (v2.24.19)**: Exposed `DualEngineValidator` via dedicated Zero-Trust RPC endpoint `knc_eval_dual` with strict Day-1 auth-gating, complete anti-downgrade checks, and divergence quarantine containment protocol (`-32020` / `ERR_ENGINE_DISCREPANCY`) preventing unverified state propagation.
 - **Deterministic Dual-Engine Validator & Non-Determinism Audit (v2.24.18)**: Implemented dual-engine execution harness (`DualEngineValidator`) executing incoming ASTs simultaneously on reference Tree-Walker evaluator and AOT Stack-VM, strictly validating semantic equivalence (return values and observable heap mutations) with zero-panic isolation (`std::panic::catch_unwind`), symmetric error-category comparison (`FaultCategory`), and decoupled resource telemetry.
 - **Authenticated Store Identity Binding & Strict Tag Governance (v2.24.17)**: Bound distributed CRDT mutations in `knc_store_put` directly to verified session identities (`ed25519:<pubkey_hex>` under Zero-Trust mode, ignoring spoofed client parameters; scoped `legacy-hmac:<sender_node_id>` for shared-secret auth), incorporating verified identities into anti-entropy state digests.
 - **CRDT State Digests & Differential Mesh Sync (v2.24.16)**: Implemented deterministic SHA-256 anti-entropy state digests (`knc_store_digest`) using native `ring::digest` across sorted active keys and values, added differential synchronization (`knc_store_diff`) returning targeted timestamp-bounded deltas with zero-trust envelope verification and revocation enforcement.

@@ -434,7 +434,14 @@ Specifies the dual-engine validation architecture and zero-panic fault isolation
 - **Symmetrical Error Categorization**: Normalizes engine-specific error messages into canonical `FaultCategory` variants (`DivisionByZero`, `ModuloByZero`, `TypeError`, `VariableNotFound`, `IndexOutOfBounds`, `PermissionDenied`, `GasExhausted`, `MemoryQuotaExceeded`, `WatchdogTimeout`, `CompilationFailed`, `StackUnderflow`, `RuntimeFault`). Divergent error categories for identical inputs are flagged as first-class validation discrepancies.
 - **Decoupled Telemetry**: Captures gas consumption and instruction execution metrics without conflating architectural VM differences into semantic equality assertions.
 
-## 8. Formal Benchmarks (`v2.24.18`)
+### 7.18. RPC Dual-Engine Evaluation Endpoint `knc_eval_dual` & Quarantine Protocol (v2.24.19)
+Specifies the RPC dual-engine evaluation interface and divergence quarantine containment semantics:
+- **`knc_eval_dual` Endpoint**: Dedicated JSON-RPC endpoint executing incoming JSON-AST payloads simultaneously on both the reference Tree-Walker evaluator and the AOT Stack-VM via `DualEngineValidator`.
+- **Zero-Trust Security Gate**: Protected by mandatory `check_mesh_auth` across all transports (TCP/WebSocket). Rejects unauthenticated calls with `-32001` (Unauthorized) and enforces anti-downgrade invariants in Zero-Trust mode.
+- **Parity Match Response**: When both engines produce identical return values and state mutations (or symmetrical `FaultCategory`), returns `{ "status": "ok", "result": <RelType>, "execution_mode": "dual_verified", "fault": null }` along with duration and gas telemetry.
+- **Divergence Quarantine Containment Protocol**: On semantic discrepancy (`ReturnValueMismatch`, `StateMutationMismatch`, `DivergentFaultCategory`, `EngineDivergence`, or panic unwind), immediately aborts with RPC error code `-32020` (`ERR_ENGINE_DISCREPANCY`), prevents any state mutation or CRDT persistence, and returns structured quarantine diagnostic payload.
+
+## 8. Formal Benchmarks (`v2.24.19`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

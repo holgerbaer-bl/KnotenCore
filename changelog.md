@@ -2,6 +2,22 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.19] - Sprint 356: RPC Dual-Engine Evaluation Endpoint `knc_eval_dual` & Quarantine Protocol (2026-08-21)
+Sprint 356 exposes the `DualEngineValidator` via a dedicated Zero-Trust RPC endpoint `knc_eval_dual` with strict Day-1 auth-gating, complete anti-downgrade checks, and a divergence quarantine containment protocol preventing unverified state propagation:
+- **`knc_eval_dual` RPC Endpoint Implementation (`aether_compiler/src/rpc/handlers/eval_dual.rs`, `aether_compiler/src/rpc/mod.rs`)**:
+  - Implemented `handle_eval_dual` in `rpc/handlers/eval_dual.rs` registered as the 36th canonical RPC method in `REGISTERED_METHODS`.
+  - Zero-Trust security gating via `check_mesh_auth`: rejects unauthenticated requests with `-32001` (Unauthorized) and enforces anti-downgrade invariants.
+  - Parameter extraction supporting `session_id`, `ast` (`Node`), and optional `isolate_quota` (`IsolateQuota`).
+- **Divergence Quarantine & Discrepancy Protocol**:
+  - Executes incoming AST simultaneously on both reference Tree-Walker evaluator and AOT Stack-VM via `DualEngineValidator`.
+  - On parity match: returns `{ "status": "ok", "result": <RelType>, "execution_mode": "dual_verified", "fault": null }` along with execution telemetry (`eval_duration_ns`, `vm_duration_ns`, `vm_gas_consumed`).
+  - On parity discrepancy: immediately aborts with RPC error code `-32020` (`ERR_ENGINE_DISCREPANCY`), prevents any state mutation or CRDT persistence, and returns structured quarantine payload detailing discrepancy diagnostics.
+- **Integration Test Expansion (`tests/rpc_dual_eval_tests.rs`)**:
+  - Added test suite validating unauthorized rejection (`-32001`), Ed25519 zero-trust authenticated evaluation, legacy HMAC evaluation, symmetrical fault parity (division by zero), isolate quota parameterization, and parameter schema enforcement (`-32602`).
+  - Total test suite expanded to 312/312 tests passing 100% green.
+- **100% English Documentation & Version Synchronization (`v2.24.19`)**:
+  - Synchronized version `v2.24.19` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.19`, `312/312` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.18 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.18] - Sprint 355: Deterministic Dual-Engine Validator & Non-Determinism Audit (2026-08-21)
 Sprint 355 implements a dual-engine execution harness executing incoming ASTs simultaneously on both the reference Tree-Walker evaluator and the AOT Stack-VM with zero-panic isolation and symmetrical error categorization:
 - **Non-Determinism Audit & State Normalization (`aether_compiler/src/executor.rs`, `aether_compiler/src/vm/dual_validator.rs`)**:

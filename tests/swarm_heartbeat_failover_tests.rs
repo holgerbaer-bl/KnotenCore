@@ -8,7 +8,7 @@ use std::time::Duration;
 
 #[test]
 fn test_version_assertion_sprint336() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.18");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.19");
 }
 
 #[test]
