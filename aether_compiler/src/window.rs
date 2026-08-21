@@ -1059,6 +1059,7 @@ impl KnotenApp {
                     state.device.poll(wgpu::Maintain::Wait);
                     let data = slice.get_mapped_range().to_vec();
 
+                    #[allow(unknown_lints, clippy::chunks_exact_to_as_chunks)]
                     let floats: Vec<f32> = data
                         .chunks_exact(4)
                         .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))

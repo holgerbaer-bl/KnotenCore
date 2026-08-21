@@ -1026,6 +1026,7 @@ impl VM {
                     let val = self.stack.pop().unwrap_or(RelType::Void);
                     self.stack.push(RelType::Str(val.to_string()));
                 }
+                #[allow(unknown_lints, clippy::chunks_exact_to_as_chunks)]
                 OpCode::VectorDot => {
                     let r_val = self.stack.pop().unwrap_or(RelType::Void);
                     let l_val = self.stack.pop().unwrap_or(RelType::Void);
