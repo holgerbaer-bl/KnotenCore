@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.17** · Authenticated Store Identity Binding & Strict Tag Governance
+Current engine version: **v2.24.18** · Deterministic Dual-Engine Validator & Non-Determinism Audit
 
 ## Done (selected milestones)
 
+- ✅ Deterministic Dual-Engine Validator & Non-Determinism Audit (concurrent Tree-Walker evaluator and AOT Stack-VM execution harness `DualEngineValidator`, zero-panic fault containment with `catch_unwind`, canonical error classification `FaultCategory`, decoupled resource telemetry, Section 7.17 of `docs/KNOTEN_SPEC.md`, Sprint 355 - v2.24.18)
 - ✅ Authenticated Store Identity Binding & Strict Tag Governance (bound CRDT mutations in `knc_store_put` directly to verified session identities `ed25519:<pubkey_hex>` or scoped `legacy-hmac:<sender_node_id>`, incorporated authenticated writer identities into anti-entropy state digests, Section 7.16 of `docs/KNOTEN_SPEC.md`, Sprint 354 - v2.24.17)
 - ✅ CRDT State Digests & Differential Mesh Sync (deterministic `ring::digest::SHA256` anti-entropy state digests `knc_store_digest`, differential sync `knc_store_diff`, LWW delta merging, documented writer_id trust boundary limitation, Section 7.15 of `docs/KNOTEN_SPEC.md`, Sprint 353 - v2.24.16)
 - ✅ Zero-Trust Raft Heartbeats & Anti-Downgrade Hardening (deprecated plaintext auth tokens in Raft governance heartbeats, canonical Ed25519 signature verification, peer revocation filtering, anti-downgrade enforcement, Section 7.14 of `docs/KNOTEN_SPEC.md`, Sprint 352 - v2.24.15)

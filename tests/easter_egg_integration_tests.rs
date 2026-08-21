@@ -6,7 +6,7 @@ use knoten_core_types::ast::Node;
 
 #[test]
 fn test_version_assertion_sprint342() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.17");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.18");
     let server = RpcServer::new(AgentPermissions::default());
     let req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -15,7 +15,7 @@ fn test_version_assertion_sprint342() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.17\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.18\""));
 }
 
 #[test]

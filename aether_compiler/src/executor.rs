@@ -132,7 +132,7 @@ pub fn build_meaning_of_life_json(input: i64) -> serde_json::Value {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct AgentPermissions {
     pub allow_network: bool,
     pub allowed_domains: Vec<String>,
@@ -158,17 +158,21 @@ impl std::fmt::Display for RelType {
                 write!(f, "[{}]", s.join(", "))
             }
             RelType::Object(map) => {
+                let mut keys: Vec<_> = map.keys().collect();
+                keys.sort();
                 let mut s = Vec::new();
-                for (k, v) in map {
-                    s.push(format!("{}: {}", k, v));
+                for k in keys {
+                    s.push(format!("{}: {}", k, &map[k]));
                 }
                 write!(f, "{{{}}}", s.join(", "))
             }
             RelType::Dict(map_arc) => {
                 let map = map_arc.lock().unwrap_or_else(|e| e.into_inner());
+                let mut keys: Vec<_> = map.keys().collect();
+                keys.sort();
                 let mut s = Vec::new();
-                for (k, v) in map.iter() {
-                    s.push(format!("{}: {}", k, v));
+                for k in keys {
+                    s.push(format!("{}: {}", k, &map[k]));
                 }
                 write!(f, "{{{}}}", s.join(", "))
             }

@@ -1,6 +1,13 @@
+[workspace.package]
+version = "2.24.18"
+authors = ["Holger Baer <holgerbaer-bl@users.noreply.github.com>"]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/holgerbaer-bl/KnotenCore"
+
 [package]
 name = "knoten_core"
-version = "2.24.17"
+version = "2.24.18"
 edition = "2024"
 
 [lib]

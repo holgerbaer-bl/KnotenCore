@@ -1,4 +1,4 @@
-# KnotenCore — AI Agent Reference (Routing Document) - v2.24.17 Release
+# KnotenCore — AI Agent Reference (Routing Document) - v2.24.18 Release
 
 > **System Instruction for LLM Code Agents**
 >
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.17)
+## 🎯 AI-Readiness Benchmark — 20/20 on internal test set (v2.24.18)
 
 > Tested with a single agent (Antigravity/Claude) against 20 custom scenarios. Not an independent benchmark; no comparison values from other DSLs. PRs with additional/stricter test cases are welcome.
 
@@ -20,7 +20,7 @@ generating `.nod` programs, your output can be tested against 20 standardised ta
 **Before you generate any code, read: [`benchmark/README.md`](benchmark/README.md)**
 
 **AG Baseline Score: 20/20 (100%)** — see [`benchmark/results/ag_baseline.md`](benchmark/results/ag_baseline.md)  
-**Current Engine Version: v2.24.17** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Sprint 354 Authenticated Store Identity Binding & Strict Tag Governance, Sprint 353 CRDT Store State Digest & Differential Mesh Sync, Sprint 352 Zero-Trust Raft Heartbeats & Anti-Downgrade Hardening, Sprint 351 WebSocket Robustness, Gossip Revocation Gate & Test Realignment, Sprint 350 Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide, Sprint 349 CI Workflow Hardening & Non-Interactive Release Builds, Sprint 348 Dogfooding & Real-World Mesh Examples, Sprint 347 CI Examples Verification Harness (`tests/examples_verification.rs`), Sprint 346 Examples Directory Cleanup & Restructuring, Sprint 345 Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading, Sprint 344.1 Vector Gas Metering Fix & Benchmark Spec, and Sprint 344 SIMD Vector Compute Engine.
+**Current Engine Version: v2.24.18** — A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. Includes Sprint 355 Deterministic Dual-Engine Validator & Non-Determinism Audit, Sprint 354 Authenticated Store Identity Binding & Strict Tag Governance, Sprint 353 CRDT Store State Digest & Differential Mesh Sync, Sprint 352 Zero-Trust Raft Heartbeats & Anti-Downgrade Hardening, Sprint 351 WebSocket Robustness, Gossip Revocation Gate & Test Realignment, Sprint 350 Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide, Sprint 349 CI Workflow Hardening & Non-Interactive Release Builds, Sprint 348 Dogfooding & Real-World Mesh Examples, Sprint 347 CI Examples Verification Harness (`tests/examples_verification.rs`), Sprint 346 Examples Directory Cleanup & Restructuring, Sprint 345 Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading, Sprint 344.1 Vector Gas Metering Fix & Benchmark Spec, and Sprint 344 SIMD Vector Compute Engine.
 *Note: All AST Nodes map gracefully in the VM Compiler. In headless mode (or when built without the `ui` feature), UI nodes execute safely via no-op stubs without breaking compilation.*
 
 ---

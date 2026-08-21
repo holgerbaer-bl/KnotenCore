@@ -426,12 +426,21 @@ Specifies the cryptographic binding of KV-store mutations to verified caller ide
 - **State Digest Identity Binding**: Anti-entropy state digests (`knc_store_digest`) hash authenticated `writer_id` values, ensuring digest integrity across cryptographically distinct writers.
 - **Strict Tag Governance**: Enforces immutable release tag discipline (`git tag -a v2.24.17`) and strictly rejects forced tag overwrites across local and remote repositories.
 
-## 8. Formal Benchmarks (`v2.24.17`)
+### 7.17. Deterministic Dual-Engine Parity Validation & Fault Parity (v2.24.18)
+Specifies the dual-engine validation architecture and zero-panic fault isolation semantics:
+- **DualEngineValidator Architecture**: Executes an incoming AST concurrently across both the reference Tree-Walker evaluator (`ExecutionEngine::evaluate`) and the AOT Stack-VM (`VM::run`).
+- **Semantic Equivalence & State Normalization**: Asserts strict equality on primary return values (`RelType`) and observable heap/global state mutations (`BTreeMap<String, RelType>`) sorted lexicographically.
+- **Zero-Panic Isolation**: Encapsulates evaluator and VM execution within `std::panic::catch_unwind(AssertUnwindSafe(...))`, guaranteeing that untrusted or malformed ASTs never cause unwinding panics.
+- **Symmetrical Error Categorization**: Normalizes engine-specific error messages into canonical `FaultCategory` variants (`DivisionByZero`, `ModuloByZero`, `TypeError`, `VariableNotFound`, `IndexOutOfBounds`, `PermissionDenied`, `GasExhausted`, `MemoryQuotaExceeded`, `WatchdogTimeout`, `CompilationFailed`, `StackUnderflow`, `RuntimeFault`). Divergent error categories for identical inputs are flagged as first-class validation discrepancies.
+- **Decoupled Telemetry**: Captures gas consumption and instruction execution metrics without conflating architectural VM differences into semantic equality assertions.
+
+## 8. Formal Benchmarks (`v2.24.18`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.
 - **CLI Harness (`knoten bench`)**: Formatted ASCII table output, machine-readable `--json` export, and `--workload <NAME>` targeting.
 - **Specification**: Complete specification, measurement methodology, and reference environment documented in [`docs/BENCHMARKS.md`](BENCHMARKS.md).
+
 
 
 

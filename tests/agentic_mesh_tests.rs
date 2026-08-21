@@ -62,7 +62,7 @@ fn test_mesh_discover_and_peers() {
     assert_eq!(res.get("status").unwrap(), "ok");
     assert_eq!(res.get("node_id").unwrap(), "node-alpha");
     assert_eq!(res.get("address").unwrap(), "127.0.0.1:9090");
-    assert_eq!(res.get("protocol_version").unwrap(), "v2.24.17");
+    assert_eq!(res.get("protocol_version").unwrap(), "v2.24.18");
 
     // 2. Register Peer
     let req_reg = serde_json::json!({

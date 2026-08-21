@@ -604,13 +604,13 @@ impl VM {
                     match (l, r) {
                         (RelType::Int(a), RelType::Int(b)) => {
                             if b == 0 {
-                                return Err("Fault: Div by zero (at Node::Modulo)".into());
+                                return Err("Fault: Mod by zero (at Node::Modulo)".into());
                             }
                             self.stack.push(RelType::Int(a % b))
                         }
                         (RelType::Float(a), RelType::Float(b)) => {
                             if b == 0.0 {
-                                return Err("Fault: Div by zero (at Node::Modulo)".into());
+                                return Err("Fault: Mod by zero (at Node::Modulo)".into());
                             }
                             self.stack.push(RelType::Float(a % b))
                         }
@@ -831,7 +831,7 @@ impl VM {
                         if let Some(val) = self.globals.get(name) {
                             self.stack.push(val.clone());
                         } else {
-                            self.stack.push(RelType::Void);
+                            return Err(format!("Variable '{}' not found", name));
                         }
                     } else {
                         return Err("Invalid constant index for GetGlobal".into());

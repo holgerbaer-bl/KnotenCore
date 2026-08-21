@@ -277,7 +277,7 @@ fn test_handshake_advertises_crdt_store_capabilities() {
     assert!(caps["peer_state_sync"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.24.17"
+        "v2.24.18"
     );
 }
 
@@ -811,5 +811,5 @@ fn test_store_digest_incorporates_authenticated_writer_identities() {
 
 #[test]
 fn test_version_assertion_sprint354() {
-    assert_eq!(aether_compiler::rpc::KNC_PROTOCOL_VERSION, "v2.24.17");
+    assert_eq!(aether_compiler::rpc::KNC_PROTOCOL_VERSION, "v2.24.18");
 }

@@ -2,6 +2,24 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.18] - Sprint 355: Deterministic Dual-Engine Validator & Non-Determinism Audit (2026-08-21)
+Sprint 355 implements a dual-engine execution harness executing incoming ASTs simultaneously on both the reference Tree-Walker evaluator and the AOT Stack-VM with zero-panic isolation and symmetrical error categorization:
+- **Non-Determinism Audit & State Normalization (`aether_compiler/src/executor.rs`, `aether_compiler/src/vm/dual_validator.rs`)**:
+  - Audited state containers and normalized `RelType::Object` and `RelType::Dict` formatting to use deterministically sorted keys.
+  - Normalized state mutation collection to sorted `BTreeMap<String, RelType>` instances across both engines.
+  - Audited and aligned float division/modulo by zero and undefined variable handling in VM `GetGlobal` to mirror Tree-Walker evaluator semantics.
+- **DualEngineValidator Implementation (`aether_compiler/src/vm/dual_validator.rs`)**:
+  - Implemented `DualEngineValidator` executing ASTs concurrently on reference Tree-Walker evaluator (`ExecutionEngine::evaluate`) and AOT Stack-VM (`VM::run`).
+  - Zero-panic fault isolation via `std::panic::catch_unwind(AssertUnwindSafe(...))` preventing crashes on either engine.
+  - Canonical `FaultCategory` classification (`DivisionByZero`, `ModuloByZero`, `TypeError`, `VariableNotFound`, `IndexOutOfBounds`, `PermissionDenied`, `GasExhausted`, `MemoryQuotaExceeded`, `WatchdogTimeout`, `CompilationFailed`, `StackUnderflow`, `RuntimeFault`).
+  - Symmetrical assertion on return values, observable state mutations (`BTreeMap<String, RelType>`), and identical failure classifications.
+  - Resource telemetry (gas consumed, execution duration, instruction count) tracked and decoupled from core semantic equality checks.
+- **Integration Test Expansion (`tests/dual_engine_tests.rs`)**:
+  - Added 11 comprehensive tests validating arithmetic parity, float arithmetic parity, control flow and state mutations, Fibonacci parity, division by zero fault parity, modulo by zero fault parity, type mismatch fault parity, undefined variable fault parity, gas telemetry decoupling, zero-panic fault containment, and protocol version assertion.
+  - Total test suite expanded to 305/305 tests passing 100% green.
+- **100% English Documentation & Version Synchronization (`v2.24.18`)**:
+  - Synchronized version `v2.24.18` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.18`, `305/305` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, and Section 7.17 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.17] - Sprint 354: Authenticated Store Identity Binding & Strict Tag Governance (2026-08-20)
 Sprint 354 binds distributed CRDT KV-store mutations directly to verified session identities and incorporates authenticated identities into state digests:
 - **Authenticated `writer_id` Identity Binding (`aether_compiler/src/rpc/handlers/store.rs`)**:

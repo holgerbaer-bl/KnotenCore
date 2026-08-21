@@ -1184,7 +1184,15 @@ impl ExecutionEngine {
                     }
                     RelType::Int(a / b)
                 }
-                (RelType::Float(a), RelType::Float(b)) => RelType::Float(a / b),
+                (RelType::Float(a), RelType::Float(b)) => {
+                    if b == 0.0 {
+                        return ExecResult::Fault {
+                            msg: "Div by zero".into(),
+                            node: "Node::MathDiv".into(),
+                        };
+                    }
+                    RelType::Float(a / b)
+                }
                 _ => {
                     return ExecResult::Fault {
                         msg: "Invalid types for /".into(),
@@ -1202,7 +1210,15 @@ impl ExecutionEngine {
                     }
                     RelType::Int(a % b)
                 }
-                (RelType::Float(a), RelType::Float(b)) => RelType::Float(a % b),
+                (RelType::Float(a), RelType::Float(b)) => {
+                    if b == 0.0 {
+                        return ExecResult::Fault {
+                            msg: "Mod by zero".into(),
+                            node: "Node::Modulo".into(),
+                        };
+                    }
+                    RelType::Float(a % b)
+                }
                 _ => {
                     return ExecResult::Fault {
                         msg: "Invalid types for %".into(),
