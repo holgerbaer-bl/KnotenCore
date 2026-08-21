@@ -162,7 +162,7 @@ impl std::fmt::Display for RelType {
                 keys.sort();
                 let mut s = Vec::new();
                 for k in keys {
-                    s.push(format!("{}: {}", k, &map[k]));
+                    s.push(format!("{}: {}", k, map[k]));
                 }
                 write!(f, "{{{}}}", s.join(", "))
             }
@@ -172,7 +172,7 @@ impl std::fmt::Display for RelType {
                 keys.sort();
                 let mut s = Vec::new();
                 for k in keys {
-                    s.push(format!("{}: {}", k, &map[k]));
+                    s.push(format!("{}: {}", k, map[k]));
                 }
                 write!(f, "{{{}}}", s.join(", "))
             }
