@@ -194,6 +194,7 @@ impl BridgeModule for CoreBridge {
                             }
                         }
                         // Sprint 190: Hard 5-second timeout
+                        #[cfg(not(target_arch = "wasm32"))]
                         match ureq::get(url)
                             .timeout(std::time::Duration::from_secs(5))
                             .call()
@@ -216,6 +217,16 @@ impl BridgeModule for CoreBridge {
                                     node: "Native::Bridge::net_fetch".into(),
                                 });
                             }
+                        }
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            let _ = url;
+                            return Some(ExecResult::Fault {
+                                msg:
+                                    "Network Error: HTTP requests not supported in WASM environment"
+                                        .to_string(),
+                                node: "Native::Bridge::net_fetch".into(),
+                            });
                         }
                     }
                     Some(ExecResult::Fault {
@@ -254,6 +265,7 @@ impl BridgeModule for CoreBridge {
                             }
                         }
                         // Sprint 190: Hard 5-second timeout
+                        #[cfg(not(target_arch = "wasm32"))]
                         match ureq::get(url)
                             .timeout(std::time::Duration::from_secs(5))
                             .call()
@@ -276,6 +288,16 @@ impl BridgeModule for CoreBridge {
                                     node: "Native::Bridge::network_get".into(),
                                 });
                             }
+                        }
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            let _ = url;
+                            return Some(ExecResult::Fault {
+                                msg:
+                                    "Network Error: HTTP requests not supported in WASM environment"
+                                        .to_string(),
+                                node: "Native::Bridge::network_get".into(),
+                            });
                         }
                     }
                     Some(ExecResult::Fault {

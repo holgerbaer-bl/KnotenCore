@@ -34,6 +34,7 @@ impl AsyncBridge {
         let (tx_task, rx_task) = channel::<FetchTask>();
         let (tx_payload, rx_payload) = channel::<FetchPayload>();
 
+        #[cfg(not(target_arch = "wasm32"))]
         // Spawn the dedicated background worker thread
         thread::spawn(move || {
             // Sprint 63.1: Global ureq Agent with strict timeout
@@ -78,6 +79,11 @@ impl AsyncBridge {
                 });
             }
         });
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = rx_task;
+            let _ = tx_payload;
+        }
 
         AsyncBridge {
             tx_task,
