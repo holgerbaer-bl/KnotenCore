@@ -6,12 +6,10 @@ use crate::vm::compiler::Compiler;
 use crate::vm::machine::VM;
 use knoten_core_types::opcode::OpCode;
 
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn wasm_instanciate_vm() -> VM {
     VM::new()
 }
 
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn wasm_compile_json(json: &str) -> Option<(Vec<OpCode>, Vec<RelType>)> {
     let node: knoten_core_types::ast::Node = match serde_json::from_str(json) {
         Ok(n) => n,
@@ -22,7 +20,6 @@ pub fn wasm_compile_json(json: &str) -> Option<(Vec<OpCode>, Vec<RelType>)> {
     Some((compiler.instructions, compiler.constants))
 }
 
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn wasm_dispatch_compute(
     vm: &mut VM,
     instructions: &[OpCode],
@@ -30,6 +27,20 @@ pub fn wasm_dispatch_compute(
 ) -> Result<RelType, String> {
     let perms = crate::executor::AgentPermissions::default();
     vm.run(instructions, constants, &perms, None)
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn wasm_eval_json(json: &str) -> Result<String, String> {
+    let node: knoten_core_types::ast::Node =
+        serde_json::from_str(json).map_err(|e| format!("JSON Parse Error: {}", e))?;
+    let mut compiler = Compiler::new();
+    compiler.compile_node(&node);
+    let mut vm = VM::new();
+    let perms = crate::executor::AgentPermissions::default();
+    let result = vm
+        .run(&compiler.instructions, &compiler.constants, &perms, None)
+        .map_err(|e| format!("Runtime Error: {}", e))?;
+    serde_json::to_string(&result).map_err(|e| format!("Serialization Error: {}", e))
 }
 
 pub fn wasm_edge_steal_work(thief_id: i64) -> Option<(OpCode, Vec<RelType>)> {
@@ -72,5 +83,9 @@ mod tests {
         let r3 =
             wasm_dispatch_compute(&mut vm3, &instr, &consts).expect("WASM dispatch must succeed");
         assert_eq!(r3, RelType::Int(42), "6 * 7 = 42 in WASM edge context");
+
+        let eval_json = "{\"Add\": [{\"IntLiteral\": 20}, {\"IntLiteral\": 22}]}";
+        let res_json = wasm_eval_json(eval_json).expect("WASM eval must succeed");
+        assert_eq!(res_json, "{\"Int\":42}");
     }
 }
