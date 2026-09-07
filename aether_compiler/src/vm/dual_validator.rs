@@ -533,9 +533,23 @@ impl DualEngineValidator {
     pub fn assert_parity(&self, node: &Node) -> Result<DualValidationOutcome, DualValidationError> {
         let report = self.validate(node);
         if report.is_valid {
-            Ok(report.outcome.unwrap())
+            report
+                .outcome
+                .ok_or_else(|| DualValidationError::EngineDivergence {
+                    eval_succeeded: false,
+                    eval_detail: "Outcome missing in valid report".to_string(),
+                    vm_succeeded: false,
+                    vm_detail: "Outcome missing in valid report".to_string(),
+                })
         } else {
-            Err(report.error.unwrap())
+            Err(report
+                .error
+                .unwrap_or(DualValidationError::EngineDivergence {
+                    eval_succeeded: false,
+                    eval_detail: "Validation failed with no error details".to_string(),
+                    vm_succeeded: false,
+                    vm_detail: "Validation failed with no error details".to_string(),
+                }))
         }
     }
 }

@@ -512,9 +512,12 @@ fn ensure_channel_for(shader_id: usize) {
 
 pub fn compute_sender_for(shader_id: usize) -> Sender<Vec<f32>> {
     ensure_channel_for(shader_id);
-    let channels = COMPUTE_CHANNELS.get().unwrap();
+    let channels = COMPUTE_CHANNELS.get_or_init(|| Mutex::new(HashMap::new()));
     let guard = channels.lock().unwrap_or_else(|e| e.into_inner());
-    guard.get(&shader_id).unwrap().0.clone()
+    guard
+        .get(&shader_id)
+        .map(|(tx, _)| tx.clone())
+        .unwrap_or_else(|| bounded::<Vec<f32>>(1).0)
 }
 
 // Sprint 233: Native SIMD matrix storage for transpose/transform operations
@@ -1424,7 +1427,7 @@ pub fn registry_compute_readback(shader_id: i64) -> Vec<crate::executor::RelType
 
     // Clone receiver under lock, then release before spin-polling
     let rx = {
-        let channels = COMPUTE_CHANNELS.get().unwrap();
+        let channels = COMPUTE_CHANNELS.get_or_init(|| Mutex::new(HashMap::new()));
         let guard = channels.lock().unwrap_or_else(|e| e.into_inner());
         guard.get(&sid).map(|(_, rx)| rx.clone())
     };

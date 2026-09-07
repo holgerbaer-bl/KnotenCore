@@ -2,6 +2,25 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.21] - Sprint 358: Consolidation Phase 1: Auth-Coverage Matrix Snapshot, unwrap() Audit & Engine Comment Remediation (2026-09-07)
+Sprint 358 transitions into technical hardening, invariant verification, and long-term maintainability following the conclusion of active functional sprints:
+- **Engine Root-Cause Documentation Remediation (`aether_compiler/src/evaluator.rs`, `aether_compiler/src/vm/machine.rs`)**:
+  - Remediated inline root-cause comments in `evaluator.rs` and `machine.rs` near `wrapping_add` arithmetic logic: `// Symmetrized with Tree-Walker wrapping semantics to prevent debug-mode integer overflow panics.`
+  - Remediated inline root-cause comment in `machine.rs` near `JumpIfFalse` boolean evaluation: `// Symmetrized with Tree-Walker: strictly require boolean conditions; reject truthy integers with TypeError.`
+- **Formal Auth-Coverage Matrix Snapshot (`docs/SECURITY.md`, `SECURITY.md`)**:
+  - Conducted exhaustive static security audit matching all 36 `REGISTERED_METHODS` against `is_method_public()`.
+  - Documented complete "State of Auth" coverage table detailing transport protocols (TCP line-delimited & WebSocket RFC 6455), Zero-Trust Ed25519 cryptographic signature enforcement, replay protection windows (30s ZT / 60s HMAC), and anti-downgrade invariants.
+  - Verified Day-1 zero-trust auth-gating on newest endpoints: `knc_eval_dual`, `knc_store_diff`, `knc_store_digest`, `knc_task_complete`, `knc_swarm_request_vote`.
+  - Updated root `SECURITY.md` referencing `docs/SECURITY.md` and supported version stream `v2.24.x`.
+- **Systematic `unwrap()` Elimination & Error Propagation (`aether_compiler/src/vm/dual_validator.rs`, `aether_compiler/src/natives/registry.rs`)**:
+  - Eliminated unhandled `unwrap()` calls in `dual_validator.rs` `assert_parity()` with `ok_or_else` / `unwrap_or` returning proper `DualValidationError::EngineDivergence`.
+  - Hardened native registry global compute channel access via `get_or_init` and safe lock unwrap fallbacks.
+  - Verified zero unhandled runtime unwraps across `aether_compiler/src/rpc/` and VM dispatch execution paths.
+- **Automated Quality Gates & Test Suite Expansion**:
+  - Enhanced integration tests in `tests/isolate_quota_integration_tests.rs` and `tests/rpc_modularization_tests.rs` with static assertion of all 36 methods and auth-gated status.
+- **100% English Documentation & Version Synchronization (`v2.24.21`)**:
+  - Synchronized version `v2.24.21` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.21`, `322/322` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, Section 7.20 of `docs/KNOTEN_SPEC.md`, and all test suites.
+
 ## [v2.24.20] - Sprint 357: Dual-Engine Parity Fuzzing & Divergence Stress Suite (2026-09-07)
 Sprint 357 implements comprehensive differential parity fuzzing across the `DualEngineValidator`, subjecting Tree-Walker evaluator and AOT Stack-VM to randomized AST mutations, IEEE-754 NaN-aware equality checks, boundary wrapping arithmetic, and divergence quarantine stress testing:
 - **Procedural AST Generator & Differential Fuzz Harness (`tests/parity_fuzz_tests.rs`)**:

@@ -1150,6 +1150,7 @@ impl ExecutionEngine {
         };
         let res = match op {
             '+' => match (lv, rv) {
+                // Symmetrized with Tree-Walker wrapping semantics to prevent debug-mode integer overflow panics.
                 // Sprint 357: Root-Cause Parity Fix: wrapping_add prevents debug overflow panics on boundary values
                 (RelType::Int(a), RelType::Int(b)) => RelType::Int(a.wrapping_add(b)),
                 (RelType::Float(a), RelType::Float(b)) => RelType::Float(a + b),

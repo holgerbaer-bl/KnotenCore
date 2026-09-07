@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.20** · Dual-Engine Parity Fuzzing & Divergence Stress Suite
+Current engine version: **v2.24.21** · Consolidation Phase 1: Auth Matrix, unwrap() Audit & Hardening
 
 ## Done (selected milestones)
 
+- ✅ Consolidation Phase 1: Auth-Coverage Matrix Snapshot, unwrap() Elimination & Engine Comment Remediation (exhaustive formal auth matrix in `docs/SECURITY.md` auditing all 36 endpoints against zero-trust invariants, verified Day-1 protection on newest endpoints, eliminated unhandled `unwrap()` calls across runtime paths, inline engine root-cause comments in `evaluator.rs` and `machine.rs`, Section 7.20 of `docs/KNOTEN_SPEC.md`, Sprint 358 - v2.24.21)
 - ✅ Dual-Engine Parity Fuzzing & Divergence Stress Suite (differential parity fuzzing across `DualEngineValidator`, randomized AST mutations, IEEE-754 NaN-aware equality checks `rel_type_eq_nan_aware`, wrapping arithmetic boundary symmetrization, divergence quarantine stress tests, Section 7.19 of `docs/KNOTEN_SPEC.md`, Sprint 357 - v2.24.20)
 - ✅ RPC Dual-Engine Evaluation Endpoint & Quarantine Protocol (exposed `DualEngineValidator` via dedicated Zero-Trust RPC endpoint `knc_eval_dual`, strict Day-1 auth-gating, anti-downgrade enforcement, divergence quarantine containment protocol `-32020` / `ERR_ENGINE_DISCREPANCY`, Section 7.18 of `docs/KNOTEN_SPEC.md`, Sprint 356 - v2.24.19)
 - ✅ Deterministic Dual-Engine Validator & Non-Determinism Audit (concurrent Tree-Walker evaluator and AOT Stack-VM execution harness `DualEngineValidator`, zero-panic fault containment with `catch_unwind`, canonical error classification `FaultCategory`, decoupled resource telemetry, Section 7.17 of `docs/KNOTEN_SPEC.md`, Sprint 355 - v2.24.18)

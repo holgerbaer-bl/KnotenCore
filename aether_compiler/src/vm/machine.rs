@@ -507,6 +507,7 @@ impl VM {
                         .pop()
                         .ok_or_else(|| "Stack underflow in Add".to_string())?;
                     match (l, r) {
+                        // Symmetrized with Tree-Walker wrapping semantics to prevent debug-mode integer overflow panics.
                         (RelType::Int(a), RelType::Int(b)) => {
                             self.stack.push(RelType::Int(a.wrapping_add(b)))
                         }
@@ -787,6 +788,7 @@ impl VM {
                         .stack
                         .pop()
                         .ok_or_else(|| "Stack underflow in JumpIfFalse".to_string())?;
+                    // Symmetrized with Tree-Walker: strictly require boolean conditions; reject truthy integers with TypeError.
                     match cond {
                         RelType::Bool(b) => {
                             if !b {

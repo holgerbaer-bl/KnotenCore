@@ -449,7 +449,13 @@ Specifies the differential parity fuzzing architecture and divergence stress tes
 - **Fault Category Expansion**: Expanded canonical `FaultCategory` variants with `ArithmeticError`, `StackOverflow`, and `QuotaExceeded`.
 - **Divergence Quarantine Validation**: Stress verifies that simulated engine divergences trigger quarantine isolation without unverified state propagation.
 
-## 8. Formal Benchmarks (`v2.24.20`)
+### 7.20. Consolidation Phase 1: Auth-Coverage Matrix Snapshot, unwrap() Audit & Engine Comment Remediation (v2.24.21)
+Specifies the static security audit coverage, unwrap elimination, and engine root-cause documentation:
+- **Formal Auth-Coverage Matrix**: Static audit matching all 36 registered endpoints in `REGISTERED_METHODS` against `is_method_public()`. Enforces Zero-Trust Ed25519 signature verification, replay protection windows (30s ZT / 60s HMAC), and anti-downgrade invariants across all 34 protected endpoints. Fully documents and verifies Day-1 auth-gating on newest endpoints (`knc_eval_dual`, `knc_store_diff`, `knc_store_digest`, `knc_task_complete`, `knc_swarm_request_vote`).
+- **unwrap() Elimination & Propagation**: Systematic replacement of unhandled runtime unwraps with error propagation (`?`, `ok_or_else`, `map_err`) and graceful lock poisoning fallbacks.
+- **Engine Root-Cause Remediation**: Inline documentation of wrapping arithmetic overflow prevention and strict boolean condition typing across both Tree-Walker and VM execution engines.
+
+## 8. Formal Benchmarks (`v2.24.21`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

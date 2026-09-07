@@ -5,7 +5,7 @@ use knoten_core_types::ast::Node;
 
 #[test]
 fn test_version_assertion_sprint343() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.20");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.21");
     let server = RpcServer::new(AgentPermissions::default());
     let req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -14,7 +14,7 @@ fn test_version_assertion_sprint343() {
         "params": {}
     });
     let resp = server.dispatch_request(&req.to_string());
-    assert!(resp.contains("\"protocol_version\":\"v2.24.20\""));
+    assert!(resp.contains("\"protocol_version\":\"v2.24.21\""));
 }
 
 #[test]
@@ -86,6 +86,15 @@ fn test_all_rpc_endpoints_auth_compliance() {
     );
     server.enable_zero_trust();
 
+    assert_eq!(
+        RpcServer::registered_methods().len(),
+        36,
+        "Exactly 36 endpoints must be registered and accounted for in the auth matrix"
+    );
+
+    let mut public_count = 0;
+    let mut protected_count = 0;
+
     for &method in RpcServer::registered_methods() {
         let req = serde_json::json!({
             "jsonrpc": "2.0",
@@ -95,6 +104,7 @@ fn test_all_rpc_endpoints_auth_compliance() {
         });
         let resp = server.dispatch_request(&req.to_string());
         if RpcServer::is_method_public(method) {
+            public_count += 1;
             assert!(
                 !resp.contains("-32001") && !resp.contains("Unauthorized"),
                 "Public method {} unexpectedly returned auth failure: {}",
@@ -102,6 +112,7 @@ fn test_all_rpc_endpoints_auth_compliance() {
                 resp
             );
         } else {
+            protected_count += 1;
             assert!(
                 resp.contains("-32001") || resp.contains("Unauthorized"),
                 "Protected method {} failed to reject unauthorized request: {}",
@@ -109,6 +120,30 @@ fn test_all_rpc_endpoints_auth_compliance() {
                 resp
             );
         }
+    }
+
+    assert_eq!(public_count, 2, "Exactly 2 public methods expected");
+    assert_eq!(protected_count, 34, "Exactly 34 protected methods expected");
+
+    // Explicitly verify newest endpoints from recent sprints:
+    let newest_endpoints = [
+        "knc_eval_dual",
+        "knc_store_diff",
+        "knc_store_digest",
+        "knc_task_complete",
+        "knc_swarm_request_vote",
+    ];
+    for &ep in &newest_endpoints {
+        assert!(
+            RpcServer::registered_methods().contains(&ep),
+            "Endpoint {} must be present in REGISTERED_METHODS",
+            ep
+        );
+        assert!(
+            !RpcServer::is_method_public(ep),
+            "Newest endpoint {} must be strictly auth-gated",
+            ep
+        );
     }
 }
 

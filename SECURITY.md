@@ -4,10 +4,13 @@
 
 Currently, KnotenCore is in active Alpha development. We provide security support for the latest branch.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| v1.0.x  | :white_check_mark: |
-| < v1.0  | :x:                |
+| Version Stream | Supported          | Status                                                      |
+| -------------- | ------------------ | ----------------------------------------------------------- |
+| `v2.24.x`      | :white_check_mark: | Active release stream (Zero-Trust Ed25519 & Dual-Engine)    |
+| `< v2.24`      | :x:                | Deprecated / Unsupported                                    |
+
+> For the comprehensive formal Auth-Coverage Matrix snapshot, state of auth, and zero-trust protocol specifications, see [docs/SECURITY.md](docs/SECURITY.md).
+
 
 ## Architecture Context
 
