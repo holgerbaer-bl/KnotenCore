@@ -2,6 +2,22 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.20] - Sprint 357: Dual-Engine Parity Fuzzing & Divergence Stress Suite (2026-09-07)
+Sprint 357 implements comprehensive differential parity fuzzing across the `DualEngineValidator`, subjecting Tree-Walker evaluator and AOT Stack-VM to randomized AST mutations, IEEE-754 NaN-aware equality checks, boundary wrapping arithmetic, and divergence quarantine stress testing:
+- **Procedural AST Generator & Differential Fuzz Harness (`tests/parity_fuzz_tests.rs`)**:
+  - Implemented deterministic pseudo-random AST generator with `DeterministicRng` (XorShift64) producing nested arithmetic, boolean logic, relational comparisons, and control-flow trees.
+  - Stress testing boundary values: integer overflow/underflow wrapping (`i64::MIN`, `i64::MAX`, `i64::MIN - 1`, `i64::MAX + 1`), division/modulo by zero handling (`/ 0`, `% 0`, `i64::MIN / -1`, `i64::MIN % -1`), and float special values (`f64::NAN`, `f64::INFINITY`, `f64::NEG_INFINITY`, subnormals).
+  - Executed 100 deterministic fuzz iterations across diverse generation depths asserting semantic execution equivalence or symmetrical fault categorization.
+- **NaN-Aware Differential Equality & Fault Classification Expansion (`aether_compiler/src/vm/dual_validator.rs`)**:
+  - Implemented `rel_type_eq_nan_aware` and `state_mutations_eq_nan_aware` supporting IEEE-754 NaN parity (`NaN == NaN`) across direct floats, arrays, and objects without false-positive discrepancies.
+  - Expanded canonical `FaultCategory` with `ArithmeticError`, `StackOverflow`, and `QuotaExceeded`, updating `Display` and `classify_fault`.
+  - Added associated convenience function `DualEngineValidator::evaluate(&Node)`.
+- **Root-Cause Symmetrization of Engine Divergences (`aether_compiler/src/evaluator.rs`, `aether_compiler/src/vm/machine.rs`, `aether_compiler/src/optimizer.rs`)**:
+  - Symmetrized wrapping arithmetic (`wrapping_add`, `wrapping_sub`, `wrapping_mul`, `wrapping_div`, `wrapping_rem`, `wrapping_neg`, `wrapping_abs`) across Tree-Walker evaluator, Stack-VM, and constant folder to prevent debug-mode panic unwinds on integer boundaries.
+  - Symmetrized mixed `Int` and `Float` arithmetic across both engines with explicit explanatory code comments.
+- **100% English Documentation & Version Synchronization (`v2.24.20`)**:
+  - Synchronized version `v2.24.20` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout preserved*, badges `v2.24.20`, `321/321` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, Section 7.19 of `docs/KNOTEN_SPEC.md`, and all test suites.
+
 ## [v2.24.19] - Sprint 356: RPC Dual-Engine Evaluation Endpoint `knc_eval_dual` & Quarantine Protocol (2026-08-21)
 Sprint 356 exposes the `DualEngineValidator` via a dedicated Zero-Trust RPC endpoint `knc_eval_dual` with strict Day-1 auth-gating, complete anti-downgrade checks, and a divergence quarantine containment protocol preventing unverified state propagation:
 - **`knc_eval_dual` RPC Endpoint Implementation (`aether_compiler/src/rpc/handlers/eval_dual.rs`, `aether_compiler/src/rpc/mod.rs`)**:

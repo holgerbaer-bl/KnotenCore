@@ -943,12 +943,12 @@ fn optimize_math_op(left: Node, right: Node, op: char) -> Node {
 
     match (&opt_l, &opt_r) {
         (Node::IntLiteral(l), Node::IntLiteral(r)) => match op {
-            '+' => Node::IntLiteral(l + r),
-            '-' => Node::IntLiteral(l - r),
-            '*' => Node::IntLiteral(l * r),
+            '+' => Node::IntLiteral(l.wrapping_add(*r)),
+            '-' => Node::IntLiteral(l.wrapping_sub(*r)),
+            '*' => Node::IntLiteral(l.wrapping_mul(*r)),
             '/' => {
                 if *r != 0 {
-                    Node::IntLiteral(l / r)
+                    Node::IntLiteral(l.wrapping_div(*r))
                 } else {
                     Node::Div(Box::new(opt_l), Box::new(opt_r))
                 }

@@ -507,7 +507,9 @@ impl VM {
                         .pop()
                         .ok_or_else(|| "Stack underflow in Add".to_string())?;
                     match (l, r) {
-                        (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Int(a + b)),
+                        (RelType::Int(a), RelType::Int(b)) => {
+                            self.stack.push(RelType::Int(a.wrapping_add(b)))
+                        }
                         (RelType::Float(a), RelType::Float(b)) => {
                             self.stack.push(RelType::Float(a + b))
                         }
@@ -531,7 +533,9 @@ impl VM {
                         .pop()
                         .ok_or_else(|| "Stack underflow in Subtract".to_string())?;
                     match (l, r) {
-                        (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Int(a - b)),
+                        (RelType::Int(a), RelType::Int(b)) => {
+                            self.stack.push(RelType::Int(a.wrapping_sub(b)))
+                        }
                         (RelType::Float(a), RelType::Float(b)) => {
                             self.stack.push(RelType::Float(a - b))
                         }
@@ -554,7 +558,9 @@ impl VM {
                         .pop()
                         .ok_or_else(|| "Stack underflow in Multiply".to_string())?;
                     match (l, r) {
-                        (RelType::Int(a), RelType::Int(b)) => self.stack.push(RelType::Int(a * b)),
+                        (RelType::Int(a), RelType::Int(b)) => {
+                            self.stack.push(RelType::Int(a.wrapping_mul(b)))
+                        }
                         (RelType::Float(a), RelType::Float(b)) => {
                             self.stack.push(RelType::Float(a * b))
                         }
@@ -581,13 +587,25 @@ impl VM {
                             if b == 0 {
                                 return Err("Fault: Div by zero (at Node::MathDiv)".into());
                             }
-                            self.stack.push(RelType::Int(a / b))
+                            self.stack.push(RelType::Int(a.wrapping_div(b)))
                         }
                         (RelType::Float(a), RelType::Float(b)) => {
                             if b == 0.0 {
                                 return Err("Fault: Div by zero (at Node::MathDiv)".into());
                             }
                             self.stack.push(RelType::Float(a / b))
+                        }
+                        (RelType::Int(a), RelType::Float(b)) => {
+                            if b == 0.0 {
+                                return Err("Fault: Div by zero (at Node::MathDiv)".into());
+                            }
+                            self.stack.push(RelType::Float(a as f64 / b))
+                        }
+                        (RelType::Float(a), RelType::Int(b)) => {
+                            if b == 0 {
+                                return Err("Fault: Div by zero (at Node::MathDiv)".into());
+                            }
+                            self.stack.push(RelType::Float(a / b as f64))
                         }
                         _ => return Err("Invalid types for Divide".into()),
                     }
@@ -606,7 +624,7 @@ impl VM {
                             if b == 0 {
                                 return Err("Fault: Mod by zero (at Node::Modulo)".into());
                             }
-                            self.stack.push(RelType::Int(a % b))
+                            self.stack.push(RelType::Int(a.wrapping_rem(b)))
                         }
                         (RelType::Float(a), RelType::Float(b)) => {
                             if b == 0.0 {
@@ -623,7 +641,7 @@ impl VM {
                         .pop()
                         .ok_or_else(|| "Stack underflow in Neg".to_string())?;
                     match v {
-                        RelType::Int(a) => self.stack.push(RelType::Int(-a)),
+                        RelType::Int(a) => self.stack.push(RelType::Int(a.wrapping_neg())),
                         RelType::Float(a) => self.stack.push(RelType::Float(-a)),
                         _ => return Err("Invalid type for Neg".into()),
                     }
@@ -769,13 +787,15 @@ impl VM {
                         .stack
                         .pop()
                         .ok_or_else(|| "Stack underflow in JumpIfFalse".to_string())?;
-                    let is_true = match cond {
-                        RelType::Bool(b) => b,
-                        RelType::Int(i) => i != 0,
-                        _ => false,
-                    };
-                    if !is_true {
-                        self.ip = *target_ip;
+                    match cond {
+                        RelType::Bool(b) => {
+                            if !b {
+                                self.ip = *target_ip;
+                            }
+                        }
+                        _ => {
+                            return Err("Fault: If condition must be boolean (at Node::If)".into());
+                        }
                     }
                 }
                 OpCode::Jump(target_ip) => {

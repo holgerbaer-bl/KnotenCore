@@ -21,6 +21,9 @@ pub enum FaultCategory {
     WatchdogTimeout,
     CompilationFailed,
     StackUnderflow,
+    StackOverflow,
+    ArithmeticError,
+    QuotaExceeded,
     RuntimeFault,
 }
 
@@ -38,6 +41,9 @@ impl std::fmt::Display for FaultCategory {
             FaultCategory::WatchdogTimeout => write!(f, "WatchdogTimeout"),
             FaultCategory::CompilationFailed => write!(f, "CompilationFailed"),
             FaultCategory::StackUnderflow => write!(f, "StackUnderflow"),
+            FaultCategory::StackOverflow => write!(f, "StackOverflow"),
+            FaultCategory::ArithmeticError => write!(f, "ArithmeticError"),
+            FaultCategory::QuotaExceeded => write!(f, "QuotaExceeded"),
             FaultCategory::RuntimeFault => write!(f, "RuntimeFault"),
         }
     }
@@ -53,11 +59,12 @@ pub fn classify_fault(msg: &str) -> FaultCategory {
         FaultCategory::DivisionByZero
     } else if lower.contains("mod by zero") || lower.contains("modulo by zero") {
         FaultCategory::ModuloByZero
-    } else if lower.contains("invalid types")
+    } else if lower.contains("invalid type")
         || lower.contains("type mismatch")
         || lower.contains("expects")
         || lower.contains("invalid operand")
         || lower.contains("expected ")
+        || lower.contains("must be boolean")
     {
         FaultCategory::TypeError
     } else if lower.contains("variable '")
@@ -69,16 +76,15 @@ pub fn classify_fault(msg: &str) -> FaultCategory {
         FaultCategory::IndexOutOfBounds
     } else if lower.contains("permission denied") || lower.contains("sandbox") {
         FaultCategory::PermissionDenied
-    } else if lower.contains("gasexhausted")
-        || lower.contains("err_quota_exceeded")
-        || lower.contains("gas limit")
-    {
+    } else if lower.contains("gasexhausted") || lower.contains("gas limit") {
         FaultCategory::GasExhausted
     } else if lower.contains("memoryquotaexceeded")
         || lower.contains("err_memory_limit_exceeded")
         || lower.contains("memory limit")
     {
         FaultCategory::MemoryQuotaExceeded
+    } else if lower.contains("err_quota_exceeded") || lower.contains("quota exceeded") {
+        FaultCategory::QuotaExceeded
     } else if lower.contains("watchdogtimeout")
         || lower.contains("watchdog_timeout")
         || lower.contains("timeout exceeded")
@@ -88,6 +94,13 @@ pub fn classify_fault(msg: &str) -> FaultCategory {
         FaultCategory::CompilationFailed
     } else if lower.contains("stack underflow") {
         FaultCategory::StackUnderflow
+    } else if lower.contains("stack overflow") || lower.contains("call stack") {
+        FaultCategory::StackOverflow
+    } else if lower.contains("arithmetic")
+        || lower.contains("overflow")
+        || lower.contains("underflow")
+    {
+        FaultCategory::ArithmeticError
     } else {
         FaultCategory::RuntimeFault
     }
@@ -191,6 +204,40 @@ impl std::fmt::Display for DualValidationError {
     }
 }
 
+/// NaN-aware equality comparison for `RelType`.
+/// Handles IEEE-754 NaN values symmetrically (where NaN == NaN) and recurses into arrays and objects.
+pub fn rel_type_eq_nan_aware(a: &RelType, b: &RelType) -> bool {
+    match (a, b) {
+        (RelType::Float(x), RelType::Float(y)) => (x.is_nan() && y.is_nan()) || x == y,
+        (RelType::Array(arr_a), RelType::Array(arr_b)) => {
+            arr_a.len() == arr_b.len()
+                && arr_a
+                    .iter()
+                    .zip(arr_b.iter())
+                    .all(|(x, y)| rel_type_eq_nan_aware(x, y))
+        }
+        (RelType::Object(obj_a), RelType::Object(obj_b)) => {
+            obj_a.len() == obj_b.len()
+                && obj_a
+                    .iter()
+                    .all(|(k, v)| obj_b.get(k).is_some_and(|v2| rel_type_eq_nan_aware(v, v2)))
+        }
+        _ => a == b,
+    }
+}
+
+/// NaN-aware equality comparison for observable state mutation maps.
+pub fn state_mutations_eq_nan_aware(
+    a: &BTreeMap<String, RelType>,
+    b: &BTreeMap<String, RelType>,
+) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    a.iter()
+        .all(|(k, v)| b.get(k).is_some_and(|v2| rel_type_eq_nan_aware(v, v2)))
+}
+
 /// Comprehensive telemetry report from dual-engine validation.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DualValidationReport {
@@ -225,6 +272,11 @@ impl DualEngineValidator {
             quota: IsolateQuota::default(),
             optimize_ast: true,
         }
+    }
+
+    /// Evaluate an AST node directly using the default DualEngineValidator instance.
+    pub fn evaluate(node: &Node) -> DualValidationReport {
+        Self::new().validate(node)
     }
 
     pub fn with_permissions(mut self, perms: AgentPermissions) -> Self {
@@ -384,12 +436,12 @@ impl DualEngineValidator {
         let report_outcome: Result<DualValidationOutcome, DualValidationError> =
             match (eval_success_val, vm_success_val) {
                 (Some(eval_val), Some(vm_val)) => {
-                    if eval_val != vm_val {
+                    if !rel_type_eq_nan_aware(&eval_val, &vm_val) {
                         Err(DualValidationError::ReturnValueMismatch {
                             eval_return: eval_val,
                             vm_return: vm_val,
                         })
-                    } else if eval_state != vm_state {
+                    } else if !state_mutations_eq_nan_aware(&eval_state, &vm_state) {
                         Err(DualValidationError::StateMutationMismatch {
                             eval_state,
                             vm_state,

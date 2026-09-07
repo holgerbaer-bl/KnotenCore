@@ -14,7 +14,7 @@ pub mod vfs; // Sprint 306: Sandboxed In-Memory VFS
 pub use compiler::Compiler;
 pub use dual_validator::{
     DualEngineValidator, DualValidationError, DualValidationOutcome, DualValidationReport,
-    FaultCategory, classify_fault,
+    FaultCategory, classify_fault, rel_type_eq_nan_aware, state_mutations_eq_nan_aware,
 };
 pub use knoten_core_types::opcode;
 pub use machine::*;

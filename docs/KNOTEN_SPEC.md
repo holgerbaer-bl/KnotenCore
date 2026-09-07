@@ -441,7 +441,15 @@ Specifies the RPC dual-engine evaluation interface and divergence quarantine con
 - **Parity Match Response**: When both engines produce identical return values and state mutations (or symmetrical `FaultCategory`), returns `{ "status": "ok", "result": <RelType>, "execution_mode": "dual_verified", "fault": null }` along with duration and gas telemetry.
 - **Divergence Quarantine Containment Protocol**: On semantic discrepancy (`ReturnValueMismatch`, `StateMutationMismatch`, `DivergentFaultCategory`, `EngineDivergence`, or panic unwind), immediately aborts with RPC error code `-32020` (`ERR_ENGINE_DISCREPANCY`), prevents any state mutation or CRDT persistence, and returns structured quarantine diagnostic payload.
 
-## 8. Formal Benchmarks (`v2.24.19`)
+### 7.19. Dual-Engine Parity Fuzzing & Divergence Stress Suite (v2.24.20)
+Specifies the differential parity fuzzing architecture and divergence stress testing semantics:
+- **Differential Parity Fuzzing**: Procedural AST generation subjecting the `DualEngineValidator` to pseudo-random, deeply nested AST expressions, mixed arithmetic, control flow constructs, and array/slice operations.
+- **Boundary Condition Stress**: Comprehensive coverage of integer overflow/underflow wrapping (`i64::MIN`, `i64::MAX`), division/modulo by zero handling (`/ 0`, `% 0`, `i64::MIN / -1`, `i64::MIN % -1`), and float special values (`f64::NAN`, `f64::INFINITY`, `f64::NEG_INFINITY`, subnormals).
+- **NaN-Aware Differential Equality**: `rel_type_eq_nan_aware` and `state_mutations_eq_nan_aware` treat IEEE-754 NaN values symmetrically (`NaN == NaN`) without false-positive discrepancies.
+- **Fault Category Expansion**: Expanded canonical `FaultCategory` variants with `ArithmeticError`, `StackOverflow`, and `QuotaExceeded`.
+- **Divergence Quarantine Validation**: Stress verifies that simulated engine divergences trigger quarantine isolation without unverified state propagation.
+
+## 8. Formal Benchmarks (`v2.24.20`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

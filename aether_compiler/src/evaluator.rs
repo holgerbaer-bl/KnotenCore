@@ -51,7 +51,10 @@ impl ExecutionEngine {
             Node::Div(l, r) => self.do_math(l, '/', r),
             Node::Modulo(l, r) => self.do_math(l, '%', r),
             Node::Neg(expr) => match self.evaluate_inner(expr) {
-                ExecResult::Value(RelType::Int(v)) => ExecResult::Value(RelType::Int(-v)),
+                // Sprint 357: Root-Cause Parity Fix: Use wrapping_neg to avoid debug overflow panic on i64::MIN
+                ExecResult::Value(RelType::Int(v)) => {
+                    ExecResult::Value(RelType::Int(v.wrapping_neg()))
+                }
                 ExecResult::Value(RelType::Float(v)) => ExecResult::Value(RelType::Float(-v)),
                 ExecResult::Value(_) => ExecResult::Fault {
                     msg: "Neg expects number".into(),
@@ -60,7 +63,10 @@ impl ExecutionEngine {
                 err => err,
             },
             Node::Abs(expr) => match self.evaluate_inner(expr) {
-                ExecResult::Value(RelType::Int(v)) => ExecResult::Value(RelType::Int(v.abs())),
+                // Sprint 357: Root-Cause Parity Fix: Use wrapping_abs to avoid debug overflow panic on i64::MIN
+                ExecResult::Value(RelType::Int(v)) => {
+                    ExecResult::Value(RelType::Int(v.wrapping_abs()))
+                }
                 ExecResult::Value(RelType::Float(v)) => ExecResult::Value(RelType::Float(v.abs())),
                 ExecResult::Value(_) => ExecResult::Fault {
                     msg: "Abs expects number".into(),
@@ -1144,8 +1150,12 @@ impl ExecutionEngine {
         };
         let res = match op {
             '+' => match (lv, rv) {
-                (RelType::Int(a), RelType::Int(b)) => RelType::Int(a + b),
+                // Sprint 357: Root-Cause Parity Fix: wrapping_add prevents debug overflow panics on boundary values
+                (RelType::Int(a), RelType::Int(b)) => RelType::Int(a.wrapping_add(b)),
                 (RelType::Float(a), RelType::Float(b)) => RelType::Float(a + b),
+                // Sprint 357: Root-Cause Parity Fix: Symmetrize mixed Int/Float arithmetic to match Stack-VM
+                (RelType::Int(a), RelType::Float(b)) => RelType::Float(a as f64 + b),
+                (RelType::Float(a), RelType::Int(b)) => RelType::Float(a + b as f64),
                 (RelType::Str(a), RelType::Str(b)) => RelType::Str(a + &b),
                 _ => {
                     return ExecResult::Fault {
@@ -1155,8 +1165,12 @@ impl ExecutionEngine {
                 }
             },
             '-' => match (lv, rv) {
-                (RelType::Int(a), RelType::Int(b)) => RelType::Int(a - b),
+                // Sprint 357: Root-Cause Parity Fix: wrapping_sub prevents debug underflow panics on boundary values
+                (RelType::Int(a), RelType::Int(b)) => RelType::Int(a.wrapping_sub(b)),
                 (RelType::Float(a), RelType::Float(b)) => RelType::Float(a - b),
+                // Sprint 357: Root-Cause Parity Fix: Symmetrize mixed Int/Float arithmetic to match Stack-VM
+                (RelType::Int(a), RelType::Float(b)) => RelType::Float(a as f64 - b),
+                (RelType::Float(a), RelType::Int(b)) => RelType::Float(a - b as f64),
                 _ => {
                     return ExecResult::Fault {
                         msg: "Invalid types for -".into(),
@@ -1165,8 +1179,12 @@ impl ExecutionEngine {
                 }
             },
             '*' => match (lv, rv) {
-                (RelType::Int(a), RelType::Int(b)) => RelType::Int(a * b),
+                // Sprint 357: Root-Cause Parity Fix: wrapping_mul prevents debug overflow panics on boundary values
+                (RelType::Int(a), RelType::Int(b)) => RelType::Int(a.wrapping_mul(b)),
                 (RelType::Float(a), RelType::Float(b)) => RelType::Float(a * b),
+                // Sprint 357: Root-Cause Parity Fix: Symmetrize mixed Int/Float arithmetic to match Stack-VM
+                (RelType::Int(a), RelType::Float(b)) => RelType::Float(a as f64 * b),
+                (RelType::Float(a), RelType::Int(b)) => RelType::Float(a * b as f64),
                 _ => {
                     return ExecResult::Fault {
                         msg: "Invalid types for *".into(),
@@ -1182,7 +1200,8 @@ impl ExecutionEngine {
                             node: "Node::MathDiv".into(),
                         };
                     }
-                    RelType::Int(a / b)
+                    // Sprint 357: Root-Cause Parity Fix: wrapping_div avoids debug panic on i64::MIN / -1
+                    RelType::Int(a.wrapping_div(b))
                 }
                 (RelType::Float(a), RelType::Float(b)) => {
                     if b == 0.0 {
@@ -1192,6 +1211,25 @@ impl ExecutionEngine {
                         };
                     }
                     RelType::Float(a / b)
+                }
+                // Sprint 357: Root-Cause Parity Fix: Symmetrize mixed Int/Float division
+                (RelType::Int(a), RelType::Float(b)) => {
+                    if b == 0.0 {
+                        return ExecResult::Fault {
+                            msg: "Div by zero".into(),
+                            node: "Node::MathDiv".into(),
+                        };
+                    }
+                    RelType::Float(a as f64 / b)
+                }
+                (RelType::Float(a), RelType::Int(b)) => {
+                    if b == 0 {
+                        return ExecResult::Fault {
+                            msg: "Div by zero".into(),
+                            node: "Node::MathDiv".into(),
+                        };
+                    }
+                    RelType::Float(a / b as f64)
                 }
                 _ => {
                     return ExecResult::Fault {
@@ -1208,7 +1246,8 @@ impl ExecutionEngine {
                             node: "Node::Modulo".into(),
                         };
                     }
-                    RelType::Int(a % b)
+                    // Sprint 357: Root-Cause Parity Fix: wrapping_rem avoids debug panic on i64::MIN % -1
+                    RelType::Int(a.wrapping_rem(b))
                 }
                 (RelType::Float(a), RelType::Float(b)) => {
                     if b == 0.0 {
