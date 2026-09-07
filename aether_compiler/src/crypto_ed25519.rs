@@ -1,5 +1,6 @@
 /// Zero-Trust Mesh — Ed25519 Cryptographic Module backed by ring.
 use ring::digest::{SHA512, digest};
+#[cfg(not(target_arch = "wasm32"))]
 use ring::rand::SystemRandom;
 use ring::signature::{ED25519, Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey};
 
@@ -28,18 +29,25 @@ impl Clone for Ed25519KeyPair {
 impl Ed25519KeyPair {
     /// Generates an in-memory Ed25519 keypair securely. Private keys are never stored on disk.
     pub fn generate() -> Self {
-        let rng = SystemRandom::new();
-        let pkcs8_doc =
-            RingKeyPair::generate_pkcs8(&rng).expect("Failed to generate Ed25519 keypair");
-        let ring_pair = RingKeyPair::from_pkcs8(pkcs8_doc.as_ref())
-            .expect("Failed to parse generated Ed25519 keypair");
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let rng = SystemRandom::new();
+            let pkcs8_doc =
+                RingKeyPair::generate_pkcs8(&rng).expect("Failed to generate Ed25519 keypair");
+            let ring_pair = RingKeyPair::from_pkcs8(pkcs8_doc.as_ref())
+                .expect("Failed to parse generated Ed25519 keypair");
 
-        let mut pub_arr = [0u8; 32];
-        pub_arr.copy_from_slice(ring_pair.public_key().as_ref());
+            let mut pub_arr = [0u8; 32];
+            pub_arr.copy_from_slice(ring_pair.public_key().as_ref());
 
-        Self {
-            pkcs8_bytes: pkcs8_doc.as_ref().to_vec(),
-            public_bytes: pub_arr,
+            Self {
+                pkcs8_bytes: pkcs8_doc.as_ref().to_vec(),
+                public_bytes: pub_arr,
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            panic!("Ed25519KeyPair::generate is not supported on wasm32-unknown-unknown");
         }
     }
 

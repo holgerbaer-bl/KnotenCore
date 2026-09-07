@@ -1,5 +1,6 @@
 use knoten_core_types::ast::Node;
 use std::sync::mpsc::{Receiver, Sender, channel};
+#[cfg(not(target_arch = "wasm32"))]
 use std::thread;
 
 /// A task sent from the main WGPU thread to the background worker.

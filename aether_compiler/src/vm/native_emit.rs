@@ -1,5 +1,6 @@
 use crate::executor::RelType;
 use knoten_core_types::opcode::OpCode;
+#[cfg(not(target_arch = "wasm32"))]
 use memmap2::MmapMut;
 use std::collections::HashMap;
 
