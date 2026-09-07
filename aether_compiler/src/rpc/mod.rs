@@ -106,10 +106,15 @@ impl RpcServer {
         mesh_auth_token: Option<String>,
     ) -> Self {
         let keypair = Ed25519KeyPair::generate();
+        let local_pubkey = keypair.public_key_hex();
+        let node_id_str: String = node_id.into();
+        let mut verified_keys_map = HashMap::new();
+        verified_keys_map.insert(node_id_str.clone(), local_pubkey);
+
         let server = Self {
             permissions,
             sessions: Arc::new(Mutex::new(HashMap::new())),
-            node_id: node_id.into(),
+            node_id: node_id_str,
             node_address: node_address.into(),
             mesh_auth_token,
             peers: Arc::new(Mutex::new(HashMap::new())),
@@ -118,7 +123,7 @@ impl RpcServer {
             store: Arc::new(MeshKvStore::new()),
             swarm_governance: Arc::new(SwarmGovernance::new()),
             ed25519_keypair: Arc::new(Mutex::new(keypair)),
-            verified_peer_keys: Arc::new(Mutex::new(HashMap::new())),
+            verified_peer_keys: Arc::new(Mutex::new(verified_keys_map)),
             revoked_peer_keys: Arc::new(Mutex::new(HashSet::new())),
             revoked_keys_path: Arc::new(Mutex::new(Some(PathBuf::from("revoked_keys.json")))),
             used_nonces: Arc::new(Mutex::new(NonceCache::new())),
@@ -132,18 +137,16 @@ impl RpcServer {
     }
 
     pub fn is_zero_trust(&self) -> bool {
-        *self
-            .zero_trust_mode
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
+        match self.zero_trust_mode.lock() {
+            Ok(guard) => *guard,
+            Err(_) => true, // Fail-safe: if lock is poisoned, assume Zero-Trust (fail closed)
+        }
     }
 
     pub fn set_zero_trust(&self, enabled: bool) {
-        let mut mode = self
-            .zero_trust_mode
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        *mode = enabled;
+        if let Ok(mut mode) = self.zero_trust_mode.lock() {
+            *mode = enabled;
+        }
     }
 
     pub fn enable_zero_trust(&self) {
@@ -151,10 +154,10 @@ impl RpcServer {
     }
 
     pub fn sign_envelope(&self, nonce: &str, timestamp: u64) -> (String, String) {
-        let kp = self
-            .ed25519_keypair
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let kp = match self.ed25519_keypair.lock() {
+            Ok(guard) => guard,
+            Err(e) => e.into_inner(),
+        };
         let pubkey = kp.public_key_hex();
         let msg = format!("{}:{}:{}", timestamp, nonce, self.node_id);
         let sig = kp.sign_hex(msg.as_bytes());
@@ -162,66 +165,61 @@ impl RpcServer {
     }
 
     pub fn public_key_hex(&self) -> String {
-        let kp = self
-            .ed25519_keypair
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        kp.public_key_hex()
+        match self.ed25519_keypair.lock() {
+            Ok(guard) => guard.public_key_hex(),
+            Err(_) => String::new(),
+        }
     }
 
     pub fn rotate_key(&self) -> (String, String) {
-        let mut kp = self
-            .ed25519_keypair
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut kp = match self.ed25519_keypair.lock() {
+            Ok(guard) => guard,
+            Err(e) => e.into_inner(),
+        };
         let old_pub = kp.public_key_hex();
         *kp = Ed25519KeyPair::generate();
         let new_pub = kp.public_key_hex();
+        if let Ok(mut verified) = self.verified_peer_keys.lock() {
+            verified.insert(self.node_id.clone(), new_pub.clone());
+        }
         (old_pub, new_pub)
     }
 
     pub fn set_revoked_keys_path(&self, path: Option<PathBuf>) {
-        let mut p = self
-            .revoked_keys_path
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        *p = path;
+        if let Ok(mut p) = self.revoked_keys_path.lock() {
+            *p = path;
+        }
     }
 
     pub fn load_revoked_keys(&self) {
-        let path_opt = self
-            .revoked_keys_path
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone();
+        let path_opt = match self.revoked_keys_path.lock() {
+            Ok(p) => p.clone(),
+            Err(_) => return,
+        };
 
         if let Some(path) = path_opt
             && path.exists()
             && let Ok(data) = std::fs::read_to_string(&path)
             && let Ok(keys) = serde_json::from_str::<HashSet<String>>(&data)
+            && let Ok(mut revoked) = self.revoked_peer_keys.lock()
         {
-            let mut revoked = self
-                .revoked_peer_keys
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
             *revoked = keys;
         }
     }
 
     pub fn save_revoked_keys(&self) {
-        let path_opt = self
-            .revoked_keys_path
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone();
+        let path_opt = match self.revoked_keys_path.lock() {
+            Ok(p) => p.clone(),
+            Err(_) => return,
+        };
 
         if let Some(path) = path_opt {
-            let revoked = self
-                .revoked_peer_keys
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            let json_data_opt = match self.revoked_peer_keys.lock() {
+                Ok(revoked) => serde_json::to_string_pretty(&*revoked).ok(),
+                Err(_) => None,
+            };
 
-            if let Ok(json_data) = serde_json::to_string_pretty(&*revoked) {
+            if let Some(json_data) = json_data_opt {
                 if let Some(parent) = path.parent() {
                     let _ = std::fs::create_dir_all(parent);
                 }
@@ -232,40 +230,37 @@ impl RpcServer {
 
     pub fn is_peer_key_revoked(&self, pubkey_hex: &str) -> bool {
         let normalized = pubkey_hex.trim().to_lowercase();
-        let revoked = self
-            .revoked_peer_keys
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        revoked.contains(&normalized)
+        match self.revoked_peer_keys.lock() {
+            Ok(revoked) => revoked.contains(&normalized),
+            Err(_) => true, // Fail-safe: if revocation list mutex is poisoned, fail closed and treat peer as revoked
+        }
     }
 
     pub fn revoke_peer_key(&self, pubkey_hex: &str) {
         let normalized = pubkey_hex.trim().to_lowercase();
         {
-            let mut revoked = self
-                .revoked_peer_keys
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
-            revoked.insert(normalized.clone());
+            if let Ok(mut revoked) = self.revoked_peer_keys.lock() {
+                revoked.insert(normalized.clone());
+            } else {
+                return;
+            }
         }
 
         {
-            let mut peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
-            let verified = self
-                .verified_peer_keys
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            if let Ok(mut peers) = self.peers.lock()
+                && let Ok(verified) = self.verified_peer_keys.lock()
+            {
+                let node_to_remove = verified.iter().find_map(|(node_id, pk)| {
+                    if pk.to_lowercase() == normalized {
+                        Some(node_id.clone())
+                    } else {
+                        None
+                    }
+                });
 
-            let node_to_remove = verified.iter().find_map(|(node_id, pk)| {
-                if pk.to_lowercase() == normalized {
-                    Some(node_id.clone())
-                } else {
-                    None
+                if let Some(node_id) = node_to_remove {
+                    peers.remove(&node_id);
                 }
-            });
-
-            if let Some(node_id) = node_to_remove {
-                peers.remove(&node_id);
             }
         }
         self.save_revoked_keys();

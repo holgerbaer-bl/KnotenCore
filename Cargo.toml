@@ -1,5 +1,5 @@
 [workspace.package]
-version = "2.24.21"
+version = "2.24.22"
 authors = ["Holger Baer"]
 edition = "2024"
 description = "A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST."
@@ -8,7 +8,7 @@ repository = "https://github.com/holgerbaer-bl/KnotenCore"
 
 [package]
 name = "knoten_core"
-version = "2.24.21"
+version = "2.24.22"
 edition = "2024"
 
 [lib]
@@ -67,6 +67,8 @@ aether_compiler = { path = "aether_compiler", default-features = false }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wgpu = { version = "23.0", features = ["webgpu", "webgl"], optional = true }
 winit = { version = "0.30", features = ["rwh_05", "rwh_06"], optional = true }
+getrandom = { version = "0.4", features = ["wasm_js"] }
+getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
 
 [workspace]
 members = ["knoten_core_types", "aether_compiler"]

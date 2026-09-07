@@ -455,7 +455,14 @@ Specifies the static security audit coverage, unwrap elimination, and engine roo
 - **unwrap() Elimination & Propagation**: Systematic replacement of unhandled runtime unwraps with error propagation (`?`, `ok_or_else`, `map_err`) and graceful lock poisoning fallbacks.
 - **Engine Root-Cause Remediation**: Inline documentation of wrapping arithmetic overflow prevention and strict boolean condition typing across both Tree-Walker and VM execution engines.
 
-## 8. Formal Benchmarks (`v2.24.21`)
+### 7.21. Consolidation Phase 2: Cryptographic Identity Binding, Poisoning Resilience & CI Enforcement (v2.24.22)
+Specifies the deterministic cryptographic identity binding, fail-safe lock poisoning resilience, and blocking quality gates:
+- **Deterministic Identity Binding**: Enforces an immutable, deterministic 1-to-1 binding between a peer's `node_id` and its Ed25519 `public_key`. Envelopes with mismatched, spoofed, altered, or foreign node identities claiming known node IDs are rejected with `ERR_UNAUTHORIZED` (`-32001`).
+- **Mutex Poisoning Resilience**: Critical security locks (`verified_peer_keys`, `revoked_peer_keys`, `zero_trust_mode`, and `SwarmGovernance`) fail safely rather than silently propagating poisoned state or crashing. Mutations are rejected with `InternalSecurityError` and state queries default to fail-closed (`is_zero_trust() == true`, `is_peer_key_revoked() == true`, `role() == NodeRole::Observer`).
+- **Blocking WASM CI Quality Gate**: Converts the WASM32 compilation pipeline into a blocking CI gate in `.github/workflows/ci.yml`, configured with wasm-compatible dependencies (`getrandom` `wasm_js` and `js` features).
+- **Formal L4/L7 Zero-Trust Architecture Invariant**: Formalizes that TCP network connectivity provides zero trust; reachability implies no privilege; all trust is derived exclusively via cryptographically signed and authenticated protocol envelopes.
+
+## 8. Formal Benchmarks (`v2.24.22`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

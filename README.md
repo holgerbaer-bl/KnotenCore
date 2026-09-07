@@ -1,11 +1,11 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.24.21-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.24.22-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![AI Directives](https://img.shields.io/badge/AI--Directives-AI.md-purple)](AI.md)
 [![Automated CI](https://img.shields.io/badge/Automated_CI-Active-brightgreen)](docs/workflows/agent-ci-feedback.yml)
-[![Tests](https://img.shields.io/badge/tests-322%2F322-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.24.21-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-332%2F332-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.24.22-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
@@ -18,6 +18,7 @@
 **KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
 
 ### Key Features:
+- **Consolidation Phase 2: Cryptographic Identity Binding, Poisoning Resilience & CI Enforcement (v2.24.22)**: Enforced immutable 1-to-1 binding between peer node IDs and Ed25519 keys rejecting spoofed or foreign identities, hardened security-critical mutexes against poisoning with fail-closed semantics, converted WASM compilation into a blocking CI quality gate, and formalized L4/L7 Zero-Trust architecture invariants in `docs/SECURITY.md`.
 - **Consolidation Phase 1: Auth Matrix, unwrap() Audit & Engine Comment Remediation (v2.24.21)**: Documented exhaustive formal Auth-Coverage Matrix snapshot matching all 36 endpoints against zero-trust invariants in `docs/SECURITY.md`, eliminated unhandled `unwrap()` calls with robust error propagation, and remediated inline engine root-cause comments across VM and Evaluator.
 - **Dual-Engine Parity Fuzzing & Divergence Stress Suite (v2.24.20)**: Implemented comprehensive differential parity fuzzing across the `DualEngineValidator`, subjecting Tree-Walker evaluator and AOT Stack-VM to randomized AST mutations, IEEE-754 NaN-aware equality checks (`rel_type_eq_nan_aware`), boundary wrapping arithmetic, and divergence quarantine stress testing.
 - **RPC Dual-Engine Evaluation Endpoint & Quarantine Protocol (v2.24.19)**: Exposed `DualEngineValidator` via dedicated Zero-Trust RPC endpoint `knc_eval_dual` with strict Day-1 auth-gating, complete anti-downgrade checks, and divergence quarantine containment protocol (`-32020` / `ERR_ENGINE_DISCREPANCY`) preventing unverified state propagation.

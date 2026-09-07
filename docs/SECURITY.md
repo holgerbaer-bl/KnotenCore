@@ -1,4 +1,4 @@
-# KnotenCore Security Policy & Formal Auth-Coverage Matrix (`v2.24.21`)
+# KnotenCore Security Policy & Formal Auth-Coverage Matrix (`v2.24.22`)
 
 ## 1. Supported Versions
 
@@ -90,7 +90,22 @@ An exhaustive static audit verifies that every single endpoint in `REGISTERED_ME
 
 ---
 
-## 4. Reporting a Vulnerability
+## 5. Formal L4/L7 Zero-Trust Architecture Invariant
+
+**TCP connectivity provides zero trust. Network reachability implies no privilege; trust is established exclusively via cryptographically signed and authenticated protocol envelopes.**
+
+### Transport & Dispatch Audit
+1. **L4 (Network / Transport Layer)**:
+   - Establishing a TCP connection or completing a WebSocket handshake grants zero execution privileges.
+   - Raw network packets or unauthenticated JSON-RPC requests are strictly denied execution on all protected endpoints, with access restricted solely to whitelisted public introspection endpoints (`knc_meaning_of_life`, `sys.meaning_of_life`).
+2. **L7 (Application / Envelope Layer)**:
+   - Every protected RPC endpoint verifies the Ed25519 signature of the caller over the canonical serialized payload, monotonic nonce, and timestamp window (30s).
+   - **Deterministic Identity Binding**: A peer's declared `sender_node_id` is strictly and immutably bound 1-to-1 with its Ed25519 `public_key`. Envelopes with mismatched, spoofed, altered, or foreign node identities are rejected immediately with `ERR_UNAUTHORIZED` (`-32001`).
+   - **Fail-Safe Poisoning Resilience**: Critical internal security locks (`verified_peer_keys`, `revoked_peer_keys`, `zero_trust_mode`, and `SwarmGovernance`) enforce fail-closed and fail-safe semantics. In the event of thread panics poisoning locks, state mutations are unconditionally rejected with `InternalSecurityError` and access defaults to fail-closed (`is_zero_trust() == true`, `is_peer_key_revoked() == true`, `role() == NodeRole::Observer`).
+
+---
+
+## 6. Reporting a Vulnerability
 
 **Do NOT report security vulnerabilities in public GitHub issues.**
 

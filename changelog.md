@@ -2,6 +2,32 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.22] - Sprint 359: Consolidation Phase 2: Cryptographic Identity Binding, Poisoning Resilience & CI Enforcement (2026-09-07)
+Sprint 359 eliminates implicit trust assumptions, hardens internal state synchronization against lock poisoning, converts the WASM pipeline into a blocking quality gate, and formalizes zero-trust network invariants:
+- **Deterministic Cryptographic Identity Binding (`aether_compiler/src/rpc/auth.rs`, `aether_compiler/src/rpc/handlers/mesh.rs`)**:
+  - Enforced an immutable 1-to-1 deterministic binding between peer `node_id` and Ed25519 `public_key`. A peer can never declare an arbitrary `sender_node_id` decoupled from its cryptographic key.
+  - Added envelope payload consistency checks rejecting requests where `params.sender_node_id` diverges from `zero_trust_envelope.sender_node_id` (`altered payload`).
+  - Added strict rejection (`ERR_UNAUTHORIZED` / `-32001`) of spoofed sender IDs, foreign public keys claiming known/local node IDs, and re-registration attempts mapping bound keys to different node IDs.
+  - Automatically registered the server's local public key bound to `self.node_id` upon mesh initialization (`RpcServer::with_mesh`).
+  - Verified regression and negative exploit tests across valid matching pairs, spoofed sender IDs with third-party signatures, foreign public keys, altered envelope payloads, and revoked key replay attempts.
+- **Mutex Poisoning Resilience in Security & Governance State (`aether_compiler/src/rpc/`, `aether_compiler/src/rpc/handlers/swarm.rs`, `aether_compiler/src/rpc/handlers/mesh.rs`)**:
+  - Replaced unhandled lock unwrap and silent poisoned-lock recovery across security-critical synchronization primitives with fail-safe and fail-closed error handling.
+  - `verified_peer_keys`: Poisoned lock rejects state mutations in `knc_mesh_verify_peer` with `-32000` (`InternalSecurityError: verified_peer_keys mutex is poisoned; state mutations rejected`) and safely rejects authentication in `check_mesh_auth` with `InternalSecurityError`.
+  - `revoked_peer_keys`: Poisoned lock defaults to fail-closed (`is_peer_key_revoked() == true`), immediately rejecting untrusted peers.
+  - `zero_trust_mode`: Poisoned lock defaults to fail-closed (`is_zero_trust() == true`), enforcing strict cryptographic authentication.
+  - `SwarmGovernance`: Poisoned governance locks (`current_role`, `leader_node_id`, `current_term`, `voted_for`, `votes_received`) default to `NodeRole::Observer`, reject state mutations in `elect()` with `InternalSecurityError`, and safely report cluster health.
+- **Blocking WASM CI Quality Gate (`.github/workflows/ci.yml`, `Cargo.toml`, `aether_compiler/Cargo.toml`)**:
+  - Removed non-blocking failure tolerance (`continue-on-error: true` and `|| echo "WASM_NON_BLOCKING"`) from `.github/workflows/ci.yml`.
+  - Configured wasm32 dependencies with required features (`getrandom` v0.4 with `wasm_js` and v0.2 with `js`) for headless wasm32 compilation across the workspace.
+- **Formal L4/L7 Zero-Trust Architecture Invariant (`docs/SECURITY.md`)**:
+  - Formalized Section 5 documenting the fundamental invariant: "TCP connectivity provides zero trust. Network reachability implies no privilege; trust is established exclusively via cryptographically signed and authenticated protocol envelopes."
+  - Audited and documented L4 (socket reachability grants zero privileges) and L7 (canonical Ed25519 signature verification, identity binding, and fail-safe poisoning resilience) guarantees.
+- **Automated Quality Gates & Test Suite Expansion**:
+  - Added dedicated integration test suite `tests/cryptographic_identity_and_poisoning_tests.rs` verifying 9 negative exploit and poisoning resilience invariants.
+  - Added `test_version_assertion_sprint359` in `tests/rpc_modularization_tests.rs` and updated version assertions across all 18 test suites.
+- **100% English Documentation & Version Synchronization (`v2.24.22`)**:
+  - Synchronized version `v2.24.22` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout strictly preserved*, badges updated, `332/332` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, Section 7.21 of `docs/KNOTEN_SPEC.md`, and all test suites.
+
 ## [v2.24.21] - Sprint 358: Consolidation Phase 1: Auth-Coverage Matrix Snapshot, unwrap() Audit & Engine Comment Remediation (2026-09-07)
 Sprint 358 transitions into technical hardening, invariant verification, and long-term maintainability following the conclusion of active functional sprints:
 - **Engine Root-Cause Documentation Remediation (`aether_compiler/src/evaluator.rs`, `aether_compiler/src/vm/machine.rs`)**:

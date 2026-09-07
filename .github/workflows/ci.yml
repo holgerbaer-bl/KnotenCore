@@ -95,7 +95,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -104,5 +103,5 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: WASM check (non-blocking)
-        run: cargo check --target wasm32-unknown-unknown --workspace 2>&1 || echo "WASM_NON_BLOCKING"
+      - name: WASM check
+        run: cargo check --target wasm32-unknown-unknown --workspace

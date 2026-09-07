@@ -1,6 +1,6 @@
 [package]
 name = "aether_compiler"
-version = "2.24.21"
+version = "2.24.22"
 edition = "2024"
 autobins = false
 
@@ -47,6 +47,8 @@ knoten_core_types = { path = "../knoten_core_types" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
+getrandom = { version = "0.4", features = ["wasm_js"] }
+getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
 
 [dev-dependencies]
 proptest = "1.5"

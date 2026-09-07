@@ -14,7 +14,7 @@ fn main() {
         return;
     }
 
-    println!("KnotenCore CLI Engine v2.24.21 — Headless-First Deterministic Execution Runtime");
+    println!("KnotenCore CLI Engine v2.24.22 — Headless-First Deterministic Execution Runtime");
     println!("Usage:");
     println!("  knoten bench [--json] [--workload <NAME>]");
 }

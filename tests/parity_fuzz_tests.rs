@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 #[test]
 fn test_version_assertion_sprint357() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.21");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.22");
 }
 
 /// Simple deterministic XorShift64 PRNG for reproducible fuzz testing.

@@ -382,7 +382,16 @@ impl super::super::RpcServer {
         }
 
         let (active_nodes, quorum_threshold) = {
-            let peers = self.peers.lock().unwrap_or_else(|e| e.into_inner());
+            let peers = match self.peers.lock() {
+                Ok(p) => p,
+                Err(_) => {
+                    return JsonRpcResponse::error(
+                        id,
+                        -32000,
+                        "InternalSecurityError: peers mutex is poisoned; state mutations rejected",
+                    );
+                }
+            };
             let active_peers_count = peers.values().filter(|p| p.status == "Active").count();
             let active = 1 + active_peers_count;
             let server_threshold = (active / 2) + 1;
@@ -456,17 +465,47 @@ impl super::super::RpcServer {
             );
         }
 
-        let mut verified_keys = self
-            .verified_peer_keys
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        verified_keys.insert(peer_id.to_string(), peer_pubkey.to_string());
+        let mut verified_keys = match self.verified_peer_keys.lock() {
+            Ok(k) => k,
+            Err(_) => {
+                return JsonRpcResponse::error(
+                    id,
+                    -32000,
+                    "InternalSecurityError: verified_peer_keys mutex is poisoned; state mutations rejected",
+                );
+            }
+        };
+
+        let normalized_pubkey = peer_pubkey.trim().to_lowercase();
+        if let Some(existing_pk) = verified_keys.get(peer_id)
+            && existing_pk.trim().to_lowercase() != normalized_pubkey
+        {
+            return JsonRpcResponse::error(
+                id,
+                -32001,
+                "Unauthorized: Foreign public key claiming known node_id",
+            );
+        }
+        for (bound_node_id, bound_pk) in verified_keys.iter() {
+            if bound_pk.trim().to_lowercase() == normalized_pubkey && bound_node_id != peer_id {
+                return JsonRpcResponse::error(
+                    id,
+                    -32001,
+                    format!(
+                        "Unauthorized: Public key is immutably bound to node_id '{}', cannot claim '{}'",
+                        bound_node_id, peer_id
+                    ),
+                );
+            }
+        }
+
+        verified_keys.insert(peer_id.to_string(), normalized_pubkey.clone());
 
         let resp_val = serde_json::json!({
             "status": "ok",
             "verified": true,
             "peer_node_id": peer_id,
-            "peer_public_key": peer_pubkey,
+            "peer_public_key": normalized_pubkey,
             "local_node_id": self.node_id,
             "local_public_key": self.public_key_hex()
         });

@@ -110,18 +110,87 @@ impl super::RpcServer {
                 ts_val
             };
 
-            let mut nonce_cache = self.used_nonces.lock().unwrap_or_else(|e| e.into_inner());
+            let mut nonce_cache = self
+                .used_nonces
+                .lock()
+                .map_err(|_| "InternalSecurityError: used_nonces mutex is poisoned".to_string())?;
             let nonce_entry = format!("{}:{}", normalized_pubkey, nonce_str);
             if !nonce_cache.insert(nonce_entry, ts_secs) {
                 return Err("Unauthorized: Replayed nonce detected".to_string());
             }
 
-            let sender = envelope
-                .and_then(|e| e.get("sender_node_id"))
-                .or_else(|| params.get("sender_node_id"))
+            let sender_in_env = envelope
+                .and_then(|e| e.get("sender_node_id").or_else(|| e.get("sender")))
+                .and_then(|v| v.as_str());
+            let sender_in_params = params
+                .get("sender_node_id")
+                .or_else(|| params.get("sender"))
                 .or_else(|| params.get("node_id"))
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
+                .and_then(|v| v.as_str());
+
+            // Payload consistency check: reject altered envelope payload where params and envelope sender diverge
+            if let (Some(s_env), Some(s_param)) = (sender_in_env, sender_in_params)
+                && s_env != s_param
+            {
+                return Err(
+                    "Unauthorized: Sender node ID mismatch between envelope and params (altered payload)"
+                        .to_string(),
+                );
+            }
+
+            let sender = sender_in_env.or(sender_in_params).unwrap_or_default();
+
+            if self.is_peer_key_revoked(sender) {
+                return Err("Unauthorized: Peer public key has been revoked".to_string());
+            }
+
+            // Cryptographic Identity Binding:
+            // 1. If sender claims local node_id, it MUST cryptographically match the local public key
+            if !sender.is_empty() && sender == self.node_id {
+                let local_pk = self.public_key_hex().trim().to_lowercase();
+                if normalized_pubkey != local_pk {
+                    return Err(
+                        "Unauthorized: Foreign public key claiming known node_id".to_string()
+                    );
+                }
+            }
+
+            // 2. If sender is explicit ed25519:<pubkey>, it MUST match the envelope public key
+            if sender.starts_with("ed25519:") {
+                let claimed_key = sender.trim_start_matches("ed25519:").trim().to_lowercase();
+                if claimed_key != normalized_pubkey {
+                    return Err(
+                        "Unauthorized: Spoofed sender_node_id does not match verified public key"
+                            .to_string(),
+                    );
+                }
+            }
+
+            // 3. Mutex poisoning resilience: fail safely on poisoned verified_peer_keys lock
+            let mut verified_keys = self.verified_peer_keys.lock().map_err(|_| {
+                "InternalSecurityError: verified_peer_keys mutex is poisoned".to_string()
+            })?;
+
+            // 4. If sender is already registered in verified_peer_keys, the key MUST match
+            if !sender.is_empty()
+                && let Some(registered_pk) = verified_keys.get(sender)
+                && registered_pk.trim().to_lowercase() != normalized_pubkey
+            {
+                return Err("Unauthorized: Foreign public key claiming known node_id".to_string());
+            }
+
+            // 5. Immutable 1-to-1 binding: a public key cannot claim an arbitrary different node_id if already bound
+            for (bound_node_id, bound_pk) in verified_keys.iter() {
+                if bound_pk.trim().to_lowercase() == normalized_pubkey
+                    && !sender.is_empty()
+                    && bound_node_id != sender
+                {
+                    return Err(format!(
+                        "Unauthorized: Public key is immutably bound to node_id '{}', cannot claim '{}'",
+                        bound_node_id, sender
+                    ));
+                }
+            }
 
             let msg = format!("{}:{}:{}", ts_secs, nonce_str, sender);
 
@@ -135,10 +204,6 @@ impl super::RpcServer {
             }
 
             if !sender.is_empty() {
-                let mut verified_keys = self
-                    .verified_peer_keys
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner());
                 verified_keys.insert(sender.to_string(), normalized_pubkey);
             }
             return Ok(());
@@ -199,8 +264,9 @@ impl super::RpcServer {
                                 .unwrap_or_default()
                                 .as_secs()
                         });
-                    let mut nonce_cache =
-                        self.used_nonces.lock().unwrap_or_else(|e| e.into_inner());
+                    let mut nonce_cache = self.used_nonces.lock().map_err(|_| {
+                        "InternalSecurityError: used_nonces mutex is poisoned".to_string()
+                    })?;
                     let nonce_entry = format!("hmac:{}:{}", expected_token, nonce_str);
                     if !nonce_cache.insert(nonce_entry, ts_secs) {
                         return Err("Unauthorized: Replayed nonce detected".to_string());

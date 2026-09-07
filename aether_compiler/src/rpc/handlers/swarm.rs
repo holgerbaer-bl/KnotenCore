@@ -51,39 +51,49 @@ impl SwarmGovernance {
     }
 
     pub fn role(&self) -> NodeRole {
-        self.current_role
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+        match self.current_role.lock() {
+            Ok(r) => r.clone(),
+            Err(_) => NodeRole::Observer, // Fail-safe
+        }
     }
 
     pub fn set_role(&self, role: NodeRole) {
-        let mut r = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
-        *r = role;
+        if let Ok(mut r) = self.current_role.lock() {
+            *r = role;
+        }
     }
 
     pub fn leader_id(&self) -> Option<String> {
-        self.leader_node_id
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+        match self.leader_node_id.lock() {
+            Ok(l) => l.clone(),
+            Err(_) => None,
+        }
     }
 
     pub fn term(&self) -> u64 {
-        *self.current_term.lock().unwrap_or_else(|e| e.into_inner())
+        match self.current_term.lock() {
+            Ok(t) => *t,
+            Err(_) => 0,
+        }
     }
 
     pub fn process_heartbeat(&self, leader_term: u64, leader_id: &str) -> (u64, bool) {
-        let mut term = self.current_term.lock().unwrap_or_else(|e| e.into_inner());
-        let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
-        let mut leader = self
-            .leader_node_id
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        let mut last_hb = self
-            .last_heartbeat_timestamp
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut term = match self.current_term.lock() {
+            Ok(t) => t,
+            Err(_) => return (0, false), // Fail-safe rejection
+        };
+        let mut role = match self.current_role.lock() {
+            Ok(r) => r,
+            Err(_) => return (*term, false),
+        };
+        let mut leader = match self.leader_node_id.lock() {
+            Ok(l) => l,
+            Err(_) => return (*term, false),
+        };
+        let mut last_hb = match self.last_heartbeat_timestamp.lock() {
+            Ok(h) => h,
+            Err(_) => return (*term, false),
+        };
 
         if leader_term < *term {
             return (*term, false);
@@ -100,29 +110,36 @@ impl SwarmGovernance {
     }
 
     pub fn last_heartbeat_elapsed_ms(&self) -> u64 {
-        let last = *self
-            .last_heartbeat_timestamp
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let last = match self.last_heartbeat_timestamp.lock() {
+            Ok(l) => *l,
+            Err(_) => 0,
+        };
         current_now_ms().saturating_sub(last)
     }
 
     pub fn touch_heartbeat(&self) {
-        let mut last = self
-            .last_heartbeat_timestamp
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        *last = current_now_ms();
+        if let Ok(mut last) = self.last_heartbeat_timestamp.lock() {
+            *last = current_now_ms();
+        }
     }
 
     pub fn request_vote(&self, candidate_term: u64, candidate_id: &str) -> (u64, bool) {
-        let mut term = self.current_term.lock().unwrap_or_else(|e| e.into_inner());
-        let mut voted = self.voted_for.lock().unwrap_or_else(|e| e.into_inner());
-        let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
-        let mut leader = self
-            .leader_node_id
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut term = match self.current_term.lock() {
+            Ok(t) => t,
+            Err(_) => return (0, false),
+        };
+        let mut voted = match self.voted_for.lock() {
+            Ok(v) => v,
+            Err(_) => return (*term, false),
+        };
+        let mut role = match self.current_role.lock() {
+            Ok(r) => r,
+            Err(_) => return (*term, false),
+        };
+        let mut leader = match self.leader_node_id.lock() {
+            Ok(l) => l,
+            Err(_) => return (*term, false),
+        };
 
         if candidate_term < *term {
             return (*term, false);
@@ -155,17 +172,30 @@ impl SwarmGovernance {
         requested_term: Option<u64>,
         _force: bool,
     ) -> Result<(String, u64, NodeRole), String> {
+        if self.current_role.is_poisoned()
+            || self.leader_node_id.is_poisoned()
+            || self.current_term.is_poisoned()
+            || self.voted_for.is_poisoned()
+            || self.votes_received.is_poisoned()
+        {
+            return Err(
+                "InternalSecurityError: Swarm governance mutex is poisoned; state mutations rejected"
+                    .to_string(),
+            );
+        }
+
         let term_to_request = requested_term.unwrap_or_else(|| self.term());
         let target_candidate = candidate_node_id.unwrap_or(local_node_id);
         let (granted_term, granted) = self.request_vote(term_to_request, target_candidate);
         if granted {
             if target_candidate == local_node_id {
-                let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
+                let mut role = self.current_role.lock().map_err(|_| {
+                    "InternalSecurityError: current_role mutex is poisoned".to_string()
+                })?;
                 *role = NodeRole::Leader;
-                let mut leader = self
-                    .leader_node_id
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner());
+                let mut leader = self.leader_node_id.lock().map_err(|_| {
+                    "InternalSecurityError: leader_node_id mutex is poisoned".to_string()
+                })?;
                 *leader = Some(local_node_id.to_string());
             }
             let role = self.role();
@@ -183,22 +213,21 @@ impl SwarmGovernance {
 
     #[cfg(test)]
     pub fn reset_for_testing(&self) {
-        let mut current_leader = self
-            .leader_node_id
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        *current_leader = None;
-        let mut voted = self.voted_for.lock().unwrap_or_else(|e| e.into_inner());
-        *voted = None;
-        let mut role = self.current_role.lock().unwrap_or_else(|e| e.into_inner());
-        *role = NodeRole::Worker;
-        let mut term = self.current_term.lock().unwrap_or_else(|e| e.into_inner());
-        *term = 1;
-        let mut votes = self
-            .votes_received
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        votes.clear();
+        if let Ok(mut current_leader) = self.leader_node_id.lock() {
+            *current_leader = None;
+        }
+        if let Ok(mut voted) = self.voted_for.lock() {
+            *voted = None;
+        }
+        if let Ok(mut role) = self.current_role.lock() {
+            *role = NodeRole::Worker;
+        }
+        if let Ok(mut term) = self.current_term.lock() {
+            *term = 1;
+        }
+        if let Ok(mut votes) = self.votes_received.lock() {
+            votes.clear();
+        }
     }
 }
 
