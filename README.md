@@ -1,63 +1,52 @@
 # KnotenCore 🦀🤖
 
-[![Version](https://img.shields.io/badge/version-v2.24.23-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Version](https://img.shields.io/badge/version-v2.24.24-blue)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 [![CI Quality Gates](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml/badge.svg)](https://github.com/holgerbaer-bl/KnotenCore/actions/workflows/ci.yml)
 [![AI Directives](https://img.shields.io/badge/AI--Directives-AI.md-purple)](AI.md)
 [![Automated CI](https://img.shields.io/badge/Automated_CI-Active-brightgreen)](docs/workflows/agent-ci-feedback.yml)
-[![Tests](https://img.shields.io/badge/tests-337%2F337-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
-[![Release](https://img.shields.io/badge/release-v2.24.23-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-342%2F342-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/actions)
+[![Release](https://img.shields.io/badge/release-v2.24.24-brightgreen)](https://github.com/holgerbaer-bl/KnotenCore/releases/latest)
 
 *(Noun) /knoːtən kɔːr/*
 
 1. **Not** a relentless underground German hardcore techno subgenre. 
 2. A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
-**A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.**
+**KnotenCore is a deterministic, sandboxed runtime for autonomous agents, with cryptographically authenticated distributed execution.**
 
 ## What is KnotenCore?
-**KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM.
+**KnotenCore** is a high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST. By executing structured JSON-AST nodes (`.nod` and `.knoten` files) instead of raw text, KnotenCore eliminates LLM syntax hallucinations and parser ambiguities. The engine compiles ASTs directly into an AOT-optimized bytecode stream executed by a bare-metal Register Stack-VM, or validates execution under dual-engine parity against the reference AST Tree-Walker.
 
-### Key Features:
-- **Canonical Self-Certifying Node Identity & Legacy-HMAC Isolation (v2.24.23)**: Enforced deterministic canonical self-certifying node identity derivation (`knc-<64_hex_chars>`) for all Ed25519 peers directly from 32-byte public keys, strictly isolating mixed auth environments by rejecting any legacy HMAC request asserting `knc-*` identities with `-32001`, and maintained ephemeral in-memory state for peer key mappings without local disk poisoning vectors.
-- **Consolidation Phase 2: Cryptographic Identity Binding, Poisoning Resilience & CI Enforcement (v2.24.22)**: Enforced immutable 1-to-1 binding between peer node IDs and Ed25519 keys rejecting spoofed or foreign identities, hardened security-critical mutexes against poisoning with fail-closed semantics, converted WASM compilation into a blocking CI quality gate, and formalized L4/L7 Zero-Trust architecture invariants in `docs/SECURITY.md`.
-- **Consolidation Phase 1: Auth Matrix, unwrap() Audit & Engine Comment Remediation (v2.24.21)**: Documented exhaustive formal Auth-Coverage Matrix snapshot matching all 36 endpoints against zero-trust invariants in `docs/SECURITY.md`, eliminated unhandled `unwrap()` calls with robust error propagation, and remediated inline engine root-cause comments across VM and Evaluator.
-- **Dual-Engine Parity Fuzzing & Divergence Stress Suite (v2.24.20)**: Implemented comprehensive differential parity fuzzing across the `DualEngineValidator`, subjecting Tree-Walker evaluator and AOT Stack-VM to randomized AST mutations, IEEE-754 NaN-aware equality checks (`rel_type_eq_nan_aware`), boundary wrapping arithmetic, and divergence quarantine stress testing.
-- **RPC Dual-Engine Evaluation Endpoint & Quarantine Protocol (v2.24.19)**: Exposed `DualEngineValidator` via dedicated Zero-Trust RPC endpoint `knc_eval_dual` with strict Day-1 auth-gating, complete anti-downgrade checks, and divergence quarantine containment protocol (`-32020` / `ERR_ENGINE_DISCREPANCY`) preventing unverified state propagation.
-- **Deterministic Dual-Engine Validator & Non-Determinism Audit (v2.24.18)**: Implemented dual-engine execution harness (`DualEngineValidator`) executing incoming ASTs simultaneously on reference Tree-Walker evaluator and AOT Stack-VM, strictly validating semantic equivalence (return values and observable heap mutations) with zero-panic isolation (`std::panic::catch_unwind`), symmetric error-category comparison (`FaultCategory`), and decoupled resource telemetry.
-- **Authenticated Store Identity Binding & Strict Tag Governance (v2.24.17)**: Bound distributed CRDT mutations in `knc_store_put` directly to verified session identities (`ed25519:<pubkey_hex>` under Zero-Trust mode, ignoring spoofed client parameters; scoped `legacy-hmac:<sender_node_id>` for shared-secret auth), incorporating verified identities into anti-entropy state digests.
-- **CRDT State Digests & Differential Mesh Sync (v2.24.16)**: Implemented deterministic SHA-256 anti-entropy state digests (`knc_store_digest`) using native `ring::digest` across sorted active keys and values, added differential synchronization (`knc_store_diff`) returning targeted timestamp-bounded deltas with zero-trust envelope verification and revocation enforcement.
-- **Zero-Trust Raft Heartbeats & Anti-Downgrade Hardening (v2.24.15)**: Deprecated plaintext auth tokens in Raft governance heartbeats, enforced canonical Ed25519 signature verification (`sender_node_id:term:leader_id:timestamp`), integrated peer revocation validation, and strictly blocked client-initiated HMAC downgrade attacks in zero-trust mode.
-- **WebSocket Robustness, Gossip Revocation Gate & Test Realignment (v2.24.14)**: Hardened WebSocket connection handling with graceful `try_clone` error recovery against OS file-descriptor exhaustion, enforced strict peer revocation filtering on P2P gossip propagation (`knc_mesh_peers?action=gossip`), and realigned repository test badges to 280/280 verified tests.
-- **Zero-Trust Host vs. Guest Architecture & Agent Orchestration Guide (v2.24.13)**: Standardized inline demarcation headers across guest `.knoten` scripts, clarifying hermetic zero-network sandboxing vs. host-level cryptographic mesh orchestration (`examples/03_agents_and_zero_trust/README.md`) with concrete CLI, JSON-RPC, and workspace-native `ring`-backed Ed25519 Rust examples.
-- **CI Workflow Hardening & Non-Interactive Release Builds (v2.24.12)**: Hardened GitHub Actions CI and Release pipelines against interactive terminal hangs (`DEBIAN_FRONTEND: noninteractive`, `needrestart` prompt suppression via silent configuration) and enforced 10-minute job execution bounds across Linux, Windows, and macOS runners.
-- **Dogfooding & Real-World Mesh Examples (v2.24.11)**: Real-world Stage-2 agent orchestration (`task_offloading.knoten` for Ed25519 payload signing, peer task delegation, and `SignedTaskResult` verification; `mesh_telemetry.knoten` for dynamic peer load telemetry inspection and gossip tracking) and Stage-1 SIMD vector math utility routines (`vector_math.knoten`) implemented directly in `.knoten`.
-- **CI Examples Verification Harness (v2.24.10)**: Dedicated two-tier automated integration test suite (`tests/examples_verification.rs`) that dynamically discovers and validates all `.knoten` scripts under `examples/` (Tier 1 end-to-end VM runtime execution for getting started and SIMD vector compute, Tier 2 syntax and bytecode compilation integrity for zero-trust sandbox and egui UI scripts) with dynamic subfolder safeguards.
-- **Examples Directory Cleanup & Restructuring (v2.24.9)**: Standardized `.knoten` script extensions across all examples, purged obsolete test relics and legacy `.nod` files, and restructured the `examples/` workspace into 4 thematic categories (`01_getting_started`, `02_vector_and_compute`, `03_agents_and_zero_trust`, `04_interactive_and_ui`).
-- **Zero-Trust P2P Mesh Gossip Protocol & Cryptographic Task Offloading (v2.24.8)**: Epidemic gossip discovery and peer load telemetry (`GossipState`, `PeerMetrics`), latency-weighted/load-aware peer selection, Ed25519-signed gossip message transport (`GossipFrame`, `verify_gossip_frame`), cryptographic task delegation and worker result verification (`SignedTaskResult`), per-peer task rate-limiting (`MAX_PER_PEER_TASK_RATE`), queue flood protection (`MAX_TASK_QUEUE_DEPTH`), and zero-trust sandboxed remote execution.
-- **Vector Gas Metering Fix, CI Formatting Rectification & Benchmark Spec (v2.24.7)**: Strict vector opcode gas error propagation (`self.gas_meter.consume(...)?;`), execution ordering hardening (gas deduction before instruction counter update), `cargo fmt` formatting rectification in `bench.rs`, authentic release benchmark measurements in `docs/BENCHMARKS.md`, and explicit RPC authentication semantics documentation (local development opt-in via `mesh_auth_token: None` vs. production Zero-Trust enforcement).
-- **SIMD Vector Compute Engine & Batch OpCodes (v2.24.6)**: Contiguous numeric buffer representations (`Vec<f64>` / `Vec<i64>`), SIMD-accelerated batch opcodes (`VectorDot`, `VectorAdd`, `VectorMul`), AST vectorization lowering, proportional batch gas accounting, and formal vector benchmark workload (`VectorDotProduct(100_000)`).
-- **Zero-Trust RPC Mesh Auth Hardening & CI Formatting Rectification (v2.24.5)**: Mandatory mesh authentication enforcement on `knc_eval_isolate`, canonical endpoint introspection (`RpcServer::registered_methods()`), dynamic RPC auth compliance test suite, and rustfmt import ordering alignment.
-- **Isolate Gas Metering, Execution Watchdog & Resource Quotas (v2.24.4)**: Configurable execution gas meter (`GasMeter`), microsecond wall-clock watchdog deadline enforcement, strict isolate heap allocation boundary guards (`VMError::GasExhausted`, `VMError::MemoryQuotaExceeded`, `VMError::WatchdogTimeout`), and RPC isolate evaluation (`knc_eval_isolate`).
-- **Deep Thought 42 Intrinsic & Deterministic Protocol Extension (v2.24.3)**: Built-in `knc_meaning_of_life` intrinsic & RPC endpoint returning deterministic Hitchhiker payload metadata (`answer`: 42, `status`: "Don't Panic", `ultimate_question`: "...") across both Evaluator and VM engines with full parity.
-- **AI Agent Ecosystem & Safe PR Feedback Workflow (v2.24.2)**: Autonomous AI agent onboarding manifest ([`AI.md`](AI.md)), standardized bot report issue template ([`.github/ISSUE_TEMPLATE/bot_report.md`](.github/ISSUE_TEMPLATE/bot_report.md)), automated PR diagnostic feedback workflow ([`docs/workflows/agent-ci-feedback.yml`](docs/workflows/agent-ci-feedback.yml)), and README badges.
-- **Benchmark Engine Rectification & Real Tree-Walking Comparison (v2.24.1)**: Methodological rectification comparing the AST Tree-Walking Interpreter (`Evaluator::evaluate`) against the AOT Bytecode Stack-VM (`VM::run`) on identical, uniformly processed AST inputs with deterministic result parity validation.
-- **Formal Benchmark Suite & English Standardization (v2.24.0)**: Formal benchmark suite engine (`BenchmarkEngine`), `knoten bench` CLI harness, comprehensive RPC handler re-exports, 100% English documentation standardization, and dedicated benchmark specification ([`docs/BENCHMARKS.md`](docs/BENCHMARKS.md)).
-- **Architectural Modularization & Codebase Detox (v2.23.1)**: Clean decomposition of the monolithic RPC server into domain submodules (`aether_compiler/src/rpc/`), state consolidation with fine-grained mutex granularity preserved, and historical Sprint comment detoxification.
-- **Scoped Hot-Module-Replacement (v2.23.0)**: Live bytecode hot-swapping for active `VMIsolate` instances (`knc_isolate_reload`) strictly scoped to execution yield points without destroying heap variables or quota state.
-- **Raft Heartbeats & Failure Detection (v2.22.1)**: Authenticated periodic heartbeat broadcasts (`knc_swarm_heartbeat`), candidate term synchronization, and automated leader failure detection with dynamic reelection triggers.
-- **Swarm Phase 2: Distributed Raft Voting & Consensus (v2.22.0)**: Distributed Raft consensus mechanism featuring `RequestVote` RPC (`knc_swarm_request_vote` — 26th endpoint), term-tracking and single-vote-per-term invariant, mandatory mesh auth-gating against term-inflation, dynamic election broadcast with strict lock hygiene (no mutexes held during outgoing network RPCs), majority quorum decision (`votes_count > active_nodes / 2`), and randomized backoff sleep (150–300 ms) on missed quorum to prevent livelocks.
-- **Audit Completion, State Persistence & Quorum Fixes (v2.21.4-security)**: Persistent disk storage & load gates for peer revocation lists (`revoked_keys.json`), peer registration auth gate against revoked keys (`knc_mesh_peers`), quorum threshold denominator hardening excluding Evicted/Stale peers in `knc_swarm_quorum` and `knc_mesh_revoke_peer`, stack traversal fix in `estimate_memory_bytes`, and custom `IsolateQuota` propagation in `VMIsolate`.
-- **CI Test Isolation & Swarm Expectation Reconciliation (v2.21.3-security)**: Complete removal of `cfg!(test)` runtime bypasses in `SwarmGovernance::elect()`, isolation of test fixtures across all integration tests, addition of `#[cfg(test)]` test helper for internal unit tests, and reconciliation of election expectations.
-- **Root Election Hardening & Exhaustive Bounds (v2.21.2-security)**: Complete removal of unilateral self-nomination in `SwarmGovernance::elect()`, elimination of client-side `allow_test_harness` parameter bypasses, and exhaustive `validate_param_string_len` enforcement across all `session_id` and `nonce_str` parameter extractions.
-- **Security Audit Rectification & Resource Limits (v2.21.1-security)**: TCP & WS payload caps (`MAX_BODY_BYTES = 1 MiB`, `MAX_WS_PAYLOAD = 1 MiB`), HMAC Nonce-LRU replay defense (`NonceCache`), string parameter length caps (`MAX_PARAM_STRING_LEN = 256`), VM call depth limits (`MAX_CALL_DEPTH = 512`), and universal self-election locks in `knc_swarm_elect`.
-- **Server-Enforced Swarm Quorum & Quorum-Gated Peer Revocation (v2.21.0-authz)**: Server-enforced quorum computation `(active_nodes / 2) + 1` resisting client parameter manipulation (`knc_swarm_quorum`), strict prohibition of forced self-election (`force: true`) in Zero-Trust mode (`knc_swarm_elect`), and quorum-consensus gated peer revocation (`knc_mesh_revoke_peer`).
-- **Comprehensive RPC Auth Bypass Mitigation (v2.20.1-security)**: Exhaustive RPC authentication enforcement (`check_mesh_auth`) across ALL 25 JSON-RPC endpoints (`knc_*`), completely mitigating unauthenticated access to `knc_agent_snapshot`, `knc_agent_restore`, `knc_compile`, `knc_execute`, `knc_yield_resume`, and `knc_inspect_state`.
-- **Zero-Trust Mesh Phase 2: Key Rotation, Nonce LRU Eviction & Peer Revocation**: Volatile in-memory Ed25519 keypair re-keying (`knc_mesh_rotate_key`) without interrupting active streams, keyless session migration, bounded LRU nonce cache (`MAX_NONCE_CACHE_CAPACITY = 10_000`) with automatic TTL eviction, and instant peer revocation lists (`knc_mesh_revoke_peer`). *Note: Cryptographic mesh signing and key rotation are in Phase 2 (local Ed25519 verification & peer revocation lists). They do not replace an external professional penetration test or third-party security audit.*
-- **Swarm Governance (Local Swarm Role Management & Leadership Claim Primitives - Phase 1)**: Term tracking, dynamic node roles (`Leader`, `Worker`, `Storage`, `Observer`), and quorum voting (`knc_swarm_elect`, `knc_swarm_roles`, `knc_swarm_quorum`). *Note: knc_swarm_elect currently manages local node state and leadership claim (Phase 1). Full cross-node consensus broadcast via mesh is planned for a subsequent release.*
-- **Distributed CRDT Storage & Peer State Sync**: In-memory Last-Write-Wins (LWW) CRDT key-value store (`knc_store_put`, `knc_store_get`, `knc_store_sync`).
-- **Distributed Task Queue & Adaptive Work-Stealing**: Cluster task dispatching (`knc_task_submit`, `knc_task_status`, `knc_task_cancel`) and CPU load-adaptive work-stealing (`knc_task_steal`, `knc_mesh_metrics`).
-- **P2P Mesh Protocol & Teleportation**: Zero-broker peer discovery, gossip auto-healing, and live isolate state migration (`knc_mesh_ping`, `knc_mesh_discover`, `knc_mesh_peers`, `knc_agent_teleport`).
-- **Headless-First Architecture**: Lightweight headless execution by default, with optional UI/rendering features (`--features ui`).
+### Core Capabilities:
+- **Deterministic Execution & Dual-Engine Parity**: Dual-execution harness (`DualEngineValidator`) running both an AOT Stack-VM and an AST Tree-Walker interpreter over identical AST trees with IEEE-754 NaN-aware equality checks and immediate divergence quarantine containment (`ERR_ENGINE_DISCREPANCY` / `-32020`).
+- **Hermetic Sandboxed Isolates**: Isolated execution environments (`VMIsolate`) enforcing strict opcode gas limits, microsecond wall-clock execution watchdog timeouts, sandboxed file I/O canonicalization, and hard heap allocation boundaries.
+- **Zero-Trust Mesh & Cryptographic Identity**: Deterministic canonical self-certifying node identities (`knc-<64_hex_chars>`) derived from 32-byte Ed25519 public keys, canonical envelope signature verification, 30s replay window defense, strict legacy-HMAC isolation, and anti-downgrade enforcement.
+- **Distributed CRDT State Store**: Decentralized Last-Write-Wins (LWW) conflict-free replicated data store with cryptographic SHA-256 anti-entropy state digests (`knc_store_digest`) and targeted timestamp-bounded delta synchronization (`knc_store_diff`).
+- **Swarm Governance & Raft Consensus**: Distributed cluster coordination with dynamic node roles (`Leader`, `Worker`, `Storage`, `Observer`), term transitions, quorum-based voting (`RequestVote`), background heartbeats, and fail-closed lock poisoning resilience.
+- **Bare-Metal Performance & SIMD**: 1.21x out-of-the-box native AOT speedup over tree-walking evaluation, contiguous vector buffer representations (`Vec<f64>`, `Vec<i64>`), SIMD batch opcodes (`VectorDot`, `VectorAdd`, `VectorMul`), and hardware-accelerated matrix transforms.
+
+*(For detailed sprint-by-sprint release notes, see [changelog.md](changelog.md).)*
+
+---
+
+## ⚡ 60-Second Quickstart
+
+Get KnotenCore running in less than a minute:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/holgerbaer-bl/KnotenCore.git
+cd KnotenCore
+
+# 2. Build the headless workspace
+cargo build --release
+
+# 3. Run the automated test suite (342/342 passing)
+cargo test --workspace --no-default-features
+
+# 4. Start a headless JSON-RPC node on localhost
+cargo run --release --bin run_knc -- --rpc-port 9000 --headless
+```
 
 ---
 
@@ -111,49 +100,21 @@ KnotenCore is purpose-built for autonomous AI agents. Every node and native func
 
 ## ⏱️ Performance & Optimization Benchmarks
 
-KnotenCore features a dual JIT/AOT engine architecture. On a computationally demanding 1,000,000 algorithmic loop constraint using the Leibniz pi estimation heavily encoded with Float primitives (`Mul`, `Add`, `Div`, `While`, `Assign`), tests generated via `bench_knc` resulted in:
+KnotenCore delivers predictable, bare-metal execution performance through its AOT Bytecode Stack-VM and SIMD vector pipeline:
 
-- **JIT Evaluator:** ~1914 ms
-- **AOT Stack VM:** ~1580 ms (Speedup factor: **1.21x** natively faster out-of-the-box).
+### 1. Leibniz Pi Estimation (1,000,000 Iterations)
+Evaluating heavy floating-point arithmetic (`Mul`, `Add`, `Div`, `While`, `Assign`) demonstrates consistent AOT speedup:
+- **Tree-Walker Evaluator:** ~1,914 ms
+- **AOT Stack-VM:** ~1,580 ms (**1.21x** native speedup out-of-the-box)
 
-### ⚡ AOT Compiler Optimization Engine
-* **AST Function Inlining (Sprint 194):** Trivial native FFI math and string calls are resolved and folded directly at compile time.
-* **Loop Unrolling & Static Bound Analysis (Sprint 196):** Bounded while-loops ($N \le 8$) are expanded into flat blocks at compile time. Static infinite loops without exit paths are rejected early.
-* **Peephole Optimization & Slot Reuse (Sprint 197):** Instruction post-pass eliminates redundant Store-Load chains. Register slot reuse minimizes stack frame sizes.
-* **SIMD Auto-Vectorization (Sprint 200):** High-speed optimizer pass collapses sequential float constants into single instruction streams execution-driven by `glam::Vec4` in a single CPU tick.
-* **Mathematical Resilience Fortress:** Integrated proptest framework into the native testbett, executing deep mathematical property-based fuzzing over the ADSR audio shaper and SIMD Glam matrix transformation FFI layers.
-* **Dynamic Shader Synthesis:** Integrated a JIT Multi-Pass Shader Graph Synthesizer, compiling dynamic AST computation blocks directly into high-performance WGSL compute shaders executed directly on the GPU pipeline cache.
-* **Speculative Isolate Execution:** Integrated a runtime speculative branching engine. Complex conditional blocks spawn parallel shadow isolates across independent OS threads, merging the winning path atomically with zero-latency snapshot rollbacks for losing branches.
-* **Cluster-Wide Work-Stealing:** Expanded the deterministic scheduler grid to support cross-network RDMA operations. Isolates can balance asymmetric execution loads by stealing bytecode segments directly across node boundaries with zero OS layer intervention.
-* **Universal C-ABI Embedding Facade:** Exposed a low-overhead, unsafe-free C-compatible ABI boundary (libknotencore), enabling native orchestration, bytecode injection, and multi-threaded isolate spawning from host languages like Python, C++, and Node.js.
+### 2. SIMD Vector Dot Product (100,000 Elements)
+Contiguous numeric buffer memory representations (`Vec<f64>`) with batch opcodes (`VectorDot`, `VectorAdd`, `VectorMul`) leverage hardware auto-vectorization, processing vector lanes in a single CPU pass.
 
-### Deterministic Execution & State Rewind Architecture (v1.6.0)
-* **Deterministic State Rewind:** Integrated instruction-accurate state rewinding inside the Register Stack-VM ALU core. Exploits localized snapshot frames to enable deterministic state rollbacks and live register mutations under execution faults.
-* **Deterministic Execution Path Hashing:** Embedded an accumulation-based hash framing into Register Stack-VM execution loops, enabling verification of unmodified bytecode execution paths across host language boundaries.
-* **Adaptive Evolutionary PGO:** Embedded a runtime profile-guided optimization layer. The engine dynamic-mutates active instruction streams based on real-time execution metrics, remapping hot-paths and unrolling tight loops natively inside running isolates.
-* **Sovereign JIT Native Code Generation:** Deployed an allocation-free native machine code generation layer within the JIT execution subsystem, emitting standalone executable memory segments bypassing external compiler toolchains.
-* **Compiler Stabilization (v1.6.1):** Rectified x86_64 JIT stack operand handling to prevent allocation leaks and fixed the frame-pointer alignment during execution returns. Resolved PGO loop truncation bugs and corrected dynamic WGSL float parsing rules.
-* **JIT & Optimizer Rectification (v1.6.2):** Corrected the x86_64 JIT subtraction operand execution order to guarantee left-minus-right mathematical parity. Implemented an absolute bytecode jump target relocation pass within the PGO loop unroller to maintain control-flow integrity during optimization splices.
-* **Executable JIT Memory Layer (v1.6.3):** Integrated a native memory execution layer via memmap2. Enables the runtime to allocate dynamic execution pages, transition synthesized x86_64 bytecode from write to execute permissions, and invoke compiled blocks as native function pointers.
-* **Native Control-Flow JIT Expansion (v1.6.4):** Extended the native machine code generation layer to support structural control flow, translating bytecode Jumps and conditional branches directly into native x86_64 relative near jump instructions. Integrated dynamic offset recalculation for nested loops.
-* **Universal Language SDKs (v1.6.5):** Implemented automated native language shims for Python and Node.js utilizing the stable C-ABI boundary layer. Enables allocation-free host runtime instantiations and multi-threaded isolate code streaming.
-* **Distributed WebGPU Edge Grid (v1.6.6):** Deployed a WebAssembly compilation and execution layer enabling isolates to scale across browser nodes. Interconnects edge runtimes via peer-to-peer pipelines to distribute WebGPU shader synthesis dynamically.
-* **Streaming Audio Infrastructure (v1.6.7):** Refactored the core synthesizer to process long-form tone generations as non-blocking dynamic streaming sources. Implemented automated background sweeping for terminated audio channels to guarantee stable descriptor thresholds.
-* **Persistent Snapshot Storage (v1.6.8):** Implemented a binary disk serialization layer for isolate runtime states. Enables bit-accurate snapshot serialization and physical disk persistence to support cold-starts and horizontal isolate migrations.
-* **Cross-Node Isolate Migration (v1.6.9):** Engineered a distributed context handoff pipeline within the cluster scheduler. Enables live runtime environments to pack active execution states into binary network payloads, migrating isolates horizontally across cluster nodes with execution path hash continuity.
-* **Workspace Consolidation & Cluster Tooling (v1.7.0):** Deployed an autonomous cluster orchestration CLI tool named knoten-init alongside cloud-native development profiles. Establishes programmatic onboarding baselines to lower integration boundaries for external actors.
-* **Runtime Hardening & JIT Parity (v1.7.1):** Corrected the x86_64 JIT addition register emission matrix to prevent left-operand discarding. Fully integrated structural branch relocation for internal loop jumps and restored multi-threaded isolate migration states.
-* **Cross-Platform JIT Guarding (v1.7.2):** Implemented compile-time architecture gates for native memory execution. Protects non-x86_64 host environments by enforcing graceful runtime fallbacks to the deterministic software interpreter loop.
-* **Kryptographic State Ledger (v1.7.3):** Hardened the state rewind pipeline with a nonced block-chaining ledger model. Protects snapshot data from replay attacks by enforcing cryptographic hash continuity across historical execution boundaries.
-* **Zero-Copy Isolate Garbage Collection (v1.7.4):** Integrated a sub-millisecond compact memory sweeper for terminated isolates. Reclaims execution pages and returns memory directly to the host OS without runtime pauses.
-* **Agent Validation Layer (v1.7.5):** Deployed the standardized autonomous agent onboarding matrix to mathematically verify specification adherence and compiler documentation Parity.
-* **Schema Synchronization (v1.7.6):** Synchronized front-end AST JSON schemas with core VM engine capabilities. Formally integrated native declarations for GPGPU pipelines, asynchronous multi-node isolate spawning, and real-time audio synthesis.
-* **WGPU Live Inspector (v1.7.7):** Integrated an interactive live GUI debugger panel leveraging egui. Real-time visualization of VM stack depths, call frames, registers, and cryptographic ledger states during execution.
-* **P2P Mesh-Bus Routing (v1.7.8):** Expanded the virtual shared-memory bus architecture into a fully decentralized peer-to-peer routing fabric. Enables multi-node isolate communication via zero-broker distributed pub-sub topologies.
-* **Distributed Swarm Governance Consensus (v1.7.9):** Integrated a lightweight, decentralized consensus layer mapped directly to the cryptographic state ledger. Enables autonomous cluster leader election and sub-millisecond isolate failover migration upon node partitioning.
-* **Production Release (v2.0.0):** KnotenCore reaches full production stability. Hardened the distributed Swarm Governance consensus layer and exposed a locked, stable WGPU telemetry dashboard for enterprise edge runtimes.
-* **Compiler Realignment (v2.1.0):** Fully implemented missing graphical and mathematical AST nodes (Transform2D, DrawRect, Sin, Cos). Fixed WGPU pipeline binding mismatches and recalibrated the runtime loop watchdog.
-* **True Distributed Swarm Consensus (v2.1.0):** Fully synchronized Cargo workspace versions. Extended the scheduler with real socket-based P2P log replication and randomized network election timers. Automated wasm-pack compilation gates injected into the GitHub Actions CI workflow to guarantee platform browser readiness.
+Run the reproducible benchmark suite locally:
+```bash
+cargo run --bin knoten_bench
+```
+*(For detailed benchmark methodologies and hardware profiles, see [docs/BENCHMARKS.md](docs/BENCHMARKS.md).)*
 
 ---
 

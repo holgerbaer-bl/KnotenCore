@@ -22,7 +22,7 @@ fn parse_response(json_str: &str) -> Value {
 
 #[test]
 fn test_version_assertion_sprint360_identity() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.23");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.24");
 }
 
 #[test]

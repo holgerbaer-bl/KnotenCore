@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.23** · Canonical Self-Certifying Node Identity & Legacy-HMAC Isolation
+Current engine version: **v2.24.24** · Packaging, Root Directory Hygiene, README Curation & Multi-Node Smoke Gate
 
 ## Done (selected milestones)
 
+- ✅ Packaging, Root Directory Hygiene, README Curation & Multi-Node Smoke Gate (root directory cleanup, scripts/docs reorganization, 6 core architectural capabilities, reproducible benchmarks, 60s quickstart, multi-node smoke gate tests/multi_node_smoke_tests.rs, deployment security defaults in SECURITY.md, Sprint 361 - v2.24.24)
 - ✅ Canonical Self-Certifying Node Identity & Legacy-HMAC Isolation (deterministic canonical self-certifying node identity derivation `knc-<64_hex_chars>` for all Ed25519 peers, rejection of divergent claimed identities with `-32001`, strict isolation of legacy HMAC environments against `knc-*` identities, ephemeral in-memory peer key lifecycle without disk-based poisoning vectors, Section 7.22 of `docs/KNOTEN_SPEC.md`, Sprint 360 - v2.24.23)
 - ✅ Consolidation Phase 2: Cryptographic Identity Binding, Poisoning Resilience & CI Enforcement (immutable 1-to-1 node_id and Ed25519 key binding, rejection of spoofed/foreign node identities and altered payloads, fail-safe mutex poisoning resilience across verified/revoked keys and Raft governance, blocking WASM CI quality gate, formal L4/L7 zero-trust invariant in `docs/SECURITY.md`, Section 7.21 of `docs/KNOTEN_SPEC.md`, Sprint 359 - v2.24.22)
 - ✅ Consolidation Phase 1: Auth-Coverage Matrix Snapshot, unwrap() Elimination & Engine Comment Remediation (exhaustive formal auth matrix in `docs/SECURITY.md` auditing all 36 endpoints against zero-trust invariants, verified Day-1 protection on newest endpoints, eliminated unhandled `unwrap()` calls across runtime paths, inline engine root-cause comments in `evaluator.rs` and `machine.rs`, Section 7.20 of `docs/KNOTEN_SPEC.md`, Sprint 358 - v2.24.21)
@@ -97,10 +98,8 @@ Current engine version: **v2.24.23** · Canonical Self-Certifying Node Identity 
 
 ## Mid-Term
 
-- **WebSocket RPC** (`net_listen` / `net_send`): `net_fetch` handles one-shot HTTP. A persistent WebSocket layer would enable real-time multi-node messaging and agent-to-agent RPC without polling.
 - **Multi-Window Scene Graph**: `KnotenApp` supports multiple windows, each with an independent `scene_graph`. A unified scene graph with per-window visibility masks would enable cross-window entity sharing.
-- **Hot-Module-Replacement**: Extend the existing hot-swap registry so agents can push new bytecode into *running* isolates without a restart — live code reload mid-execution.
-- **Formal benchmark suite**: Compare AOT Stack-VM against V8, Lua 5.4, and Wren on equivalent algorithmic workloads. Publishable numbers for the `knotencore.de` engineering page.
+- **Cross-Engine Comparison Suite**: Compare AOT Stack-VM against V8, Lua 5.4, and Wren on equivalent algorithmic workloads. Publishable numbers for the `knotencore.de` engineering page.
 
 ## Far-Term (Speculative)
 

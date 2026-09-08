@@ -1,4 +1,4 @@
-# KnotenCore Security Policy & Formal Auth-Coverage Matrix (`v2.24.23`)
+# KnotenCore Security Policy & Formal Auth-Coverage Matrix (`v2.24.24`)
 
 ## 1. Supported Versions
 
@@ -119,8 +119,16 @@ KnotenCore establishes self-certifying, deterministic node identity derivation f
    - **Fail-Safe Poisoning Resilience**: Critical internal security locks (`verified_peer_keys`, `revoked_peer_keys`, `zero_trust_mode`, and `SwarmGovernance`) enforce fail-closed and fail-safe semantics. In the event of thread panics poisoning locks, state mutations are unconditionally rejected with `InternalSecurityError` and access defaults to fail-closed (`is_zero_trust() == true`, `is_peer_key_revoked() == true`, `role() == NodeRole::Observer`).
 
 ---
+ 
+## 6. Deployment Security Defaults
 
-## 6. Reporting a Vulnerability
+KnotenCore enforces strict separation between local evaluation and distributed mesh execution:
+- **Local Developer Mode (`mesh_auth_token: None`, Zero-Trust Disabled)**: Intended strictly for local, single-node development on loopback interfaces (`127.0.0.1`).
+- **Multi-Node Production Clusters**: Multi-node deployments across external network interfaces strictly require active Zero-Trust mode (`enable_zero_trust()`) with canonical Ed25519 cryptographic envelope signing or configured pre-shared authentication tokens (`mesh_auth_token`). Unauthenticated network exposure in multi-node clusters is strictly prohibited.
+
+---
+
+## 7. Reporting a Vulnerability
 
 **Do NOT report security vulnerabilities in public GitHub issues.**
 

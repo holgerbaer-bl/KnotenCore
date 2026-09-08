@@ -9,8 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[test]
 fn test_version_assertion_sprint356() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 356"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 356"
     );
 }
 

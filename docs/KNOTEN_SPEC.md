@@ -468,7 +468,13 @@ Specifies the canonical self-certifying node identity derivation, legacy-HMAC is
 - **Strict Legacy-HMAC Isolation**: In mixed auth environments, Legacy-HMAC requests (using shared secrets) are strictly isolated from canonical self-certifying identities. Any request asserting an identity starting with the `knc-` prefix via HMAC tokens or signatures is unconditionally rejected with `-32001`, preventing shared-secret compromise from forging canonical peer identities.
 - **Ephemeral Peer Key Lifecycle**: Peer identity-to-key mappings are stored strictly in ephemeral in-memory state (`verified_peer_keys`), eliminating local disk-based identity poisoning vectors and ensuring zero-trust key bindings are dynamically established and validated per runtime instance.
 
-## 8. Formal Benchmarks (`v2.24.23`)
+### 7.23. Consolidation Phase 4: Packaging, Root Directory Hygiene & Multi-Node Smoke Gate (v2.24.24)
+Specifies repository packaging standards, root directory hygiene invariants, deployment defaults, and the multi-node integration test harness:
+- **Repository Root Directory Hygiene**: Repository root is strictly reserved for standard release files and directories (`Cargo.toml`, `README.md`, `LICENSE`, `ROADMAP.md`, `SECURITY.md`, `AI.md`, `llm.md`, `changelog.md`, `src/`, `tests/`, `scripts/`, `docs/`, `examples/`). Development scripts are housed in `scripts/`, test fixtures in `tests/`, and reports/manuals in structured `docs/` subdirectories (`docs/manuals/`, `docs/reports/`). Ephemeral residue (`tmp/`, `revoked_keys.json`) is strictly untracked and ignored via `.gitignore`.
+- **Deployment Security Defaults**: Establishes formal boundary separation: local developer mode (`mesh_auth_token: None`, Zero-Trust disabled) is strictly limited to single-node development on loopback interfaces (`127.0.0.1`), while multi-node clusters across external network interfaces strictly require active Zero-Trust mode (`enable_zero_trust()`) with canonical Ed25519 cryptographic envelope signing or configured pre-shared authentication tokens (`mesh_auth_token`).
+- **Multi-Node Smoke Gate (`tests/multi_node_smoke_tests.rs`)**: Formal integration harness establishing a 3-node cluster, asserting cross-node gossip peering discovery, decentralized CRDT state replication with SHA-256 anti-entropy state digest convergence, and cryptographically signed task delegation with dual-engine parity verification.
+
+## 8. Formal Benchmarks (`v2.24.24`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

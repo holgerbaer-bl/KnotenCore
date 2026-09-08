@@ -1,6 +1,6 @@
 [package]
 name = "knoten_core_types"
-version = "2.24.23"
+version = "2.24.24"
 edition = "2024"
 
 [dependencies]

@@ -11,88 +11,96 @@ use serde_json::json;
 #[test]
 fn test_version_assertion_sprint338() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint351() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 351"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 351"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint352() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 352"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 352"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint353() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 353"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 353"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint354() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 354"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 354"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint355() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 355"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 355"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint356() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 356"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 356"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint357() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 357"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 357"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint358() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 358"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 358"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint359() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 359"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 359"
     );
 }
 
 #[test]
 fn test_version_assertion_sprint360() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.23",
-        "Protocol version must be synchronized to v2.24.23 for Sprint 360"
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 360"
+    );
+}
+
+#[test]
+fn test_version_assertion_sprint361() {
+    assert_eq!(
+        KNC_PROTOCOL_VERSION, "v2.24.24",
+        "Protocol version must be synchronized to v2.24.24 for Sprint 361"
     );
 }
 

@@ -14,6 +14,8 @@ output.rs
 dummy_*.txt
 *_output.txt
 revoked_keys.json
+tmp/
+/tmp/
 
 # Web artifacts — never commit generated HTML/JS/CSS
 *.html

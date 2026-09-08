@@ -2,6 +2,33 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.24] - Sprint 361: Consolidation Phase 4: Packaging, Root Directory Hygiene, README Curation & Multi-Node Smoke Gate (2026-09-08)
+Sprint 361 aligns repository presentation with the hardened technical core, eliminates developer residue from the root, formalizes deployment security defaults, curates documentation, and introduces an end-to-end multi-node integration test:
+- **Repository Root Directory Hygiene**:
+  - Relocated development scripts to `scripts/` (`scripts/patch_architecture.py`).
+  - Relocated `.knoten` test fixtures to `tests/` (`tests/test.knoten`).
+  - Relocated and consolidated loose root documentation into structured subdirectories (`docs/manuals/AGENT_EXTENSION_MANUAL.md`, `docs/reports/AGENT_VALIDATION_REPORT.md`, `docs/reports/audit.md`).
+  - Purged temporary directory `tmp/` from source tracking and updated `.gitignore` with `tmp/` and `/tmp/`.
+  - Maintained untracked, ignored status for `revoked_keys.json` to prevent key persistence leakage in version control.
+- **README Curation & Architectural Anchoring**:
+  - Preserved Option 1 branding, badges, definition, and humorous intro.
+  - Anchored core positioning statement: "KnotenCore is a deterministic, sandboxed runtime for autonomous agents, with cryptographically authenticated distributed execution."
+  - Curated 6 core capabilities (Deterministic Execution & Dual-Engine Parity, Hermetic Sandboxed Isolates, Zero-Trust Mesh & Cryptographic Identity, Distributed CRDT State Store, Swarm Governance & Raft Consensus, Bare-Metal Performance & SIMD).
+  - Cleaned historical sprint logs from performance benchmarks, focusing on reproducible benchmark figures (Leibniz Pi: 1.21x AOT speedup, Vector Dot Product: SIMD auto-vectorization).
+  - Added a concise 60-second Quickstart guide.
+- **Roadmap & Security Defaults Formalization**:
+  - Aligned `ROADMAP.md` by advancing version to `v2.24.24`, archiving completed milestones (WebSocket RPC, HMR, Formal Benchmark Suite) to Done, and keeping genuine future items in Mid-Term.
+  - Formalized "Deployment Security Defaults" in `SECURITY.md` and `docs/SECURITY.md`, establishing strict boundary separation between local developer evaluation (`127.0.0.1`, `mesh_auth_token: None`) and multi-node zero-trust production clusters.
+- **End-to-End Multi-Node Smoke Gate (`tests/multi_node_smoke_tests.rs`)**:
+  - Implemented 4 comprehensive integration tests establishing a 3-node in-memory/loopback cluster:
+    1. `test_version_assertion_sprint361`: Synchronized test harness version assertion.
+    2. `test_multi_node_cluster_initialization_and_gossip_discovery`: 3 nodes with unique keys, cross-node registration, and gossip peering convergence.
+    3. `test_multi_node_crdt_state_replication_and_digest_convergence`: LWW CRDT mutations, anti-entropy SHA-256 state digest agreement, and timestamp delta sync.
+    4. `test_multi_node_authenticated_task_delegation_and_parity`: Cryptographically signed AST task submission, work-stealing delegation, and dual-engine result parity.
+- **Automated Quality Gates & Test Suite Expansion**:
+  - Expanded automated test coverage to 342/342 passing tests across the workspace.
+  - Synchronized version `v2.24.24` across workspace `Cargo.toml` files, `README.md` (badges updated, 342/342 tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, `docs/SECURITY.md`, and Section 7.23 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.23] - Sprint 360: Remediation: Enforce Canonical Self-Certifying Node Identity, Legacy-HMAC Isolation & Remote Audit (2026-09-08)
 Sprint 360 remediates security audit findings around First-Seen Key Pinning (TOFU) front-running and mixed auth environment squatting:
 - **Canonical Self-Certifying Node Identity Derivation (`aether_compiler/src/crypto_ed25519.rs`, `aether_compiler/src/rpc/auth.rs`)**:

@@ -21,6 +21,12 @@ KnotenCore is engineered as a **Sandboxed Engine**. Security forms the bedrock o
 
 Because of this strict sandbox environment, **sandbox escapes, arbitrary code executions, or permission bypasses are considered critical security vulnerabilities** and receive our highest priority.
 
+## Deployment Security Defaults
+
+KnotenCore enforces strict separation between local evaluation and distributed mesh execution:
+- **Local Developer Mode (`mesh_auth_token: None`, Zero-Trust Disabled)**: Intended strictly for local, single-node development on loopback interfaces (`127.0.0.1`).
+- **Multi-Node Production Clusters**: Multi-node deployments across external network interfaces strictly require active Zero-Trust mode (`enable_zero_trust()`) with canonical Ed25519 cryptographic envelope signing or configured pre-shared authentication tokens (`mesh_auth_token`). Unauthenticated network exposure in multi-node clusters is strictly prohibited.
+
 ## Reporting a Vulnerability
 
 **Do NOT report security vulnerabilities in public GitHub issues.**
