@@ -21,8 +21,8 @@ fn parse_response(json_str: &str) -> Value {
 }
 
 #[test]
-fn test_version_assertion_sprint359_identity() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.22");
+fn test_version_assertion_sprint360_identity() {
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.23");
 }
 
 #[test]
@@ -36,11 +36,12 @@ fn test_valid_key_and_matching_node_id_accepted() {
     server.enable_zero_trust();
 
     let client_keypair = Ed25519KeyPair::generate();
+    let client_node_id = client_keypair.node_id();
     let client_pubkey = client_keypair.public_key_hex();
     let now = current_ts();
     let nonce = "nonce-valid-1";
 
-    let msg = format!("{}:{}:{}", now, nonce, "node-client-1");
+    let msg = format!("{}:{}:{}", now, nonce, client_node_id);
     let sig = client_keypair.sign_hex(msg.as_bytes());
 
     let req = json!({
@@ -52,7 +53,7 @@ fn test_valid_key_and_matching_node_id_accepted() {
                 "signature": sig,
                 "timestamp": now,
                 "nonce": nonce,
-                "sender_node_id": "node-client-1"
+                "sender_node_id": client_node_id
             }
         },
         "id": 1
@@ -74,12 +75,13 @@ fn test_spoofed_sender_node_id_with_valid_third_party_signature_rejected() {
     server.enable_zero_trust();
 
     let alice_keypair = Ed25519KeyPair::generate();
+    let alice_node_id = alice_keypair.node_id();
     let alice_pubkey = alice_keypair.public_key_hex();
     let now = current_ts();
     let nonce = "nonce-alice-valid";
 
-    // Alice generates a valid signature over node-alice
-    let alice_msg = format!("{}:{}:{}", now, nonce, "node-alice");
+    // Alice generates a valid signature over her canonical node_id
+    let alice_msg = format!("{}:{}:{}", now, nonce, alice_node_id);
     let alice_sig = alice_keypair.sign_hex(alice_msg.as_bytes());
 
     // Exploit attempt 1: Attacker sends Alice's signature claiming sender is "node-attacker"
@@ -104,7 +106,7 @@ fn test_spoofed_sender_node_id_with_valid_third_party_signature_rejected() {
         resp1["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("Invalid Ed25519 signature")
+            .contains("Sender node ID does not match canonical derived public key identity")
     );
 
     // Exploit attempt 2: Attacker generates their own keypair, signs their own envelope,
@@ -137,7 +139,7 @@ fn test_spoofed_sender_node_id_with_valid_third_party_signature_rejected() {
         resp2["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("Spoofed sender_node_id does not match verified public key")
+            .contains("Sender node ID does not match canonical derived public key identity")
     );
 }
 
@@ -152,24 +154,25 @@ fn test_foreign_public_key_claiming_known_node_id_rejected() {
     server.enable_zero_trust();
 
     let alice_keypair = Ed25519KeyPair::generate();
+    let alice_node_id = alice_keypair.node_id();
     let alice_pubkey = alice_keypair.public_key_hex();
     let now = current_ts();
 
-    // 1. Register Alice as "node-alice"
-    let msg = format!("{}:{}:{}", now, "nonce-reg-alice", "node-alice");
+    // 1. Register Alice with canonical node_id
+    let msg = format!("{}:{}:{}", now, "nonce-reg-alice", alice_node_id);
     let sig = alice_keypair.sign_hex(msg.as_bytes());
     let req_reg = json!({
         "jsonrpc": "2.0",
         "method": "knc_mesh_verify_peer",
         "params": {
-            "peer_node_id": "node-alice",
+            "peer_node_id": alice_node_id,
             "public_key": alice_pubkey,
             "zero_trust_envelope": {
                 "public_key": alice_pubkey,
                 "signature": sig,
                 "timestamp": now,
                 "nonce": "nonce-reg-alice",
-                "sender_node_id": "node-alice"
+                "sender_node_id": alice_node_id
             }
         },
         "id": 10
@@ -177,11 +180,11 @@ fn test_foreign_public_key_claiming_known_node_id_rejected() {
     let resp_reg = parse_response(&server.dispatch_request(&req_reg.to_string()));
     assert_eq!(resp_reg["result"]["status"], "ok");
 
-    // 2. Mallory generates KM and attempts to sign as "node-alice"
+    // 2. Mallory generates KM and attempts to sign claiming Alice's canonical node_id
     let mallory_keypair = Ed25519KeyPair::generate();
     let mallory_pubkey = mallory_keypair.public_key_hex();
     let m_nonce = "nonce-mallory-impersonate";
-    let m_msg = format!("{}:{}:{}", now, m_nonce, "node-alice");
+    let m_msg = format!("{}:{}:{}", now, m_nonce, alice_node_id);
     let m_sig = mallory_keypair.sign_hex(m_msg.as_bytes());
 
     let req_mallory = json!({
@@ -193,7 +196,7 @@ fn test_foreign_public_key_claiming_known_node_id_rejected() {
                 "signature": m_sig,
                 "timestamp": now,
                 "nonce": m_nonce,
-                "sender_node_id": "node-alice"
+                "sender_node_id": alice_node_id
             }
         },
         "id": 11
@@ -205,12 +208,13 @@ fn test_foreign_public_key_claiming_known_node_id_rejected() {
         resp_mallory["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("Foreign public key claiming known node_id")
+            .contains("Sender node ID does not match canonical derived public key identity")
     );
 
-    // 3. Mallory attempts to claim server's own node_id ("node-server")
+    // 3. Mallory attempts to claim server's own canonical node_id
+    let server_id = server.canonical_node_id();
     let s_nonce = "nonce-mallory-server";
-    let s_msg = format!("{}:{}:{}", now, s_nonce, "node-server");
+    let s_msg = format!("{}:{}:{}", now, s_nonce, server_id);
     let s_sig = mallory_keypair.sign_hex(s_msg.as_bytes());
 
     let req_server_impersonate = json!({
@@ -222,7 +226,7 @@ fn test_foreign_public_key_claiming_known_node_id_rejected() {
                 "signature": s_sig,
                 "timestamp": now,
                 "nonce": s_nonce,
-                "sender_node_id": "node-server"
+                "sender_node_id": server_id
             }
         },
         "id": 12
@@ -234,7 +238,7 @@ fn test_foreign_public_key_claiming_known_node_id_rejected() {
         resp_srv["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("Foreign public key claiming known node_id")
+            .contains("Sender node ID does not match canonical derived public key identity")
     );
 }
 
@@ -249,11 +253,12 @@ fn test_altered_envelope_payload_with_valid_signature_rejected() {
     server.enable_zero_trust();
 
     let client_keypair = Ed25519KeyPair::generate();
+    let client_node_id = client_keypair.node_id();
     let client_pubkey = client_keypair.public_key_hex();
     let now = current_ts();
     let nonce = "nonce-payload-1";
 
-    let msg = format!("{}:{}:{}", now, nonce, "node-client-real");
+    let msg = format!("{}:{}:{}", now, nonce, client_node_id);
     let sig = client_keypair.sign_hex(msg.as_bytes());
 
     // Exploit 1: Tampered outer params.sender_node_id diverging from envelope sender
@@ -267,7 +272,7 @@ fn test_altered_envelope_payload_with_valid_signature_rejected() {
                 "signature": sig,
                 "timestamp": now,
                 "nonce": nonce,
-                "sender_node_id": "node-client-real"
+                "sender_node_id": client_node_id
             }
         },
         "id": 20
@@ -284,7 +289,7 @@ fn test_altered_envelope_payload_with_valid_signature_rejected() {
 
     // Exploit 2: Tampered timestamp inside envelope after signing
     let nonce2 = "nonce-payload-2";
-    let msg2 = format!("{}:{}:{}", now, nonce2, "node-client-real");
+    let msg2 = format!("{}:{}:{}", now, nonce2, client_node_id);
     let sig2 = client_keypair.sign_hex(msg2.as_bytes());
 
     let req_tampered_ts = json!({
@@ -296,7 +301,7 @@ fn test_altered_envelope_payload_with_valid_signature_rejected() {
                 "signature": sig2,
                 "timestamp": now + 5,
                 "nonce": nonce2,
-                "sender_node_id": "node-client-real"
+                "sender_node_id": client_node_id
             }
         },
         "id": 21
@@ -323,6 +328,7 @@ fn test_revoked_public_key_attempting_replay_or_invocation_rejected() {
     server.enable_zero_trust();
 
     let client_keypair = Ed25519KeyPair::generate();
+    let client_node_id = client_keypair.node_id();
     let client_pubkey = client_keypair.public_key_hex();
     let now = current_ts();
 
@@ -332,7 +338,7 @@ fn test_revoked_public_key_attempting_replay_or_invocation_rejected() {
 
     // Client signs a fresh valid envelope
     let nonce = "nonce-revoked-fresh";
-    let msg = format!("{}:{}:{}", now, nonce, "node-revoked-client");
+    let msg = format!("{}:{}:{}", now, nonce, client_node_id);
     let sig = client_keypair.sign_hex(msg.as_bytes());
 
     let req = json!({
@@ -344,7 +350,7 @@ fn test_revoked_public_key_attempting_replay_or_invocation_rejected() {
                 "signature": sig,
                 "timestamp": now,
                 "nonce": nonce,
-                "sender_node_id": "node-revoked-client"
+                "sender_node_id": client_node_id
             }
         },
         "id": 30
@@ -381,11 +387,12 @@ fn test_mutex_poisoning_resilience_verified_peer_keys() {
 
     // Now attempt knc_mesh_verify_peer: must reject state mutation and fail safely with InternalSecurityError (-32000)
     let client_keypair = Ed25519KeyPair::generate();
+    let client_node_id = client_keypair.node_id();
     let req = json!({
         "jsonrpc": "2.0",
         "method": "knc_mesh_verify_peer",
         "params": {
-            "peer_node_id": "node-new",
+            "peer_node_id": client_node_id,
             "public_key": client_keypair.public_key_hex()
         },
         "id": 40
@@ -404,7 +411,7 @@ fn test_mutex_poisoning_resilience_verified_peer_keys() {
     server.enable_zero_trust();
     let now = current_ts();
     let nonce_zt = "nonce-zt-poison";
-    let msg_zt = format!("{}:{}:{}", now, nonce_zt, "node-zt-sender");
+    let msg_zt = format!("{}:{}:{}", now, nonce_zt, client_node_id);
     let sig_zt = client_keypair.sign_hex(msg_zt.as_bytes());
     let req_zt = json!({
         "jsonrpc": "2.0",
@@ -415,7 +422,7 @@ fn test_mutex_poisoning_resilience_verified_peer_keys() {
                 "signature": sig_zt,
                 "timestamp": now,
                 "nonce": nonce_zt,
-                "sender_node_id": "node-zt-sender"
+                "sender_node_id": client_node_id
             }
         },
         "id": 41
@@ -484,4 +491,145 @@ fn test_mutex_poisoning_resilience_swarm_governance() {
         .elect("node-gov-poison-test", None, Some(2), false);
     assert!(elect_res.is_err());
     assert!(elect_res.unwrap_err().contains("InternalSecurityError"));
+}
+
+#[test]
+fn test_exploit_arbitrary_node_id_squatting_rejected() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-server",
+        "127.0.0.1:9010",
+        None,
+    );
+    server.enable_zero_trust();
+
+    let attacker_keypair = Ed25519KeyPair::generate();
+    let attacker_pubkey = attacker_keypair.public_key_hex();
+    let now = current_ts();
+    let nonce = "nonce-squat-1";
+
+    // Attacker signs payload claiming arbitrary victim node_id "node-victim-treasury"
+    let msg = format!("{}:{}:{}", now, nonce, "node-victim-treasury");
+    let sig = attacker_keypair.sign_hex(msg.as_bytes());
+
+    let req = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_ping",
+        "params": {
+            "zero_trust_envelope": {
+                "public_key": attacker_pubkey,
+                "signature": sig,
+                "timestamp": now,
+                "nonce": nonce,
+                "sender_node_id": "node-victim-treasury"
+            }
+        },
+        "id": 101
+    });
+
+    let resp = parse_response(&server.dispatch_request(&req.to_string()));
+    assert_eq!(resp["error"]["code"], -32001);
+    assert!(
+        resp["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Sender node ID does not match canonical derived public key identity")
+    );
+}
+
+#[test]
+fn test_exploit_legacy_hmac_claiming_knc_identity_rejected() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-server",
+        "127.0.0.1:9011",
+        Some("shared-mesh-secret".to_string()),
+    );
+    // Server is NOT in zero-trust mode, so Legacy-HMAC is accepted for normal nodes
+    assert!(!server.is_zero_trust());
+
+    // Exploit attempt 1: Legacy token claiming knc-* identity directly in params
+    let req_token = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_ping",
+        "params": {
+            "mesh_auth_token": "shared-mesh-secret",
+            "sender_node_id": "knc-deadbeef0123456789abcdef0123456789abcdef0123456789abcdef01234567"
+        },
+        "id": 102
+    });
+
+    let resp1 = parse_response(&server.dispatch_request(&req_token.to_string()));
+    assert_eq!(resp1["error"]["code"], -32001);
+    assert!(
+        resp1["error"]["message"].as_str().unwrap().contains(
+            "Legacy-HMAC requests cannot claim canonical self-certifying 'knc-*' identity"
+        )
+    );
+
+    // Exploit attempt 2: HMAC signature claiming knc-* identity
+    let now = current_ts();
+    let claimed_id = "knc-cafebabe0123456789abcdef0123456789abcdef0123456789abcdef01234567";
+    let nonce = "nonce-hmac-knc-1";
+    let message = format!("{}:{}", now, claimed_id);
+    let sig = aether_compiler::rpc::hmac_sha256(b"shared-mesh-secret", message.as_bytes());
+
+    let req_sig = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_ping",
+        "params": {
+            "timestamp": now,
+            "nonce": nonce,
+            "sender_node_id": claimed_id,
+            "mesh_auth_signature": sig
+        },
+        "id": 103
+    });
+
+    let resp2 = parse_response(&server.dispatch_request(&req_sig.to_string()));
+    assert_eq!(resp2["error"]["code"], -32001);
+    assert!(
+        resp2["error"]["message"].as_str().unwrap().contains(
+            "Legacy-HMAC requests cannot claim canonical self-certifying 'knc-*' identity"
+        )
+    );
+}
+
+#[test]
+fn test_canonical_self_certifying_identity_accepted() {
+    let server = RpcServer::with_mesh(
+        AgentPermissions::default(),
+        "node-server",
+        "127.0.0.1:9012",
+        None,
+    );
+    server.enable_zero_trust();
+
+    let client_keypair = Ed25519KeyPair::generate();
+    let canonical_id = client_keypair.node_id();
+    let client_pubkey = client_keypair.public_key_hex();
+    let now = current_ts();
+    let nonce = "nonce-canonical-accepted-1";
+
+    let msg = format!("{}:{}:{}", now, nonce, canonical_id);
+    let sig = client_keypair.sign_hex(msg.as_bytes());
+
+    let req = json!({
+        "jsonrpc": "2.0",
+        "method": "knc_mesh_ping",
+        "params": {
+            "zero_trust_envelope": {
+                "public_key": client_pubkey,
+                "signature": sig,
+                "timestamp": now,
+                "nonce": nonce,
+                "sender_node_id": canonical_id
+            }
+        },
+        "id": 104
+    });
+
+    let resp = parse_response(&server.dispatch_request(&req.to_string()));
+    assert_eq!(resp["jsonrpc"], "2.0");
+    assert_eq!(resp["result"]["status"], "ok");
 }

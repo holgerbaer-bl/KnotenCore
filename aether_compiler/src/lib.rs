@@ -5,6 +5,7 @@ pub mod audio;
 pub mod bench;
 pub mod compiler;
 pub mod crypto_ed25519;
+pub use crypto_ed25519::derive_node_id;
 pub mod dsl_emitter;
 pub mod evaluator;
 pub mod executor;

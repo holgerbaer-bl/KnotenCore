@@ -269,29 +269,49 @@ pub fn start_raft_governance_worker(
                         .unwrap_or_default()
                         .as_secs();
 
-                    let (pubkey_hex, sig_hex) = {
+                    let is_legacy_hmac = !server.is_zero_trust()
+                        && !server.node_id.starts_with("knc-")
+                        && server.mesh_auth_token.is_some();
+
+                    let (sender_id, pubkey_hex_opt, sig_hex_opt, token_opt) = if is_legacy_hmac {
+                        (
+                            server.node_id.clone(),
+                            None,
+                            None,
+                            server.mesh_auth_token.clone(),
+                        )
+                    } else {
                         let kp = server
                             .ed25519_keypair
                             .lock()
                             .unwrap_or_else(|e| e.into_inner());
+                        let canonical_id = kp.node_id();
                         let canonical_msg =
-                            format!("{}:{}:{}:{}", server.node_id, term, server.node_id, now);
-                        (kp.public_key_hex(), kp.sign_hex(canonical_msg.as_bytes()))
+                            format!("{}:{}:{}:{}", canonical_id, term, canonical_id, now);
+                        let sig = kp.sign_hex(canonical_msg.as_bytes());
+                        let pk = kp.public_key_hex();
+                        (canonical_id, Some(pk), Some(sig), None)
                     };
 
                     for (_peer_id, peer_addr) in active_peers {
+                        let mut params = serde_json::json!({
+                            "term": term,
+                            "leader_id": sender_id,
+                            "sender_node_id": sender_id,
+                            "timestamp": now,
+                        });
+                        if let (Some(pk), Some(sig)) = (&pubkey_hex_opt, &sig_hex_opt) {
+                            params["public_key"] = serde_json::json!(pk);
+                            params["signature"] = serde_json::json!(sig);
+                        }
+                        if let Some(tok) = &token_opt {
+                            params["mesh_auth_token"] = serde_json::json!(tok);
+                        }
                         let req = serde_json::json!({
                             "jsonrpc": "2.0",
                             "id": 9999,
                             "method": "knc_swarm_heartbeat",
-                            "params": {
-                                "term": term,
-                                "leader_id": server.node_id,
-                                "sender_node_id": server.node_id,
-                                "timestamp": now,
-                                "public_key": pubkey_hex,
-                                "signature": sig_hex
-                            }
+                            "params": params
                         });
                         let _ = server.dispatch_request_over_network(&peer_addr, &req.to_string());
                     }
@@ -708,6 +728,18 @@ impl super::super::RpcServer {
                     }
                 };
 
+                let expected_node_id = pubkey.node_id();
+                if sender_node_id != expected_node_id {
+                    return JsonRpcResponse::error(
+                        id,
+                        -32001,
+                        format!(
+                            "Unauthorized: Sender node ID does not match canonical derived public key identity (expected: '{}', claimed: '{}')",
+                            expected_node_id, sender_node_id
+                        ),
+                    );
+                }
+
                 if !pubkey.verify_hex(canonical_msg.as_bytes(), sig_hex)
                     && !pubkey.verify_hex(alt_msg.as_bytes(), sig_hex)
                 {
@@ -718,11 +750,17 @@ impl super::super::RpcServer {
                     );
                 }
 
-                let mut verified = self
-                    .verified_peer_keys
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner());
-                verified.insert(sender_node_id.to_string(), normalized_pubkey);
+                let mut verified = match self.verified_peer_keys.lock() {
+                    Ok(v) => v,
+                    Err(_) => {
+                        return JsonRpcResponse::error(
+                            id,
+                            -32000,
+                            "InternalSecurityError: verified_peer_keys mutex is poisoned",
+                        );
+                    }
+                };
+                verified.insert(expected_node_id, normalized_pubkey);
             } else {
                 return JsonRpcResponse::error(
                     id,
@@ -734,6 +772,13 @@ impl super::super::RpcServer {
             // Legacy HMAC check when server is NOT in zero-trust mode
             if let Err(err) = self.check_mesh_auth(&params) {
                 return JsonRpcResponse::error(id, -32001, err);
+            }
+            if sender_node_id.starts_with("knc-") || leader_id.starts_with("knc-") {
+                return JsonRpcResponse::error(
+                    id,
+                    -32001,
+                    "Unauthorized: Legacy-HMAC requests cannot claim canonical self-certifying 'knc-*' identity",
+                );
             }
         }
 

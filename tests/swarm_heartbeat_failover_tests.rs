@@ -8,7 +8,7 @@ use std::time::Duration;
 
 #[test]
 fn test_version_assertion_sprint336() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.22");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.23");
 }
 
 #[test]
@@ -288,7 +288,7 @@ fn test_raft_heartbeat_ed25519_signature_verification_success() {
         .as_secs();
 
     let term = 2u64;
-    let leader_id = "zt-leader-node";
+    let leader_id = leader_kp.node_id();
     let canonical_msg = format!("{}:{}:{}:{}", leader_id, term, leader_id, now);
     let sig_hex = leader_kp.sign_hex(canonical_msg.as_bytes());
 
@@ -333,7 +333,7 @@ fn test_raft_heartbeat_forged_signature_rejected() {
         .as_secs();
 
     let term = 3u64;
-    let leader_id = "zt-leader-node";
+    let leader_id = leader_kp.node_id();
     // Attacker signs payload with their own private key but claims it's leader_pubkey
     let forged_msg = format!("{}:{}:{}:{}", leader_id, term, leader_id, now);
     let forged_sig_hex = attacker_kp.sign_hex(forged_msg.as_bytes());

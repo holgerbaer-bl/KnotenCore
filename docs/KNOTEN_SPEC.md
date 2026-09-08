@@ -462,7 +462,13 @@ Specifies the deterministic cryptographic identity binding, fail-safe lock poiso
 - **Blocking WASM CI Quality Gate**: Converts the WASM32 compilation pipeline into a blocking CI gate in `.github/workflows/ci.yml`, configured with wasm-compatible dependencies (`getrandom` `wasm_js` and `js` features).
 - **Formal L4/L7 Zero-Trust Architecture Invariant**: Formalizes that TCP network connectivity provides zero trust; reachability implies no privilege; all trust is derived exclusively via cryptographically signed and authenticated protocol envelopes.
 
-## 8. Formal Benchmarks (`v2.24.22`)
+### 7.22. Canonical Self-Certifying Node Identity & Legacy-HMAC Isolation (v2.24.23)
+Specifies the canonical self-certifying node identity derivation, legacy-HMAC isolation, and ephemeral in-memory peer state:
+- **Canonical Self-Certifying Identity (`derive_node_id`)**: The `node_id` for Ed25519 peers is deterministically derived from the complete 32-byte Ed25519 public key as `knc-<64_hex_chars>`. Any signed zero-trust envelope, heartbeat, or peer registration where `sender_node_id` or `peer_id` diverges from `pubkey.node_id()` is immediately rejected with `-32001` (`ERR_UNAUTHORIZED`), eliminating first-seen key pinning (TOFU) front-running and node name squatting vulnerabilities.
+- **Strict Legacy-HMAC Isolation**: In mixed auth environments, Legacy-HMAC requests (using shared secrets) are strictly isolated from canonical self-certifying identities. Any request asserting an identity starting with the `knc-` prefix via HMAC tokens or signatures is unconditionally rejected with `-32001`, preventing shared-secret compromise from forging canonical peer identities.
+- **Ephemeral Peer Key Lifecycle**: Peer identity-to-key mappings are stored strictly in ephemeral in-memory state (`verified_peer_keys`), eliminating local disk-based identity poisoning vectors and ensuring zero-trust key bindings are dynamically established and validated per runtime instance.
+
+## 8. Formal Benchmarks (`v2.24.23`)
 Defines the standardized benchmark workloads and execution harness for KnotenCore:
 - **Engine**: Implemented via `aether_compiler::bench::BenchmarkEngine`. Enforces 5 warmup iterations and 100 statistical sample runs calculating Mean, p50, p99, throughput (ops/sec), memory footprint, and AOT speedup ratios.
 - **Standard Workloads**: `Fibonacci(30)`, `PrimeSieve(10_000)`, `VectorDotProduct(100_000)`, `IsolateSpawnThroughput`, `RpcJsonThroughput`.

@@ -1,4 +1,4 @@
-# KnotenCore Security Policy & Formal Auth-Coverage Matrix (`v2.24.22`)
+# KnotenCore Security Policy & Formal Auth-Coverage Matrix (`v2.24.23`)
 
 ## 1. Supported Versions
 
@@ -87,6 +87,21 @@ An exhaustive static audit verifies that every single endpoint in `REGISTERED_ME
 3. **`knc_store_digest`**: Fully auth-gated via `check_mesh_auth`. Computes deterministic SHA-256 state digests over active CRDT storage entries.
 4. **`knc_task_complete`**: Fully auth-gated via `check_mesh_auth`. Validates worker-signed `SignedTaskResult` with peer revocation filtering.
 5. **`knc_swarm_request_vote`**: Fully auth-gated via `check_mesh_auth`. Validates candidate election term and grants single-vote invariant per term.
+
+---
+
+## 4. Canonical Self-Certifying Node Identity & Legacy-HMAC Isolation (`v2.24.23`)
+
+KnotenCore establishes self-certifying, deterministic node identity derivation for all Ed25519 mesh peers, superseding First-Seen Key Pinning (TOFU) and strictly isolating legacy authentication domains:
+
+1. **Deterministic Canonical Identity Derivation**:
+   - For all Ed25519 peers, `node_id` is deterministically computed from the complete 32-byte Ed25519 public key: `knc-<64_hex_chars>`.
+   - Any signed envelope, heartbeat, or peer registration asserting a divergent `sender_node_id`, `leader_id`, or `peer_id` is rejected immediately with `-32001` (`ERR_UNAUTHORIZED`), completely eliminating front-running and node identity squatting.
+2. **Strict Legacy-HMAC Domain Isolation**:
+   - In mixed-mode clusters, requests authenticated via pre-shared HMAC secret tokens or signatures are strictly forbidden from claiming canonical self-certifying identities.
+   - Any Legacy-HMAC request claiming an identity starting with the `knc-` prefix is unconditionally rejected with `-32001` (`ERR_UNAUTHORIZED`).
+3. **Ephemeral In-Memory Peer State**:
+   - Verified peer public keys are held exclusively in ephemeral in-memory state (`verified_peer_keys: Mutex<HashMap<String, String>>`) and are not persisted to unauthenticated disk caches, eliminating disk-based poisoning vectors across restarts.
 
 ---
 

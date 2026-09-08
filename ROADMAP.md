@@ -2,10 +2,11 @@
 
 *A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.*
 
-Current engine version: **v2.24.22** · Consolidation Phase 2: Cryptographic Identity Binding, Poisoning Resilience & CI Enforcement
+Current engine version: **v2.24.23** · Canonical Self-Certifying Node Identity & Legacy-HMAC Isolation
 
 ## Done (selected milestones)
 
+- ✅ Canonical Self-Certifying Node Identity & Legacy-HMAC Isolation (deterministic canonical self-certifying node identity derivation `knc-<64_hex_chars>` for all Ed25519 peers, rejection of divergent claimed identities with `-32001`, strict isolation of legacy HMAC environments against `knc-*` identities, ephemeral in-memory peer key lifecycle without disk-based poisoning vectors, Section 7.22 of `docs/KNOTEN_SPEC.md`, Sprint 360 - v2.24.23)
 - ✅ Consolidation Phase 2: Cryptographic Identity Binding, Poisoning Resilience & CI Enforcement (immutable 1-to-1 node_id and Ed25519 key binding, rejection of spoofed/foreign node identities and altered payloads, fail-safe mutex poisoning resilience across verified/revoked keys and Raft governance, blocking WASM CI quality gate, formal L4/L7 zero-trust invariant in `docs/SECURITY.md`, Section 7.21 of `docs/KNOTEN_SPEC.md`, Sprint 359 - v2.24.22)
 - ✅ Consolidation Phase 1: Auth-Coverage Matrix Snapshot, unwrap() Elimination & Engine Comment Remediation (exhaustive formal auth matrix in `docs/SECURITY.md` auditing all 36 endpoints against zero-trust invariants, verified Day-1 protection on newest endpoints, eliminated unhandled `unwrap()` calls across runtime paths, inline engine root-cause comments in `evaluator.rs` and `machine.rs`, Section 7.20 of `docs/KNOTEN_SPEC.md`, Sprint 358 - v2.24.21)
 - ✅ Dual-Engine Parity Fuzzing & Divergence Stress Suite (differential parity fuzzing across `DualEngineValidator`, randomized AST mutations, IEEE-754 NaN-aware equality checks `rel_type_eq_nan_aware`, wrapping arithmetic boundary symmetrization, divergence quarantine stress tests, Section 7.19 of `docs/KNOTEN_SPEC.md`, Sprint 357 - v2.24.20)

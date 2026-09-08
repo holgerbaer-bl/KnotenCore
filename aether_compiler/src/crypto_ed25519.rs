@@ -61,6 +61,11 @@ impl Ed25519KeyPair {
         hex_encode(&self.public_bytes)
     }
 
+    /// Derives the canonical self-certifying node identity for this keypair (`knc-<hex>`).
+    pub fn node_id(&self) -> String {
+        derive_node_id(&self.public_bytes)
+    }
+
     pub fn sign(&self, message: &[u8]) -> [u8; 64] {
         let ring_pair = RingKeyPair::from_pkcs8(&self.pkcs8_bytes).expect("Valid PKCS#8 keypair");
         let sig = ring_pair.sign(message);
@@ -94,6 +99,11 @@ impl Ed25519PublicKey {
         hex_encode(&self.bytes)
     }
 
+    /// Derives the canonical self-certifying node identity for this public key (`knc-<hex>`).
+    pub fn node_id(&self) -> String {
+        derive_node_id(&self.bytes)
+    }
+
     pub fn verify(&self, message: &[u8], signature: &[u8; 64]) -> bool {
         let peer_pk = UnparsedPublicKey::new(&ED25519, &self.bytes);
         peer_pk.verify(message, signature).is_ok()
@@ -110,9 +120,15 @@ impl Ed25519PublicKey {
     }
 }
 
+/// Derives the canonical self-certifying node identity from an Ed25519 public key.
+/// Formatted as `knc-<canonical_hex>` (full 64-character lowercase hex string).
+pub fn derive_node_id(public_key: &[u8]) -> String {
+    format!("knc-{}", hex_encode(public_key))
+}
+
 // ── Hex Helpers ─────────────────────────────────────────────────────────────
 
-fn hex_encode(bytes: &[u8]) -> String {
+pub fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
@@ -158,5 +174,18 @@ mod tests {
         let mut tampered_sig = sig;
         tampered_sig[0] ^= 1;
         assert!(!pubkey.verify(msg, &tampered_sig));
+    }
+
+    #[test]
+    fn test_derive_node_id() {
+        let keypair = Ed25519KeyPair::generate();
+        let pubkey = keypair.public_key();
+        let node_id_from_kp = keypair.node_id();
+        let node_id_from_pk = pubkey.node_id();
+
+        assert_eq!(node_id_from_kp, node_id_from_pk);
+        assert!(node_id_from_kp.starts_with("knc-"));
+        assert_eq!(node_id_from_kp.len(), 4 + 64); // "knc-" + 64 hex chars
+        assert_eq!(node_id_from_kp, format!("knc-{}", pubkey.to_hex()));
     }
 }

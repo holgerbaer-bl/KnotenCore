@@ -9,8 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[test]
 fn test_version_assertion_sprint356() {
     assert_eq!(
-        KNC_PROTOCOL_VERSION, "v2.24.22",
-        "Protocol version must be synchronized to v2.24.22 for Sprint 356"
+        KNC_PROTOCOL_VERSION, "v2.24.23",
+        "Protocol version must be synchronized to v2.24.23 for Sprint 356"
     );
 }
 
@@ -81,13 +81,14 @@ fn test_eval_dual_ed25519_zero_trust_auth_success() {
     server.enable_zero_trust();
 
     let client_keypair = Ed25519KeyPair::generate();
+    let client_node_id = client_keypair.node_id();
     let client_pubkey_hex = client_keypair.public_key_hex();
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
     let nonce = format!("nonce-dual-eval-{}", now);
-    let canonical_msg = format!("{}:{}:{}", now, nonce, "node-client-1");
+    let canonical_msg = format!("{}:{}:{}", now, nonce, client_node_id);
     let sig_hex = client_keypair.sign_hex(canonical_msg.as_bytes());
 
     let ast = Node::Add(
@@ -106,7 +107,7 @@ fn test_eval_dual_ed25519_zero_trust_auth_success() {
             "signature": sig_hex,
             "timestamp": now,
             "nonce": nonce,
-            "sender_node_id": "node-client-1"
+            "sender_node_id": client_node_id
         }
     });
 

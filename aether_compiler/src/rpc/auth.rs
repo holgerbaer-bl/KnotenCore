@@ -138,7 +138,20 @@ impl super::RpcServer {
                 );
             }
 
+            let pubkey = Ed25519PublicKey::from_hex(&normalized_pubkey)
+                .map_err(|e| format!("Unauthorized: Bad public key hex: {}", e))?;
+            let expected_node_id = pubkey.node_id();
+
             let sender = sender_in_env.or(sender_in_params).unwrap_or_default();
+
+            // Canonical Self-Certifying Identity Derivation:
+            // A peer must NEVER be permitted to declare an arbitrary sender_node_id decoupled from its cryptographic key.
+            if sender != expected_node_id {
+                return Err(format!(
+                    "Unauthorized: Sender node ID does not match canonical derived public key identity (expected: '{}', claimed: '{}')",
+                    expected_node_id, sender
+                ));
+            }
 
             if self.is_peer_key_revoked(sender) {
                 return Err("Unauthorized: Peer public key has been revoked".to_string());
@@ -146,7 +159,7 @@ impl super::RpcServer {
 
             // Cryptographic Identity Binding:
             // 1. If sender claims local node_id, it MUST cryptographically match the local public key
-            if !sender.is_empty() && sender == self.node_id {
+            if sender == self.node_id {
                 let local_pk = self.public_key_hex().trim().to_lowercase();
                 if normalized_pubkey != local_pk {
                     return Err(
@@ -155,47 +168,20 @@ impl super::RpcServer {
                 }
             }
 
-            // 2. If sender is explicit ed25519:<pubkey>, it MUST match the envelope public key
-            if sender.starts_with("ed25519:") {
-                let claimed_key = sender.trim_start_matches("ed25519:").trim().to_lowercase();
-                if claimed_key != normalized_pubkey {
-                    return Err(
-                        "Unauthorized: Spoofed sender_node_id does not match verified public key"
-                            .to_string(),
-                    );
-                }
-            }
-
-            // 3. Mutex poisoning resilience: fail safely on poisoned verified_peer_keys lock
+            // 2. Mutex poisoning resilience: fail safely on poisoned verified_peer_keys lock
             let mut verified_keys = self.verified_peer_keys.lock().map_err(|_| {
                 "InternalSecurityError: verified_peer_keys mutex is poisoned".to_string()
             })?;
 
-            // 4. If sender is already registered in verified_peer_keys, the key MUST match
-            if !sender.is_empty()
-                && let Some(registered_pk) = verified_keys.get(sender)
+            // 3. If sender is already registered in verified_peer_keys, the key MUST match
+            if let Some(registered_pk) = verified_keys.get(sender)
                 && registered_pk.trim().to_lowercase() != normalized_pubkey
             {
                 return Err("Unauthorized: Foreign public key claiming known node_id".to_string());
             }
 
-            // 5. Immutable 1-to-1 binding: a public key cannot claim an arbitrary different node_id if already bound
-            for (bound_node_id, bound_pk) in verified_keys.iter() {
-                if bound_pk.trim().to_lowercase() == normalized_pubkey
-                    && !sender.is_empty()
-                    && bound_node_id != sender
-                {
-                    return Err(format!(
-                        "Unauthorized: Public key is immutably bound to node_id '{}', cannot claim '{}'",
-                        bound_node_id, sender
-                    ));
-                }
-            }
-
-            let msg = format!("{}:{}:{}", ts_secs, nonce_str, sender);
-
-            let pubkey = Ed25519PublicKey::from_hex(pubkey_hex)
-                .map_err(|e| format!("Unauthorized: Bad public key hex: {}", e))?;
+            // 4. Verify the Ed25519 signature
+            let msg = format!("{}:{}:{}", ts_secs, nonce_str, expected_node_id);
 
             if !pubkey.verify_hex(msg.as_bytes(), sig_hex) {
                 return Err(
@@ -203,13 +189,34 @@ impl super::RpcServer {
                 );
             }
 
-            if !sender.is_empty() {
-                verified_keys.insert(sender.to_string(), normalized_pubkey);
-            }
+            verified_keys.insert(expected_node_id, normalized_pubkey);
             return Ok(());
         }
 
         if let Some(expected_token) = &self.mesh_auth_token {
+            let sender = envelope
+                .and_then(|e| e.get("sender_node_id").or_else(|| e.get("sender")))
+                .or_else(|| {
+                    params
+                        .get("sender_node_id")
+                        .or_else(|| params.get("sender"))
+                        .or_else(|| params.get("node_id"))
+                        .or_else(|| params.get("candidate_id"))
+                        .or_else(|| params.get("candidate_node_id"))
+                        .or_else(|| params.get("peer_node_id"))
+                })
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+
+            // Strict Legacy-HMAC Namespace Isolation:
+            // Legacy-HMAC requests must never be permitted to forge or squat canonical Ed25519 self-certifying identities.
+            if sender.starts_with("knc-") {
+                return Err(
+                    "Unauthorized: Legacy-HMAC requests cannot claim canonical self-certifying 'knc-*' identity"
+                        .to_string(),
+                );
+            }
+
             if let Some(sig) = params
                 .get("mesh_auth_signature")
                 .or_else(|| params.get("signature"))

@@ -277,7 +277,7 @@ fn test_handshake_advertises_crdt_store_capabilities() {
     assert!(caps["peer_state_sync"].as_bool().unwrap());
     assert_eq!(
         result_field(&resp, "protocol_version").as_str().unwrap(),
-        "v2.24.22"
+        "v2.24.23"
     );
 }
 
@@ -657,10 +657,11 @@ fn test_store_put_ed25519_forces_public_key_writer_id() {
         .unwrap_or_default()
         .as_secs();
 
-    let canonical_msg = format!("{}:{}:{}", now, "nonce-store-put", "spoofed_sender");
+    let canonical_id = kp.node_id();
+    let canonical_msg = format!("{}:{}:{}", now, "nonce-store-put", canonical_id);
     let sig_hex = kp.sign_hex(canonical_msg.as_bytes());
 
-    // Call knc_store_put with spoofed writer_id and sender_node_id
+    // Call knc_store_put with spoofed writer_id and canonical sender_node_id
     let req = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "knc_store_put",
@@ -672,7 +673,7 @@ fn test_store_put_ed25519_forces_public_key_writer_id() {
             "public_key": pubkey,
             "signature": sig_hex,
             "writer_id": "spoofed_admin_node",
-            "sender_node_id": "spoofed_sender"
+            "sender_node_id": canonical_id
         },
         "id": 1
     })
@@ -746,7 +747,8 @@ fn test_store_digest_incorporates_authenticated_writer_identities() {
         .unwrap_or_default()
         .as_secs();
 
-    let msg1 = format!("{}:{}:", now, "nonce-d1");
+    let node_id1 = kp1.node_id();
+    let msg1 = format!("{}:{}:{}", now, "nonce-d1", node_id1);
     let sig1 = kp1.sign_hex(msg1.as_bytes());
 
     let resp1 = parse_response(
@@ -759,6 +761,7 @@ fn test_store_digest_incorporates_authenticated_writer_identities() {
                     "value": "same_val",
                     "timestamp": now,
                     "nonce": "nonce-d1",
+                    "sender_node_id": node_id1,
                     "public_key": pubkey1,
                     "signature": sig1
                 },
@@ -776,7 +779,8 @@ fn test_store_digest_incorporates_authenticated_writer_identities() {
     let server_zt2 = RpcServer::new(AgentPermissions::default());
     server_zt2.enable_zero_trust();
 
-    let msg2 = format!("{}:{}:", now, "nonce-d2");
+    let node_id2 = kp2.node_id();
+    let msg2 = format!("{}:{}:{}", now, "nonce-d2", node_id2);
     let sig2 = kp2.sign_hex(msg2.as_bytes());
 
     let resp2 = parse_response(
@@ -789,6 +793,7 @@ fn test_store_digest_incorporates_authenticated_writer_identities() {
                     "value": "same_val",
                     "timestamp": now,
                     "nonce": "nonce-d2",
+                    "sender_node_id": node_id2,
                     "public_key": pubkey2,
                     "signature": sig2
                 },
@@ -811,5 +816,5 @@ fn test_store_digest_incorporates_authenticated_writer_identities() {
 
 #[test]
 fn test_version_assertion_sprint354() {
-    assert_eq!(aether_compiler::rpc::KNC_PROTOCOL_VERSION, "v2.24.22");
+    assert_eq!(aether_compiler::rpc::KNC_PROTOCOL_VERSION, "v2.24.23");
 }

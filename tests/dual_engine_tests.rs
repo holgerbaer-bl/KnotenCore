@@ -7,7 +7,7 @@ use knoten_core_types::ast::Node;
 
 #[test]
 fn test_version_assertion_sprint355() {
-    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.22");
+    assert_eq!(KNC_PROTOCOL_VERSION, "v2.24.23");
 }
 
 #[test]

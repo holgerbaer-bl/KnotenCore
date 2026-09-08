@@ -106,10 +106,22 @@ impl RpcServer {
         mesh_auth_token: Option<String>,
     ) -> Self {
         let keypair = Ed25519KeyPair::generate();
+        let canonical_id = keypair.node_id();
         let local_pubkey = keypair.public_key_hex();
-        let node_id_str: String = node_id.into();
+        let node_id_input: String = node_id.into();
+        let node_id_str = if node_id_input == "node-local"
+            || node_id_input.is_empty()
+            || node_id_input.starts_with("knc-")
+        {
+            canonical_id.clone()
+        } else {
+            node_id_input
+        };
         let mut verified_keys_map = HashMap::new();
-        verified_keys_map.insert(node_id_str.clone(), local_pubkey);
+        verified_keys_map.insert(canonical_id, local_pubkey.clone());
+        if node_id_str != keypair.node_id() {
+            verified_keys_map.insert(node_id_str.clone(), local_pubkey);
+        }
 
         let server = Self {
             permissions,
@@ -153,13 +165,21 @@ impl RpcServer {
         self.set_zero_trust(true);
     }
 
+    pub fn canonical_node_id(&self) -> String {
+        match self.ed25519_keypair.lock() {
+            Ok(guard) => guard.node_id(),
+            Err(e) => e.into_inner().node_id(),
+        }
+    }
+
     pub fn sign_envelope(&self, nonce: &str, timestamp: u64) -> (String, String) {
         let kp = match self.ed25519_keypair.lock() {
             Ok(guard) => guard,
             Err(e) => e.into_inner(),
         };
         let pubkey = kp.public_key_hex();
-        let msg = format!("{}:{}:{}", timestamp, nonce, self.node_id);
+        let canonical_id = kp.node_id();
+        let msg = format!("{}:{}:{}", timestamp, nonce, canonical_id);
         let sig = kp.sign_hex(msg.as_bytes());
         (pubkey, sig)
     }
@@ -179,7 +199,9 @@ impl RpcServer {
         let old_pub = kp.public_key_hex();
         *kp = Ed25519KeyPair::generate();
         let new_pub = kp.public_key_hex();
+        let new_canonical_id = kp.node_id();
         if let Ok(mut verified) = self.verified_peer_keys.lock() {
+            verified.insert(new_canonical_id, new_pub.clone());
             verified.insert(self.node_id.clone(), new_pub.clone());
         }
         (old_pub, new_pub)

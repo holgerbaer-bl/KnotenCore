@@ -22,6 +22,7 @@ fn test_zero_trust_ed25519_envelope_signing_and_peer_verification() {
     server.enable_zero_trust();
 
     let client_keypair = Ed25519KeyPair::generate();
+    let client_node_id = client_keypair.node_id();
     let client_pubkey = client_keypair.public_key_hex();
     let nonce = "nonce-1001";
     let now = std::time::SystemTime::now()
@@ -29,15 +30,15 @@ fn test_zero_trust_ed25519_envelope_signing_and_peer_verification() {
         .unwrap()
         .as_secs();
 
-    let message = format!("{}:{}:node-beta", now, nonce);
+    let message = format!("{}:{}:{}", now, nonce, client_node_id);
     let sig = client_keypair.sign_hex(message.as_bytes());
 
     let req = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "knc_mesh_verify_peer",
         "params": {
-            "peer_node_id": "node-beta",
-            "sender_node_id": "node-beta",
+            "peer_node_id": client_node_id,
+            "sender_node_id": client_node_id,
             "public_key": client_pubkey,
             "signature": sig,
             "nonce": nonce,
@@ -49,7 +50,7 @@ fn test_zero_trust_ed25519_envelope_signing_and_peer_verification() {
     let resp = parse_response(&server.dispatch_request(&req.to_string()));
     assert_eq!(resp["result"]["status"], "ok");
     assert_eq!(resp["result"]["verified"], true);
-    assert_eq!(resp["result"]["peer_node_id"], "node-beta");
+    assert_eq!(resp["result"]["peer_node_id"], client_node_id);
     assert_eq!(resp["result"]["peer_public_key"], client_pubkey);
     assert_eq!(resp["result"]["local_public_key"], server.public_key_hex());
 }
@@ -65,6 +66,7 @@ fn test_zero_trust_rejects_invalid_ed25519_signature() {
     server.enable_zero_trust();
 
     let client_keypair = Ed25519KeyPair::generate();
+    let client_node_id = client_keypair.node_id();
     let client_pubkey = client_keypair.public_key_hex();
     let nonce = "nonce-1002";
     let now = std::time::SystemTime::now()
@@ -80,7 +82,7 @@ fn test_zero_trust_rejects_invalid_ed25519_signature() {
         "jsonrpc": "2.0",
         "method": "knc_mesh_ping",
         "params": {
-            "sender_node_id": "node-beta",
+            "sender_node_id": client_node_id,
             "public_key": client_pubkey,
             "signature": bad_sig,
             "nonce": nonce,
@@ -143,6 +145,7 @@ fn test_zero_trust_replay_attack_prevention() {
     server.enable_zero_trust();
 
     let client_keypair = Ed25519KeyPair::generate();
+    let client_node_id = client_keypair.node_id();
     let client_pubkey = client_keypair.public_key_hex();
     let nonce = "nonce-replay-99";
     let now = std::time::SystemTime::now()
@@ -150,14 +153,14 @@ fn test_zero_trust_replay_attack_prevention() {
         .unwrap()
         .as_secs();
 
-    let message = format!("{}:{}:node-gamma", now, nonce);
+    let message = format!("{}:{}:{}", now, nonce, client_node_id);
     let sig = client_keypair.sign_hex(message.as_bytes());
 
     let req = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "knc_mesh_ping",
         "params": {
-            "sender_node_id": "node-gamma",
+            "sender_node_id": client_node_id,
             "public_key": client_pubkey,
             "signature": sig,
             "nonce": nonce,
@@ -183,14 +186,14 @@ fn test_zero_trust_replay_attack_prevention() {
     // Expired timestamp (> 30s)
     let expired_ts = now.saturating_sub(45);
     let expired_nonce = "nonce-expired-100";
-    let exp_msg = format!("{}:{}:node-gamma", expired_ts, expired_nonce);
+    let exp_msg = format!("{}:{}:{}", expired_ts, expired_nonce, client_node_id);
     let exp_sig = client_keypair.sign_hex(exp_msg.as_bytes());
 
     let exp_req = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "knc_mesh_ping",
         "params": {
-            "sender_node_id": "node-gamma",
+            "sender_node_id": client_node_id,
             "public_key": client_pubkey,
             "signature": exp_sig,
             "nonce": expired_nonce,
@@ -258,6 +261,7 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
         Box::new(aether_compiler::ast::Node::IntLiteral(40)),
         Box::new(aether_compiler::ast::Node::IntLiteral(2)),
     );
+    let server_id = server.canonical_node_id();
     let (exec_pub, exec_sig) = server.sign_envelope("nonce-exec-init", now);
     let exec_req = serde_json::json!({
         "jsonrpc": "2.0",
@@ -270,7 +274,7 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
                 "signature": exec_sig,
                 "timestamp": now,
                 "nonce": "nonce-exec-init",
-                "sender_node_id": "node-snapshot-test"
+                "sender_node_id": server_id
             }
         },
         "id": 100
@@ -290,7 +294,7 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
                 "signature": sig,
                 "timestamp": now + 1,
                 "nonce": "nonce-snap-auth",
-                "sender_node_id": "node-snapshot-test"
+                "sender_node_id": server_id
             }
         },
         "id": 3
@@ -313,7 +317,7 @@ fn test_zero_trust_enforces_auth_on_snapshot_and_restore() {
                 "signature": sig2,
                 "timestamp": now + 2,
                 "nonce": "nonce-restore-auth",
-                "sender_node_id": "node-snapshot-test"
+                "sender_node_id": server_id
             }
         },
         "id": 4

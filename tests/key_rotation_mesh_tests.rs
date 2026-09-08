@@ -39,7 +39,7 @@ fn test_zero_trust_key_rotation_handshake() {
                 "signature": sig_hex,
                 "timestamp": now,
                 "nonce": "nonce-rot-1",
-                "sender_node_id": "node-key-rotation-test"
+                "sender_node_id": server.canonical_node_id()
             }
         },
         "id": 1
@@ -69,7 +69,7 @@ fn test_zero_trust_key_rotation_handshake() {
                 "signature": new_sig,
                 "timestamp": now,
                 "nonce": "nonce-rot-2",
-                "sender_node_id": "node-key-rotation-test"
+                "sender_node_id": server.canonical_node_id()
             }
         },
         "id": 2
@@ -102,11 +102,12 @@ fn test_zero_trust_peer_revocation_list_crl() {
     server.enable_zero_trust();
 
     let peer_keypair = Ed25519KeyPair::generate();
+    let peer_node_id = peer_keypair.node_id();
     let peer_pubkey = peer_keypair.public_key_hex();
     let now = current_ts();
 
     // 1. Verify handshake from valid peer succeeds
-    let msg = format!("{}:{}:{}", now, "nonce-peer-1", "peer-compromised");
+    let msg = format!("{}:{}:{}", now, "nonce-peer-1", peer_node_id);
     let sig_hex = peer_keypair.sign_hex(msg.as_bytes());
 
     let req_hs = json!({
@@ -118,7 +119,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
                 "signature": sig_hex,
                 "timestamp": now,
                 "nonce": "nonce-peer-1",
-                "sender_node_id": "peer-compromised"
+                "sender_node_id": peer_node_id
             }
         },
         "id": 10
@@ -140,7 +141,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
                 "signature": self_sig,
                 "timestamp": now,
                 "nonce": "nonce-revoke-1",
-                "sender_node_id": "node-crl-test"
+                "sender_node_id": server.canonical_node_id()
             }
         },
         "id": 11
@@ -158,7 +159,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
     assert!(server.is_peer_key_revoked(&peer_pubkey));
 
     // 3. Subsequent request from revoked peer must be rejected
-    let msg2 = format!("{}:{}:{}", now, "nonce-peer-2", "peer-compromised");
+    let msg2 = format!("{}:{}:{}", now, "nonce-peer-2", peer_node_id);
     let sig2_hex = peer_keypair.sign_hex(msg2.as_bytes());
 
     let req_blocked = json!({
@@ -170,7 +171,7 @@ fn test_zero_trust_peer_revocation_list_crl() {
                 "signature": sig2_hex,
                 "timestamp": now,
                 "nonce": "nonce-peer-2",
-                "sender_node_id": "peer-compromised"
+                "sender_node_id": peer_node_id
             }
         },
         "id": 12
@@ -301,19 +302,20 @@ fn test_zero_trust_blocks_forced_self_election() {
 
     let now = current_ts();
     let (pubkey, sig) = server.sign_envelope("nonce-elect-force", now);
+    let server_id = server.canonical_node_id();
 
     let req = json!({
         "jsonrpc": "2.0",
         "method": "knc_swarm_elect",
         "params": {
-            "candidate_node_id": "election-node",
+            "candidate_node_id": server_id,
             "force": true,
             "zero_trust_envelope": {
                 "public_key": pubkey,
                 "signature": sig,
                 "timestamp": now,
                 "nonce": "nonce-elect-force",
-                "sender_node_id": "election-node"
+                "sender_node_id": server_id
             }
         },
         "id": 1

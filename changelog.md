@@ -2,6 +2,28 @@
 
 **Vision:** A high-performance, headless Rust runtime & P2P mesh engine for autonomous AI agents — fully driven by JSON-AST.
 
+## [v2.24.23] - Sprint 360: Remediation: Enforce Canonical Self-Certifying Node Identity, Legacy-HMAC Isolation & Remote Audit (2026-09-08)
+Sprint 360 remediates security audit findings around First-Seen Key Pinning (TOFU) front-running and mixed auth environment squatting:
+- **Canonical Self-Certifying Node Identity Derivation (`aether_compiler/src/crypto_ed25519.rs`, `aether_compiler/src/rpc/auth.rs`)**:
+  - Replaced First-Seen Key Pinning (TOFU) with deterministic, self-certifying canonical identity derivation: `node_id` is computed directly from the 32-byte Ed25519 public key as `knc-<64_hex_chars>` via `derive_node_id()`.
+  - Added `node_id(&self) -> String` to `Ed25519KeyPair` and `Ed25519PublicKey`.
+  - Enforced that any incoming zero-trust request, heartbeat, or peer registration asserting a `node_id` divergent from `pubkey.node_id()` is rejected with `-32001` (`ERR_UNAUTHORIZED`), completely eliminating front-running and node name squatting.
+- **Strict Legacy-HMAC Domain Isolation (`aether_compiler/src/rpc/auth.rs`, `aether_compiler/src/rpc/handlers/swarm.rs`)**:
+  - In mixed authentication environments, Legacy-HMAC requests (using shared secrets) are strictly isolated from canonical self-certifying identities.
+  - Any request using Legacy HMAC asserting an identity with a `knc-` prefix (e.g. `knc-*`) is unconditionally rejected with `-32001` (`ERR_UNAUTHORIZED`), preventing shared-secret compromises from forging or squatting canonical peer identities.
+- **Ephemeral In-Memory Peer Key Lifecycle**:
+  - Verified peer identity mappings are stored strictly in ephemeral in-memory state (`verified_peer_keys`), eliminating local disk-based poisoning vectors and ensuring key bindings are dynamically established and validated.
+- **Swarm Governance & Background Worker Symmetrization (`aether_compiler/src/rpc/handlers/swarm.rs`)**:
+  - Updated `start_raft_governance_worker` to dynamically discriminate between legacy HMAC nodes and canonical zero-trust Ed25519 peers, transmitting appropriate credentials and canonical identities.
+- **Quality Gates & Automated Test Coverage**:
+  - Added negative exploit test `test_exploit_arbitrary_node_id_squatting_rejected` verifying that arbitrary node ID squatting attempts are rejected.
+  - Added negative exploit test `test_exploit_legacy_hmac_claiming_knc_identity_rejected` verifying that legacy HMAC requests claiming `knc-*` identities are rejected.
+  - Added regression test `test_canonical_self_certifying_identity_accepted` asserting canonical identity acceptance.
+  - Added `test_derive_node_id` unit test in `crypto_ed25519.rs`.
+  - Added `test_version_assertion_sprint360` in `rpc_modularization_tests.rs` and updated version assertions across all test suites to `v2.24.23` (337/337 tests passing).
+- **100% English Documentation & Version Synchronization (`v2.24.23`)**:
+  - Synchronized version `v2.24.23` across workspace `Cargo.toml` files, `README.md` (*Option 1 layout strictly preserved*, badges updated, `337/337` tests), `llm.md`, `changelog.md`, `ROADMAP.md`, `docs/BENCHMARKS.md`, `docs/SECURITY.md`, and Section 7.22 of `docs/KNOTEN_SPEC.md`.
+
 ## [v2.24.22] - Sprint 359: Consolidation Phase 2: Cryptographic Identity Binding, Poisoning Resilience & CI Enforcement (2026-09-07)
 Sprint 359 eliminates implicit trust assumptions, hardens internal state synchronization against lock poisoning, converts the WASM pipeline into a blocking quality gate, and formalizes zero-trust network invariants:
 - **Deterministic Cryptographic Identity Binding (`aether_compiler/src/rpc/auth.rs`, `aether_compiler/src/rpc/handlers/mesh.rs`)**:

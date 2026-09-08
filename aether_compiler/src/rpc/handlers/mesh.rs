@@ -457,6 +457,25 @@ impl super::super::RpcServer {
             );
         }
 
+        let pubkey = match crate::crypto_ed25519::Ed25519PublicKey::from_hex(peer_pubkey) {
+            Ok(pk) => pk,
+            Err(e) => {
+                return JsonRpcResponse::error(id, -32602, format!("Invalid public_key: {}", e));
+            }
+        };
+
+        let expected_node_id = pubkey.node_id();
+        if peer_id != expected_node_id {
+            return JsonRpcResponse::error(
+                id,
+                -32001,
+                format!(
+                    "Unauthorized: Peer node ID does not match canonical derived public key identity (expected: '{}', claimed: '{}')",
+                    expected_node_id, peer_id
+                ),
+            );
+        }
+
         if self.is_peer_key_revoked(peer_pubkey) {
             return JsonRpcResponse::error(
                 id,
